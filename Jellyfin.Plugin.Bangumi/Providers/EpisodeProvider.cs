@@ -55,7 +55,7 @@ namespace Jellyfin.Plugin.Bangumi.Providers
                 {
                     if (!regex.IsMatch(fileName))
                         continue;
-                    episodeIndex = int.Parse(regex.Matches(fileName)[1].Value);
+                    episodeIndex = int.Parse(regex.Match(fileName).Groups[1].Value);
                     break;
                 }
 
@@ -85,6 +85,7 @@ namespace Jellyfin.Plugin.Bangumi.Providers
             }
 
             result.Item.Name = episode.Name;
+            result.Item.IndexNumber = episode.Order;
             result.Item.Overview = episode.Description;
 
             return result;
