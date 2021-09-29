@@ -22,7 +22,7 @@ namespace Jellyfin.Plugin.Bangumi.API
         [JsonIgnore]
         public string Name => Plugin.Instance.Configuration.TranslationPreference switch
         {
-            TranslationPreferenceType.Chinese => ChineseName,
+            TranslationPreferenceType.Chinese => string.IsNullOrEmpty(ChineseName) ? OriginalName : ChineseName,
             TranslationPreferenceType.Original => OriginalName,
             _ => OriginalName
         };

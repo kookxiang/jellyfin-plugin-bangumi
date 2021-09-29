@@ -40,17 +40,31 @@ namespace Jellyfin.Plugin.Bangumi.Providers
             token.ThrowIfCancellationRequested();
             var result = new MetadataResult<Episode>();
 
+            var fileName = Path.GetFileName(info.Path);
+            if (string.IsNullOrEmpty(fileName))
+                return result;
+
             var seriesId = info.SeriesProviderIds?.GetValueOrDefault(Constants.ProviderName);
             if (string.IsNullOrEmpty(seriesId))
                 return result;
 
+            var episodeListData = await Api.GetEpisodeList(seriesId, token);
+            if (episodeListData?.Episodes == null)
+                return result;
+
             var episodeIndex = info.IndexNumber;
+            if (episodeIndex > 2 * episodeListData.EpisodeCount)
+            {
+                _log.LogWarning($"file {fileName} has incorrect episode index {episodeIndex}, reset to null");
+                episodeIndex = null;
+            }
+            else if (episodeIndex > episodeListData.EpisodeCount)
+            {
+                _log.LogWarning($"file {fileName} may have incorrect episode index {episodeIndex}");
+            }
+
             if (episodeIndex == null)
             {
-                var fileName = Path.GetFileName(info.Path);
-                if (string.IsNullOrEmpty(fileName))
-                    return result;
-
                 foreach (var regex in EpisodeFileNameRegex)
                 {
                     if (!regex.IsMatch(fileName))
@@ -64,10 +78,11 @@ namespace Jellyfin.Plugin.Bangumi.Providers
 
                 _log.LogInformation($"use episode number {episodeIndex} from file name {fileName}");
             }
+            else
+            {
+                _log.LogInformation($"use exists episode number {episodeIndex} from file name {fileName}");
+            }
 
-            var episodeListData = await Api.GetEpisodeList(seriesId, token);
-            if (episodeListData?.Episodes == null)
-                return result;
 
             var episode = info.ProviderIds?.ContainsKey(Constants.ProviderName) == true
                 ? episodeListData.Episodes.Find(x => $"{x.Id}" == info.ProviderIds[Constants.ProviderName])
