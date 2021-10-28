@@ -86,7 +86,7 @@ namespace Jellyfin.Plugin.Bangumi.Providers
 
             var episode = info.ProviderIds?.ContainsKey(Constants.ProviderName) == true
                 ? episodeListData.Episodes.Find(x => $"{x.Id}" == info.ProviderIds[Constants.ProviderName])
-                : episodeListData.Episodes.Find(x => x.Type == EpisodeType.Normal && x.Order == episodeIndex);
+                : episodeListData.Episodes.Find(x => x.Type == EpisodeType.Normal && (int)x.Order == episodeIndex);
             if (episode == null)
                 return result;
 
@@ -100,7 +100,7 @@ namespace Jellyfin.Plugin.Bangumi.Providers
             }
 
             result.Item.Name = episode.Name;
-            result.Item.IndexNumber = episode.Order;
+            result.Item.IndexNumber = (int)episode.Order;
             result.Item.Overview = episode.Description;
 
             return result;

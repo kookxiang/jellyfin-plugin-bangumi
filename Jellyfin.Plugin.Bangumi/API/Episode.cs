@@ -34,7 +34,7 @@ namespace Jellyfin.Plugin.Bangumi.API
         public string Description { get; set; }
 
         [JsonPropertyName("sort")]
-        public int Order { get; set; }
+        public double Order { get; set; }
 
         public string Status { get; set; }
     }
