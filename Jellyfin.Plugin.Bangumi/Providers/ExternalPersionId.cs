@@ -18,6 +18,6 @@ namespace Jellyfin.Plugin.Bangumi.Providers
 
         public ExternalIdMediaType? Type => ExternalIdMediaType.Person;
 
-        public string UrlFormatString => "https://bgm.tv/character/{0}";
+        public string UrlFormatString => "https://bgm.tv/person/{0}";
     }
 }
