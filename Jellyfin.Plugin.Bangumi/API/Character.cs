@@ -7,7 +7,7 @@ namespace Jellyfin.Plugin.Bangumi.API
     /**
      * 虚拟角色
      */
-    internal class Character
+    public class Character
     {
         public int Id { get; set; }
 

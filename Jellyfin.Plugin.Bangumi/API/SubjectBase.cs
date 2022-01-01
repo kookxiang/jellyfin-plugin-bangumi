@@ -3,7 +3,7 @@ using System.Text.Json.Serialization;
 
 namespace Jellyfin.Plugin.Bangumi.API
 {
-    internal class SubjectBase : Subject
+    public class SubjectBase : Subject
     {
         public string Summary { get; set; }
 

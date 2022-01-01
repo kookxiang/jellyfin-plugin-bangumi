@@ -3,7 +3,7 @@ using Jellyfin.Plugin.Bangumi.Configuration;
 
 namespace Jellyfin.Plugin.Bangumi.API
 {
-    internal class Episode
+    public class Episode
     {
         public int Id { get; set; }
 
@@ -18,7 +18,7 @@ namespace Jellyfin.Plugin.Bangumi.API
         public string ChineseName { get; set; }
 
         [JsonIgnore]
-        public string Name => Plugin.Instance.Configuration.TranslationPreference switch
+        public string Name => Plugin.Instance.Configuration?.TranslationPreference switch
         {
             TranslationPreferenceType.Chinese => string.IsNullOrEmpty(ChineseName) ? OriginalName : ChineseName,
             TranslationPreferenceType.Original => OriginalName,

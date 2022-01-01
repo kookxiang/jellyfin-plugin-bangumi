@@ -5,7 +5,7 @@ namespace Jellyfin.Plugin.Bangumi.API
     /**
      * 评分
      */
-    internal class Rating
+    public class Rating
     {
         public int Total { get; set; }
 

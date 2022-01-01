@@ -6,7 +6,7 @@ namespace Jellyfin.Plugin.Bangumi.API
     /**
      * 声优
      */
-    internal class Actor
+    public class Actor
     {
         public int Id { get; set; }
 

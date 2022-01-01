@@ -3,7 +3,7 @@ using Jellyfin.Plugin.Bangumi.Configuration;
 
 namespace Jellyfin.Plugin.Bangumi.API
 {
-    internal class Subject : StatusCode
+    public class Subject : StatusCode
     {
         public int Id { get; set; }
 

@@ -4,7 +4,7 @@ using Jellyfin.Plugin.Bangumi.Configuration;
 
 namespace Jellyfin.Plugin.Bangumi.API
 {
-    internal class Staff
+    public class Staff
     {
         public int Id { get; set; }
 

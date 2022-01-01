@@ -7,7 +7,7 @@ using Jellyfin.Plugin.Bangumi.API;
 
 namespace Jellyfin.Plugin.Bangumi.Providers
 {
-    internal static class Api
+    public static class Api
     {
         private static readonly JsonSerializerOptions DefaultJsonSerializerOptions = new()
         {

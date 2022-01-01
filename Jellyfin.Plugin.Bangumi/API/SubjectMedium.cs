@@ -3,7 +3,7 @@ using System.Text.Json.Serialization;
 
 namespace Jellyfin.Plugin.Bangumi.API
 {
-    internal class SubjectMedium : SubjectSmall
+    public class SubjectMedium : SubjectSmall
     {
         [JsonPropertyName("crt")]
         public List<Character> Characters { get; set; }
