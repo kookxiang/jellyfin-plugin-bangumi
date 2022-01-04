@@ -39,6 +39,12 @@ namespace Jellyfin.Plugin.Bangumi.Providers
             return httpClient.GetStringAsync(url, cancellationToken);
         }
 
+        public static async Task<Episode> GetEpisode(string episodeId, CancellationToken token)
+        {
+            var jsonString = await SendRequest($"https://api.bgm.tv/v0/episodes/{episodeId}", token);
+            return JsonSerializer.Deserialize<Episode>(jsonString, DefaultJsonSerializerOptions);
+        }
+        
         public static async Task<EpisodeList> GetEpisodeList(string seriesId, CancellationToken token)
         {
             var jsonString = await SendRequest($"https://api.bgm.tv/subject/{seriesId}/ep", token);

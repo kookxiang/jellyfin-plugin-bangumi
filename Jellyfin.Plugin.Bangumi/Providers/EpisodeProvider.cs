@@ -38,6 +38,7 @@ namespace Jellyfin.Plugin.Bangumi.Providers
         public async Task<MetadataResult<Episode>> GetMetadata(EpisodeInfo info, CancellationToken token)
         {
             token.ThrowIfCancellationRequested();
+            API.Episode? episode;
             var result = new MetadataResult<Episode>();
 
             var fileName = Path.GetFileName(info.Path);
@@ -48,45 +49,54 @@ namespace Jellyfin.Plugin.Bangumi.Providers
             if (string.IsNullOrEmpty(seriesId))
                 return result;
 
-            var episodeListData = await Api.GetEpisodeList(seriesId, token);
-            if (episodeListData?.Episodes == null)
-                return result;
-
-            var episodeIndex = info.IndexNumber;
-            if (episodeIndex > 2 * episodeListData.EpisodeCount)
+            var episodeId = info.ProviderIds?.GetValueOrDefault(Constants.ProviderName);
+            if (!string.IsNullOrEmpty(episodeId))
             {
-                _log.LogWarning($"file {fileName} has incorrect episode index {episodeIndex}, reset to null");
-                episodeIndex = null;
-            }
-            else if (episodeIndex > episodeListData.EpisodeCount)
-            {
-                _log.LogWarning($"file {fileName} may have incorrect episode index {episodeIndex}");
-            }
-
-            if (episodeIndex == null)
-            {
-                foreach (var regex in EpisodeFileNameRegex)
-                {
-                    if (!regex.IsMatch(fileName))
-                        continue;
-                    episodeIndex = int.Parse(regex.Match(fileName).Groups[1].Value);
-                    break;
-                }
-
-                if (episodeIndex == null)
-                    return result;
-
-                _log.LogInformation($"use episode number {episodeIndex} from file name {fileName}");
+                episode = await Api.GetEpisode(episodeId, token);
             }
             else
             {
-                _log.LogInformation($"use exists episode number {episodeIndex} from file name {fileName}");
+                var episodeListData = await Api.GetEpisodeList(seriesId, token);
+                if (episodeListData?.Episodes == null)
+                    return result;
+
+                var episodeIndex = info.IndexNumber;
+                if (episodeIndex > 2 * episodeListData.EpisodeCount)
+                {
+                    _log.LogWarning($"file {fileName} has incorrect episode index {episodeIndex}, reset to null");
+                    episodeIndex = null;
+                }
+                else if (episodeIndex > episodeListData.EpisodeCount)
+                {
+                    _log.LogWarning($"file {fileName} may have incorrect episode index {episodeIndex}");
+                }
+
+                if (episodeIndex == null)
+                {
+                    foreach (var regex in EpisodeFileNameRegex)
+                    {
+                        if (!regex.IsMatch(fileName))
+                            continue;
+                        episodeIndex = int.Parse(regex.Match(fileName).Groups[1].Value);
+                        break;
+                    }
+
+                    if (episodeIndex == null)
+                        return result;
+
+                    _log.LogInformation($"use episode number {episodeIndex} from file name {fileName}");
+                }
+                else
+                {
+                    _log.LogInformation($"use exists episode number {episodeIndex} from file name {fileName}");
+                }
+
+
+                episode = info.ProviderIds?.ContainsKey(Constants.ProviderName) == true
+                    ? episodeListData.Episodes.Find(x => $"{x.Id}" == info.ProviderIds[Constants.ProviderName])
+                    : episodeListData.Episodes.Find(x => x.Type == EpisodeType.Normal && (int)x.Order == episodeIndex);
             }
 
-
-            var episode = info.ProviderIds?.ContainsKey(Constants.ProviderName) == true
-                ? episodeListData.Episodes.Find(x => $"{x.Id}" == info.ProviderIds[Constants.ProviderName])
-                : episodeListData.Episodes.Find(x => x.Type == EpisodeType.Normal && (int)x.Order == episodeIndex);
             if (episode == null)
                 return result;
 
