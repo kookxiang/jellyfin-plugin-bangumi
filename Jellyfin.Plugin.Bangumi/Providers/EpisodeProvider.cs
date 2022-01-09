@@ -23,10 +23,10 @@ namespace Jellyfin.Plugin.Bangumi.Providers
             new(@"E(\d{2,})")
         };
 
-        private readonly ILogger<SeriesProvider> _log;
+        private readonly ILogger<EpisodeProvider> _log;
         private readonly IApplicationPaths _paths;
 
-        public EpisodeProvider(IApplicationPaths appPaths, ILogger<SeriesProvider> logger)
+        public EpisodeProvider(IApplicationPaths appPaths, ILogger<EpisodeProvider> logger)
         {
             _log = logger;
             _paths = appPaths;
@@ -39,7 +39,7 @@ namespace Jellyfin.Plugin.Bangumi.Providers
         {
             token.ThrowIfCancellationRequested();
             API.Episode? episode;
-            var result = new MetadataResult<Episode>();
+            var result = new MetadataResult<Episode> { ResultLanguage = Constants.Language };
 
             var fileName = Path.GetFileName(info.Path);
             if (string.IsNullOrEmpty(fileName))

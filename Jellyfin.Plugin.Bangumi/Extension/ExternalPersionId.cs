@@ -1,23 +1,23 @@
-﻿using MediaBrowser.Controller.Entities.TV;
+using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Providers;
 using MediaBrowser.Model.Entities;
 using MediaBrowser.Model.Providers;
 
-namespace Jellyfin.Plugin.Bangumi.Providers
+namespace Jellyfin.Plugin.Bangumi.Extension
 {
-    public class ExternalSeriesId : IExternalId
+    public class ExternalPersonId : IExternalId
     {
         public bool Supports(IHasProviderIds item)
         {
-            return item is Series;
+            return item is Person;
         }
 
         public string ProviderName => Constants.ProviderName;
 
         public string Key => Constants.PluginName;
 
-        public ExternalIdMediaType? Type => ExternalIdMediaType.Series;
+        public ExternalIdMediaType? Type => ExternalIdMediaType.Person;
 
-        public string UrlFormatString => "https://bgm.tv/subject/{0}";
+        public string UrlFormatString => "https://bgm.tv/person/{0}";
     }
 }

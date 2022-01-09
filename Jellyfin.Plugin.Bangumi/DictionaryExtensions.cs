@@ -4,13 +4,9 @@ namespace Jellyfin.Plugin.Bangumi
 {
     public static class DictionaryExtensions
     {
-        public static T GetOrDefault<TKey, T>(this IDictionary<TKey, T> dict, TKey key)
+        public static T? GetOrDefault<TKey, T>(this IDictionary<TKey, T> dict, TKey key)
         {
-            T value;
-            if (dict.TryGetValue(key, out value))
-                return value;
-
-            return default;
+            return dict.TryGetValue(key, out var value) ? value : default;
         }
     }
 }

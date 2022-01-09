@@ -36,7 +36,7 @@ namespace Jellyfin.Plugin.Bangumi.Providers
 
             var subject = await Api.GetSeriesDetail(id, token);
 
-            if (subject.DefaultImage != "")
+            if (subject != null && subject.DefaultImage != "")
                 list.Add(new RemoteImageInfo
                 {
                     ProviderName = Name,

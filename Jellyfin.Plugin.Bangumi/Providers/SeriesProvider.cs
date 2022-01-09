@@ -1,4 +1,4 @@
-using System;
+ï»¿using System;
 using System.Collections.Generic;
 using System.Net.Http;
 using System.Threading;
@@ -30,7 +30,7 @@ namespace Jellyfin.Plugin.Bangumi.Providers
         public async Task<MetadataResult<Series>> GetMetadata(SeriesInfo info, CancellationToken token)
         {
             token.ThrowIfCancellationRequested();
-            var result = new MetadataResult<Series>();
+            var result = new MetadataResult<Series> { ResultLanguage = Constants.Language };
 
             var bangumiId = info.ProviderIds.GetOrDefault(Constants.ProviderName);
             if (string.IsNullOrEmpty(bangumiId))
@@ -59,7 +59,7 @@ namespace Jellyfin.Plugin.Bangumi.Providers
             }
 
             result.Item.AirTime = subject.AirDate;
-            result.Item.AirDays = new[] {(DayOfWeek) (subject.AirWeekday % 7)};
+            result.Item.AirDays = new[] { (DayOfWeek)(subject.AirWeekday % 7) };
             result.Item.CommunityRating = subject.Rating.Score;
             result.Item.Name = subject.Name;
             result.Item.Overview = subject.Summary;
@@ -67,9 +67,9 @@ namespace Jellyfin.Plugin.Bangumi.Providers
             subject.StaffList?.ForEach(staff =>
             {
                 string personType;
-                if (staff.Jobs.Contains("µ¼ÑÝ"))
+                if (staff.Jobs.Contains("å¯¼æ¼”"))
                     personType = PersonType.Director;
-                else if (staff.Jobs.Contains("½Å±¾"))
+                else if (staff.Jobs.Contains("è„šæœ¬"))
                     personType = PersonType.Writer;
                 else
                     return;

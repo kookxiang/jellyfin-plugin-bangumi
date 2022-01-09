@@ -32,7 +32,7 @@ namespace Jellyfin.Plugin.Bangumi.Test
         }
     }
 
-    public class TestXmlSerializer: IXmlSerializer
+    public class TestXmlSerializer : IXmlSerializer
     {
         public object DeserializeFromBytes(Type type, byte[] buffer)
         {

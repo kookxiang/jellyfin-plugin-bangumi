@@ -10,9 +10,11 @@ namespace Jellyfin.Plugin.Bangumi.API
 
         public string Url { get; set; }
 
-        [JsonPropertyName("name")] public string OriginalName { get; set; }
+        [JsonPropertyName("name")]
+        public string OriginalName { get; set; }
 
-        [JsonPropertyName("name_cn")] public string ChineseName { get; set; }
+        [JsonPropertyName("name_cn")]
+        public string ChineseName { get; set; }
 
         [JsonIgnore]
         public string Name => Plugin.Instance.Configuration.TranslationPreference switch
@@ -24,7 +26,8 @@ namespace Jellyfin.Plugin.Bangumi.API
 
         public Dictionary<string, string> Images { get; set; }
 
-        [JsonIgnore] public string DefaultImage => Images?["large"];
+        [JsonIgnore]
+        public string DefaultImage => Images?["large"];
 
         public List<string> Jobs { get; set; }
     }
