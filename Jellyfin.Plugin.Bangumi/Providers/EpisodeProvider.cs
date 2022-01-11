@@ -56,41 +56,38 @@ namespace Jellyfin.Plugin.Bangumi.Providers
             }
             else
             {
+                var originalEpisodeIndex = info.IndexNumber ?? 0;
+                var episodeIndex = originalEpisodeIndex;
+
+                foreach (var regex in EpisodeFileNameRegex)
+                {
+                    if (!regex.IsMatch(fileName))
+                        continue;
+                    episodeIndex = int.Parse(regex.Match(fileName).Groups[1].Value);
+                    break;
+                }
+
                 var episodeListData = await Api.GetEpisodeList(seriesId, token);
                 if (episodeListData?.Episodes == null)
                     return result;
 
-                var episodeIndex = info.IndexNumber;
-                if (episodeIndex > 2 * episodeListData.EpisodeCount)
+                if (originalEpisodeIndex > 2 * episodeListData.EpisodeCount)
                 {
-                    _log.LogWarning($"file {fileName} has incorrect episode index {episodeIndex}, reset to null");
-                    episodeIndex = null;
+                    _log.LogWarning($"file {fileName} has incorrect episode index {originalEpisodeIndex}, set to {episodeIndex}");
+                }
+                else if (episodeIndex > 0 && originalEpisodeIndex <= 0)
+                {
+                    _log.LogWarning($"file {fileName} may has incorrect episode index {originalEpisodeIndex}, should be {episodeIndex}");
                 }
                 else if (episodeIndex > episodeListData.EpisodeCount)
                 {
-                    _log.LogWarning($"file {fileName} may have incorrect episode index {episodeIndex}");
-                }
-
-                if (episodeIndex == null)
-                {
-                    foreach (var regex in EpisodeFileNameRegex)
-                    {
-                        if (!regex.IsMatch(fileName))
-                            continue;
-                        episodeIndex = int.Parse(regex.Match(fileName).Groups[1].Value);
-                        break;
-                    }
-
-                    if (episodeIndex == null)
-                        return result;
-
-                    _log.LogInformation($"use episode number {episodeIndex} from file name {fileName}");
+                    _log.LogWarning($"file {fileName} may have incorrect episode index {originalEpisodeIndex}, should be {originalEpisodeIndex}");
                 }
                 else
                 {
-                    _log.LogInformation($"use exists episode number {episodeIndex} from file name {fileName}");
+                    _log.LogInformation($"use exists episode number {originalEpisodeIndex} from file name {fileName}");
+                    episodeIndex = originalEpisodeIndex;
                 }
-
 
                 episode = info.ProviderIds?.ContainsKey(Constants.ProviderName) == true
                     ? episodeListData.Episodes.Find(x => $"{x.Id}" == info.ProviderIds[Constants.ProviderName])

@@ -28,7 +28,7 @@ namespace Jellyfin.Plugin.Bangumi.Test
             Assert.IsNotNull(episodeData.Item, "episode data should not be null");
             Assert.AreEqual("WHITE ALBUM", episodeData.Item.Name, "should return the right episode title");
         }
-        
+
         [TestMethod]
         public async Task EpisodeInfoWithoutId()
         {
@@ -70,6 +70,21 @@ namespace Jellyfin.Plugin.Bangumi.Test
             Assert.IsNotNull(episodeData.Item, "episode data should not be null");
             Assert.AreEqual(12, episodeData.Item.IndexNumber, "should fix episode index automatically");
             Assert.AreEqual("「ダニエル」「ブラ会議」「メルヘン・バトルロワイヤル」 「紙のみぞ戦争」", episodeData.Item.Name, "should return the right episode title");
+        }
+
+        [TestMethod]
+        public async Task FixEpisodeIndexWithNumberInName()
+        {
+            var episodeData = await _provider.GetMetadata(new EpisodeInfo
+            {
+                IndexNumber = 0,
+                Path = "/FakePath/Steins;Gate 0 [23][Ma10p_1080p][x265_flac].mkv",
+                SeriesProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "129807" } }
+            }, _token);
+            Assert.IsNotNull(episodeData, "episode data should not be null");
+            Assert.IsNotNull(episodeData.Item, "episode data should not be null");
+            Assert.AreEqual(23, episodeData.Item.IndexNumber, "should fix episode index automatically");
+            Assert.AreEqual("無限遠点のアークライト-Arc-light of the Sky-／交差座標のスターダスト-Milky-way Crossing-", episodeData.Item.Name, "should return the right episode title");
         }
 
         [TestMethod]
