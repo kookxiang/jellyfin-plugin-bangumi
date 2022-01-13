@@ -84,7 +84,16 @@ namespace Jellyfin.Plugin.Bangumi.Test
             Assert.IsNotNull(episodeData, "episode data should not be null");
             Assert.IsNotNull(episodeData.Item, "episode data should not be null");
             Assert.AreEqual(23, episodeData.Item.IndexNumber, "should fix episode index automatically");
-            Assert.AreEqual("無限遠点のアークライト-Arc-light of the Sky-／交差座標のスターダスト-Milky-way Crossing-", episodeData.Item.Name, "should return the right episode title");
+
+            episodeData = await _provider.GetMetadata(new EpisodeInfo
+            {
+                IndexNumber = 0,
+                Path = "/FakePath/Log Horizon 2 [08][Ma10p_1080p][x265_flac].mkv",
+                SeriesProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "100517" } }
+            }, _token);
+            Assert.IsNotNull(episodeData, "episode data should not be null");
+            Assert.IsNotNull(episodeData.Item, "episode data should not be null");
+            Assert.AreEqual(8, episodeData.Item.IndexNumber, "should fix episode index automatically");
         }
 
         [TestMethod]

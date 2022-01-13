@@ -1,11 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Net.Http;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
-using Jellyfin.Plugin.Bangumi.API;
+using Jellyfin.Plugin.Bangumi.Model;
 using MediaBrowser.Common.Configuration;
 using MediaBrowser.Controller.Providers;
 using MediaBrowser.Model.Providers;
@@ -38,7 +39,7 @@ namespace Jellyfin.Plugin.Bangumi.Providers
         public async Task<MetadataResult<Episode>> GetMetadata(EpisodeInfo info, CancellationToken token)
         {
             token.ThrowIfCancellationRequested();
-            API.Episode? episode;
+            Model.Episode? episode;
             var result = new MetadataResult<Episode> { ResultLanguage = Constants.Language };
 
             var fileName = Path.GetFileName(info.Path);
@@ -67,21 +68,17 @@ namespace Jellyfin.Plugin.Bangumi.Providers
                     break;
                 }
 
-                var episodeListData = await Api.GetEpisodeList(seriesId, token);
-                if (episodeListData?.Episodes == null)
+                var episodeListData = await Api.GetSubjectEpisodeList(seriesId, token);
+                if (episodeListData?.Data == null)
                     return result;
 
-                if (originalEpisodeIndex > 2 * episodeListData.EpisodeCount)
+                if (originalEpisodeIndex > episodeListData.Data.Max(ep => ep.Order))
                 {
                     _log.LogWarning($"file {fileName} has incorrect episode index {originalEpisodeIndex}, set to {episodeIndex}");
                 }
                 else if (episodeIndex > 0 && originalEpisodeIndex <= 0)
                 {
                     _log.LogWarning($"file {fileName} may has incorrect episode index {originalEpisodeIndex}, should be {episodeIndex}");
-                }
-                else if (episodeIndex > episodeListData.EpisodeCount)
-                {
-                    _log.LogWarning($"file {fileName} may have incorrect episode index {originalEpisodeIndex}, should be {originalEpisodeIndex}");
                 }
                 else
                 {
@@ -90,8 +87,8 @@ namespace Jellyfin.Plugin.Bangumi.Providers
                 }
 
                 episode = info.ProviderIds?.ContainsKey(Constants.ProviderName) == true
-                    ? episodeListData.Episodes.Find(x => $"{x.Id}" == info.ProviderIds[Constants.ProviderName])
-                    : episodeListData.Episodes.Find(x => x.Type == EpisodeType.Normal && (int)x.Order == episodeIndex);
+                    ? episodeListData.Data.Find(x => $"{x.Id}" == info.ProviderIds[Constants.ProviderName])
+                    : episodeListData.Data.Find(x => x.Type == EpisodeType.Normal && (int)x.Order == episodeIndex);
             }
 
             if (episode == null)
@@ -107,6 +104,7 @@ namespace Jellyfin.Plugin.Bangumi.Providers
             }
 
             result.Item.Name = episode.Name;
+            result.Item.OriginalTitle = episode.OriginalName;
             result.Item.IndexNumber = (int)episode.Order;
             result.Item.Overview = episode.Description;
 
@@ -115,13 +113,12 @@ namespace Jellyfin.Plugin.Bangumi.Providers
 
         public Task<IEnumerable<RemoteSearchResult>> GetSearchResults(EpisodeInfo searchInfo, CancellationToken token)
         {
-            token.ThrowIfCancellationRequested();
             throw new NotImplementedException();
         }
 
         public async Task<HttpResponseMessage> GetImageResponse(string url, CancellationToken token)
         {
-            var httpClient = Plugin.Instance.GetHttpClient();
+            var httpClient = Plugin.Instance!.GetHttpClient();
             return await httpClient.GetAsync(url, token).ConfigureAwait(false);
         }
     }

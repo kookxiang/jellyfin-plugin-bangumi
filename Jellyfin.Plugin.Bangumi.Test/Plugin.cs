@@ -10,7 +10,7 @@ namespace Jellyfin.Plugin.Bangumi.Test
         [AssemblyInitialize]
         public static void Init(TestContext context)
         {
-            _ = new Jellyfin.Plugin.Bangumi.Plugin(new TestApplicationPaths(), new TestXmlSerializer(), new TestHttpClientFactory())
+            _ = new Bangumi.Plugin(new TestApplicationPaths(), new TestXmlSerializer(), new TestHttpClientFactory())
             {
                 Configuration = { TranslationPreference = TranslationPreferenceType.Original }
             };
@@ -19,7 +19,7 @@ namespace Jellyfin.Plugin.Bangumi.Test
         [TestMethod]
         public void PluginInfo()
         {
-            var instance = Jellyfin.Plugin.Bangumi.Plugin.Instance;
+            var instance = Bangumi.Plugin.Instance;
             Assert.AreEqual(Constants.PluginGuid, instance.Id.ToString(), "should have plugin id");
             Assert.AreEqual(Constants.PluginName, instance.Name, "should have plugin name");
             Assert.IsTrue(instance.GetPages().Any(), "should have plugin pages");

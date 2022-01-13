@@ -49,13 +49,13 @@ namespace Jellyfin.Plugin.Bangumi.Test
             }, _token);
             Assert.IsTrue(searchResults.Any(x => x.ProviderIds[Constants.ProviderName].Equals("69496")), "should have correct search result");
         }
-        
+
         [TestMethod]
         public async Task SearchById()
         {
             var searchResults = await _provider.GetSearchResults(new SeriesInfo
             {
-                ProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "69496" } },
+                ProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "69496" } }
             }, _token);
             Assert.IsTrue(searchResults.Any(x => x.ProviderIds[Constants.ProviderName].Equals("69496")), "should have correct search result");
         }
@@ -63,7 +63,7 @@ namespace Jellyfin.Plugin.Bangumi.Test
         [TestMethod]
         public async Task ImageProvider()
         {
-            var imgList = await new SeriesImageProvider().GetImages(new MediaBrowser.Controller.Entities.TV.Episode
+            var imgList = await new SubjectImageProvider().GetImages(new MediaBrowser.Controller.Entities.TV.Episode
             {
                 ProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "69496" } }
             }, _token);
@@ -81,6 +81,7 @@ namespace Jellyfin.Plugin.Bangumi.Test
             Assert.IsNotNull(result.People.Find(x => x.IsType(PersonType.Actor)), "should have at least one actor");
             Assert.IsNotNull(result.People.Find(x => x.IsType(PersonType.Director)), "should have at least one director");
             Assert.IsNotNull(result.People.Find(x => x.IsType(PersonType.Writer)), "should have at least one writer");
+            Assert.AreNotEqual("", result.People?[0].ImageUrl, "person should have image url");
             Assert.IsNotNull(result.Item.ProviderIds[Constants.ProviderName], "should have plugin provider id");
         }
     }

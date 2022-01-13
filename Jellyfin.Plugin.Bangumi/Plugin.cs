@@ -31,7 +31,7 @@ namespace Jellyfin.Plugin.Bangumi
         /// <inheritdoc />
         public override Guid Id => Guid.Parse(Constants.PluginGuid);
 
-        public static Plugin Instance { get; private set; }
+        public static Plugin? Instance { get; private set; }
 
         /// <inheritdoc />
         public IEnumerable<PluginPageInfo> GetPages()

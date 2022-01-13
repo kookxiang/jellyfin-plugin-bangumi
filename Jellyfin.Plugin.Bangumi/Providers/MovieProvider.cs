@@ -1,10 +1,10 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using MediaBrowser.Common.Configuration;
-using MediaBrowser.Controller.Entities.TV;
+using MediaBrowser.Controller.Entities.Movies;
 using MediaBrowser.Controller.Providers;
 using MediaBrowser.Model.Entities;
 using MediaBrowser.Model.Providers;
@@ -12,12 +12,12 @@ using Microsoft.Extensions.Logging;
 
 namespace Jellyfin.Plugin.Bangumi.Providers
 {
-    public class SeriesProvider : IRemoteMetadataProvider<Series, SeriesInfo>, IHasOrder
+    public class MovieProvider : IRemoteMetadataProvider<Movie, MovieInfo>, IHasOrder
     {
-        private readonly ILogger<SeriesProvider> _log;
+        private readonly ILogger<MovieProvider> _log;
         private readonly IApplicationPaths _paths;
 
-        public SeriesProvider(IApplicationPaths appPaths, ILogger<SeriesProvider> logger)
+        public MovieProvider(IApplicationPaths appPaths, ILogger<MovieProvider> logger)
         {
             _log = logger;
             _paths = appPaths;
@@ -26,10 +26,10 @@ namespace Jellyfin.Plugin.Bangumi.Providers
         public int Order => -5;
         public string Name => Constants.ProviderName;
 
-        public async Task<MetadataResult<Series>> GetMetadata(SeriesInfo info, CancellationToken token)
+        public async Task<MetadataResult<Movie>> GetMetadata(MovieInfo info, CancellationToken token)
         {
             token.ThrowIfCancellationRequested();
-            var result = new MetadataResult<Series> { ResultLanguage = Constants.Language };
+            var result = new MetadataResult<Movie> { ResultLanguage = Constants.Language };
 
             var subjectId = info.ProviderIds.GetOrDefault(Constants.ProviderName);
             if (string.IsNullOrEmpty(subjectId))
@@ -47,20 +47,19 @@ namespace Jellyfin.Plugin.Bangumi.Providers
             if (subject == null)
                 return result;
 
-            result.Item = new Series();
+            result.Item = new Movie();
             result.HasMetadata = true;
 
             result.Item.ProviderIds.Add(Constants.ProviderName, subjectId);
             if (!string.IsNullOrEmpty(subject.AirDate))
             {
-                result.Item.AirTime = subject.AirDate;
-                result.Item.AirDays = new[] { DateTime.Parse(subject.AirDate).DayOfWeek };
                 result.Item.PremiereDate = DateTime.Parse(subject.AirDate);
                 result.Item.ProductionYear = DateTime.Parse(subject.AirDate).Year;
             }
 
             result.Item.CommunityRating = subject.Rating?.Score;
-            result.Item.Name = subject.Name;
+            result.Item.Name = subject.ChineseName;
+            result.Item.OriginalTitle = subject.OriginalName;
             result.Item.Overview = subject.Summary;
             result.Item.Tags = subject.PopularTags;
 
@@ -70,7 +69,7 @@ namespace Jellyfin.Plugin.Bangumi.Providers
             return result;
         }
 
-        public async Task<IEnumerable<RemoteSearchResult>> GetSearchResults(SeriesInfo searchInfo,
+        public async Task<IEnumerable<RemoteSearchResult>> GetSearchResults(MovieInfo searchInfo,
             CancellationToken token)
         {
             token.ThrowIfCancellationRequested();
