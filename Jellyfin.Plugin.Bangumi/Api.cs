@@ -53,7 +53,7 @@ namespace Jellyfin.Plugin.Bangumi
                 {
                     Name = "",
                     Role = character.Name,
-                    ImageUrl = character.DefaultImage,
+                    ImageUrl = string.IsNullOrEmpty(character.DefaultImage) ? null : character.DefaultImage,
                     Type = PersonType.Actor,
                     ProviderIds = new Dictionary<string, string>()
                 });
@@ -76,7 +76,7 @@ namespace Jellyfin.Plugin.Bangumi
                 {
                     Name = actor.Name,
                     Role = character.Name,
-                    ImageUrl = actor.DefaultImage,
+                    ImageUrl = string.IsNullOrEmpty(actor.DefaultImage) ? null : actor.DefaultImage,
                     Type = PersonType.Actor,
                     ProviderIds = new Dictionary<string, string> { { Constants.ProviderName, $"{actor.Id}" } }
                 });
