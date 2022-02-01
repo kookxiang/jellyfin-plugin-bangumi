@@ -23,7 +23,7 @@ namespace Jellyfin.Plugin.Bangumi.Providers
             new(@"- ?(\d{2,})"),
             new(@"E(\d{2,})")
         };
-        
+
         private static readonly Regex[] SpecialEpisodeFileNameRegex = { new(@"Special"), new(@"OVA") };
 
         private readonly ILogger<EpisodeProvider> _log;
@@ -58,11 +58,13 @@ namespace Jellyfin.Plugin.Bangumi.Providers
                 episode = await Api.GetEpisode(episodeId, token);
                 if (episode != null)
                     if (!SpecialEpisodeFileNameRegex.Any(x => x.IsMatch(info.Path)))
-                        if ($"{episode?.ParentId}" != seriesId) {
+                        if ($"{episode?.ParentId}" != seriesId)
+                        {
                             _log.LogWarning($"episode #{episodeId} is not belong to series #{seriesId}, ignored");
                             episode = null;
                         }
             }
+
             if (episode == null)
             {
                 var originalEpisodeIndex = info.IndexNumber ?? 0;

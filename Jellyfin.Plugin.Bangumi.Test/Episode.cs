@@ -3,7 +3,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using Jellyfin.Plugin.Bangumi.Providers;
 using MediaBrowser.Controller.Providers;
-using MediaBrowser.Model.Entities;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
@@ -109,7 +108,7 @@ namespace Jellyfin.Plugin.Bangumi.Test
             }, _token);
             Assert.IsNotNull(episodeData, "episode data should not be null");
             Assert.IsNotNull(episodeData.Item, "episode data should not be null");
-            Assert.AreEqual("5168", episodeData.Item.GetProviderId(Constants.ProviderName), "should return the correct episode id");
+            Assert.AreEqual("5168", episodeData.Item.ProviderIds[Constants.ProviderName], "should return the correct episode id");
             Assert.AreEqual("出会い", episodeData.Item.Name, "should return the correct episode title");
             Assert.AreEqual(1, episodeData.Item.IndexNumber, "should fix episode index automatically");
         }
