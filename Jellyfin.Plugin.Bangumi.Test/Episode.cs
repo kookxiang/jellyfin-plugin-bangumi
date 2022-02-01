@@ -3,6 +3,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Jellyfin.Plugin.Bangumi.Providers;
 using MediaBrowser.Controller.Providers;
+using MediaBrowser.Model.Entities;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
@@ -95,14 +96,31 @@ namespace Jellyfin.Plugin.Bangumi.Test
             Assert.IsNotNull(episodeData.Item, "episode data should not be null");
             Assert.AreEqual(8, episodeData.Item.IndexNumber, "should fix episode index automatically");
         }
-
+        
         [TestMethod]
-        public async Task EpisodeDetail()
+        public async Task FixIncorrectEpisodeId()
         {
             var episodeData = await _provider.GetMetadata(new EpisodeInfo
             {
                 IndexNumber = 1080,
-                Path = "/FakePath/Asobi Asobase [12][Ma10p_1080p][x265_flac_aac].mkv",
+                Path = "/FakePath/Saki [01] [Hi10p_720p][BDRip][x264_flac].mkv",
+                ProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "162427" } },
+                SeriesProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "1444" } }
+            }, _token);
+            Assert.IsNotNull(episodeData, "episode data should not be null");
+            Assert.IsNotNull(episodeData.Item, "episode data should not be null");
+            Assert.AreEqual("5168", episodeData.Item.GetProviderId(Constants.ProviderName), "should return the correct episode id");
+            Assert.AreEqual("出会い", episodeData.Item.Name, "should return the correct episode title");
+            Assert.AreEqual(1, episodeData.Item.IndexNumber, "should fix episode index automatically");
+        }
+
+        [TestMethod]
+        public async Task SpecialEpisodeInDifferentSubject()
+        {
+            var episodeData = await _provider.GetMetadata(new EpisodeInfo
+            {
+                IndexNumber = 1080,
+                Path = "/FakePath/Yahari Ore no Seishun Lovecome wa Machigatte Iru. Zoku [OVA][Ma10p_1080p][x265_flac].mkv",
                 ProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "555794" } },
                 SeriesProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "102134" } }
             }, _token);

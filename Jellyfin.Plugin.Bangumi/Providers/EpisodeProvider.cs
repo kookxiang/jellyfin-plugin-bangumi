@@ -23,6 +23,8 @@ namespace Jellyfin.Plugin.Bangumi.Providers
             new(@"- ?(\d{2,})"),
             new(@"E(\d{2,})")
         };
+        
+        private static readonly Regex[] SpecialEpisodeFileNameRegex = { new(@"Special"), new(@"OVA") };
 
         private readonly ILogger<EpisodeProvider> _log;
         private readonly IApplicationPaths _paths;
@@ -39,7 +41,7 @@ namespace Jellyfin.Plugin.Bangumi.Providers
         public async Task<MetadataResult<Episode>> GetMetadata(EpisodeInfo info, CancellationToken token)
         {
             token.ThrowIfCancellationRequested();
-            Model.Episode? episode;
+            Model.Episode? episode = null;
             var result = new MetadataResult<Episode> { ResultLanguage = Constants.Language };
 
             var fileName = Path.GetFileName(info.Path);
@@ -54,8 +56,14 @@ namespace Jellyfin.Plugin.Bangumi.Providers
             if (!string.IsNullOrEmpty(episodeId))
             {
                 episode = await Api.GetEpisode(episodeId, token);
+                if (episode != null)
+                    if (!SpecialEpisodeFileNameRegex.Any(x => x.IsMatch(info.Path)))
+                        if ($"{episode?.ParentId}" != seriesId) {
+                            _log.LogWarning($"episode #{episodeId} is not belong to series #{seriesId}, ignored");
+                            episode = null;
+                        }
             }
-            else
+            if (episode == null)
             {
                 var originalEpisodeIndex = info.IndexNumber ?? 0;
                 var episodeIndex = originalEpisodeIndex;
@@ -86,9 +94,7 @@ namespace Jellyfin.Plugin.Bangumi.Providers
                     episodeIndex = originalEpisodeIndex;
                 }
 
-                episode = info.ProviderIds?.ContainsKey(Constants.ProviderName) == true
-                    ? episodeListData.Data.Find(x => $"{x.Id}" == info.ProviderIds[Constants.ProviderName])
-                    : episodeListData.Data.Find(x => x.Type == EpisodeType.Normal && (int)x.Order == episodeIndex);
+                episode = episodeListData.Data.Find(x => x.Type == EpisodeType.Normal && (int)x.Order == episodeIndex);
             }
 
             if (episode == null)
