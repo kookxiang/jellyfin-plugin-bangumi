@@ -24,7 +24,7 @@ namespace Jellyfin.Plugin.Bangumi.Providers
             new(@"E(\d{2,})")
         };
 
-        private static readonly Regex[] SpecialEpisodeFileNameRegex = { new(@"Special"), new(@"OVA") };
+        private static readonly Regex[] SpecialEpisodeFileNameRegex = { new("Special"), new("OVA"), new("OAD") };
 
         private readonly ILogger<EpisodeProvider> _log;
         private readonly IApplicationPaths _paths;
