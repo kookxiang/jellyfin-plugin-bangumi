@@ -47,7 +47,7 @@ namespace Jellyfin.Plugin.Bangumi.Model
             [JsonPropertyName("role_name")]
             public string? Role { get; set; }
 
-            public List<Actor> Actors { get; set; } = new();
+            public List<Actor>? Actors { get; set; }
         }
 
         public class Actor
