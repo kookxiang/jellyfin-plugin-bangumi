@@ -19,15 +19,8 @@ namespace Jellyfin.Plugin.Bangumi
         public static async Task<List<Subject>> SearchSubject(string keyword, CancellationToken token)
         {
             var jsonString = await SendRequest($"https://api.bgm.tv/search/subject/{Uri.EscapeUriString(keyword)}?type=2", token);
-            try
-            {
-                var searchResult = JsonSerializer.Deserialize<SearchResult<Subject>>(jsonString, DefaultJsonSerializerOptions);
-                return searchResult?.List ?? new List<Subject>();
-            }
-            catch
-            {
-                return new List<Subject>();
-            }
+            var searchResult = JsonSerializer.Deserialize<SearchResult<Subject>>(jsonString, DefaultJsonSerializerOptions);
+            return searchResult?.List ?? new List<Subject>();
         }
 
         public static async Task<Subject?> GetSubject(string id, CancellationToken token)

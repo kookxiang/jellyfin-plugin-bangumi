@@ -12,7 +12,11 @@ namespace Jellyfin.Plugin.Bangumi.Test
         {
             _ = new Bangumi.Plugin(new TestApplicationPaths(), new TestXmlSerializer(), new TestHttpClientFactory())
             {
-                Configuration = { TranslationPreference = TranslationPreferenceType.Original }
+                Configuration =
+                {
+                    ActorOnlyInStaff = false,
+                    TranslationPreference = TranslationPreferenceType.Original
+                }
             };
         }
 

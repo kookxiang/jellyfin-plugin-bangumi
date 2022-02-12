@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
@@ -30,22 +31,24 @@ namespace Jellyfin.Plugin.Bangumi.Providers
         {
             token.ThrowIfCancellationRequested();
             var id = item.GetProviderId(Constants.ProviderName);
-            var list = new List<RemoteImageInfo>();
 
             if (string.IsNullOrEmpty(id))
-                return list;
+                return Enumerable.Empty<RemoteImageInfo>();
 
             var subject = await Api.GetSubject(id, token);
 
             if (subject != null && subject.DefaultImage != "")
-                list.Add(new RemoteImageInfo
+                return new[]
                 {
-                    ProviderName = Constants.PluginName,
-                    Type = ImageType.Primary,
-                    Url = subject.DefaultImage
-                });
+                    new RemoteImageInfo
+                    {
+                        ProviderName = Constants.PluginName,
+                        Type = ImageType.Primary,
+                        Url = subject.DefaultImage
+                    }
+                };
 
-            return list;
+            return Enumerable.Empty<RemoteImageInfo>();
         }
 
         public async Task<HttpResponseMessage> GetImageResponse(string url, CancellationToken token)

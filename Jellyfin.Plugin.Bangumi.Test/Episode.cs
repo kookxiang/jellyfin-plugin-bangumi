@@ -95,7 +95,7 @@ namespace Jellyfin.Plugin.Bangumi.Test
             Assert.IsNotNull(episodeData.Item, "episode data should not be null");
             Assert.AreEqual(8, episodeData.Item.IndexNumber, "should fix episode index automatically");
         }
-        
+
         [TestMethod]
         public async Task FixIncorrectEpisodeId()
         {
@@ -127,6 +127,37 @@ namespace Jellyfin.Plugin.Bangumi.Test
             Assert.IsNotNull(episodeData.Item, "episode data should not be null");
             Assert.AreEqual("きっと、女の子はお砂糖とスパイスと素敵な何かでできている。", episodeData.Item.Name, "should return the correct episode title");
             Assert.AreEqual(1, episodeData.Item.IndexNumber, "should fix episode index automatically");
+        }
+
+        [TestMethod]
+        public async Task CorrectEpisodeIndex()
+        {
+            Assert.AreEqual(10,
+                await TestEpisodeIndex("White Album 2[01][Hi10p_1080p][BDRip][x264_2flac].mkv", 10, 259022),
+                "should use episode index 10 from episode info");
+            Assert.AreEqual(10,
+                await TestEpisodeIndex("White Album 2[01][Hi10p_1080p][BDRip][x264_2flac].mkv", 10, null),
+                "should use episode index 10 from previous");
+
+            Bangumi.Plugin.Instance!.Configuration.AlwaysReplaceEpisodeNumber = true;
+            Assert.AreEqual(1,
+                await TestEpisodeIndex("White Album 2[01][Hi10p_1080p][BDRip][x264_2flac].mkv", 10, 259022),
+                "forced episode index 1 when AlwaysReplaceEpisodeNumber is true");
+            Bangumi.Plugin.Instance!.Configuration.AlwaysReplaceEpisodeNumber = false;
+        }
+
+        private async Task<int?> TestEpisodeIndex(string fileName, int previous, int? episodeId)
+        {
+            var episodeData = await _provider.GetMetadata(new EpisodeInfo
+            {
+                Path = $"/FakePath/{fileName}",
+                IndexNumber = previous,
+                ProviderIds = episodeId == null ? new Dictionary<string, string>() : new Dictionary<string, string> { { Constants.ProviderName, $"{episodeId}" } },
+                SeriesProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "69496" } }
+            }, _token);
+            Assert.IsNotNull(episodeData, "episode data should not be null");
+            Assert.IsNotNull(episodeData.Item, "episode data should not be null");
+            return episodeData.Item.IndexNumber;
         }
     }
 }

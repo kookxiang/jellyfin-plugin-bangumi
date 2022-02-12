@@ -64,7 +64,8 @@ namespace Jellyfin.Plugin.Bangumi.Providers
             result.Item.Overview = subject.Summary;
             result.Item.Tags = subject.PopularTags;
 
-            (await Api.GetSubjectPeople(subjectId, token)).ForEach(result.AddPerson);
+            if (!Plugin.Instance!.Configuration.ActorOnlyInStaff)
+                (await Api.GetSubjectPeople(subjectId, token)).ForEach(result.AddPerson);
             (await Api.GetSubjectCharactersLegacy(subjectId, token)).ForEach(result.AddPerson);
 
             return result;

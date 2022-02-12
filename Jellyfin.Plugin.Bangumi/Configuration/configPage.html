@@ -12,16 +12,27 @@
         <div class="content-primary">
             <form id="bangumiConfigurationForm">
                 <div class="selectContainer">
-                    <label class="selectLabel" for="TranslationPreference">Title Language</label>
-                    <select class="emby-select-withcolor emby-select" id="TranslationPreference" is="emby-select"
-                            name="titleLanguage">
-                        <option id="optLanguageOriginal" value="Original">Original</option>
-                        <option id="optLanguageChinese" value="Chinese">Chinese</option>
+                    <label class="selectLabel" for="TranslationPreference">标题翻译</label>
+                    <select class="emby-select-withcolor emby-select" id="TranslationPreference" is="emby-select">
+                        <option id="optLanguageOriginal" value="Original">优先使用日文</option>
+                        <option id="optLanguageChinese" value="Chinese">优先使用中文翻译</option>
                     </select>
+                </div>
+                <div class="checkboxContainer checkboxContainer-withDescription">
+                    <label class="emby-checkbox-label">
+                        <input id="ActorOnlyInStaff" is="emby-checkbox" type="checkbox"/>
+                        <span>演员表只显示参演声优</span>
+                    </label>
+                </div>
+                <div class="checkboxContainer checkboxContainer-withDescription">
+                    <label class="emby-checkbox-label">
+                        <input id="AlwaysReplaceEpisodeNumber" is="emby-checkbox" type="checkbox"/>
+                        <span>始终根据文件名猜测集数</span>
+                    </label>
                 </div>
                 <div>
                     <button class="raised button-submit block emby-button" is="emby-button" type="submit">
-                        <span>Save</span>
+                        <span>保存</span>
                     </button>
                 </div>
             </form>
@@ -36,6 +47,8 @@
                 Dashboard.showLoadingMsg();
 
                 ApiClient.getPluginConfiguration(bangumiConfigurationPage.pluginUniqueId).then(function (config) {
+                    document.getElementById('ActorOnlyInStaff').checked = config.ActorOnlyInStaff;
+                    document.getElementById('AlwaysReplaceEpisodeNumber').checked = config.AlwaysReplaceEpisodeNumber;
                     document.getElementById('TranslationPreference').value = config.TranslationPreference;
 
                     Dashboard.hideLoadingMsg();
@@ -46,6 +59,8 @@
                 Dashboard.showLoadingMsg();
 
                 ApiClient.getPluginConfiguration(bangumiConfigurationPage.pluginUniqueId).then(function (config) {
+                    config.ActorOnlyInStaff = document.getElementById('ActorOnlyInStaff').checked;
+                    config.AlwaysReplaceEpisodeNumber = document.getElementById('AlwaysReplaceEpisodeNumber').checked;
                     config.TranslationPreference = document.getElementById('TranslationPreference').value;
 
                     ApiClient.updatePluginConfiguration(bangumiConfigurationPage.pluginUniqueId, config).then(function (result) {
