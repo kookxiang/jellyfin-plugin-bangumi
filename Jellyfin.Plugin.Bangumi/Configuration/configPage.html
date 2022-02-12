@@ -20,12 +20,6 @@
                 </div>
                 <div class="checkboxContainer checkboxContainer-withDescription">
                     <label class="emby-checkbox-label">
-                        <input id="ActorOnlyInStaff" is="emby-checkbox" type="checkbox"/>
-                        <span>演员表只显示参演声优</span>
-                    </label>
-                </div>
-                <div class="checkboxContainer checkboxContainer-withDescription">
-                    <label class="emby-checkbox-label">
                         <input id="AlwaysReplaceEpisodeNumber" is="emby-checkbox" type="checkbox"/>
                         <span>始终根据文件名猜测集数</span>
                     </label>
@@ -47,7 +41,6 @@
                 Dashboard.showLoadingMsg();
 
                 ApiClient.getPluginConfiguration(bangumiConfigurationPage.pluginUniqueId).then(function (config) {
-                    document.getElementById('ActorOnlyInStaff').checked = config.ActorOnlyInStaff;
                     document.getElementById('AlwaysReplaceEpisodeNumber').checked = config.AlwaysReplaceEpisodeNumber;
                     document.getElementById('TranslationPreference').value = config.TranslationPreference;
 
@@ -59,7 +52,6 @@
                 Dashboard.showLoadingMsg();
 
                 ApiClient.getPluginConfiguration(bangumiConfigurationPage.pluginUniqueId).then(function (config) {
-                    config.ActorOnlyInStaff = document.getElementById('ActorOnlyInStaff').checked;
                     config.AlwaysReplaceEpisodeNumber = document.getElementById('AlwaysReplaceEpisodeNumber').checked;
                     config.TranslationPreference = document.getElementById('TranslationPreference').value;
 

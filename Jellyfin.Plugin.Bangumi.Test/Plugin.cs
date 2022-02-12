@@ -14,7 +14,6 @@ namespace Jellyfin.Plugin.Bangumi.Test
             {
                 Configuration =
                 {
-                    ActorOnlyInStaff = false,
                     TranslationPreference = TranslationPreferenceType.Original
                 }
             };

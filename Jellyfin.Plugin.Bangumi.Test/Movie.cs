@@ -40,14 +40,6 @@ namespace Jellyfin.Plugin.Bangumi.Test
         }
 
         [TestMethod]
-        public async Task ActorOnlyInStaff()
-        {
-            Bangumi.Plugin.Instance!.Configuration.ActorOnlyInStaff = true;
-            await GetById();
-            Bangumi.Plugin.Instance!.Configuration.ActorOnlyInStaff = false;
-        }
-
-        [TestMethod]
         public async Task SearchByName()
         {
             var searchResults = await _provider.GetSearchResults(new MovieInfo
@@ -75,17 +67,8 @@ namespace Jellyfin.Plugin.Bangumi.Test
             Assert.AreEqual(DateTime.Parse("2013-04-20"), result.Item.PremiereDate, "should return correct premiere date");
             Assert.IsTrue(result.Item.CommunityRating is > 0 and <= 10, "should return rating info");
             Assert.IsNotNull(result.People.Find(x => x.IsType(PersonType.Actor)), "should have at least one actor");
-            if (Bangumi.Plugin.Instance!.Configuration.ActorOnlyInStaff)
-            {
-                Assert.IsNull(result.People.Find(x => x.IsType(PersonType.Director)), "should have no director in result");
-                Assert.IsNull(result.People.Find(x => x.IsType(PersonType.Writer)), "should have no writer in result");
-            }
-            else
-            {
-                Assert.IsNotNull(result.People.Find(x => x.IsType(PersonType.Director)), "should have at least one director");
-                Assert.IsNotNull(result.People.Find(x => x.IsType(PersonType.Writer)), "should have at least one writer");
-            }
-
+            Assert.IsNotNull(result.People.Find(x => x.IsType(PersonType.Director)), "should have at least one director");
+            Assert.IsNotNull(result.People.Find(x => x.IsType(PersonType.Writer)), "should have at least one writer");
             Assert.AreNotEqual("", result.People?[0].ImageUrl, "person should have image url");
             Assert.AreEqual("23119", result.Item.ProviderIds[Constants.ProviderName], "should have plugin provider id");
         }

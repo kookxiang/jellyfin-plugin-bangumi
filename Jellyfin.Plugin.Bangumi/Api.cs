@@ -94,7 +94,6 @@ namespace Jellyfin.Plugin.Bangumi
                         "制片人" => PersonType.Producer,
                         "系列构成" => PersonType.Composer,
                         "脚本" => PersonType.Writer,
-                        "演出" => PersonType.Actor,
                         _ => ""
                     },
                     ProviderIds = new Dictionary<string, string> { { Constants.ProviderName, $"{person.Id}" } }
