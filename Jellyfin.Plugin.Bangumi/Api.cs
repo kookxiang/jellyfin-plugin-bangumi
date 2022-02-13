@@ -60,7 +60,7 @@ namespace Jellyfin.Plugin.Bangumi
             var result = new List<PersonInfo>();
             var jsonString = await SendRequest($"https://api.bgm.tv/subject/{seriesId}?responseGroup=medium", token);
             var subject = JsonSerializer.Deserialize<Legacy.SubjectMedium?>(jsonString, DefaultJsonSerializerOptions);
-            subject?.Characters.ForEach(character =>
+            subject?.Characters?.ForEach(character =>
             {
                 if (character.Actors == null || character.Actors?.Count == 0)
                     return;

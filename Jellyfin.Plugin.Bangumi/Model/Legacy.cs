@@ -18,7 +18,7 @@ namespace Jellyfin.Plugin.Bangumi.Model
             public string DefaultImage => Images["large"];
 
             [JsonPropertyName("crt")]
-            public List<Character> Characters { get; set; } = new();
+            public List<Character>? Characters { get; set; }
         }
 
         public class Character
