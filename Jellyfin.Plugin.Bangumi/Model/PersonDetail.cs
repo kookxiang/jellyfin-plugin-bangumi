@@ -1,22 +1,14 @@
 using System;
-using System.Collections.Generic;
 using System.Text.Json.Serialization;
 
 namespace Jellyfin.Plugin.Bangumi.Model
 {
-    public class PersonDetail
+    public class PersonDetail : Person
     {
-        public int Id { get; set; }
+        public string Summary { get; set; } = "";
 
-        public string Name { get; set; } = "";
-
-        public Dictionary<string, string> Images { get; set; } = new();
-
-        [JsonIgnore]
-        public string? DefaultImage => Images?["large"];
-
-        [JsonPropertyName("summary")]
-        public string Description { get; set; } = "";
+        [JsonPropertyName("blood_type")]
+        public BloodType? BloodType { get; set; }
 
         [JsonPropertyName("birth_year")]
         public int? BirthYear { get; set; }

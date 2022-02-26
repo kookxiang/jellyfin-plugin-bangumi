@@ -39,7 +39,7 @@ namespace Jellyfin.Plugin.Bangumi.Providers
             result.Item = new Person
             {
                 Name = person.Name,
-                Overview = person.Description,
+                Overview = person.Summary,
                 PremiereDate = person.Birthdate,
                 ProductionYear = person.BirthYear
             };

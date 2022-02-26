@@ -7,9 +7,6 @@ namespace Jellyfin.Plugin.Bangumi.Model
 {
     public class Subject
     {
-        [JsonIgnore]
-        public readonly Dictionary<string, string> Informations = new();
-
         public int Id { get; set; }
 
         [JsonPropertyName("name")]
@@ -31,13 +28,7 @@ namespace Jellyfin.Plugin.Bangumi.Model
         [JsonPropertyName("date")]
         public string? AirDate { get; set; }
 
-        [JsonPropertyName("infobox")]
-        public List<InfoBoxItem>? InformationList
-        {
-            set => value?.ForEach(item => Informations[item.Key] = item.Value);
-        }
-
-        public Dictionary<string, string> Images { get; set; } = new();
+        public Dictionary<string, string>? Images { get; set; }
 
         [JsonIgnore]
         public string? DefaultImage => Images?["large"];

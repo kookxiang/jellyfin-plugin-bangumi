@@ -1,11 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using Jellyfin.Plugin.Bangumi.Model;
 using MediaBrowser.Controller.Entities;
-using MediaBrowser.Model.Entities;
+using JellyfinPersonType = MediaBrowser.Model.Entities.PersonType;
 
 namespace Jellyfin.Plugin.Bangumi
 {
@@ -42,37 +43,16 @@ namespace Jellyfin.Plugin.Bangumi
             var characters = JsonSerializer.Deserialize<List<RelatedCharacter>?>(jsonString, DefaultJsonSerializerOptions);
             characters?.ForEach(character =>
             {
-                result.Add(new PersonInfo
-                {
-                    Name = "",
-                    Role = character.Name,
-                    ImageUrl = string.IsNullOrEmpty(character.DefaultImage) ? null : character.DefaultImage,
-                    Type = PersonType.Actor,
-                    ProviderIds = new Dictionary<string, string>()
-                });
-            });
-            return result;
-        }
-
-        [Obsolete("use GetSubjectCharacters when new api available")]
-        public static async Task<List<PersonInfo>> GetSubjectCharactersLegacy(string seriesId, CancellationToken token)
-        {
-            var result = new List<PersonInfo>();
-            var jsonString = await SendRequest($"https://api.bgm.tv/subject/{seriesId}?responseGroup=medium", token);
-            var subject = JsonSerializer.Deserialize<Legacy.SubjectMedium?>(jsonString, DefaultJsonSerializerOptions);
-            subject?.Characters?.ForEach(character =>
-            {
-                if (character.Actors == null || character.Actors?.Count == 0)
+                if (character.Actors == null)
                     return;
-                var actor = character.Actors![0];
-                result.Add(new PersonInfo
+                result.AddRange(character.Actors.Select(actor => new PersonInfo
                 {
                     Name = actor.Name,
                     Role = character.Name,
-                    ImageUrl = string.IsNullOrEmpty(actor.DefaultImage) ? null : actor.DefaultImage,
-                    Type = PersonType.Actor,
+                    ImageUrl = actor.DefaultImage,
+                    Type = JellyfinPersonType.Actor,
                     ProviderIds = new Dictionary<string, string> { { Constants.ProviderName, $"{actor.Id}" } }
-                });
+                }));
             });
             return result;
         }
@@ -90,10 +70,10 @@ namespace Jellyfin.Plugin.Bangumi
                     ImageUrl = person.DefaultImage,
                     Type = person.Relation switch
                     {
-                        "导演" => PersonType.Director,
-                        "制片人" => PersonType.Producer,
-                        "系列构成" => PersonType.Composer,
-                        "脚本" => PersonType.Writer,
+                        "导演" => JellyfinPersonType.Director,
+                        "制片人" => JellyfinPersonType.Producer,
+                        "系列构成" => JellyfinPersonType.Composer,
+                        "脚本" => JellyfinPersonType.Writer,
                         _ => ""
                     },
                     ProviderIds = new Dictionary<string, string> { { Constants.ProviderName, $"{person.Id}" } }
