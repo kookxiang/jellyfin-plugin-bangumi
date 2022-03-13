@@ -67,7 +67,7 @@ namespace Jellyfin.Plugin.Bangumi.OAuth
                 return;
             }
 
-            if (!e.PlayedToCompletion || e.PlaybackPositionTicks > e.MediaInfo.RunTimeTicks * 0.8)
+            if (!e.PlayedToCompletion && e.PlaybackPositionTicks < e.MediaInfo.RunTimeTicks * 0.8)
             {
                 _log.LogInformation("item #{Id} haven't finish yet, ignored", e.Item.Id);
                 return;
