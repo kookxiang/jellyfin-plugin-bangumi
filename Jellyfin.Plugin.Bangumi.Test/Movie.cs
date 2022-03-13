@@ -6,7 +6,6 @@ using System.Threading.Tasks;
 using Jellyfin.Plugin.Bangumi.Providers;
 using MediaBrowser.Controller.Providers;
 using MediaBrowser.Model.Entities;
-using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace Jellyfin.Plugin.Bangumi.Test
@@ -14,8 +13,7 @@ namespace Jellyfin.Plugin.Bangumi.Test
     [TestClass]
     public class Movie
     {
-        private readonly MovieProvider _provider = new(new TestApplicationPaths(),
-            new NullLogger<MovieProvider>());
+        private readonly MovieProvider _provider = ServiceLocator.GetService<MovieProvider>();
 
         private readonly CancellationToken _token = new();
 

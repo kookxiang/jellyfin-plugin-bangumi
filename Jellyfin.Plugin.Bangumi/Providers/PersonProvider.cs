@@ -3,23 +3,21 @@ using System.Collections.Generic;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
-using MediaBrowser.Common.Configuration;
 using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Providers;
 using MediaBrowser.Model.Providers;
-using Microsoft.Extensions.Logging;
 
 namespace Jellyfin.Plugin.Bangumi.Providers
 {
     public class PersonProvider : IRemoteMetadataProvider<Person, PersonLookupInfo>, IHasOrder
     {
-        private readonly ILogger<PersonProvider> _log;
-        private readonly IApplicationPaths _paths;
+        private readonly BangumiApi _api;
+        private readonly Plugin _plugin;
 
-        public PersonProvider(IApplicationPaths appPaths, ILogger<PersonProvider> logger)
+        public PersonProvider(Plugin plugin, BangumiApi api)
         {
-            _log = logger;
-            _paths = appPaths;
+            _plugin = plugin;
+            _api = api;
         }
 
         public int Order => -5;
@@ -32,7 +30,7 @@ namespace Jellyfin.Plugin.Bangumi.Providers
             var personId = info.ProviderIds?.GetValueOrDefault(Constants.ProviderName);
             if (string.IsNullOrEmpty(personId))
                 return result;
-            var person = await Api.GetPerson(personId, token);
+            var person = await _api.GetPerson(personId, token);
             if (person == null)
                 return result;
             result.HasMetadata = true;
@@ -54,8 +52,7 @@ namespace Jellyfin.Plugin.Bangumi.Providers
 
         public async Task<HttpResponseMessage> GetImageResponse(string url, CancellationToken token)
         {
-            var httpClient = Plugin.Instance!.GetHttpClient();
-            return await httpClient.GetAsync(url, token).ConfigureAwait(false);
+            return await _plugin.GetHttpClient().GetAsync(url, token).ConfigureAwait(false);
         }
     }
 }

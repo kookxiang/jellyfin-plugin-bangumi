@@ -6,7 +6,6 @@ using System.Threading.Tasks;
 using Jellyfin.Plugin.Bangumi.Providers;
 using MediaBrowser.Controller.Providers;
 using MediaBrowser.Model.Entities;
-using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace Jellyfin.Plugin.Bangumi.Test
@@ -14,8 +13,8 @@ namespace Jellyfin.Plugin.Bangumi.Test
     [TestClass]
     public class Series
     {
-        private readonly SeriesProvider _provider = new(new TestApplicationPaths(),
-            new NullLogger<SeriesProvider>());
+        private readonly SubjectImageProvider _imageProvider = ServiceLocator.GetService<SubjectImageProvider>();
+        private readonly SeriesProvider _provider = ServiceLocator.GetService<SeriesProvider>();
 
         private readonly CancellationToken _token = new();
 
@@ -63,7 +62,12 @@ namespace Jellyfin.Plugin.Bangumi.Test
         [TestMethod]
         public async Task ImageProvider()
         {
-            var imgList = await new SubjectImageProvider().GetImages(new MediaBrowser.Controller.Entities.TV.Episode
+            var series = new MediaBrowser.Controller.Entities.TV.Series();
+            Assert.AreEqual(-5, _imageProvider.Order, "should have provider order: -5");
+            Assert.AreEqual(Constants.PluginName, _imageProvider.Name, "should have provider name");
+            Assert.IsTrue(_imageProvider.Supports(series), "should support series image");
+            Assert.AreEqual(ImageType.Primary, _imageProvider.GetSupportedImages(series).First(), "should support primary image");
+            var imgList = await _imageProvider.GetImages(new MediaBrowser.Controller.Entities.TV.Episode
             {
                 ProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "69496" } }
             }, _token);

@@ -3,7 +3,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using Jellyfin.Plugin.Bangumi.Providers;
 using MediaBrowser.Controller.Providers;
-using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace Jellyfin.Plugin.Bangumi.Test
@@ -11,7 +10,8 @@ namespace Jellyfin.Plugin.Bangumi.Test
     [TestClass]
     public class Episode
     {
-        private readonly EpisodeProvider _provider = new(new TestApplicationPaths(), new NullLogger<EpisodeProvider>());
+        private readonly Bangumi.Plugin _plugin = ServiceLocator.GetService<Bangumi.Plugin>();
+        private readonly EpisodeProvider _provider = ServiceLocator.GetService<EpisodeProvider>();
 
         private readonly CancellationToken _token = new();
 
@@ -139,11 +139,11 @@ namespace Jellyfin.Plugin.Bangumi.Test
                 await TestEpisodeIndex("White Album 2[01][Hi10p_1080p][BDRip][x264_2flac].mkv", 10, null),
                 "should use episode index 10 from previous");
 
-            Bangumi.Plugin.Instance!.Configuration.AlwaysReplaceEpisodeNumber = true;
+            _plugin.Configuration.AlwaysReplaceEpisodeNumber = true;
             Assert.AreEqual(1,
                 await TestEpisodeIndex("White Album 2[01][Hi10p_1080p][BDRip][x264_2flac].mkv", 10, 259022),
                 "forced episode index 1 when AlwaysReplaceEpisodeNumber is true");
-            Bangumi.Plugin.Instance!.Configuration.AlwaysReplaceEpisodeNumber = false;
+            _plugin.Configuration.AlwaysReplaceEpisodeNumber = false;
         }
 
         private async Task<int?> TestEpisodeIndex(string fileName, int previous, int? episodeId)

@@ -31,6 +31,7 @@ namespace Jellyfin.Plugin.Bangumi
         /// <inheritdoc />
         public override Guid Id => Guid.Parse(Constants.PluginGuid);
 
+        [Obsolete("use dependency injection instead")]
         public static Plugin? Instance { get; private set; }
 
         /// <inheritdoc />
@@ -40,8 +41,11 @@ namespace Jellyfin.Plugin.Bangumi
             {
                 new PluginPageInfo
                 {
-                    Name = Name,
-                    EmbeddedResourcePath = string.Format("{0}.Configuration.configPage.html", GetType().Namespace)
+                    Name = "Plugin.Bangumi.Configuration",
+                    DisplayName = "Bangumi 设置",
+                    MenuIcon = "app_registration",
+                    EnableInMainMenu = true,
+                    EmbeddedResourcePath = $"{GetType().Namespace}.Configuration.ConfigPage.html"
                 }
             };
         }
@@ -51,7 +55,6 @@ namespace Jellyfin.Plugin.Bangumi
             var httpClient = _httpClientFactory.CreateClient(NamedClient.Default);
             httpClient.DefaultRequestHeaders.UserAgent.Add(
                 new ProductInfoHeaderValue(Name, Version.ToString()));
-
             return httpClient;
         }
     }

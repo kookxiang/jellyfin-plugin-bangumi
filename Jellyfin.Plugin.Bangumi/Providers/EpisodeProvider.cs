@@ -7,7 +7,6 @@ using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using Jellyfin.Plugin.Bangumi.Model;
-using MediaBrowser.Common.Configuration;
 using MediaBrowser.Controller.Providers;
 using MediaBrowser.Model.Providers;
 using Microsoft.Extensions.Logging;
@@ -25,12 +24,16 @@ namespace Jellyfin.Plugin.Bangumi.Providers
         };
 
         private static readonly Regex[] SpecialEpisodeFileNameRegex = { new("Special"), new("OVA"), new("OAD") };
-
+        private readonly BangumiApi _api;
         private readonly ILogger<EpisodeProvider> _log;
 
-        public EpisodeProvider(IApplicationPaths _, ILogger<EpisodeProvider> logger)
+        private readonly Plugin _plugin;
+
+        public EpisodeProvider(Plugin plugin, BangumiApi api, ILogger<EpisodeProvider> log)
         {
-            _log = logger;
+            _plugin = plugin;
+            _api = api;
+            _log = log;
         }
 
         public int Order => -5;
@@ -53,17 +56,17 @@ namespace Jellyfin.Plugin.Bangumi.Providers
             var episodeId = info.ProviderIds?.GetValueOrDefault(Constants.ProviderName);
             if (!string.IsNullOrEmpty(episodeId))
             {
-                episode = await Api.GetEpisode(episodeId, token);
+                episode = await _api.GetEpisode(episodeId, token);
                 if (episode != null)
                     if (!SpecialEpisodeFileNameRegex.Any(x => x.IsMatch(info.Path)))
                         if ($"{episode.ParentId}" != seriesId)
                         {
-                            _log.LogWarning($"episode #{episodeId} is not belong to series #{seriesId}, ignored");
+                            _log.LogWarning("episode #{Episode} is not belong to series #{Series}, ignored", episodeId, seriesId);
                             episode = null;
                         }
             }
 
-            if (Plugin.Instance!.Configuration.AlwaysReplaceEpisodeNumber)
+            if (_plugin.Configuration.AlwaysReplaceEpisodeNumber)
             {
                 var episodeIndex = GuessEpisodeNumber(info.IndexNumber, fileName);
                 if (episodeIndex != info.IndexNumber)
@@ -75,7 +78,7 @@ namespace Jellyfin.Plugin.Bangumi.Providers
 
             if (episode == null)
             {
-                var episodeListData = await Api.GetSubjectEpisodeList(seriesId, token);
+                var episodeListData = await _api.GetSubjectEpisodeList(seriesId, token);
                 if (episodeListData?.Data == null)
                     return result;
 
@@ -110,7 +113,7 @@ namespace Jellyfin.Plugin.Bangumi.Providers
 
         public async Task<HttpResponseMessage> GetImageResponse(string url, CancellationToken token)
         {
-            var httpClient = Plugin.Instance!.GetHttpClient();
+            var httpClient = _plugin.GetHttpClient();
             return await httpClient.GetAsync(url, token).ConfigureAwait(false);
         }
 
@@ -127,25 +130,28 @@ namespace Jellyfin.Plugin.Bangumi.Providers
                 break;
             }
 
-            if (Plugin.Instance!.Configuration.AlwaysReplaceEpisodeNumber && episodeIndexFromFilename != episodeIndex)
+            if (_plugin.Configuration.AlwaysReplaceEpisodeNumber && episodeIndexFromFilename != episodeIndex)
             {
-                _log.LogWarning($"use episode index {episodeIndexFromFilename} instead of {episodeIndex} for {fileName}");
+                _log.LogWarning("use episode index {NewIndex} instead of {Index} for {FileName}",
+                    episodeIndexFromFilename, episodeIndex, fileName);
                 return episodeIndexFromFilename;
             }
 
             if (episodeIndex > max)
             {
-                _log.LogWarning($"file {fileName} has incorrect episode index {episodeIndex}, set to {episodeIndexFromFilename}");
+                _log.LogWarning("file {FileName} has incorrect episode index {Index}, set to {NewIndex}",
+                    fileName, episodeIndex, episodeIndexFromFilename);
                 return episodeIndexFromFilename;
             }
 
             if (episodeIndexFromFilename > 0 && episodeIndex <= 0)
             {
-                _log.LogWarning($"file {fileName} may has incorrect episode index {episodeIndex}, should be {episodeIndexFromFilename}");
+                _log.LogWarning("file {FileName} may has incorrect episode index {Index}, should be {NewIndex}",
+                    fileName, episodeIndex, episodeIndexFromFilename);
                 return episodeIndexFromFilename;
             }
 
-            _log.LogInformation($"use exists episode number {episodeIndex} from file name {fileName}");
+            _log.LogInformation("use exists episode number {Index} from file name {FileName}", episodeIndex, fileName);
             return episodeIndex;
         }
     }

@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
-using MediaBrowser.Common.Configuration;
 using MediaBrowser.Controller.Entities.Movies;
 using MediaBrowser.Controller.Providers;
 using MediaBrowser.Model.Entities;
@@ -14,14 +13,18 @@ namespace Jellyfin.Plugin.Bangumi.Providers
 {
     public class MovieProvider : IRemoteMetadataProvider<Movie, MovieInfo>, IHasOrder
     {
+        private readonly BangumiApi _api;
         private readonly ILogger<MovieProvider> _log;
-        private readonly IApplicationPaths _paths;
+        private readonly Plugin _plugin;
 
-        public MovieProvider(IApplicationPaths appPaths, ILogger<MovieProvider> logger)
+        public MovieProvider(Plugin plugin, BangumiApi api, ILogger<MovieProvider> logger)
         {
+            _plugin = plugin;
+            _api = api;
             _log = logger;
-            _paths = appPaths;
         }
+
+        private HttpClient HttpClient => _plugin.GetHttpClient();
 
         public int Order => -5;
         public string Name => Constants.ProviderName;
@@ -35,7 +38,7 @@ namespace Jellyfin.Plugin.Bangumi.Providers
             if (string.IsNullOrEmpty(subjectId))
             {
                 _log.LogInformation("Searching {Name} in bgm.tv", info.Name);
-                var searchResult = await Api.SearchSubject(info.Name, token);
+                var searchResult = await _api.SearchSubject(info.Name, token);
                 if (searchResult.Count > 0)
                     subjectId = $"{searchResult[0].Id}";
             }
@@ -43,7 +46,7 @@ namespace Jellyfin.Plugin.Bangumi.Providers
             if (string.IsNullOrEmpty(subjectId))
                 return result;
 
-            var subject = await Api.GetSubject(subjectId, token);
+            var subject = await _api.GetSubject(subjectId, token);
             if (subject == null)
                 return result;
 
@@ -63,8 +66,8 @@ namespace Jellyfin.Plugin.Bangumi.Providers
             result.Item.Overview = subject.Summary;
             result.Item.Tags = subject.PopularTags;
 
-            (await Api.GetSubjectPeople(subjectId, token)).ForEach(result.AddPerson);
-            (await Api.GetSubjectCharacters(subjectId, token)).ForEach(result.AddPerson);
+            (await _api.GetSubjectPeople(subjectId, token)).ForEach(result.AddPerson);
+            (await _api.GetSubjectCharacters(subjectId, token)).ForEach(result.AddPerson);
 
             return result;
         }
@@ -79,7 +82,7 @@ namespace Jellyfin.Plugin.Bangumi.Providers
 
             if (!string.IsNullOrEmpty(id))
             {
-                var subject = await Api.GetSubject(id, token);
+                var subject = await _api.GetSubject(id, token);
                 if (subject == null)
                     return results;
                 var result = new RemoteSearchResult
@@ -101,7 +104,7 @@ namespace Jellyfin.Plugin.Bangumi.Providers
             }
             else if (!string.IsNullOrEmpty(searchInfo.Name))
             {
-                var series = await Api.SearchSubject(searchInfo.Name, token);
+                var series = await _api.SearchSubject(searchInfo.Name, token);
                 foreach (var item in series)
                 {
                     var itemId = $"{item.Id}";
@@ -122,8 +125,7 @@ namespace Jellyfin.Plugin.Bangumi.Providers
 
         public async Task<HttpResponseMessage> GetImageResponse(string url, CancellationToken token)
         {
-            var httpClient = Plugin.Instance!.GetHttpClient();
-            return await httpClient.GetAsync(url, token).ConfigureAwait(false);
+            return await HttpClient.GetAsync(url, token).ConfigureAwait(false);
         }
     }
 }

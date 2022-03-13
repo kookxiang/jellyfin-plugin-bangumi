@@ -1,0 +1,229 @@
+﻿<!DOCTYPE html>
+
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <meta charset="utf-8"/>
+    <title>Bangumi</title>
+</head>
+<body>
+<div class="page type-interior pluginConfigurationPage" data-require="emby-input,emby-button,emby-select,emby-checkbox"
+     data-role="page" id="bangumiConfigurationPage">
+    <style>
+        #bangumi-oauth-container {
+            margin-bottom: 32px;
+        }
+
+        #bangumi-oauth-container .bangumi-user-info,
+        #bangumi-oauth-container .bangumi-oauth-status {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+            padding: 12px;
+            margin-bottom: 16px;
+        }
+
+        #bangumi-oauth-container .user-info {
+            display: flex;
+            align-items: center;
+            flex-direction: row;
+            line-height: 48px;
+        }
+
+        #bangumi-oauth-container .user-avatar {
+            background-color: #202020;
+            height: 48px;
+            width: 48px;
+            margin-right: 8px;
+            text-align: center;
+            border-radius: 50%;
+            overflow: hidden;
+        }
+
+        #bangumi-oauth-container .user-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        #bangumi-oauth-container .user-name {
+            flex: 1;
+        }
+
+        #bangumi-oauth-container .profile-link {
+            display: block;
+            width: 48px;
+            height: 48px;
+            padding: 0;
+            line-height: 48px;
+        }
+
+        #bangumi-oauth-container .bangumi-oauth-status:empty {
+            display: none;
+        }
+
+        #bangumi-oauth-container .bangumi-oauth-status p {
+            display: flex;
+            margin: 0 8px;
+            line-height: 42px;
+        }
+
+        #bangumi-oauth-container .bangumi-oauth-status .material-icons {
+            margin-right: 8px;
+            vertical-align: middle;
+        }
+
+        #bangumi-oauth-container .emby-button {
+            margin: 0 12px 0 0;
+        }
+
+        #bangumi-oauth-container .material-icons {
+            line-height: inherit;
+        }
+    </style>
+    <div data-role="content">
+        <div class="content-primary">
+            <form id="bangumiConfigurationForm">
+                <div class="verticalSection verticalSection">
+                    <div class="sectionTitleContainer flex align-items-center">
+                        <h2 class="sectionTitle">账号授权</h2>
+                    </div>
+                </div>
+                <div id="bangumi-oauth-container">
+                    <div class="bangumi-user-info">
+                        <div class="user-info">
+                            <div class="user-avatar">
+                                <span class="material-icons person"></span>
+                            </div>
+                            <div class="user-name">未登录</div>
+                            <a class="profile-link fab" href="https://bgm.tv/" target="_blank">
+                                <span class="material-icons open_in_new"></span>
+                            </a>
+                        </div>
+                    </div>
+                    <div class="bangumi-oauth-status"></div>
+                    <button class="raised emby-button" id="bangumi-oauth-btn" is="emby-button" type="button">
+                        <span>授权登录 Bangumi</span>
+                    </button>
+                    <button class="raised emby-button" id="bangumi-oauth-delete" is="emby-button" style="display: none"
+                            type="button">
+                        <span>取消授权</span>
+                    </button>
+                </div>
+                <div class="verticalSection verticalSection">
+                    <div class="sectionTitleContainer flex align-items-center">
+                        <h2 class="sectionTitle">元数据</h2>
+                    </div>
+                </div>
+                <div class="selectContainer">
+                    <label class="selectLabel" for="TranslationPreference">标题翻译</label>
+                    <select class="emby-select-withcolor emby-select" id="TranslationPreference" is="emby-select">
+                        <option id="optLanguageOriginal" value="Original">优先使用日文</option>
+                        <option id="optLanguageChinese" value="Chinese">优先使用中文翻译</option>
+                    </select>
+                </div>
+                <div class="checkboxContainer checkboxContainer-withDescription">
+                    <label class="emby-checkbox-label">
+                        <input id="AlwaysReplaceEpisodeNumber" is="emby-checkbox" type="checkbox"/>
+                        <span>始终根据文件名猜测集数</span>
+                    </label>
+                </div>
+                <div>
+                    <button class="raised button-submit block emby-button" is="emby-button" type="submit">
+                        <span>保存</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script type="text/javascript">
+        var bangumiConfigurationPage = {
+            pluginUniqueId: "41b59f1b-a6cf-474a-b416-785379cbd856",
+
+            loadConfiguration: function () {
+                Dashboard.showLoadingMsg();
+
+                ApiClient.getPluginConfiguration(bangumiConfigurationPage.pluginUniqueId).then(function (config) {
+                    document.getElementById('AlwaysReplaceEpisodeNumber').checked = config.AlwaysReplaceEpisodeNumber;
+                    document.getElementById('TranslationPreference').value = config.TranslationPreference;
+
+                    Dashboard.hideLoadingMsg();
+                });
+            },
+
+            saveConfiguration: function () {
+                Dashboard.showLoadingMsg();
+
+                ApiClient.getPluginConfiguration(bangumiConfigurationPage.pluginUniqueId).then(function (config) {
+                    config.AlwaysReplaceEpisodeNumber = document.getElementById('AlwaysReplaceEpisodeNumber').checked;
+                    config.TranslationPreference = document.getElementById('TranslationPreference').value;
+
+                    ApiClient.updatePluginConfiguration(bangumiConfigurationPage.pluginUniqueId, config).then(function (result) {
+                        Dashboard.processPluginConfigurationUpdateResult(result);
+                    });
+                });
+            },
+        };
+
+        function refreshBangumiOAuthState() {
+            ApiClient.getJSON('/Plugins/Bangumi/OAuthState').then(function (data) {
+                if (!data) {
+                    document.getElementById('bangumi-oauth-btn').textContent = '授权登录 Bangumi';
+                    document.getElementById('bangumi-oauth-delete').style.display = 'none';
+                    document.querySelector('.bangumi-user-info .user-avatar').innerHTML = '<span class="material-icons person"></span>';
+                    document.querySelector('.bangumi-user-info .user-name').textContent = '未登录';
+                    document.querySelector('.bangumi-oauth-status').innerHTML = '';
+                    return;
+                }
+                document.getElementById('bangumi-oauth-btn').textContent = '手动更新授权';
+                document.getElementById('bangumi-oauth-delete').style.display = '';
+                document.querySelector('.bangumi-user-info .user-avatar').innerHTML = '<img src="' + data.user.avatar.large + '" />';
+                document.querySelector('.bangumi-user-info .user-name').textContent = data.user.nickname;
+                document.querySelector('.bangumi-user-info .profile-link').href = data.user.url;
+                document.querySelector('.bangumi-oauth-status').innerHTML = '<p><span class="material-icons schedule"></span> 授权时间: ' + new Date(data.effective).toLocaleString() + '</p><p><span class="material-icons more_time"></span> 过期时间: ' + new Date(data.expire).toLocaleString() + '</p><p><span class="material-icons sync"></span> 同步服务: 当前播放进度将会自动至 bgm.tv</p>';
+            })
+        }
+
+        function messageHandler(e) {
+            if (e.data === 'BANGUMI-OAUTH-COMPLETE') {
+                refreshBangumiOAuthState();
+            }
+        }
+
+        document.getElementById('bangumiConfigurationPage').addEventListener('viewshow', function () {
+            window.addEventListener("message", messageHandler);
+        });
+
+        document.getElementById('bangumiConfigurationPage').addEventListener('viewhide', function () {
+            window.removeEventListener("message", messageHandler);
+        });
+
+        document.getElementById('bangumiConfigurationPage').addEventListener('pageshow', function () {
+            bangumiConfigurationPage.loadConfiguration();
+            refreshBangumiOAuthState();
+        });
+
+        document.getElementById('bangumiConfigurationForm').addEventListener('submit', function (e) {
+            e.preventDefault();
+            bangumiConfigurationPage.saveConfiguration();
+        });
+
+        document.getElementById('bangumi-oauth-btn').addEventListener('click', function (e) {
+            e.preventDefault();
+            var userId = ApiClient.getCurrentUserId();
+            window.open('https://bgm.tv/oauth/authorize?client_id=bgm16185f43c213d11c9&redirect_uri=' +
+                encodeURIComponent(ApiClient.getUrl('/Plugins/Bangumi/OAuth?user=' + userId)) +
+                '&response_type=code');
+        });
+
+        document.getElementById('bangumi-oauth-delete').addEventListener('click', function (e) {
+            e.preventDefault();
+            Dashboard.confirm('取消后将断开与 Bangumi 的连接，不再同步播放进度', '取消授权', function (confirmed) {
+                if (!confirmed) return;
+                ApiClient.fetch({url: '/Plugins/Bangumi/OAuth', type: 'DELETE'})
+                    .then(refreshBangumiOAuthState);
+            });
+        });
+    </script>
+</div>
+</body>
+</html>

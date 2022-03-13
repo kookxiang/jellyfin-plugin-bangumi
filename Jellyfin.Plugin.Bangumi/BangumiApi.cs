@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.Http.Headers;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
@@ -10,37 +11,44 @@ using JellyfinPersonType = MediaBrowser.Model.Entities.PersonType;
 
 namespace Jellyfin.Plugin.Bangumi
 {
-    public static class Api
+    public class BangumiApi
     {
-        private static readonly JsonSerializerOptions DefaultJsonSerializerOptions = new()
+        private readonly JsonSerializerOptions _options = new()
         {
             PropertyNamingPolicy = JsonNamingPolicy.CamelCase
         };
 
-        public static async Task<List<Subject>> SearchSubject(string keyword, CancellationToken token)
+        private readonly Plugin _plugin;
+
+        public BangumiApi(Plugin plugin)
+        {
+            _plugin = plugin;
+        }
+
+        public async Task<List<Subject>> SearchSubject(string keyword, CancellationToken token)
         {
             var jsonString = await SendRequest($"https://api.bgm.tv/search/subject/{Uri.EscapeUriString(keyword)}?type=2", token);
-            var searchResult = JsonSerializer.Deserialize<SearchResult<Subject>>(jsonString, DefaultJsonSerializerOptions);
+            var searchResult = JsonSerializer.Deserialize<SearchResult<Subject>>(jsonString, _options);
             return searchResult?.List ?? new List<Subject>();
         }
 
-        public static async Task<Subject?> GetSubject(string id, CancellationToken token)
+        public async Task<Subject?> GetSubject(string id, CancellationToken token)
         {
             var jsonString = await SendRequest($"https://api.bgm.tv/v0/subjects/{id}", token);
-            return JsonSerializer.Deserialize<Subject>(jsonString, DefaultJsonSerializerOptions);
+            return JsonSerializer.Deserialize<Subject>(jsonString, _options);
         }
 
-        public static async Task<DataList<Episode>?> GetSubjectEpisodeList(string seriesId, CancellationToken token)
+        public async Task<DataList<Episode>?> GetSubjectEpisodeList(string seriesId, CancellationToken token)
         {
             var jsonString = await SendRequest($"https://api.bgm.tv/v0/episodes?subject_id={seriesId}", token);
-            return JsonSerializer.Deserialize<DataList<Episode>>(jsonString, DefaultJsonSerializerOptions);
+            return JsonSerializer.Deserialize<DataList<Episode>>(jsonString, _options);
         }
 
-        public static async Task<List<PersonInfo>> GetSubjectCharacters(string seriesId, CancellationToken token)
+        public async Task<List<PersonInfo>> GetSubjectCharacters(string seriesId, CancellationToken token)
         {
             var result = new List<PersonInfo>();
             var jsonString = await SendRequest($"https://api.bgm.tv/v0/subjects/{seriesId}/characters", token);
-            var characters = JsonSerializer.Deserialize<List<RelatedCharacter>?>(jsonString, DefaultJsonSerializerOptions);
+            var characters = JsonSerializer.Deserialize<List<RelatedCharacter>?>(jsonString, _options);
             characters?.ForEach(character =>
             {
                 if (character.Actors == null)
@@ -57,11 +65,11 @@ namespace Jellyfin.Plugin.Bangumi
             return result;
         }
 
-        public static async Task<List<PersonInfo>> GetSubjectPeople(string seriesId, CancellationToken token)
+        public async Task<List<PersonInfo>> GetSubjectPeople(string seriesId, CancellationToken token)
         {
             var result = new List<PersonInfo>();
             var jsonString = await SendRequest($"https://api.bgm.tv/v0/subjects/{seriesId}/persons", token);
-            var persons = JsonSerializer.Deserialize<List<RelatedPerson>>(jsonString, DefaultJsonSerializerOptions);
+            var persons = JsonSerializer.Deserialize<List<RelatedPerson>>(jsonString, _options);
             persons?.ForEach(person =>
             {
                 var item = new PersonInfo
@@ -84,21 +92,39 @@ namespace Jellyfin.Plugin.Bangumi
             return result;
         }
 
-        public static async Task<Episode?> GetEpisode(string episodeId, CancellationToken token)
+        public async Task<Episode?> GetEpisode(string episodeId, CancellationToken token)
         {
             var jsonString = await SendRequest($"https://api.bgm.tv/v0/episodes/{episodeId}", token);
-            return JsonSerializer.Deserialize<Episode>(jsonString, DefaultJsonSerializerOptions);
+            return JsonSerializer.Deserialize<Episode>(jsonString, _options);
         }
 
-        public static async Task<PersonDetail?> GetPerson(string personId, CancellationToken token)
+        public async Task<PersonDetail?> GetPerson(string personId, CancellationToken token)
         {
             var jsonString = await SendRequest($"https://api.bgm.tv/v0/persons/{personId}", token);
-            return JsonSerializer.Deserialize<PersonDetail>(jsonString, DefaultJsonSerializerOptions);
+            return JsonSerializer.Deserialize<PersonDetail>(jsonString, _options);
         }
 
-        private static async Task<string> SendRequest(string url, CancellationToken token)
+        public async Task<User?> GetAccountInfo(string accessToken, CancellationToken token)
         {
-            var httpClient = Plugin.Instance!.GetHttpClient();
+            var jsonString = await SendRequest("https://api.bgm.tv/v0/me", accessToken, token);
+            return JsonSerializer.Deserialize<User>(jsonString, _options);
+        }
+
+        public async Task UpdateEpisodeStatus(string accessToken, string episodeId, EpisodeStatus status, CancellationToken token)
+        {
+            await SendRequest($"https://api.bgm.tv/ep/{episodeId}/status/{status}", accessToken, token);
+        }
+
+        private async Task<string> SendRequest(string url, CancellationToken token)
+        {
+            return await SendRequest(url, null, token);
+        }
+
+        private async Task<string> SendRequest(string url, string? accessToken, CancellationToken token)
+        {
+            var httpClient = _plugin.GetHttpClient();
+            if (!string.IsNullOrEmpty(accessToken))
+                httpClient.DefaultRequestHeaders.Authorization = AuthenticationHeaderValue.Parse("Bearer " + accessToken);
             var response = await httpClient.GetAsync(url, token);
             response.EnsureSuccessStatusCode();
             return await response.Content.ReadAsStringAsync(token);
