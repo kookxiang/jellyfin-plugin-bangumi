@@ -19,9 +19,10 @@ namespace Jellyfin.Plugin.Bangumi.OAuth
 
         private Dictionary<Guid, HashSet<Guid>> _ignoreList = new();
 
-        public PlaybackScrobbler(ISessionManager sessionManager, OAuthStore store, BangumiApi api)
+        public PlaybackScrobbler(ISessionManager sessionManager, IUserManager userManager, OAuthStore store, BangumiApi api)
         {
             _sessionManager = sessionManager;
+            _userManager = userManager;
             _store = store;
             _api = api;
         }
@@ -76,7 +77,7 @@ namespace Jellyfin.Plugin.Bangumi.OAuth
             // update episode status to bangumi
             _api.UpdateEpisodeStatus(user.AccessToken, episodeId, EpisodeStatus.Watched, CancellationToken.None)
                 .ConfigureAwait(false);
-            
+
             // add episode to ignore list
             if (_ignoreList.ContainsKey(e.Session.UserId))
                 _ignoreList[e.Session.UserId].Add(e.Item.Id);
