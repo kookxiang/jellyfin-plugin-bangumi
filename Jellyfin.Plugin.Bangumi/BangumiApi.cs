@@ -110,9 +110,9 @@ namespace Jellyfin.Plugin.Bangumi
             return JsonSerializer.Deserialize<User>(jsonString, _options);
         }
 
-        public async Task UpdateEpisodeStatus(string accessToken, string episodeId, string status, CancellationToken token)
+        public async Task UpdateEpisodeStatus(string accessToken, string episodeId, EpisodeStatus status, CancellationToken token)
         {
-            await SendRequest($"https://api.bgm.tv/ep/{episodeId}/status/{status}", accessToken, token);
+            await SendRequest($"https://api.bgm.tv/ep/{episodeId}/status/{status.GetValue()}", accessToken, token);
         }
 
         private async Task<string> SendRequest(string url, CancellationToken token)

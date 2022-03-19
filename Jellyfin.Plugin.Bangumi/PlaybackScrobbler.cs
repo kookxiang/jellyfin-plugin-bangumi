@@ -1,30 +1,32 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Jellyfin.Plugin.Bangumi.Model;
+using Jellyfin.Plugin.Bangumi.OAuth;
 using MediaBrowser.Controller.Library;
 using MediaBrowser.Controller.Plugins;
 using MediaBrowser.Controller.Session;
 using MediaBrowser.Model.Entities;
 using Microsoft.Extensions.Logging;
 
-namespace Jellyfin.Plugin.Bangumi.OAuth
+namespace Jellyfin.Plugin.Bangumi
 {
     public class PlaybackScrobbler : IServerEntryPoint
     {
+        private static readonly Dictionary<Guid, HashSet<string>> Store = new();
+
         private readonly BangumiApi _api;
         private readonly ILogger<PlaybackScrobbler> _log;
         private readonly ISessionManager _sessionManager;
         private readonly OAuthStore _store;
-        private readonly IUserManager _userManager;
+        private readonly IUserDataManager _userDataManager;
 
-        private readonly Dictionary<Guid, HashSet<Guid>> _ignoreList = new();
-
-        public PlaybackScrobbler(ISessionManager sessionManager, IUserManager userManager, OAuthStore store, BangumiApi api, ILogger<PlaybackScrobbler> log)
+        public PlaybackScrobbler(ISessionManager sessionManager, IUserDataManager userDataManager, OAuthStore store, BangumiApi api, ILogger<PlaybackScrobbler> log)
         {
             _sessionManager = sessionManager;
-            _userManager = userManager;
+            _userDataManager = userDataManager;
             _store = store;
             _api = api;
             _log = log;
@@ -32,44 +34,40 @@ namespace Jellyfin.Plugin.Bangumi.OAuth
 
         public void Dispose()
         {
-            _sessionManager.PlaybackStart -= OnPlaybackStart;
+            _userDataManager.UserDataSaved -= OnUserDataSaved;
             _sessionManager.PlaybackStopped -= OnPlaybackStopped;
+            GC.SuppressFinalize(this);
         }
 
         public Task RunAsync()
         {
-            _sessionManager.PlaybackStart += OnPlaybackStart;
+            _userDataManager.UserDataSaved += OnUserDataSaved;
             _sessionManager.PlaybackStopped += OnPlaybackStopped;
             return Task.CompletedTask;
         }
 
-        private void OnPlaybackStart(object? sender, PlaybackProgressEventArgs e)
+        private void OnUserDataSaved(object? sender, UserDataSaveEventArgs e)
         {
-            if (!_ignoreList.ContainsKey(e.Session.UserId))
-                _ignoreList[e.Session.UserId] = new HashSet<Guid>();
-            var user = _userManager.GetUserById(e.Session.UserId);
-            if (!e.Item.IsPlayed(user))
+            if (e.SaveReason is UserDataSaveReason.PlaybackProgress or UserDataSaveReason.PlaybackFinished)
                 return;
-            _log.LogInformation("item #{Id} has been played before, add to ignore list", e.Item.Id);
-            _ignoreList[e.Session.UserId].Add(e.Item.Id);
+
+            if (e.UserData.Played)
+                GetPlaybackHistory(e.UserId).Add(e.UserData.Key);
         }
 
         private void OnPlaybackStopped(object? sender, PlaybackStopEventArgs e)
         {
             var episodeId = e.MediaInfo.GetProviderId(Constants.ProviderName);
 
-            if (!_ignoreList.ContainsKey(e.Session.UserId))
-                _ignoreList[e.Session.UserId] = new HashSet<Guid>();
-
             if (string.IsNullOrEmpty(episodeId))
             {
-                _log.LogInformation("item #{Id} doesn't have bangumi id, ignored", e.Item.Id);
+                _log.LogInformation("item {Name} (#{Id}) doesn't have bangumi id, ignored", e.Item.Name, e.Item.Id);
                 return;
             }
 
             if (!e.PlayedToCompletion && e.PlaybackPositionTicks < e.MediaInfo.RunTimeTicks * 0.8)
             {
-                _log.LogInformation("item #{Id} haven't finish yet, ignored", e.Item.Id);
+                _log.LogInformation("item {Name} (#{Id}) haven't finish yet, ignored", e.Item.Name, e.Item.Id);
                 return;
             }
 
@@ -86,17 +84,24 @@ namespace Jellyfin.Plugin.Bangumi.OAuth
                 return;
             }
 
-            if (_ignoreList[e.Session.UserId].Contains(e.Item.Id))
+            if (e.Item.GetUserDataKeys().Intersect(GetPlaybackHistory(e.Session.UserId)).Any())
             {
-                _log.LogInformation("access token for user #{User} expired, ignored", e.Session.Id);
+                _log.LogInformation("item {Name} (#{Id}) has been played before, ignored", e.Item.Name, e.Item.Id);
                 return;
             }
 
             _log.LogInformation("report episode #{Episode} status {Status} to bangumi", episodeId, EpisodeStatus.Watched);
             _api.UpdateEpisodeStatus(user.AccessToken, episodeId, EpisodeStatus.Watched, CancellationToken.None).Wait();
 
-            _log.LogInformation("report completed, add episode to ignore list");
-            _ignoreList[e.Session.UserId].Add(e.Item.Id);
+            _log.LogInformation("report completed");
+            e.Item.GetUserDataKeys().ForEach(key => GetPlaybackHistory(e.Session.UserId).Add(key));
+        }
+
+        private HashSet<string> GetPlaybackHistory(Guid userId)
+        {
+            if (!Store.TryGetValue(userId, out var history))
+                Store[userId] = history = _userDataManager.GetAllUserData(userId).Where(item => item.Played).Select(item => item.Key).ToHashSet();
+            return history;
         }
     }
 }

@@ -1,10 +1,20 @@
-﻿namespace Jellyfin.Plugin.Bangumi.Model
+﻿using System.Runtime.Serialization;
+using System.Text.Json.Serialization;
+
+namespace Jellyfin.Plugin.Bangumi.Model
 {
-    public class EpisodeStatus
-    {
-        public const string Watched = "watched";
-        public const string InQueue = "queue";
-        public const string Dropped = "drop";
-        public const string Removed = "remove";
+    [JsonConverter(typeof(JsonStringEnumConverter))]
+    public enum EpisodeStatus {
+        [EnumMember(Value = "watched")]
+        Watched,
+        
+        [EnumMember(Value = "queue")]
+        InQueue,
+        
+        [EnumMember(Value = "drop")]
+        Dropped,
+        
+        [EnumMember(Value = "remove")]
+        Removed,
     }
 }

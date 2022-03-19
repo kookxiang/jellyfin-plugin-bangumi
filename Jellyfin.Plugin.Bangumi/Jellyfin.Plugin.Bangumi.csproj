@@ -9,18 +9,18 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="Jellyfin.Controller" Version="10.7.7"/>
-        <PackageReference Include="Microsoft.AspNetCore.Authorization" Version="5.0.3"/>
-        <PackageReference Include="Microsoft.AspNetCore.Mvc" Version="2.2.0"/>
-        <PackageReference Include="Microsoft.Extensions.Http" Version="5.0.0"/>
+        <PackageReference Include="Jellyfin.Controller" Version="10.7.7" />
+        <PackageReference Include="Microsoft.AspNetCore.Authorization" Version="5.0.3" />
+        <PackageReference Include="Microsoft.AspNetCore.Mvc" Version="2.2.0" />
+        <PackageReference Include="Microsoft.Extensions.Http" Version="5.0.0" />
     </ItemGroup>
 
     <ItemGroup>
-        <None Remove="Configuration\configPage.html"/>
-        <EmbeddedResource Include="Configuration\ConfigPage.html"/>
+        <None Remove="Configuration\configPage.html" />
+        <EmbeddedResource Include="Configuration\ConfigPage.html" />
     </ItemGroup>
 
     <ItemGroup>
-        <InternalsVisibleTo Include="Jellyfin.Plugin.Bangumi.Test"/>
+        <InternalsVisibleTo Include="Jellyfin.Plugin.Bangumi.Test" />
     </ItemGroup>
 </Project>
