@@ -1,7 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Net.Http;
-using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using Jellyfin.Data.Entities;
@@ -16,16 +14,17 @@ namespace Jellyfin.Plugin.Bangumi.OAuth
     public class TokenRefreshTask : IScheduledTask
     {
         private readonly IActivityManager _activity;
+        private readonly BangumiApi _api;
         private readonly INotificationManager _notification;
         private readonly Plugin _plugin;
-
         private readonly OAuthStore _store;
 
-        public TokenRefreshTask(IActivityManager activity, INotificationManager notification, Plugin plugin, OAuthStore store)
+        public TokenRefreshTask(IActivityManager activity, INotificationManager notification, Plugin plugin, BangumiApi api, OAuthStore store)
         {
             _activity = activity;
             _notification = notification;
             _plugin = plugin;
+            _api = api;
             _store = store;
         }
 
@@ -41,50 +40,39 @@ namespace Jellyfin.Plugin.Bangumi.OAuth
             var total = users.Count;
             foreach (var (guid, user) in users)
             {
+                var userId = Guid.Parse(guid);
                 token.ThrowIfCancellationRequested();
                 progress.Report(current / total);
                 current++;
                 if (user.Expired)
                     continue;
-                if (user.ExpireTime > DateTime.Now.AddDays(1))
-                    continue;
 
-                var formData = new FormUrlEncodedContent(new[]
+                var activity = new ActivityLog("Bangumi 授权", "Bangumi", userId);
+                try
                 {
-                    new KeyValuePair<string, string>("grant_type", "refresh_token"),
-                    new KeyValuePair<string, string>("client_id", OAuthController.ApplicationId),
-                    new KeyValuePair<string, string>("client_secret", OAuthController.ApplicationSecret),
-                    new KeyValuePair<string, string>("refresh_token", user.RefreshToken)
-                }!);
-                var response = await _plugin.GetHttpClient().PostAsync("https://bgm.tv/oauth/access_token", formData, token);
-                var responseBody = await response.Content.ReadAsStringAsync(token);
-                var activity = new ActivityLog("Bangumi 授权", "Bangumi", Guid.Parse(guid));
-                if (!response.IsSuccessStatusCode)
+                    await user.Refresh(_plugin.GetHttpClient(), userId, token);
+                    await user.GetProfile(_api, token);
+                    activity.ShortOverview = $"用户 #{user.UserId} 授权刷新成功";
+                    activity.LogSeverity = LogLevel.Information;
+                }
+                catch (Exception e)
                 {
-                    var error = JsonSerializer.Deserialize<OAuthError>(responseBody)!;
-                    activity.ShortOverview = $"用户 #{user.UserId} 授权刷新失败: {error.ErrorDescription}";
+                    activity.ShortOverview = $"用户 #{user.UserId} 授权刷新失败: {e.Message}";
                     activity.LogSeverity = LogLevel.Warning;
-
                     await _notification.SendNotification(new NotificationRequest
                     {
                         Name = activity.ShortOverview,
+                        Description = e.StackTrace,
                         Level = NotificationLevel.Warning,
                         UserIds = new[] { Guid.Parse(guid) },
                         Date = DateTime.Now
                     }, token);
                 }
-                else
-                {
-                    var newUser = JsonSerializer.Deserialize<OAuthUser>(responseBody)!;
-                    user.AccessToken = newUser.AccessToken;
-                    user.RefreshToken = newUser.RefreshToken;
-                    user.ExpireTime = newUser.ExpireTime;
-                    activity.ShortOverview = $"用户 #{user.UserId} 授权刷新成功";
-                    activity.LogSeverity = LogLevel.Information;
-                }
 
                 await _activity.CreateAsync(activity);
             }
+
+            _store.Save();
         }
 
         public IEnumerable<TaskTriggerInfo> GetDefaultTriggers()
@@ -94,12 +82,7 @@ namespace Jellyfin.Plugin.Bangumi.OAuth
                 new TaskTriggerInfo
                 {
                     Type = TaskTriggerInfo.TriggerInterval,
-                    IntervalTicks = TimeSpan.FromHours(6).Ticks,
-                    MaxRuntimeTicks = TimeSpan.FromMinutes(10).Ticks
-                },
-                new TaskTriggerInfo
-                {
-                    Type = TaskTriggerInfo.TriggerStartup,
+                    IntervalTicks = TimeSpan.FromDays(1).Ticks,
                     MaxRuntimeTicks = TimeSpan.FromMinutes(10).Ticks
                 }
             };

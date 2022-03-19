@@ -100,6 +100,10 @@
                         </div>
                     </div>
                     <div class="bangumi-oauth-status"></div>
+                    <button class="raised emby-button" id="bangumi-oauth-refresh" is="emby-button" style="display: none"
+                            type="button">
+                        <span>延长授权时间</span>
+                    </button>
                     <button class="raised emby-button" id="bangumi-oauth-btn" is="emby-button" type="button">
                         <span>授权登录 Bangumi</span>
                     </button>
@@ -136,93 +140,114 @@
     </div>
 
     <script type="text/javascript">
-        var bangumiConfigurationPage = {
-            pluginUniqueId: "41b59f1b-a6cf-474a-b416-785379cbd856",
+        (function () {
+            var pluginId = "41b59f1b-a6cf-474a-b416-785379cbd856";
+            var container = document.querySelector('#bangumiConfigurationPage:not(.hide)');
 
-            loadConfiguration: function () {
-                Dashboard.showLoadingMsg();
-
-                ApiClient.getPluginConfiguration(bangumiConfigurationPage.pluginUniqueId).then(function (config) {
-                    document.getElementById('AlwaysReplaceEpisodeNumber').checked = config.AlwaysReplaceEpisodeNumber;
-                    document.getElementById('TranslationPreference').value = config.TranslationPreference;
-
-                    Dashboard.hideLoadingMsg();
-                });
-            },
-
-            saveConfiguration: function () {
-                Dashboard.showLoadingMsg();
-
-                ApiClient.getPluginConfiguration(bangumiConfigurationPage.pluginUniqueId).then(function (config) {
-                    config.AlwaysReplaceEpisodeNumber = document.getElementById('AlwaysReplaceEpisodeNumber').checked;
-                    config.TranslationPreference = document.getElementById('TranslationPreference').value;
-
-                    ApiClient.updatePluginConfiguration(bangumiConfigurationPage.pluginUniqueId, config).then(function (result) {
-                        Dashboard.processPluginConfigurationUpdateResult(result);
-                    });
-                });
-            },
-        };
-
-        function refreshBangumiOAuthState() {
-            ApiClient.getJSON('/Plugins/Bangumi/OAuthState').then(function (data) {
-                if (!data) {
-                    document.getElementById('bangumi-oauth-btn').textContent = '授权登录 Bangumi';
-                    document.getElementById('bangumi-oauth-delete').style.display = 'none';
-                    document.querySelector('.bangumi-user-info .user-avatar').innerHTML = '<span class="material-icons person"></span>';
-                    document.querySelector('.bangumi-user-info .user-name').textContent = '未登录';
-                    document.querySelector('.bangumi-oauth-status').innerHTML = '';
-                    return;
+            function windowMessageHandler(e) {
+                if (e.data === 'BANGUMI-OAUTH-COMPLETE') {
+                    wrapLoading(loadOAuthState());
                 }
-                document.getElementById('bangumi-oauth-btn').textContent = '手动更新授权';
-                document.getElementById('bangumi-oauth-delete').style.display = '';
-                document.querySelector('.bangumi-user-info .user-avatar').innerHTML = '<img src="' + data.user.avatar.large + '" />';
-                document.querySelector('.bangumi-user-info .user-name').textContent = data.user.nickname;
-                document.querySelector('.bangumi-user-info .profile-link').href = data.user.url;
-                document.querySelector('.bangumi-oauth-status').innerHTML = '<p><span class="material-icons schedule"></span> 授权时间: ' + new Date(data.effective).toLocaleString() + '</p><p><span class="material-icons more_time"></span> 过期时间: ' + new Date(data.expire).toLocaleString() + '</p><p><span class="material-icons sync"></span> 同步服务: 当前播放进度将会自动至 bgm.tv</p>';
-            })
-        }
-
-        function messageHandler(e) {
-            if (e.data === 'BANGUMI-OAUTH-COMPLETE') {
-                refreshBangumiOAuthState();
             }
-        }
 
-        document.getElementById('bangumiConfigurationPage').addEventListener('viewshow', function () {
-            window.addEventListener("message", messageHandler);
-        });
+            function loadOAuthState() {
+                return ApiClient.getJSON('/Plugins/Bangumi/OAuthState').then(function (data) {
+                    if (!data) {
+                        container.querySelector('#bangumi-oauth-btn').textContent = '授权登录 Bangumi';
+                        container.querySelector('#bangumi-oauth-btn').style.display = '';
+                        container.querySelector('#bangumi-oauth-refresh').style.display = 'none';
+                        container.querySelector('#bangumi-oauth-delete').style.display = 'none';
+                        container.querySelector('.bangumi-user-info .user-avatar').innerHTML = '<span class="material-icons person"></span>';
+                        container.querySelector('.bangumi-user-info .user-name').textContent = '未登录';
+                        container.querySelector('.bangumi-oauth-status').innerHTML = '';
+                        return;
+                    }
+                    container.querySelector('#bangumi-oauth-btn').textContent = '重新授权';
+                    container.querySelector('#bangumi-oauth-btn').style.display = 'none';
+                    container.querySelector('#bangumi-oauth-refresh').style.display = '';
+                    container.querySelector('#bangumi-oauth-delete').style.display = '';
+                    container.querySelector('.bangumi-user-info .user-avatar').innerHTML = '<img src="' + data.avatar + '" />';
+                    container.querySelector('.bangumi-user-info .user-name').textContent = data.nickname;
+                    container.querySelector('.bangumi-user-info .profile-link').href = data.url;
+                    container.querySelector('.bangumi-oauth-status').innerHTML = '<p><span class="material-icons schedule"></span> 授权时间: ' + new Date(data.effective).toLocaleString() + '</p><p><span class="material-icons more_time"></span> 过期时间: ' + new Date(data.expire).toLocaleString() + '</p><p><span class="material-icons sync"></span> 同步服务: 当前播放进度将会自动至 bgm.tv</p>';
+                });
+            }
 
-        document.getElementById('bangumiConfigurationPage').addEventListener('viewhide', function () {
-            window.removeEventListener("message", messageHandler);
-        });
+            function loadConfiguration() {
+                return ApiClient.getPluginConfiguration(pluginId).then(function (config) {
+                    container.querySelector('#AlwaysReplaceEpisodeNumber').checked = config.AlwaysReplaceEpisodeNumber;
+                    container.querySelector('#TranslationPreference').value = config.TranslationPreference;
+                });
+            }
 
-        document.getElementById('bangumiConfigurationPage').addEventListener('pageshow', function () {
-            bangumiConfigurationPage.loadConfiguration();
-            refreshBangumiOAuthState();
-        });
+            function saveConfiguration() {
+                return wrapLoading(ApiClient.getPluginConfiguration(pluginId).then(function (config) {
+                    config.AlwaysReplaceEpisodeNumber = container.querySelector('#AlwaysReplaceEpisodeNumber').checked;
+                    config.TranslationPreference = container.querySelector('#TranslationPreference').value;
+                    ApiClient.updatePluginConfiguration(pluginId, config)
+                        .then(Dashboard.processPluginConfigurationUpdateResult);
+                }));
+            }
 
-        document.getElementById('bangumiConfigurationForm').addEventListener('submit', function (e) {
-            e.preventDefault();
-            bangumiConfigurationPage.saveConfiguration();
-        });
+            function onLoad() {
+                window.addEventListener("message", windowMessageHandler);
+                wrapLoading(Promise.all([
+                    loadConfiguration(),
+                    loadOAuthState(),
+                ]));
+            }
 
-        document.getElementById('bangumi-oauth-btn').addEventListener('click', function (e) {
-            e.preventDefault();
-            var userId = ApiClient.getCurrentUserId();
-            window.open('https://bgm.tv/oauth/authorize?client_id=bgm16185f43c213d11c9&redirect_uri=' +
-                encodeURIComponent(ApiClient.getUrl('/Plugins/Bangumi/OAuth?user=' + userId)) +
-                '&response_type=code');
-        });
+            function onUnload() {
+                window.removeEventListener("message", windowMessageHandler);
+            }
 
-        document.getElementById('bangumi-oauth-delete').addEventListener('click', function (e) {
-            e.preventDefault();
-            Dashboard.confirm('取消后将断开与 Bangumi 的连接，不再同步播放进度', '取消授权', function (confirmed) {
-                if (!confirmed) return;
-                ApiClient.fetch({url: '/Plugins/Bangumi/OAuth', type: 'DELETE'})
-                    .then(refreshBangumiOAuthState);
+            function wrapLoading(promise) {
+                Dashboard.showLoadingMsg();
+                promise.then(Dashboard.hideLoadingMsg, Dashboard.hideLoadingMsg);
+            }
+
+            container.addEventListener('viewshow', onLoad);
+            container.addEventListener('viewhide', onUnload);
+
+            container.querySelector('#bangumiConfigurationForm').addEventListener('submit', function (e) {
+                e.preventDefault();
+                saveConfiguration();
             });
-        });
+
+            container.querySelector('#bangumi-oauth-btn').addEventListener('click', function (e) {
+                e.preventDefault();
+                window.open('https://bgm.tv/oauth/authorize?client_id=bgm16185f43c213d11c9&redirect_uri=' +
+                    encodeURIComponent(ApiClient.getUrl('/Plugins/Bangumi/OAuth?user=' + ApiClient.getCurrentUserId())) +
+                    '&response_type=code');
+            });
+
+            container.querySelector('#bangumi-oauth-delete').addEventListener('click', function (e) {
+                e.preventDefault();
+                Dashboard.confirm('取消后将断开与 Bangumi 的连接，不再同步播放进度', '取消授权', function (confirmed) {
+                    if (!confirmed) return;
+                    ApiClient.fetch({url: '/Plugins/Bangumi/OAuth', type: 'DELETE'})
+                        .then(function () {
+                            wrapLoading(loadOAuthState());
+                        });
+                });
+            });
+
+            container.querySelector('#bangumi-oauth-refresh').addEventListener('click', function (e) {
+                e.preventDefault();
+                wrapLoading(ApiClient.fetch({
+                    url: '/Plugins/Bangumi/RefreshOAuthToken',
+                    type: 'POST'
+                })
+                    .then(function () {
+                        loadOAuthState();
+                        Dashboard.alert('授权有效期已更新');
+                    }, function () {
+                        Dashboard.alert({title: '错误', message: '续期失败，请尝试重新授权'});
+                        container.querySelector('#bangumi-oauth-btn').style.display = '';
+                        container.querySelector('#bangumi-oauth-refresh').style.display = 'none';
+                    }));
+            });
+        })();
     </script>
 </div>
 </body>

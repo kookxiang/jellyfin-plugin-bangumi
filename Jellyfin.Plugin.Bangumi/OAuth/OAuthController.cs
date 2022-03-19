@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Net.Http;
 using System.Text.Json;
-using System.Threading;
 using System.Threading.Tasks;
 using MediaBrowser.Controller.Net;
 using Microsoft.AspNetCore.Authorization;
@@ -18,14 +17,14 @@ namespace Jellyfin.Plugin.Bangumi.OAuth
         protected internal const string ApplicationSecret = "1b28040afd28882aecf23dcdd86be9f7";
 
         private readonly BangumiApi _api;
-        private readonly OAuthStore _oAuthStore;
         private readonly Plugin _plugin;
         private readonly ISessionContext _sessionContext;
+        private readonly OAuthStore _store;
 
-        public OAuthController(BangumiApi api, OAuthStore oAuthStore, ISessionContext sessionContext, Plugin plugin)
+        public OAuthController(BangumiApi api, OAuthStore store, ISessionContext sessionContext, Plugin plugin)
         {
             _api = api;
-            _oAuthStore = oAuthStore;
+            _store = store;
             _sessionContext = sessionContext;
             _plugin = plugin;
         }
@@ -35,16 +34,39 @@ namespace Jellyfin.Plugin.Bangumi.OAuth
         public async Task<Dictionary<string, object?>?> OAuthState()
         {
             var user = _sessionContext.GetUser(Request);
-            var info = _oAuthStore.Get(user.Id);
+            var info = _store.Get(user.Id);
             if (info == null)
                 return null;
+
+            if (string.IsNullOrEmpty(info.Avatar))
+            {
+                await info.GetProfile(_api);
+                _store.Save();
+            }
+
             return new Dictionary<string, object?>
             {
                 ["id"] = info.UserId,
                 ["effective"] = info.EffectiveTime,
                 ["expire"] = info.ExpireTime,
-                ["user"] = await _api.GetAccountInfo(info.AccessToken, CancellationToken.None)
+                ["avatar"] = info.Avatar,
+                ["nickname"] = info.NickName,
+                ["url"] = info.ProfileUrl
             };
+        }
+
+        [HttpPost("RefreshOAuthToken")]
+        [Authorize("DefaultAuthorization")]
+        public async Task<ActionResult> RefreshOAuthToken()
+        {
+            var user = _sessionContext.GetUser(Request);
+            var info = _store.Get(user.Id);
+            if (info == null)
+                return BadRequest();
+            await info.Refresh(_plugin.GetHttpClient(), user.Id);
+            await info.GetProfile(_api);
+            _store.Save();
+            return Accepted();
         }
 
         [HttpDelete("OAuth")]
@@ -52,8 +74,8 @@ namespace Jellyfin.Plugin.Bangumi.OAuth
         public AcceptedResult DeAuth()
         {
             var user = _sessionContext.GetUser(Request);
-            _oAuthStore.Delete(user.Id);
-            _oAuthStore.Save();
+            _store.Delete(user.Id);
+            _store.Save();
             return Accepted();
         }
 
@@ -73,8 +95,9 @@ namespace Jellyfin.Plugin.Bangumi.OAuth
             if (!response.IsSuccessStatusCode) return JsonSerializer.Deserialize<OAuthError>(responseBody);
             var result = JsonSerializer.Deserialize<OAuthUser>(responseBody)!;
             result.EffectiveTime = DateTime.Now;
-            _oAuthStore.Set(user, result);
-            _oAuthStore.Save();
+            await result.GetProfile(_api);
+            _store.Set(user, result);
+            _store.Save();
             return Content("<script>window.opener.postMessage('BANGUMI-OAUTH-COMPLETE'); window.close()</script>", "text/html");
         }
     }
