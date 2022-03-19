@@ -98,7 +98,7 @@ namespace Jellyfin.Plugin.Bangumi.Providers
                 result.Item.ProductionYear = DateTime.Parse(episode.AirDate).Year;
             }
 
-            result.Item.Name = episode.Name;
+            result.Item.Name = episode.GetName(_plugin.Configuration);
             result.Item.OriginalTitle = episode.OriginalName;
             result.Item.IndexNumber = (int)episode.Order;
             result.Item.Overview = episode.Description;

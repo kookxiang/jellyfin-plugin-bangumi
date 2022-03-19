@@ -12,7 +12,7 @@ namespace Jellyfin.Plugin.Bangumi.Test
         {
             Assert.AreEqual("watched", EpisodeStatus.Watched.GetValue());
         }
-        
+
         [TestMethod]
         public void DictionaryGetOrDefault()
         {

@@ -15,14 +15,6 @@ namespace Jellyfin.Plugin.Bangumi.Model
         [JsonPropertyName("name_cn")]
         public string? ChineseName { get; set; }
 
-        [JsonIgnore]
-        public string Name => Plugin.Instance!.Configuration.TranslationPreference switch
-        {
-            TranslationPreferenceType.Chinese => string.IsNullOrEmpty(ChineseName) ? OriginalName : ChineseName,
-            TranslationPreferenceType.Original => OriginalName,
-            _ => OriginalName
-        };
-
         public string? Summary { get; set; }
 
         [JsonPropertyName("date")]
@@ -50,6 +42,16 @@ namespace Jellyfin.Plugin.Bangumi.Model
                 var baseline = Tags.Sum(tag => tag.Count) / 25;
                 return Tags.Where(tag => tag.Count >= baseline).Select(tag => tag.Name).ToArray();
             }
+        }
+
+        public string GetName(PluginConfiguration? configuration = default)
+        {
+            return configuration?.TranslationPreference switch
+            {
+                TranslationPreferenceType.Chinese => string.IsNullOrEmpty(ChineseName) ? OriginalName : ChineseName,
+                TranslationPreferenceType.Original => OriginalName,
+                _ => OriginalName
+            };
         }
     }
 }

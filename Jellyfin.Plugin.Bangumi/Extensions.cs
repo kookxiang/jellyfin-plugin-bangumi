@@ -11,7 +11,7 @@ namespace Jellyfin.Plugin.Bangumi
         {
             return dict.TryGetValue(key, out var value) ? value : default;
         }
-        
+
         public static string GetValue(this Enum item)
         {
             var value = item.ToString();

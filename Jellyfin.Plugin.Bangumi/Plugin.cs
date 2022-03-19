@@ -21,7 +21,6 @@ namespace Jellyfin.Plugin.Bangumi
             IHttpClientFactory httpClientFactory)
             : base(applicationPaths, xmlSerializer)
         {
-            Instance = this;
             _httpClientFactory = httpClientFactory;
         }
 
@@ -30,9 +29,6 @@ namespace Jellyfin.Plugin.Bangumi
 
         /// <inheritdoc />
         public override Guid Id => Guid.Parse(Constants.PluginGuid);
-
-        [Obsolete("use dependency injection instead")]
-        public static Plugin? Instance { get; private set; }
 
         /// <inheritdoc />
         public IEnumerable<PluginPageInfo> GetPages()

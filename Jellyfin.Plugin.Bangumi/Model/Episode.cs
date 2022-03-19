@@ -18,14 +18,6 @@ namespace Jellyfin.Plugin.Bangumi.Model
         [JsonPropertyName("name_cn")]
         public string? ChineseName { get; set; }
 
-        [JsonIgnore]
-        public string Name => Plugin.Instance!.Configuration.TranslationPreference switch
-        {
-            TranslationPreferenceType.Chinese => string.IsNullOrEmpty(ChineseName) ? OriginalName : ChineseName,
-            TranslationPreferenceType.Original => OriginalName,
-            _ => OriginalName
-        };
-
         [JsonPropertyName("sort")]
         public double Order { get; set; }
 
@@ -42,5 +34,15 @@ namespace Jellyfin.Plugin.Bangumi.Model
 
         [JsonPropertyName("desc")]
         public string? Description { get; set; }
+
+        public string GetName(PluginConfiguration? configuration = default)
+        {
+            return configuration?.TranslationPreference switch
+            {
+                TranslationPreferenceType.Chinese => string.IsNullOrEmpty(ChineseName) ? OriginalName : ChineseName,
+                TranslationPreferenceType.Original => OriginalName,
+                _ => OriginalName
+            };
+        }
     }
 }

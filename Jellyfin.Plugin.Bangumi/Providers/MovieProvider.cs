@@ -87,7 +87,7 @@ namespace Jellyfin.Plugin.Bangumi.Providers
                     return results;
                 var result = new RemoteSearchResult
                 {
-                    Name = subject.Name,
+                    Name = subject.GetName(_plugin.Configuration),
                     SearchProviderName = subject.OriginalName,
                     ImageUrl = subject.DefaultImage,
                     Overview = subject.Summary
@@ -110,7 +110,7 @@ namespace Jellyfin.Plugin.Bangumi.Providers
                     var itemId = $"{item.Id}";
                     var result = new RemoteSearchResult
                     {
-                        Name = item.Name,
+                        Name = item.GetName(_plugin.Configuration),
                         SearchProviderName = item.OriginalName,
                         ImageUrl = item.DefaultImage,
                         Overview = item.Summary
