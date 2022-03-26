@@ -48,11 +48,13 @@ namespace Jellyfin.Plugin.Bangumi
 
         private void OnUserDataSaved(object? sender, UserDataSaveEventArgs e)
         {
-            if (e.SaveReason is UserDataSaveReason.PlaybackProgress or UserDataSaveReason.PlaybackFinished)
+            if (e.SaveReason is not UserDataSaveReason.TogglePlayed)
                 return;
 
             if (e.UserData.Played)
                 GetPlaybackHistory(e.UserId).Add(e.UserData.Key);
+            else
+                GetPlaybackHistory(e.UserId).Remove(e.UserData.Key);
         }
 
         private void OnPlaybackStopped(object? sender, PlaybackStopEventArgs e)
