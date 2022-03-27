@@ -46,8 +46,13 @@ namespace Jellyfin.Plugin.Bangumi
             switch (e.SaveReason)
             {
                 case UserDataSaveReason.TogglePlayed when e.UserData.Played:
-                    GetPlaybackHistory(e.UserId).Add(e.UserData.Key);
-                    _log.LogInformation("mark {Name} (#{Id}) as played for user #{User}", e.Item.Name, e.Item.Id, e.UserId);
+                    // delay 3 seconds to avoid conflict with playback finished event
+                    Task.Delay(TimeSpan.FromSeconds(3))
+                        .ContinueWith(_ =>
+                        {
+                            GetPlaybackHistory(e.UserId).Add(e.UserData.Key);
+                            _log.LogInformation("mark {Name} (#{Id}) as played for user #{User}", e.Item.Name, e.Item.Id, e.UserId);
+                        }).ConfigureAwait(false);
                     break;
 
                 case UserDataSaveReason.TogglePlayed when !e.UserData.Played:
