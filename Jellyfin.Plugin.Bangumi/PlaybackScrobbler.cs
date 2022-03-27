@@ -60,7 +60,7 @@ namespace Jellyfin.Plugin.Bangumi
                     _log.LogInformation("mark {Name} (#{Id}) as new for user #{User}", e.Item.Name, e.Item.Id, e.UserId);
                     break;
 
-                case UserDataSaveReason.PlaybackFinished:
+                case UserDataSaveReason.PlaybackFinished when e.UserData.Played:
                     var bangumiId = e.Item.GetProviderId(Constants.ProviderName);
 
                     if (string.IsNullOrEmpty(bangumiId))
