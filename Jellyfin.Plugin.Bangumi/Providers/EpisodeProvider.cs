@@ -28,7 +28,7 @@ namespace Jellyfin.Plugin.Bangumi.Providers
         {
             new(@"\[(\d{2,})\]"),
             new(@"- ?(\d{2,})"),
-            new(@"E(\d{2,})"),
+            new(@"EP?(\d{2,})"),
             new(@"\[(\d{2,})"),
             new(@"(\d{2,})")
         };
