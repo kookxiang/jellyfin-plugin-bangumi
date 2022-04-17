@@ -82,7 +82,7 @@ namespace Jellyfin.Plugin.Bangumi
                         return;
                     }
 
-                    if (e.Item.GetUserDataKeys().Intersect(GetPlaybackHistory(e.UserId)).Any())
+                    if (e.Keys.Intersect(GetPlaybackHistory(e.UserId)).Any())
                     {
                         _log.LogInformation("item {Name} (#{Id}) has been played before, ignored", e.Item.Name, e.Item.Id);
                         return;
@@ -92,7 +92,7 @@ namespace Jellyfin.Plugin.Bangumi
                     _api.UpdateEpisodeStatus(user.AccessToken, bangumiId, EpisodeStatus.Watched, CancellationToken.None).Wait();
 
                     _log.LogInformation("report completed");
-                    e.Item.GetUserDataKeys().ForEach(key => GetPlaybackHistory(e.UserId).Add(key));
+                    e.Keys.ForEach(key => GetPlaybackHistory(e.UserId).Add(key));
                     break;
             }
         }
