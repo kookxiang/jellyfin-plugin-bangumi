@@ -36,7 +36,7 @@ foreach ($Release in $Releases) {
         checksum =  (Get-FileHash -Algorithm MD5 "release/$version.zip").Hash.ToLower()
         changelog = $Release.body
         targetAbi = $targetAbi
-        sourceUrl = "https://kookxiang.github.io/jellyfin-plugin-bangumi/release/$version.zip"
+        sourceUrl = "https://jellyfin-plugin-bangumi.pages.dev/release/$version.zip"
         timestamp = $Release.published_at
         version = "$version.0"
     }
