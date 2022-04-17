@@ -16,11 +16,21 @@ namespace Jellyfin.Plugin.Bangumi.Providers
 {
     public class EpisodeProvider : IRemoteMetadataProvider<Episode, EpisodeInfo>, IHasOrder
     {
+        private static readonly Regex[] NonEpisodeFileNameRegex =
+        {
+            new(@"\d{3,4}p"),
+            new(@"Hi10p"),
+            new(@"(8|10)bit"),
+            new(@"(x|h)(264|265)")
+        };
+
         private static readonly Regex[] EpisodeFileNameRegex =
         {
             new(@"\[(\d{2,})\]"),
             new(@"- ?(\d{2,})"),
-            new(@"E(\d{2,})")
+            new(@"E(\d{2,})"),
+            new(@"\[(\d{2,})"),
+            new(@"(\d{2,})")
         };
 
         private static readonly Regex[] SpecialEpisodeFileNameRegex = { new("Special"), new("OVA"), new("OAD") };
@@ -119,14 +129,22 @@ namespace Jellyfin.Plugin.Bangumi.Providers
 
         private int GuessEpisodeNumber(int? current, string fileName, double max = double.PositiveInfinity)
         {
+            var tempName = fileName;
             var episodeIndex = current ?? 0;
             var episodeIndexFromFilename = episodeIndex;
 
+            foreach (var regex in NonEpisodeFileNameRegex)
+            {
+                if (!regex.IsMatch(tempName))
+                    continue;
+                tempName = regex.Replace(tempName, "");
+            }
+
             foreach (var regex in EpisodeFileNameRegex)
             {
-                if (!regex.IsMatch(fileName))
+                if (!regex.IsMatch(tempName))
                     continue;
-                episodeIndexFromFilename = int.Parse(regex.Match(fileName).Groups[1].Value);
+                episodeIndexFromFilename = int.Parse(regex.Match(tempName).Groups[1].Value);
                 break;
             }
 

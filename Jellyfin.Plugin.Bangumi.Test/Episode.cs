@@ -97,6 +97,20 @@ namespace Jellyfin.Plugin.Bangumi.Test
         }
 
         [TestMethod]
+        public async Task FixEpisodeIndexWithBracketsInName()
+        {
+            var episodeData = await _provider.GetMetadata(new EpisodeInfo
+            {
+                IndexNumber = 0,
+                Path = "/FakePath/[Date A Live [05(BDBOX Ver.)][Hi10p_1080p][x264_flac].mkv",
+                SeriesProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "49131" } }
+            }, _token);
+            Assert.IsNotNull(episodeData, "episode data should not be null");
+            Assert.IsNotNull(episodeData.Item, "episode data should not be null");
+            Assert.AreEqual(5, episodeData.Item.IndexNumber, "should fix episode index automatically");
+        }
+
+        [TestMethod]
         public async Task FixIncorrectEpisodeId()
         {
             var episodeData = await _provider.GetMetadata(new EpisodeInfo
