@@ -4,6 +4,10 @@
 
 Jellyfin bgm.tv 数据源插件，用于拉取中文番剧信息及图片。
 
+支持将播放进度同步至 bgm.tv
+
+![后台配置](https://user-images.githubusercontent.com/2725379/158064318-98a82a79-a783-4552-abaa-af18724ad9bf.png)
+
 # 下载
 
  - [CI 最新版](https://ci.appveyor.com/project/kookxiang/jellyfin-plugin-bangumi/build/artifacts)
@@ -11,9 +15,15 @@ Jellyfin bgm.tv 数据源插件，用于拉取中文番剧信息及图片。
 
 # 安装
 
+## 通过插件库安装
+
+1. 控制台中选择 插件 - 存储库 - 添加：
+`https://kookxiang.github.io/jellyfin-plugin-bangumi/repository.json`
+2. 在插件目录中找到 Bangumi 插件安装
+
+安装后可在后台更新，推荐使用此方式安装
+
+## 手动安装
+
 1. 下载插件 DLL 文件至 `Jellyfin 数据目录/Plugins/Bangumi`
 2. 重新启动 Jellyfin
-
-# TODO
-
- - [ ] 同步更新 bgm.tv 播放进度
