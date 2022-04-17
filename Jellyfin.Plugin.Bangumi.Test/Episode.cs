@@ -94,6 +94,16 @@ namespace Jellyfin.Plugin.Bangumi.Test
             Assert.IsNotNull(episodeData, "episode data should not be null");
             Assert.IsNotNull(episodeData.Item, "episode data should not be null");
             Assert.AreEqual(8, episodeData.Item.IndexNumber, "should fix episode index automatically");
+
+            episodeData = await _provider.GetMetadata(new EpisodeInfo
+            {
+                IndexNumber = 0,
+                Path = "/FakePath/Kanojo, Okarishimasu [07][Ma444-10p_1080p][x265_flac].mkv",
+                SeriesProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "296076" } }
+            }, _token);
+            Assert.IsNotNull(episodeData, "episode data should not be null");
+            Assert.IsNotNull(episodeData.Item, "episode data should not be null");
+            Assert.AreEqual(7, episodeData.Item.IndexNumber, "should fix episode index automatically");
         }
 
         [TestMethod]

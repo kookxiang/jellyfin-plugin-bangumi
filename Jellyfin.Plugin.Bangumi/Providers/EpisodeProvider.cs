@@ -19,7 +19,7 @@ namespace Jellyfin.Plugin.Bangumi.Providers
         private static readonly Regex[] NonEpisodeFileNameRegex =
         {
             new(@"\d{3,4}p"),
-            new(@"Hi10p"),
+            new(@"(Hi)?10p"),
             new(@"(8|10)bit"),
             new(@"(x|h)(264|265)")
         };
