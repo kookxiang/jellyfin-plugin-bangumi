@@ -104,6 +104,16 @@ namespace Jellyfin.Plugin.Bangumi.Test
             Assert.IsNotNull(episodeData, "episode data should not be null");
             Assert.IsNotNull(episodeData.Item, "episode data should not be null");
             Assert.AreEqual(7, episodeData.Item.IndexNumber, "should fix episode index automatically");
+
+            episodeData = await _provider.GetMetadata(new EpisodeInfo
+            {
+                IndexNumber = 0,
+                Path = "/FakePath/Kakegurui 賭ケグルイ [Live Action S01] 第02話 (BDRip 1920x1080p x264 10bit AVC FLAC).mkv",
+                SeriesProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "230953" } }
+            }, _token);
+            Assert.IsNotNull(episodeData, "episode data should not be null");
+            Assert.IsNotNull(episodeData.Item, "episode data should not be null");
+            Assert.AreEqual(2, episodeData.Item.IndexNumber, "should fix episode index automatically");
         }
 
         [TestMethod]
