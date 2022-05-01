@@ -18,6 +18,13 @@ namespace Jellyfin.Plugin.Bangumi.Test
         private readonly CancellationToken _token = new();
 
         [TestMethod]
+        public void ProviderInfo()
+        {
+            Assert.AreEqual(_imageProvider.Name, Constants.ProviderName);
+            Assert.IsTrue(_imageProvider.Order < 0);
+        }
+
+        [TestMethod]
         public async Task GetById()
         {
             var result = await _provider.GetMetadata(new PersonLookupInfo

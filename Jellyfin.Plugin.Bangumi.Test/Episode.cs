@@ -16,6 +16,13 @@ namespace Jellyfin.Plugin.Bangumi.Test
         private readonly CancellationToken _token = new();
 
         [TestMethod]
+        public void ProviderInfo()
+        {
+            Assert.AreEqual(_provider.Name, Constants.ProviderName);
+            Assert.IsTrue(_provider.Order < 0);
+        }
+
+        [TestMethod]
         public async Task EpisodeInfo()
         {
             var episodeData = await _provider.GetMetadata(new EpisodeInfo
