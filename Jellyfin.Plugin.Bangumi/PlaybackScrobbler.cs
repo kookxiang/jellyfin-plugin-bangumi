@@ -21,12 +21,14 @@ namespace Jellyfin.Plugin.Bangumi
         private readonly OAuthStore _store;
         private readonly IUserDataManager _userDataManager;
 
-        public PlaybackScrobbler(IUserDataManager userDataManager, OAuthStore store, BangumiApi api, ILogger<PlaybackScrobbler> log)
+        public PlaybackScrobbler(IUserManager userManager, IUserDataManager userDataManager, OAuthStore store, BangumiApi api, ILogger<PlaybackScrobbler> log)
         {
             _userDataManager = userDataManager;
             _store = store;
             _api = api;
             _log = log;
+
+            foreach (var userId in userManager.UsersIds) GetPlaybackHistory(userId);
         }
 
         public void Dispose()
