@@ -62,6 +62,7 @@ namespace Jellyfin.Plugin.Bangumi.Providers
 
             result.Item.CommunityRating = subject.Rating?.Score;
             result.Item.Name = subject.GetName(_plugin.Configuration);
+            result.Item.OriginalTitle = subject.OriginalName;
             result.Item.Overview = subject.Summary;
             result.Item.Tags = subject.PopularTags;
 
