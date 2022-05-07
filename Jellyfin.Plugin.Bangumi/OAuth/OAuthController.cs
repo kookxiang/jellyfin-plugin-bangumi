@@ -33,7 +33,9 @@ namespace Jellyfin.Plugin.Bangumi.OAuth
         [Authorize("DefaultAuthorization")]
         public async Task<Dictionary<string, object?>?> OAuthState()
         {
-            var user = _sessionContext.GetUser(Request);
+            var user = await _sessionContext.GetUser(Request);
+            if (user == null)
+                return null;
             var info = _store.Get(user.Id);
             if (info == null)
                 return null;
@@ -59,7 +61,9 @@ namespace Jellyfin.Plugin.Bangumi.OAuth
         [Authorize("DefaultAuthorization")]
         public async Task<ActionResult> RefreshOAuthToken()
         {
-            var user = _sessionContext.GetUser(Request);
+            var user = await _sessionContext.GetUser(Request);
+            if (user == null)
+                return BadRequest();
             var info = _store.Get(user.Id);
             if (info == null)
                 return BadRequest();
@@ -71,9 +75,11 @@ namespace Jellyfin.Plugin.Bangumi.OAuth
 
         [HttpDelete("OAuth")]
         [Authorize("DefaultAuthorization")]
-        public AcceptedResult DeAuth()
+        public async Task<ActionResult> DeAuth()
         {
-            var user = _sessionContext.GetUser(Request);
+            var user = await _sessionContext.GetUser(Request);
+            if (user == null)
+                return BadRequest();
             _store.Delete(user.Id);
             _store.Save();
             return Accepted();
@@ -89,7 +95,7 @@ namespace Jellyfin.Plugin.Bangumi.OAuth
                 new KeyValuePair<string, string>("client_secret", ApplicationSecret),
                 new KeyValuePair<string, string>("code", code),
                 new KeyValuePair<string, string>("redirect_uri", $"{Request.Scheme}://{Request.Host}{Request.Path}?user={user}")
-            }!);
+            });
             var response = await _plugin.GetHttpClient().PostAsync("https://bgm.tv/oauth/access_token", formData);
             var responseBody = await response.Content.ReadAsStringAsync();
             if (!response.IsSuccessStatusCode) return JsonSerializer.Deserialize<OAuthError>(responseBody);

@@ -33,7 +33,7 @@ namespace Jellyfin.Plugin.Bangumi.OAuth
         public string Description => "OAuth 授权令牌到期前自动刷新";
         public string Category => "Bangumi";
 
-        public async Task Execute(CancellationToken token, IProgress<double> progress)
+        public async Task ExecuteAsync(IProgress<double> progress, CancellationToken token)
         {
             var users = _store.GetUsers();
             var current = 0d;
