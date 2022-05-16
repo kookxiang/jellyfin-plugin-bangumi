@@ -33,7 +33,25 @@ namespace Jellyfin.Plugin.Bangumi.OAuth
         public string Description => "OAuth 授权令牌到期前自动刷新";
         public string Category => "Bangumi";
 
+
+        public IEnumerable<TaskTriggerInfo> GetDefaultTriggers()
+        {
+            return new[]
+            {
+                new TaskTriggerInfo
+                {
+                    Type = TaskTriggerInfo.TriggerInterval,
+                    IntervalTicks = TimeSpan.FromDays(1).Ticks,
+                    MaxRuntimeTicks = TimeSpan.FromMinutes(10).Ticks
+                }
+            };
+        }
+
+#if NET60
         public async Task ExecuteAsync(IProgress<double> progress, CancellationToken token)
+#else
+        public async Task Execute(CancellationToken token, IProgress<double> progress)
+#endif
         {
             var users = _store.GetUsers();
             var current = 0d;
@@ -73,19 +91,6 @@ namespace Jellyfin.Plugin.Bangumi.OAuth
             }
 
             _store.Save();
-        }
-
-        public IEnumerable<TaskTriggerInfo> GetDefaultTriggers()
-        {
-            return new[]
-            {
-                new TaskTriggerInfo
-                {
-                    Type = TaskTriggerInfo.TriggerInterval,
-                    IntervalTicks = TimeSpan.FromDays(1).Ticks,
-                    MaxRuntimeTicks = TimeSpan.FromMinutes(10).Ticks
-                }
-            };
         }
     }
 }

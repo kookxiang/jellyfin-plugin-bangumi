@@ -33,7 +33,11 @@ namespace Jellyfin.Plugin.Bangumi.OAuth
         [Authorize("DefaultAuthorization")]
         public async Task<Dictionary<string, object?>?> OAuthState()
         {
+#if NET60
             var user = await _sessionContext.GetUser(Request);
+#else
+            var user = _sessionContext.GetUser(Request);
+#endif
             if (user == null)
                 return null;
             var info = _store.Get(user.Id);
@@ -61,7 +65,11 @@ namespace Jellyfin.Plugin.Bangumi.OAuth
         [Authorize("DefaultAuthorization")]
         public async Task<ActionResult> RefreshOAuthToken()
         {
+#if NET60
             var user = await _sessionContext.GetUser(Request);
+#else
+            var user = _sessionContext.GetUser(Request);
+#endif
             if (user == null)
                 return BadRequest();
             var info = _store.Get(user.Id);
@@ -77,7 +85,11 @@ namespace Jellyfin.Plugin.Bangumi.OAuth
         [Authorize("DefaultAuthorization")]
         public async Task<ActionResult> DeAuth()
         {
+#if NET60
             var user = await _sessionContext.GetUser(Request);
+#else
+            var user = _sessionContext.GetUser(Request);
+#endif
             if (user == null)
                 return BadRequest();
             _store.Delete(user.Id);
@@ -95,7 +107,7 @@ namespace Jellyfin.Plugin.Bangumi.OAuth
                 new KeyValuePair<string, string>("client_secret", ApplicationSecret),
                 new KeyValuePair<string, string>("code", code),
                 new KeyValuePair<string, string>("redirect_uri", $"{Request.Scheme}://{Request.Host}{Request.Path}?user={user}")
-            });
+            }!);
             var response = await _plugin.GetHttpClient().PostAsync("https://bgm.tv/oauth/access_token", formData);
             var responseBody = await response.Content.ReadAsStringAsync();
             if (!response.IsSuccessStatusCode) return JsonSerializer.Deserialize<OAuthError>(responseBody);

@@ -1,18 +1,37 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFramework>net6.0</TargetFramework>
+        <TargetFrameworks>net6.0;net5.0</TargetFrameworks>
         <RootNamespace>Jellyfin.Plugin.Bangumi</RootNamespace>
         <AssemblyVersion>1.0.0.0</AssemblyVersion>
         <FileVersion>1.0.0.0</FileVersion>
         <Nullable>enable</Nullable>
     </PropertyGroup>
 
-    <ItemGroup>
+    <!-- Jellyfin < 10.8.0 -->
+    <PropertyGroup Condition="'$(TargetFramework)' == 'net5.0'">
+        <DefineConstants>NET50</DefineConstants>
+    </PropertyGroup>
+
+    <ItemGroup Condition="'$(TargetFramework)' == 'net5.0'">
+        <PackageReference Include="Jellyfin.Controller" Version="10.7.7"/>
+        <PackageReference Include="Microsoft.AspNetCore.Authorization" Version="5.0.3"/>
+        <PackageReference Include="Microsoft.Extensions.Http" Version="5.0.0"/>
+    </ItemGroup>
+
+    <!-- Jellyfin >= 10.8.0 -->
+    <PropertyGroup Condition="'$(TargetFramework)' == 'net6.0'">
+        <DefineConstants>NET60</DefineConstants>
+    </PropertyGroup>
+
+    <ItemGroup Condition="'$(TargetFramework)' == 'net6.0'">
         <PackageReference Include="Jellyfin.Controller" Version="10.*-*"/>
-        <PackageReference Include="Microsoft.AspNetCore.Authorization" Version="6.0.4"/>
-        <PackageReference Include="Microsoft.AspNetCore.Mvc" Version="2.2.0"/>
+        <PackageReference Include="Microsoft.AspNetCore.Authorization" Version="6.0.5"/>
         <PackageReference Include="Microsoft.Extensions.Http" Version="6.0.0"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Microsoft.AspNetCore.Mvc" Version="2.2.0"/>
     </ItemGroup>
 
     <ItemGroup>
