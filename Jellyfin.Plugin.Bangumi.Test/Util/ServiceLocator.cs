@@ -2,6 +2,7 @@
 using Jellyfin.Plugin.Bangumi.Providers;
 using Jellyfin.Plugin.Bangumi.Test.Mock;
 using MediaBrowser.Common.Configuration;
+using MediaBrowser.Controller.Library;
 using MediaBrowser.Model.Serialization;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
@@ -20,11 +21,13 @@ public class ServiceLocator
         serviceCollection.AddHttpClient();
         serviceCollection.AddSingleton<IXmlSerializer, MockedXmlSerializer>();
         serviceCollection.AddSingleton<IApplicationPaths, MockedApplicationPaths>();
+        serviceCollection.AddSingleton<ILibraryManager, MockedLibraryManager>();
         serviceCollection.AddScoped<Bangumi.Plugin>();
         serviceCollection.AddScoped<EpisodeProvider>();
         serviceCollection.AddScoped<MovieProvider>();
         serviceCollection.AddScoped<PersonProvider>();
         serviceCollection.AddScoped<PersonImageProvider>();
+        serviceCollection.AddScoped<SeasonProvider>();
         serviceCollection.AddScoped<SeriesProvider>();
         serviceCollection.AddScoped<SubjectImageProvider>();
         new PluginServiceRegistrator().RegisterServices(serviceCollection);

@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Jellyfin.Plugin.Bangumi.Providers;
+using Jellyfin.Plugin.Bangumi.Test.Util;
 using MediaBrowser.Controller.Providers;
 using MediaBrowser.Model.Entities;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
@@ -30,7 +31,8 @@ public class Series
     {
         var result = await _provider.GetMetadata(new SeriesInfo
         {
-            Name = "White Album 2"
+            Name = "White Album 2",
+            Path = FakePath.Create("White Album 2")
         }, _token);
         AssertSeries(result);
     }
@@ -41,6 +43,7 @@ public class Series
         var result = await _provider.GetMetadata(new SeriesInfo
         {
             Name = "White Album 2",
+            Path = FakePath.Create("White Album 2"),
             ProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "69496" } }
         }, _token);
         AssertSeries(result);
@@ -51,7 +54,8 @@ public class Series
     {
         var searchResults = await _provider.GetSearchResults(new SeriesInfo
         {
-            Name = "White Album 2"
+            Name = "White Album 2",
+            Path = FakePath.Create("White Album 2")
         }, _token);
         Assert.IsTrue(searchResults.Any(x => x.ProviderIds[Constants.ProviderName].Equals("69496")), "should have correct search result");
     }
@@ -61,6 +65,7 @@ public class Series
     {
         var searchResults = await _provider.GetSearchResults(new SeriesInfo
         {
+            Path = FakePath.Create("White Album 2"),
             ProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "69496" } }
         }, _token);
         Assert.IsTrue(searchResults.Any(x => x.ProviderIds[Constants.ProviderName].Equals("69496")), "should have correct search result");

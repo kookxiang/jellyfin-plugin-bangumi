@@ -1,9 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using MediaBrowser.Controller.Entities.TV;
+using MediaBrowser.Controller.Library;
 using MediaBrowser.Controller.Providers;
 using MediaBrowser.Model.Entities;
 using MediaBrowser.Model.Providers;
@@ -14,14 +16,16 @@ namespace Jellyfin.Plugin.Bangumi.Providers
     public class SeriesProvider : IRemoteMetadataProvider<Series, SeriesInfo>, IHasOrder
     {
         private readonly BangumiApi _api;
+        private readonly ILibraryManager _libraryManager;
         private readonly ILogger<SeriesProvider> _log;
         private readonly Plugin _plugin;
 
-        public SeriesProvider(Plugin plugin, BangumiApi api, ILogger<SeriesProvider> log)
+        public SeriesProvider(Plugin plugin, BangumiApi api, ILogger<SeriesProvider> log, ILibraryManager libraryManager)
         {
             _plugin = plugin;
             _api = api;
             _log = log;
+            _libraryManager = libraryManager;
         }
 
         public int Order => -5;
@@ -68,6 +72,15 @@ namespace Jellyfin.Plugin.Bangumi.Providers
 
             (await _api.GetSubjectPeople(subjectId, token)).ForEach(result.AddPerson);
             (await _api.GetSubjectCharacters(subjectId, token)).ForEach(result.AddPerson);
+
+            foreach (var folder in Directory.GetDirectories(info.Path))
+            {
+                if (!Path.GetFileName(folder).StartsWith("Season"))
+                    continue;
+                var season = _libraryManager.FindByPath(folder, true);
+                if (season != null)
+                    await season.RefreshMetadata(token);
+            }
 
             return result;
         }

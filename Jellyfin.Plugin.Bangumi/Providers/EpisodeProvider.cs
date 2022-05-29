@@ -7,6 +7,8 @@ using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using Jellyfin.Plugin.Bangumi.Model;
+using MediaBrowser.Controller.Entities.TV;
+using MediaBrowser.Controller.Library;
 using MediaBrowser.Controller.Providers;
 using MediaBrowser.Model.Providers;
 using Microsoft.Extensions.Logging;
@@ -36,15 +38,17 @@ namespace Jellyfin.Plugin.Bangumi.Providers
 
         private static readonly Regex[] SpecialEpisodeFileNameRegex = { new("Special"), new("OVA"), new("OAD") };
         private readonly BangumiApi _api;
+        private readonly ILibraryManager _libraryManager;
         private readonly ILogger<EpisodeProvider> _log;
 
         private readonly Plugin _plugin;
 
-        public EpisodeProvider(Plugin plugin, BangumiApi api, ILogger<EpisodeProvider> log)
+        public EpisodeProvider(Plugin plugin, BangumiApi api, ILogger<EpisodeProvider> log, ILibraryManager libraryManager)
         {
             _plugin = plugin;
             _api = api;
             _log = log;
+            _libraryManager = libraryManager;
         }
 
         public int Order => -5;
@@ -61,6 +65,18 @@ namespace Jellyfin.Plugin.Bangumi.Providers
                 return result;
 
             var seriesId = info.SeriesProviderIds?.GetValueOrDefault(Constants.ProviderName);
+
+            var parent = _libraryManager.FindByPath(Path.GetDirectoryName(info.Path), true);
+            if (parent is Season)
+            {
+                var seasonId = parent.ProviderIds.GetValueOrDefault(Constants.ProviderName);
+                if (!string.IsNullOrEmpty(seasonId))
+                {
+                    seriesId = seasonId;
+                    _log.LogInformation("using series id #{Series} from season", seasonId);
+                }
+            }
+
             if (string.IsNullOrEmpty(seriesId))
                 return result;
 
@@ -122,10 +138,9 @@ namespace Jellyfin.Plugin.Bangumi.Providers
             throw new NotImplementedException();
         }
 
-        public async Task<HttpResponseMessage> GetImageResponse(string url, CancellationToken token)
+        public Task<HttpResponseMessage> GetImageResponse(string url, CancellationToken token)
         {
-            var httpClient = _plugin.GetHttpClient();
-            return await httpClient.GetAsync(url, token).ConfigureAwait(false);
+            return _plugin.GetHttpClient().GetAsync(url, token);
         }
 
         private int GuessEpisodeNumber(int? current, string fileName, double max = double.PositiveInfinity)

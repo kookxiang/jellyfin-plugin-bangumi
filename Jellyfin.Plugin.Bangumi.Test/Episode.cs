@@ -2,6 +2,7 @@
 using System.Threading;
 using System.Threading.Tasks;
 using Jellyfin.Plugin.Bangumi.Providers;
+using Jellyfin.Plugin.Bangumi.Test.Util;
 using MediaBrowser.Controller.Providers;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
@@ -27,7 +28,7 @@ public class Episode
     {
         var episodeData = await _provider.GetMetadata(new EpisodeInfo
         {
-            Path = "/FakePath/White Album 2[01][Hi10p_1080p][BDRip][x264_2flac].mkv",
+            Path = FakePath.CreateFile("White Album 2/White Album 2[01][Hi10p_1080p][BDRip][x264_2flac].mkv"),
             ProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "259013" } },
             SeriesProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "69496" } }
         }, _token);
@@ -41,7 +42,7 @@ public class Episode
     {
         var episodeData = await _provider.GetMetadata(new EpisodeInfo
         {
-            Path = "/FakePath/White Album 2[01][Hi10p_1080p][BDRip][x264_2flac].mkv",
+            Path = FakePath.CreateFile("White Album 2/White Album 2[01][Hi10p_1080p][BDRip][x264_2flac].mkv"),
             SeriesProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "69496" } }
         }, _token);
         Assert.IsNotNull(episodeData, "episode data should not be null");
@@ -55,7 +56,7 @@ public class Episode
         var episodeData = await _provider.GetMetadata(new EpisodeInfo
         {
             IndexNumber = 1080,
-            Path = "/FakePath/White Album 2[01][Hi10p_1080p][BDRip][x264_2flac].mkv",
+            Path = FakePath.CreateFile("White Album 2/White Album 2[01][Hi10p_1080p][BDRip][x264_2flac].mkv"),
             SeriesProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "69496" } }
         }, _token);
         Assert.IsNotNull(episodeData, "episode data should not be null");
@@ -70,7 +71,7 @@ public class Episode
         var episodeData = await _provider.GetMetadata(new EpisodeInfo
         {
             IndexNumber = 1080,
-            Path = "/FakePath/Asobi Asobase [12][Ma10p_1080p][x265_flac_aac].mkv",
+            Path = FakePath.CreateFile("Asobi Asobase/Asobi Asobase [12][Ma10p_1080p][x265_flac_aac].mkv"),
             SeriesProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "236020" } }
         }, _token);
         Assert.IsNotNull(episodeData, "episode data should not be null");
@@ -85,7 +86,7 @@ public class Episode
         var episodeData = await _provider.GetMetadata(new EpisodeInfo
         {
             IndexNumber = 0,
-            Path = "/FakePath/Steins;Gate 0 [23][Ma10p_1080p][x265_flac].mkv",
+            Path = FakePath.CreateFile("Steins;Gate 0/Steins;Gate 0 [23][Ma10p_1080p][x265_flac].mkv"),
             SeriesProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "129807" } }
         }, _token);
         Assert.IsNotNull(episodeData, "episode data should not be null");
@@ -95,7 +96,7 @@ public class Episode
         episodeData = await _provider.GetMetadata(new EpisodeInfo
         {
             IndexNumber = 0,
-            Path = "/FakePath/Log Horizon 2 [08][Ma10p_1080p][x265_flac].mkv",
+            Path = FakePath.CreateFile("Log Horizon 2/Log Horizon 2 [08][Ma10p_1080p][x265_flac].mkv"),
             SeriesProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "100517" } }
         }, _token);
         Assert.IsNotNull(episodeData, "episode data should not be null");
@@ -105,7 +106,7 @@ public class Episode
         episodeData = await _provider.GetMetadata(new EpisodeInfo
         {
             IndexNumber = 0,
-            Path = "/FakePath/Kanojo, Okarishimasu [07][Ma444-10p_1080p][x265_flac].mkv",
+            Path = FakePath.CreateFile("Kanojo, Okarishimasu/Kanojo, Okarishimasu [07][Ma444-10p_1080p][x265_flac].mkv"),
             SeriesProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "296076" } }
         }, _token);
         Assert.IsNotNull(episodeData, "episode data should not be null");
@@ -115,7 +116,7 @@ public class Episode
         episodeData = await _provider.GetMetadata(new EpisodeInfo
         {
             IndexNumber = 0,
-            Path = "/FakePath/Kakegurui 賭ケグルイ [Live Action S01] 第02話 (BDRip 1920x1080p x264 10bit AVC FLAC).mkv",
+            Path = FakePath.CreateFile("Kakegurui/Kakegurui 賭ケグルイ [Live Action S01] 第02話 (BDRip 1920x1080p x264 10bit AVC FLAC).mkv"),
             SeriesProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "230953" } }
         }, _token);
         Assert.IsNotNull(episodeData, "episode data should not be null");
@@ -129,7 +130,7 @@ public class Episode
         var episodeData = await _provider.GetMetadata(new EpisodeInfo
         {
             IndexNumber = 0,
-            Path = "/FakePath/[Date A Live [05(BDBOX Ver.)][Hi10p_1080p][x264_flac].mkv",
+            Path = FakePath.CreateFile("Date A Live/Date A Live [05(BDBOX Ver.)][Hi10p_1080p][x264_flac].mkv"),
             SeriesProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "49131" } }
         }, _token);
         Assert.IsNotNull(episodeData, "episode data should not be null");
@@ -143,7 +144,7 @@ public class Episode
         var episodeData = await _provider.GetMetadata(new EpisodeInfo
         {
             IndexNumber = 1080,
-            Path = "/FakePath/Saki [01] [Hi10p_720p][BDRip][x264_flac].mkv",
+            Path = FakePath.CreateFile("Saki/Saki [01] [Hi10p_720p][BDRip][x264_flac].mkv"),
             ProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "162427" } },
             SeriesProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "1444" } }
         }, _token);
@@ -160,7 +161,7 @@ public class Episode
         var episodeData = await _provider.GetMetadata(new EpisodeInfo
         {
             IndexNumber = 1080,
-            Path = "/FakePath/Yahari Ore no Seishun Lovecome wa Machigatte Iru. Zoku [OVA][Ma10p_1080p][x265_flac].mkv",
+            Path = FakePath.CreateFile("Yahari Ore no Seishun Lovecome wa Machigatte Iru. Zoku/Yahari Ore no Seishun Lovecome wa Machigatte Iru. Zoku [OVA][Ma10p_1080p][x265_flac].mkv"),
             ProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "555794" } },
             SeriesProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "102134" } }
         }, _token);
@@ -191,7 +192,7 @@ public class Episode
     {
         var episodeData = await _provider.GetMetadata(new EpisodeInfo
         {
-            Path = $"/FakePath/{fileName}",
+            Path = FakePath.CreateFile($"White Album 2/{fileName}"),
             IndexNumber = previous,
             ProviderIds = episodeId == null ? new Dictionary<string, string>() : new Dictionary<string, string> { { Constants.ProviderName, $"{episodeId}" } },
             SeriesProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "69496" } }
