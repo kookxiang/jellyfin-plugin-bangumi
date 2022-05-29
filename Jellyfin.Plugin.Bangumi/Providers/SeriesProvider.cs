@@ -75,7 +75,7 @@ namespace Jellyfin.Plugin.Bangumi.Providers
 
             foreach (var folder in Directory.GetDirectories(info.Path))
             {
-                if (!Path.GetFileName(folder).StartsWith("Season"))
+                if (!new DirectoryInfo(folder).Name.StartsWith("Season"))
                     continue;
                 var season = _libraryManager.FindByPath(folder, true);
                 if (season != null)

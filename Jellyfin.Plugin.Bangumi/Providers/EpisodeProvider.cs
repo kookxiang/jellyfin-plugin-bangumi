@@ -71,10 +71,7 @@ namespace Jellyfin.Plugin.Bangumi.Providers
             {
                 var seasonId = parent.ProviderIds.GetValueOrDefault(Constants.ProviderName);
                 if (!string.IsNullOrEmpty(seasonId))
-                {
                     seriesId = seasonId;
-                    _log.LogInformation("using series id #{Series} from season", seasonId);
-                }
             }
 
             if (string.IsNullOrEmpty(seriesId))

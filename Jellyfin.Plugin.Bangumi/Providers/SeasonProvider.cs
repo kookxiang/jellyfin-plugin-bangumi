@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Net.Http;
 using System.Threading;
@@ -32,7 +33,7 @@ namespace Jellyfin.Plugin.Bangumi.Providers
             token.ThrowIfCancellationRequested();
             var result = new MetadataResult<Season> { ResultLanguage = Constants.Language };
 
-            if (info.Path?.Contains("Season") != true)
+            if (info.Path == null || !new DirectoryInfo(info.Path).Name.StartsWith("Season"))
                 return result;
 
             var subjectId = info.ProviderIds.GetOrDefault(Constants.ProviderName);
