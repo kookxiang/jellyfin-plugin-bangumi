@@ -127,6 +127,12 @@ namespace Jellyfin.Plugin.Bangumi.Providers
             result.Item.IndexNumber = (int)episode.Order;
             result.Item.Overview = episode.Description;
 
+            if (parent is Season season)
+            {
+                result.Item.SeasonId = season.Id;
+                result.Item.ParentIndexNumber = season.IndexNumber;
+            }
+
             return result;
         }
 
