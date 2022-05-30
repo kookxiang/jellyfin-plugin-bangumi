@@ -83,11 +83,13 @@ namespace Jellyfin.Plugin.Bangumi.OAuth
 
         [HttpDelete("OAuth")]
         [Authorize("DefaultAuthorization")]
+#if NET60
         public async Task<ActionResult> DeAuth()
         {
-#if NET60
             var user = await _sessionContext.GetUser(Request);
 #else
+        public ActionResult DeAuth()
+        {
             var user = _sessionContext.GetUser(Request);
 #endif
             if (user == null)

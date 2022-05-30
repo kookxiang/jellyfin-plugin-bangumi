@@ -19,6 +19,8 @@ using MediaBrowser.Model.Querying;
 
 namespace Jellyfin.Plugin.Bangumi.Test.Mock;
 
+#pragma warning disable CS0067
+
 public class MockedLibraryManager : ILibraryManager
 {
     public BaseItem ResolvePath(FileSystemMetadata fileInfo, Folder parent = null, IDirectoryService directoryService = null)
