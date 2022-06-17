@@ -1,6 +1,8 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json.Serialization;
+using Fastenshtein;
 using Jellyfin.Plugin.Bangumi.Configuration;
 
 namespace Jellyfin.Plugin.Bangumi.Model
@@ -52,6 +54,19 @@ namespace Jellyfin.Plugin.Bangumi.Model
                 TranslationPreferenceType.Original => OriginalName,
                 _ => OriginalName
             };
+        }
+
+        public static List<Subject> SortBySimilarity(IEnumerable<Subject> list, string keyword)
+        {
+            var instance = new Levenshtein(keyword);
+            return list
+                .OrderBy(subject =>
+                    Math.Min(
+                        instance.DistanceFrom(subject.ChineseName),
+                        instance.DistanceFrom(subject.OriginalName)
+                    )
+                )
+                .ToList();
         }
     }
 }

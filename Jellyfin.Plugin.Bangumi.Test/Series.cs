@@ -14,6 +14,7 @@ namespace Jellyfin.Plugin.Bangumi.Test;
 [TestClass]
 public class Series
 {
+    private readonly BangumiApi _api = ServiceLocator.GetService<BangumiApi>();
     private readonly SubjectImageProvider _imageProvider = ServiceLocator.GetService<SubjectImageProvider>();
     private readonly SeriesProvider _provider = ServiceLocator.GetService<SeriesProvider>();
 
@@ -69,6 +70,16 @@ public class Series
             ProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "69496" } }
         }, _token);
         Assert.IsTrue(searchResults.Any(x => x.ProviderIds[Constants.ProviderName].Equals("69496")), "should have correct search result");
+    }
+
+    [TestMethod]
+    public async Task SortSearchResult()
+    {
+        var searchResults = await _api.SearchSubject("マジンガーZ", _token);
+        Assert.AreEqual(searchResults.First().Id, 10390, "should return most similar item as first");
+
+        searchResults = await _api.SearchSubject("ガンダムビルドファイターズトライ", _token);
+        Assert.AreEqual(searchResults.First().Id, 105875, "should return most similar item as first");
     }
 
     [TestMethod]
