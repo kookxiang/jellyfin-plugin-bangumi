@@ -6,6 +6,7 @@ using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using Jellyfin.Plugin.Bangumi.Model;
+using Jellyfin.Plugin.Bangumi.OAuth;
 using MediaBrowser.Controller.Entities;
 using JellyfinPersonType = MediaBrowser.Model.Entities.PersonType;
 
@@ -19,10 +20,12 @@ namespace Jellyfin.Plugin.Bangumi
         };
 
         private readonly Plugin _plugin;
+        private readonly OAuthStore _store;
 
-        public BangumiApi(Plugin plugin)
+        public BangumiApi(Plugin plugin, OAuthStore store)
         {
             _plugin = plugin;
+            _store = store;
         }
 
         public async Task<List<Subject>> SearchSubject(string keyword, CancellationToken token)
@@ -118,7 +121,7 @@ namespace Jellyfin.Plugin.Bangumi
 
         private async Task<string> SendRequest(string url, CancellationToken token)
         {
-            return await SendRequest(url, null, token);
+            return await SendRequest(url, _store.GetAvailable()?.AccessToken, token);
         }
 
         private async Task<string> SendRequest(string url, string? accessToken, CancellationToken token)

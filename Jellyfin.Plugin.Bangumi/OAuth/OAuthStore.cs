@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text.Json;
 using MediaBrowser.Common.Configuration;
 
@@ -45,6 +46,18 @@ namespace Jellyfin.Plugin.Bangumi.OAuth
         public OAuthUser? Get(Guid guid)
         {
             return Get(guid.ToString("N"));
+        }
+
+        public OAuthUser? GetAvailable()
+        {
+            try
+            {
+                return _users.First(user => user.Value.Expired).Value;
+            }
+            catch (Exception e)
+            {
+                return null;
+            }
         }
 
         public void Set(string userId, OAuthUser oAuthResult)
