@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
+using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text.Json;
 using System.Threading;
@@ -61,28 +63,39 @@ namespace Jellyfin.Plugin.Bangumi
             // guess offset number
             var offset = Math.Min(episodeNumber, result.Total) - Offset;
 
+            var initialResult = result;
+
             RequestEpisodeList:
             if (offset < 0)
                 return result.Data;
 
-            var newResult = await GetSubjectEpisodeListWithOffset(seriesId, type, offset, token);
+            try
+            {
+                result = await GetSubjectEpisodeListWithOffset(seriesId, type, offset, token);
+                if (result == null)
+                    return initialResult.Data;
+            }
+            catch (HttpRequestException e)
+            {
+                // bad request: offset is out of range
+                if (e.StatusCode == HttpStatusCode.BadRequest)
+                    return initialResult.Data;
+                throw;
+            }
 
-            if (newResult == null)
-                return result.Data;
-
-            if (newResult.Data.First().Order > episodeNumber)
+            if (result.Data.First().Order > episodeNumber)
             {
                 offset -= PageSize;
                 goto RequestEpisodeList;
             }
 
-            if (newResult.Data.Last().Order < episodeNumber)
+            if (result.Data.Last().Order < episodeNumber)
             {
                 offset += PageSize;
                 goto RequestEpisodeList;
             }
 
-            return newResult.Data;
+            return result.Data;
         }
 
         public async Task<DataList<Episode>?> GetSubjectEpisodeListWithOffset(string seriesId, EpisodeType type, int offset, CancellationToken token)
