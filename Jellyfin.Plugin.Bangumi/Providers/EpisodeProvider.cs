@@ -92,21 +92,19 @@ namespace Jellyfin.Plugin.Bangumi.Providers
 
             if (_plugin.Configuration.AlwaysReplaceEpisodeNumber)
             {
-                episodeIndex = GuessEpisodeNumber(info.IndexNumber, fileName);
+                episodeIndex = GuessEpisodeNumber(episodeIndex, fileName);
                 if (episodeIndex != info.IndexNumber)
-                {
-                    info.IndexNumber = episodeIndex;
                     episode = null;
-                }
             }
+
+            episodeIndex ??= GuessEpisodeNumber(episodeIndex, fileName);
 
             if (episode == null)
             {
-                var episodeListData = await _api.GetSubjectEpisodeList(seriesId, episodeIndex ?? 0, token);
+                var episodeListData = await _api.GetSubjectEpisodeList(seriesId, episodeIndex.Value, token);
                 if (episodeListData == null)
                     return result;
-
-                episodeIndex = GuessEpisodeNumber(info.IndexNumber, fileName, episodeListData.Max(ep => ep.Order));
+                episodeIndex = GuessEpisodeNumber(episodeIndex, fileName, episodeListData.Max(episode => episode.Order));
                 episode = episodeListData.Find(x => (int)x.Order == episodeIndex);
             }
 

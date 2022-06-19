@@ -62,24 +62,27 @@ namespace Jellyfin.Plugin.Bangumi
             var offset = Math.Min(episodeNumber, result.Total) - Offset;
 
             RequestEpisodeList:
-            result = await GetSubjectEpisodeListWithOffset(seriesId, type, offset, token);
+            if (offset < 0)
+                return result.Data;
 
-            if (result == null)
-                return null;
+            var newResult = await GetSubjectEpisodeListWithOffset(seriesId, type, offset, token);
 
-            if (result.Data.First().Order > episodeNumber)
+            if (newResult == null)
+                return result.Data;
+
+            if (newResult.Data.First().Order > episodeNumber)
             {
                 offset -= PageSize;
                 goto RequestEpisodeList;
             }
 
-            if (result.Data.Last().Order < episodeNumber)
+            if (newResult.Data.Last().Order < episodeNumber)
             {
                 offset += PageSize;
                 goto RequestEpisodeList;
             }
 
-            return result.Data;
+            return newResult.Data;
         }
 
         public async Task<DataList<Episode>?> GetSubjectEpisodeListWithOffset(string seriesId, EpisodeType type, int offset, CancellationToken token)
