@@ -6,11 +6,13 @@ using System.Net.Http;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
+using Jellyfin.Plugin.Bangumi.Model;
 using MediaBrowser.Controller.Entities.TV;
 using MediaBrowser.Controller.Library;
 using MediaBrowser.Controller.Providers;
 using MediaBrowser.Model.Providers;
 using Microsoft.Extensions.Logging;
+using Episode = MediaBrowser.Controller.Entities.TV.Episode;
 
 namespace Jellyfin.Plugin.Bangumi.Providers
 {
@@ -34,7 +36,16 @@ namespace Jellyfin.Plugin.Bangumi.Providers
             new(@"(\d{2,})")
         };
 
-        private static readonly Regex[] SpecialEpisodeFileNameRegex = { new("Special"), new("OVA"), new("OAD") };
+        private static readonly Regex[] SpecialEpisodeFileNameRegex =
+        {
+            new("Special"),
+            new("OVA"),
+            new("OAD"),
+            new(@"SP\d+"),
+            new(@"PV\d+"),
+            new("(NC)?(OP|ED)")
+        };
+
         private readonly BangumiApi _api;
         private readonly ILibraryManager _libraryManager;
         private readonly ILogger<EpisodeProvider> _log;
@@ -55,12 +66,22 @@ namespace Jellyfin.Plugin.Bangumi.Providers
         public async Task<MetadataResult<Episode>> GetMetadata(EpisodeInfo info, CancellationToken token)
         {
             token.ThrowIfCancellationRequested();
+            EpisodeType? type = null;
             Model.Episode? episode = null;
             var result = new MetadataResult<Episode> { ResultLanguage = Constants.Language };
 
             var fileName = Path.GetFileName(info.Path);
             if (string.IsNullOrEmpty(fileName))
                 return result;
+
+            if (fileName.ToUpper().Contains("OP"))
+                type = EpisodeType.Opening;
+            else if (fileName.ToUpper().Contains("ED"))
+                type = EpisodeType.Ending;
+            else if (fileName.ToUpper().Contains("SP"))
+                type = EpisodeType.Special;
+            else if (fileName.ToUpper().Contains("PV"))
+                type = EpisodeType.Preview;
 
             var seriesId = info.SeriesProviderIds?.GetValueOrDefault(Constants.ProviderName);
 
@@ -80,7 +101,7 @@ namespace Jellyfin.Plugin.Bangumi.Providers
             {
                 episode = await _api.GetEpisode(episodeId, token);
                 if (episode != null)
-                    if (!SpecialEpisodeFileNameRegex.Any(x => x.IsMatch(info.Path)))
+                    if (episode.Type == EpisodeType.Normal && !SpecialEpisodeFileNameRegex.Any(x => x.IsMatch(info.Path)))
                         if ($"{episode.ParentId}" != seriesId)
                         {
                             _log.LogWarning("episode #{Episode} is not belong to series #{Series}, ignored", episodeId, seriesId);
@@ -101,10 +122,11 @@ namespace Jellyfin.Plugin.Bangumi.Providers
 
             if (episode == null)
             {
-                var episodeListData = await _api.GetSubjectEpisodeList(seriesId, episodeIndex.Value, token);
+                var episodeListData = await _api.GetSubjectEpisodeList(seriesId, type, episodeIndex.Value, token);
                 if (episodeListData == null)
                     return result;
-                episodeIndex = GuessEpisodeNumber(episodeIndex, fileName, episodeListData.Max(episode => episode.Order));
+                if (type is null or EpisodeType.Normal)
+                    episodeIndex = GuessEpisodeNumber(episodeIndex, fileName, episodeListData.Max(episode => episode.Order));
                 episode = episodeListData.Find(x => (int)x.Order == episodeIndex);
             }
 
@@ -124,12 +146,29 @@ namespace Jellyfin.Plugin.Bangumi.Providers
             result.Item.OriginalTitle = episode.OriginalName;
             result.Item.IndexNumber = (int)episode.Order;
             result.Item.Overview = episode.Description;
+            result.Item.ParentIndexNumber = 1;
 
             if (parent is Season season)
             {
                 result.Item.SeasonId = season.Id;
                 result.Item.ParentIndexNumber = season.IndexNumber;
             }
+
+            if (episode.Type == EpisodeType.Normal)
+                return result;
+
+            // mark episode as special
+            result.Item.ParentIndexNumber = 0;
+
+            var series = await _api.GetSubject(episode.ParentId, token);
+            if (series == null)
+                return result;
+
+            var seasonNumber = parent is Season ? parent.IndexNumber : 1;
+            if (string.Compare(episode.AirDate, series.AirDate, StringComparison.Ordinal) < 0)
+                result.Item.AirsBeforeEpisodeNumber = seasonNumber;
+            else
+                result.Item.AirsAfterSeasonNumber = seasonNumber;
 
             return result;
         }

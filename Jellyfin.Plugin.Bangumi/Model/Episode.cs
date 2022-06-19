@@ -28,7 +28,7 @@ namespace Jellyfin.Plugin.Bangumi.Model
         public double Index { get; set; }
 
         [JsonPropertyName("airdate")]
-        public string? AirDate { get; set; }
+        public string AirDate { get; set; } = "";
 
         public string? Duration { get; set; }
 

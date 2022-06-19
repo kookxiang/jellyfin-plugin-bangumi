@@ -41,6 +41,11 @@ namespace Jellyfin.Plugin.Bangumi
             return Subject.SortBySimilarity(list, keyword);
         }
 
+        public async Task<Subject?> GetSubject(int id, CancellationToken token)
+        {
+            return await GetSubject(id.ToString(), token);
+        }
+
         public async Task<Subject?> GetSubject(string id, CancellationToken token)
         {
             var jsonString = await SendRequest($"https://api.bgm.tv/v0/subjects/{id}", token);
@@ -52,7 +57,7 @@ namespace Jellyfin.Plugin.Bangumi
             return await GetSubjectEpisodeList(seriesId, EpisodeType.Normal, episodeNumber, token);
         }
 
-        public async Task<List<Episode>?> GetSubjectEpisodeList(string seriesId, EpisodeType type, int episodeNumber, CancellationToken token)
+        public async Task<List<Episode>?> GetSubjectEpisodeList(string seriesId, EpisodeType? type, int episodeNumber, CancellationToken token)
         {
             var result = await GetSubjectEpisodeListWithOffset(seriesId, type, 0, token);
             if (result == null)
@@ -98,9 +103,11 @@ namespace Jellyfin.Plugin.Bangumi
             return result.Data;
         }
 
-        public async Task<DataList<Episode>?> GetSubjectEpisodeListWithOffset(string seriesId, EpisodeType type, int offset, CancellationToken token)
+        public async Task<DataList<Episode>?> GetSubjectEpisodeListWithOffset(string seriesId, EpisodeType? type, int offset, CancellationToken token)
         {
-            var url = $"https://api.bgm.tv/v0/episodes?subject_id={seriesId}&type={(int)type}&limit={PageSize}";
+            var url = $"https://api.bgm.tv/v0/episodes?subject_id={seriesId}&limit={PageSize}";
+            if (type != null)
+                url += $"&type={(int)type}";
             if (offset > 0)
                 url += $"&offset={offset}";
             var jsonString = await SendRequest(url, token);
