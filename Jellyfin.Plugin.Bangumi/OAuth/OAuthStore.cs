@@ -54,7 +54,7 @@ namespace Jellyfin.Plugin.Bangumi.OAuth
             {
                 return _users.First(user => user.Value.Expired).Value;
             }
-            catch (Exception e)
+            catch (Exception)
             {
                 return null;
             }
