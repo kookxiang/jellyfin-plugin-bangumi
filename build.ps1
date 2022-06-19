@@ -17,7 +17,9 @@ foreach ($Release in $Releases) {
     if (Test-Path -Path "release/$version.zip") {
         continue
     }
-    Invoke-WebRequest -Uri $Release.assets[0].browser_download_url -OutFile $Release.assets[0].name
+    foreach ($asset in $Release.assets) {
+        Invoke-WebRequest -Uri $asset.browser_download_url -OutFile $asset.name
+    }
     @{
         category = "Metadata"
         changelog = $Release.body
@@ -30,8 +32,10 @@ foreach ($Release in $Releases) {
         timestamp = $Release.published_at
         version = "$version.0"
     } | ConvertTo-Json -Compress | Out-File "meta.json" -Encoding UTF8 -NoNewline
-    Compress-Archive -LiteralPath $Release.assets[0].name, "meta.json" -DestinationPath "release/$version.zip"
-    Remove-Item -Path $Release.assets[0].name
+    foreach ($asset in $Release.assets) {
+        Compress-Archive -LiteralPath $asset.name, "meta.json" -Update -DestinationPath "release/$version.zip"
+        Remove-Item -Path $asset.name
+    }
     Remove-Item -Path "meta.json"
 
     $PluginInfo.versions = @(@{
