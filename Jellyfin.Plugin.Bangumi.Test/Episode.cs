@@ -51,6 +51,20 @@ public class Episode
     }
 
     [TestMethod]
+    public async Task LargeEpisodeIndex()
+    {
+        var episodeData = await _provider.GetMetadata(new EpisodeInfo
+        {
+            Path = FakePath.CreateFile("[CONAN][999][1080P][AVC_AAC][CHS_JP](B07242C7).mp4"),
+            IndexNumber = 999,
+            SeriesProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "899" } }
+        }, _token);
+        Assert.IsNotNull(episodeData, "episode data should not be null");
+        Assert.IsNotNull(episodeData.Item, "episode data should not be null");
+        Assert.AreEqual("迷惑な親切心", episodeData.Item.Name, "should return the right episode title");
+    }
+
+    [TestMethod]
     public async Task FixEpisodeIndex()
     {
         var episodeData = await _provider.GetMetadata(new EpisodeInfo

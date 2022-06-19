@@ -14,6 +14,9 @@ namespace Jellyfin.Plugin.Bangumi
 {
     public class BangumiApi
     {
+        private const int PageSize = 50;
+        private const int Offset = 20;
+
         private readonly JsonSerializerOptions _options = new()
         {
             PropertyNamingPolicy = JsonNamingPolicy.CamelCase
@@ -42,9 +45,49 @@ namespace Jellyfin.Plugin.Bangumi
             return JsonSerializer.Deserialize<Subject>(jsonString, _options);
         }
 
-        public async Task<DataList<Episode>?> GetSubjectEpisodeList(string seriesId, CancellationToken token)
+        public async Task<List<Episode>?> GetSubjectEpisodeList(string seriesId, int episodeNumber, CancellationToken token)
         {
-            var jsonString = await SendRequest($"https://api.bgm.tv/v0/episodes?subject_id={seriesId}", token);
+            return await GetSubjectEpisodeList(seriesId, EpisodeType.Normal, episodeNumber, token);
+        }
+
+        public async Task<List<Episode>?> GetSubjectEpisodeList(string seriesId, EpisodeType type, int episodeNumber, CancellationToken token)
+        {
+            var result = await GetSubjectEpisodeListWithOffset(seriesId, type, 0, token);
+            if (result == null)
+                return null;
+            if (episodeNumber < PageSize && episodeNumber < result.Total)
+                return result.Data;
+
+            // guess offset number
+            var offset = Math.Min(episodeNumber, result.Total) - Offset;
+
+            RequestEpisodeList:
+            result = await GetSubjectEpisodeListWithOffset(seriesId, type, offset, token);
+
+            if (result == null)
+                return null;
+
+            if (result.Data.First().Order > episodeNumber)
+            {
+                offset -= PageSize;
+                goto RequestEpisodeList;
+            }
+
+            if (result.Data.Last().Order < episodeNumber)
+            {
+                offset += PageSize;
+                goto RequestEpisodeList;
+            }
+
+            return result.Data;
+        }
+
+        public async Task<DataList<Episode>?> GetSubjectEpisodeListWithOffset(string seriesId, EpisodeType type, int offset, CancellationToken token)
+        {
+            var url = $"https://api.bgm.tv/v0/episodes?subject_id={seriesId}&type={(int)type}&limit={PageSize}";
+            if (offset > 0)
+                url += $"&offset={offset}";
+            var jsonString = await SendRequest(url, token);
             return JsonSerializer.Deserialize<DataList<Episode>>(jsonString, _options);
         }
 

@@ -6,13 +6,11 @@ using System.Net.Http;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
-using Jellyfin.Plugin.Bangumi.Model;
 using MediaBrowser.Controller.Entities.TV;
 using MediaBrowser.Controller.Library;
 using MediaBrowser.Controller.Providers;
 using MediaBrowser.Model.Providers;
 using Microsoft.Extensions.Logging;
-using Episode = MediaBrowser.Controller.Entities.TV.Episode;
 
 namespace Jellyfin.Plugin.Bangumi.Providers
 {
@@ -90,9 +88,11 @@ namespace Jellyfin.Plugin.Bangumi.Providers
                         }
             }
 
+            var episodeIndex = info.IndexNumber;
+
             if (_plugin.Configuration.AlwaysReplaceEpisodeNumber)
             {
-                var episodeIndex = GuessEpisodeNumber(info.IndexNumber, fileName);
+                episodeIndex = GuessEpisodeNumber(info.IndexNumber, fileName);
                 if (episodeIndex != info.IndexNumber)
                 {
                     info.IndexNumber = episodeIndex;
@@ -102,12 +102,12 @@ namespace Jellyfin.Plugin.Bangumi.Providers
 
             if (episode == null)
             {
-                var episodeListData = await _api.GetSubjectEpisodeList(seriesId, token);
-                if (episodeListData?.Data == null)
+                var episodeListData = await _api.GetSubjectEpisodeList(seriesId, episodeIndex ?? 0, token);
+                if (episodeListData == null)
                     return result;
 
-                var episodeIndex = GuessEpisodeNumber(info.IndexNumber, fileName, episodeListData.Data.Max(ep => ep.Order));
-                episode = episodeListData.Data.Find(x => x.Type == EpisodeType.Normal && (int)x.Order == episodeIndex);
+                episodeIndex = GuessEpisodeNumber(info.IndexNumber, fileName, episodeListData.Max(ep => ep.Order));
+                episode = episodeListData.Find(x => (int)x.Order == episodeIndex);
             }
 
             if (episode == null)
