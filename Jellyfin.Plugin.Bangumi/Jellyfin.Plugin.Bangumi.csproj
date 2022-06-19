@@ -6,6 +6,7 @@
         <AssemblyVersion>1.0.0.0</AssemblyVersion>
         <FileVersion>1.0.0.0</FileVersion>
         <Nullable>enable</Nullable>
+        <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
     </PropertyGroup>
 
     <!-- Jellyfin < 10.8.0 -->
@@ -14,9 +15,9 @@
     </PropertyGroup>
 
     <ItemGroup Condition="'$(TargetFramework)' == 'net5.0'">
-        <PackageReference Include="Jellyfin.Controller" Version="10.7.7"/>
-        <PackageReference Include="Microsoft.AspNetCore.Authorization" Version="5.0.3"/>
-        <PackageReference Include="Microsoft.Extensions.Http" Version="5.0.0"/>
+        <PackageReference Include="Jellyfin.Controller" IncludeAssets="compile" Version="10.7.7"/>
+        <PackageReference Include="Microsoft.AspNetCore.Authorization" IncludeAssets="compile" Version="5.0.3"/>
+        <PackageReference Include="Microsoft.Extensions.Http" IncludeAssets="compile" Version="5.0.0"/>
     </ItemGroup>
 
     <!-- Jellyfin >= 10.8.0 -->
@@ -25,14 +26,14 @@
     </PropertyGroup>
 
     <ItemGroup Condition="'$(TargetFramework)' == 'net6.0'">
-        <PackageReference Include="Jellyfin.Controller" Version="10.*-*"/>
-        <PackageReference Include="Microsoft.AspNetCore.Authorization" Version="6.0.5"/>
-        <PackageReference Include="Microsoft.Extensions.Http" Version="6.0.0"/>
+        <PackageReference Include="Jellyfin.Controller" IncludeAssets="compile" Version="10.*-*"/>
+        <PackageReference Include="Microsoft.AspNetCore.Authorization" IncludeAssets="compile" Version="6.0.5"/>
+        <PackageReference Include="Microsoft.Extensions.Http" IncludeAssets="compile" Version="6.0.0"/>
     </ItemGroup>
 
     <ItemGroup>
         <PackageReference Include="Fastenshtein" Version="1.0.0.8"/>
-        <PackageReference Include="Microsoft.AspNetCore.Mvc" Version="2.2.0"/>
+        <PackageReference Include="Microsoft.AspNetCore.Mvc" IncludeAssets="compile" Version="2.2.0"/>
     </ItemGroup>
 
     <ItemGroup>
