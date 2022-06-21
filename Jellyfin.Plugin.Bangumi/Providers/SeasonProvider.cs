@@ -50,8 +50,15 @@ namespace Jellyfin.Plugin.Bangumi.Providers
             result.Item.ProviderIds.Add(Constants.ProviderName, subjectId);
             if (!string.IsNullOrEmpty(subject.AirDate))
             {
-                result.Item.PremiereDate = DateTime.Parse(subject.AirDate);
-                result.Item.ProductionYear = DateTime.Parse(subject.AirDate).Year;
+                if (DateTime.TryParse(subject.AirDate, out var airDate))
+                {
+                    result.Item.PremiereDate = airDate;
+                    result.Item.ProductionYear = airDate.Year;
+                }
+                else if (subject.AirDate.Length == 4)
+                {
+                    result.Item.ProductionYear = int.Parse(subject.AirDate);
+                }
             }
 
             result.Item.CommunityRating = subject.Rating?.Score;
