@@ -36,14 +36,17 @@ namespace Jellyfin.Plugin.Bangumi.Providers
             new(@"(\d{2,})")
         };
 
-        private static readonly Regex[] SpecialEpisodeFileNameRegex =
+        private static readonly Regex OpeningEpisodeFileNameRegex = new(@"(NC)?OP\d");
+        private static readonly Regex EndingEpisodeFileNameRegex = new(@"(NC)?ED\d");
+        private static readonly Regex SpecialEpisodeFileNameRegex = new(@"[^\w](SP|OVA|OAD)\d*[^\w]");
+        private static readonly Regex PreviewEpisodeFileNameRegex = new(@"[^\w]PV\d*[^\w]");
+
+        private static readonly Regex[] AllSpecialEpisodeFileNameRegex =
         {
-            new("Special"),
-            new("OVA"),
-            new("OAD"),
-            new(@"SP\d+"),
-            new(@"PV\d+"),
-            new("(NC)?(OP|ED)")
+            SpecialEpisodeFileNameRegex,
+            PreviewEpisodeFileNameRegex,
+            OpeningEpisodeFileNameRegex,
+            EndingEpisodeFileNameRegex
         };
 
         private readonly BangumiApi _api;
@@ -74,13 +77,13 @@ namespace Jellyfin.Plugin.Bangumi.Providers
             if (string.IsNullOrEmpty(fileName))
                 return result;
 
-            if (fileName.ToUpper().Contains("OP"))
+            if (OpeningEpisodeFileNameRegex.IsMatch(fileName))
                 type = EpisodeType.Opening;
-            else if (fileName.ToUpper().Contains("ED"))
+            else if (EndingEpisodeFileNameRegex.IsMatch(fileName))
                 type = EpisodeType.Ending;
-            else if (fileName.ToUpper().Contains("SP"))
+            else if (SpecialEpisodeFileNameRegex.IsMatch(fileName))
                 type = EpisodeType.Special;
-            else if (fileName.ToUpper().Contains("PV"))
+            else if (PreviewEpisodeFileNameRegex.IsMatch(fileName))
                 type = EpisodeType.Preview;
 
             var seriesId = info.SeriesProviderIds?.GetValueOrDefault(Constants.ProviderName);
@@ -101,7 +104,7 @@ namespace Jellyfin.Plugin.Bangumi.Providers
             {
                 episode = await _api.GetEpisode(episodeId, token);
                 if (episode != null)
-                    if (episode.Type == EpisodeType.Normal && !SpecialEpisodeFileNameRegex.Any(x => x.IsMatch(info.Path)))
+                    if (episode.Type == EpisodeType.Normal && !AllSpecialEpisodeFileNameRegex.Any(x => x.IsMatch(info.Path)))
                         if ($"{episode.ParentId}" != seriesId)
                         {
                             _log.LogWarning("episode #{Episode} is not belong to series #{Series}, ignored", episodeId, seriesId);

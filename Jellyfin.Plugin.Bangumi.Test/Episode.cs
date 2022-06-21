@@ -65,6 +65,32 @@ public class Episode
     }
 
     [TestMethod]
+    public async Task SpecialEpisodeSupport()
+    {
+        var episodeData = await _provider.GetMetadata(new EpisodeInfo
+        {
+            Path = FakePath.CreateFile("Spy x Family - 10 [WebRip 1080p HEVC-10bit AAC ASSx2].mkv"),
+            IndexNumber = 0,
+            SeriesProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "329906" } }
+        }, _token);
+        Assert.IsNotNull(episodeData, "episode data should not be null");
+        Assert.IsNotNull(episodeData.Item, "episode data should not be null");
+        Assert.AreNotEqual(episodeData.Item.ParentIndexNumber, 0, "episode 10 is not special episode");
+        Assert.AreEqual("ドッジボール大作戦", episodeData.Item.Name, "should return the right episode title");
+
+        episodeData = await _provider.GetMetadata(new EpisodeInfo
+        {
+            Path = FakePath.CreateFile("[Sword Art Online - Alicization -War of Underworld-][00][BDRIP 1920x1080 HEVC-YUV420P10 FLAC].mkv"),
+            IndexNumber = 0,
+            SeriesProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "279457" } }
+        }, _token);
+        Assert.IsNotNull(episodeData, "episode data should not be null");
+        Assert.IsNotNull(episodeData.Item, "episode data should not be null");
+        Assert.AreEqual(episodeData.Item.ParentIndexNumber, 0, "episode 0 is special episode");
+        Assert.AreEqual("リフレクション", episodeData.Item.Name, "should return the right episode title");
+    }
+
+    [TestMethod]
     public async Task FixEpisodeIndex()
     {
         var episodeData = await _provider.GetMetadata(new EpisodeInfo
