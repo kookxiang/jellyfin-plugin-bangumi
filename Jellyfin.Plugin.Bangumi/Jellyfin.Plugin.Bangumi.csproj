@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFrameworks>net6.0;net5.0</TargetFrameworks>
+        <TargetFrameworks>net6.0</TargetFrameworks>
         <RootNamespace>Jellyfin.Plugin.Bangumi</RootNamespace>
         <AssemblyVersion>1.0.0.0</AssemblyVersion>
         <FileVersion>1.0.0.0</FileVersion>
@@ -9,29 +9,10 @@
         <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
     </PropertyGroup>
 
-    <!-- Jellyfin < 10.8.0 -->
-    <PropertyGroup Condition="'$(TargetFramework)' == 'net5.0'">
-        <DefineConstants>NET50</DefineConstants>
-    </PropertyGroup>
-
-    <ItemGroup Condition="'$(TargetFramework)' == 'net5.0'">
-        <PackageReference Include="Jellyfin.Controller" IncludeAssets="compile" Version="10.7.7"/>
-        <PackageReference Include="Microsoft.AspNetCore.Authorization" IncludeAssets="compile" Version="5.0.3"/>
-        <PackageReference Include="Microsoft.Extensions.Http" IncludeAssets="compile" Version="5.0.0"/>
-    </ItemGroup>
-
-    <!-- Jellyfin >= 10.8.0 -->
-    <PropertyGroup Condition="'$(TargetFramework)' == 'net6.0'">
-        <DefineConstants>NET60</DefineConstants>
-    </PropertyGroup>
-
-    <ItemGroup Condition="'$(TargetFramework)' == 'net6.0'">
-        <PackageReference Include="Jellyfin.Controller" IncludeAssets="compile" Version="10.*-*"/>
-        <PackageReference Include="Microsoft.AspNetCore.Authorization" IncludeAssets="compile" Version="6.0.5"/>
-        <PackageReference Include="Microsoft.Extensions.Http" IncludeAssets="compile" Version="6.0.0"/>
-    </ItemGroup>
-
     <ItemGroup>
+        <PackageReference Include="Jellyfin.Controller" IncludeAssets="compile" Version="10.*-*"/>
+        <PackageReference Include="Microsoft.AspNetCore.Authorization" IncludeAssets="compile" Version="6.0.6"/>
+        <PackageReference Include="Microsoft.Extensions.Http" IncludeAssets="compile" Version="6.0.0"/>
         <PackageReference Include="Fastenshtein" Version="1.0.0.8"/>
         <PackageReference Include="Microsoft.AspNetCore.Mvc" IncludeAssets="compile" Version="2.2.0"/>
     </ItemGroup>

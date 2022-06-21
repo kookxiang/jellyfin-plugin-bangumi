@@ -1,13 +1,12 @@
-namespace Jellyfin.Plugin.Bangumi.Model
+namespace Jellyfin.Plugin.Bangumi.Model;
+
+public enum EpisodeType
 {
-    public enum EpisodeType
-    {
-        Normal,
-        Special,
-        Opening,
-        Ending,
-        Preview,
-        Madness,
-        Other
-    }
+    Normal,
+    Special,
+    Opening,
+    Ending,
+    Preview,
+    Madness,
+    Other
 }

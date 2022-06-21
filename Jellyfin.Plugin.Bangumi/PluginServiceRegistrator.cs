@@ -2,15 +2,14 @@
 using MediaBrowser.Common.Plugins;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace Jellyfin.Plugin.Bangumi
+namespace Jellyfin.Plugin.Bangumi;
+
+public class PluginServiceRegistrator : IPluginServiceRegistrator
 {
-    public class PluginServiceRegistrator : IPluginServiceRegistrator
+    public void RegisterServices(IServiceCollection serviceCollection)
     {
-        public void RegisterServices(IServiceCollection serviceCollection)
-        {
-            serviceCollection.AddSingleton<Plugin>();
-            serviceCollection.AddSingleton<BangumiApi>();
-            serviceCollection.AddSingleton<OAuthStore>();
-        }
+        serviceCollection.AddSingleton<Plugin>();
+        serviceCollection.AddSingleton<BangumiApi>();
+        serviceCollection.AddSingleton<OAuthStore>();
     }
 }

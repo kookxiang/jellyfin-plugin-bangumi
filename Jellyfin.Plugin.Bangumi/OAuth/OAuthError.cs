@@ -1,13 +1,12 @@
 ﻿using System.Text.Json.Serialization;
 
-namespace Jellyfin.Plugin.Bangumi.OAuth
-{
-    public class OAuthError
-    {
-        [JsonPropertyName("error")]
-        public string Error { get; set; } = "";
+namespace Jellyfin.Plugin.Bangumi.OAuth;
 
-        [JsonPropertyName("error_description")]
-        public string ErrorDescription { get; set; } = "";
-    }
+public class OAuthError
+{
+    [JsonPropertyName("error")]
+    public string Error { get; set; } = "";
+
+    [JsonPropertyName("error_description")]
+    public string ErrorDescription { get; set; } = "";
 }
