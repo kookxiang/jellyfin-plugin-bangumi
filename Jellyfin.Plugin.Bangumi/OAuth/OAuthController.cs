@@ -94,7 +94,7 @@ public class OAuthController : ControllerBase
             new KeyValuePair<string, string>("client_id", ApplicationId),
             new KeyValuePair<string, string>("client_secret", ApplicationSecret),
             new KeyValuePair<string, string>("code", code),
-            new KeyValuePair<string, string>("redirect_uri", $"{Request.Scheme}://{Request.Host}{Request.Path}?user={user}")
+            new KeyValuePair<string, string>("redirect_uri", $"{Request.Scheme}://{Request.Host}{Request.PathBase}{Request.Path}?user={user}")
         });
         var response = await _plugin.GetHttpClient().PostAsync("https://bgm.tv/oauth/access_token", formData);
         var responseBody = await response.Content.ReadAsStringAsync();

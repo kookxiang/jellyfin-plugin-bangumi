@@ -151,7 +151,7 @@
             }
 
             function loadOAuthState() {
-                return ApiClient.getJSON('/Plugins/Bangumi/OAuthState').then(function (data) {
+                return ApiClient.getJSON(ApiClient.getUrl('/Plugins/Bangumi/OAuthState')).then(function (data) {
                     if (!data) {
                         container.querySelector('#bangumi-oauth-btn').textContent = '授权登录 Bangumi';
                         container.querySelector('#bangumi-oauth-btn').style.display = '';
