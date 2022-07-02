@@ -130,7 +130,7 @@ public class EpisodeProvider : IRemoteMetadataProvider<Episode, EpisodeInfo>, IH
                 return result;
             if (type is null or EpisodeType.Normal)
                 episodeIndex = GuessEpisodeNumber(episodeIndex, fileName, episodeListData.Max(episode => episode.Order));
-            episode = episodeListData.Find(x => (int)x.Order == episodeIndex);
+            episode = episodeListData.OrderBy(x => x.Type).First(x => (int)x.Order == episodeIndex);
         }
 
         if (episode == null)
