@@ -57,7 +57,7 @@ public class BangumiApi
         return await GetSubjectEpisodeList(seriesId, EpisodeType.Normal, episodeNumber, token);
     }
 
-    public async Task<List<Episode>?> GetSubjectEpisodeList(string seriesId, EpisodeType? type, int episodeNumber, CancellationToken token)
+    public async Task<List<Episode>?> GetSubjectEpisodeList(string seriesId, EpisodeType? type, double episodeNumber, CancellationToken token)
     {
         var result = await GetSubjectEpisodeListWithOffset(seriesId, type, 0, token);
         if (result == null)
@@ -103,7 +103,7 @@ public class BangumiApi
         return result.Data;
     }
 
-    public async Task<DataList<Episode>?> GetSubjectEpisodeListWithOffset(string seriesId, EpisodeType? type, int offset, CancellationToken token)
+    public async Task<DataList<Episode>?> GetSubjectEpisodeListWithOffset(string seriesId, EpisodeType? type, double offset, CancellationToken token)
     {
         var url = $"https://api.bgm.tv/v0/episodes?subject_id={seriesId}&limit={PageSize}";
         if (type != null)

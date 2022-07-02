@@ -101,6 +101,20 @@ public class Episode
     }
 
     [TestMethod]
+    public async Task NonIntegerEpisodeIndexSupport()
+    {
+        var episodeData = await _provider.GetMetadata(new EpisodeInfo
+        {
+            Path = FakePath.CreateFile("Ore no Imouto ga Konna ni Kawaii Wake ga Nai - 12.5 [BD 1920x1080 x264 FLAC Sub(GB,Big5,Jap)].mkv"),
+            IndexNumber = 0,
+            SeriesProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "5436" } }
+        }, _token);
+        Assert.IsNotNull(episodeData, "episode data should not be null");
+        Assert.IsNotNull(episodeData.Item, "episode data should not be null");
+        Assert.AreEqual("俺の妹の人生相談がこれで終わるわけがない TRUE ROUTE", episodeData.Item.Name, "should return the right episode title");
+    }
+
+    [TestMethod]
     public async Task FixEpisodeIndex()
     {
         var episodeData = await _provider.GetMetadata(new EpisodeInfo

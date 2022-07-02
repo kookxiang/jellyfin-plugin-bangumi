@@ -20,20 +20,21 @@ public class EpisodeProvider : IRemoteMetadataProvider<Episode, EpisodeInfo>, IH
 {
     private static readonly Regex[] NonEpisodeFileNameRegex =
     {
-        new(@"S\d{2,}"),
-        new(@"\d{3,4}p"),
-        new(@"(Hi)?10p"),
-        new(@"(8|10)bit"),
-        new(@"(x|h)(264|265)")
+        new(@"S\d{2,}", RegexOptions.IgnoreCase),
+        new(@"\d{3,4}p", RegexOptions.IgnoreCase),
+        new(@"\d{3,4}x\d{3,4}", RegexOptions.IgnoreCase),
+        new(@"(Hi)?10p", RegexOptions.IgnoreCase),
+        new(@"(8|10)bit", RegexOptions.IgnoreCase),
+        new(@"(x|h)(264|265)", RegexOptions.IgnoreCase)
     };
 
     private static readonly Regex[] EpisodeFileNameRegex =
     {
-        new(@"\[(\d{2,})\]"),
-        new(@"- ?(\d{2,})"),
-        new(@"EP?(\d{2,})"),
-        new(@"\[(\d{2,})"),
-        new(@"(\d{2,})")
+        new(@"\[([\d\.]{2,})\]"),
+        new(@"- ?([\d\.]{2,})"),
+        new(@"EP?([\d\.]{2,})", RegexOptions.IgnoreCase),
+        new(@"\[([\d\.]{2,})"),
+        new(@"([\d\.]{2,})")
     };
 
     private static readonly Regex OpeningEpisodeFileNameRegex = new(@"(NC)?OP\d");
@@ -112,12 +113,12 @@ public class EpisodeProvider : IRemoteMetadataProvider<Episode, EpisodeInfo>, IH
                     }
         }
 
-        var episodeIndex = info.IndexNumber;
+        double? episodeIndex = info.IndexNumber;
 
         if (_plugin.Configuration.AlwaysReplaceEpisodeNumber)
         {
             episodeIndex = GuessEpisodeNumber(episodeIndex, fileName);
-            if (episodeIndex != info.IndexNumber)
+            if ((int)episodeIndex != info.IndexNumber)
                 episode = null;
         }
 
@@ -129,12 +130,16 @@ public class EpisodeProvider : IRemoteMetadataProvider<Episode, EpisodeInfo>, IH
             if (episodeListData == null)
                 return result;
             if (type is null or EpisodeType.Normal)
-                episodeIndex = GuessEpisodeNumber(episodeIndex, fileName, episodeListData.Max(episode => episode.Order));
-            episode = episodeListData.OrderBy(x => x.Type).First(x => (int)x.Order == episodeIndex);
+                episodeIndex = GuessEpisodeNumber(episodeIndex, fileName, episodeListData.Max(x => x.Order));
+            try
+            {
+                episode = episodeListData.OrderBy(x => x.Type).First(x => x.Order.Equals(episodeIndex));
+            }
+            catch (InvalidOperationException e)
+            {
+                return result;
+            }
         }
-
-        if (episode == null)
-            return result;
 
         result.Item = new Episode();
         result.HasMetadata = true;
@@ -186,7 +191,7 @@ public class EpisodeProvider : IRemoteMetadataProvider<Episode, EpisodeInfo>, IH
         return _plugin.GetHttpClient().GetAsync(url, token);
     }
 
-    private int GuessEpisodeNumber(int? current, string fileName, double max = double.PositiveInfinity)
+    private double GuessEpisodeNumber(double? current, string fileName, double max = double.PositiveInfinity)
     {
         var tempName = fileName;
         var episodeIndex = current ?? 0;
@@ -203,7 +208,7 @@ public class EpisodeProvider : IRemoteMetadataProvider<Episode, EpisodeInfo>, IH
         {
             if (!regex.IsMatch(tempName))
                 continue;
-            episodeIndexFromFilename = int.Parse(regex.Match(tempName).Groups[1].Value);
+            episodeIndexFromFilename = double.Parse(regex.Match(tempName).Groups[1].Value);
             break;
         }
 
