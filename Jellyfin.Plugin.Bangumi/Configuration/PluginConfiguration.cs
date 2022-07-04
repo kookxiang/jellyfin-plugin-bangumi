@@ -13,9 +13,12 @@ public class PluginConfiguration : BasePluginConfiguration
     public PluginConfiguration()
     {
         TranslationPreference = TranslationPreferenceType.Chinese;
+        AlwaysUseAnitomySharp = false;
     }
 
     public TranslationPreferenceType TranslationPreference { get; set; }
 
     public bool AlwaysReplaceEpisodeNumber { get; set; }
+
+    public bool AlwaysUseAnitomySharp { get; set; }
 }

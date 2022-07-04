@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Jellyfin.Plugin.Bangumi.Providers;
+using Jellyfin.Plugin.Bangumi.Test.Util;
 using MediaBrowser.Controller.Providers;
 using MediaBrowser.Model.Entities;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
@@ -14,6 +15,7 @@ namespace Jellyfin.Plugin.Bangumi.Test;
 public class Movie
 {
     private readonly MovieProvider _provider = ServiceLocator.GetService<MovieProvider>();
+    private readonly Bangumi.Plugin _plugin = ServiceLocator.GetService<Bangumi.Plugin>();
 
     private readonly CancellationToken _token = new();
 
@@ -52,6 +54,19 @@ public class Movie
             Name = "STEINS;GATE 負荷領域のデジャヴ"
         }, _token);
         Assert.IsTrue(searchResults.Any(x => x.ProviderIds[Constants.ProviderName].Equals("23119")), "should have correct search result");
+    }
+
+    [TestMethod]
+    public async Task GetNameByAnitomySharp()
+    {
+        _plugin.Configuration.AlwaysUseAnitomySharp = true;
+        var result = await _provider.GetMetadata(new MovieInfo
+        {
+            Name = "[Zagzad] Memories (BDRip 1764x972 1800x976 1788x932 HEVC-10bit THD)",
+            Path = FakePath.Create("[Zagzad] Memories (BDRip 1764x972 1800x976 1788x932 HEVC-10bit THD)")
+        }, _token);  
+        _plugin.Configuration.AlwaysUseAnitomySharp = false;
+        Assert.AreEqual("回忆三部曲", result.Item.Name, "should return correct series name");
     }
 
     [TestMethod]
