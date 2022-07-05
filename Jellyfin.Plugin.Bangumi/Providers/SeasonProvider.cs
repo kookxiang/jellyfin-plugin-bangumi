@@ -37,6 +37,8 @@ public class SeasonProvider : IRemoteMetadataProvider<Season, SeasonInfo>, IHasO
             return result;
 
         var subjectId = info.ProviderIds.GetOrDefault(Constants.ProviderName);
+        if (string.IsNullOrEmpty(subjectId) && info.IndexNumber == 1)
+            subjectId = info.SeriesProviderIds.GetOrDefault(Constants.ProviderName);
         if (string.IsNullOrEmpty(subjectId))
             return result;
 
