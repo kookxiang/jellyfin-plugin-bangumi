@@ -22,6 +22,9 @@ public class Subject
     [JsonPropertyName("date")]
     public string? AirDate { get; set; }
 
+    [JsonIgnore]
+    public string? ProductionYear => AirDate?[..4];
+
     public Dictionary<string, string>? Images { get; set; }
 
     [JsonIgnore]

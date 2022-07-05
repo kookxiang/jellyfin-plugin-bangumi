@@ -48,24 +48,15 @@ public class SeasonProvider : IRemoteMetadataProvider<Season, SeasonInfo>, IHasO
         result.HasMetadata = true;
 
         result.Item.ProviderIds.Add(Constants.ProviderName, subjectId);
-        if (!string.IsNullOrEmpty(subject.AirDate))
-        {
-            if (DateTime.TryParse(subject.AirDate, out var airDate))
-            {
-                result.Item.PremiereDate = airDate;
-                result.Item.ProductionYear = airDate.Year;
-            }
-            else if (subject.AirDate.Length == 4)
-            {
-                result.Item.ProductionYear = int.Parse(subject.AirDate);
-            }
-        }
-
         result.Item.CommunityRating = subject.Rating?.Score;
         result.Item.Name = subject.GetName(_plugin.Configuration);
         result.Item.OriginalTitle = subject.OriginalName;
         result.Item.Overview = subject.Summary;
         result.Item.Tags = subject.PopularTags;
+        if (DateTime.TryParse(subject.AirDate, out var airDate))
+            result.Item.PremiereDate = airDate;
+        if (subject.ProductionYear?.Length == 4)
+            result.Item.ProductionYear = int.Parse(subject.ProductionYear);
 
         (await _api.GetSubjectPeople(subjectId, token)).ForEach(result.AddPerson);
         (await _api.GetSubjectCharacters(subjectId, token)).ForEach(result.AddPerson);
