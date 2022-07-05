@@ -62,8 +62,13 @@ public class SeriesProvider : IRemoteMetadataProvider<Series, SeriesInfo>, IHasO
         result.Item.Overview = subject.Summary;
         result.Item.Tags = subject.PopularTags;
         result.Item.AirTime = subject.AirDate ?? "";
+
         if (DateTime.TryParse(subject.AirDate, out var airDate))
+        {
+            result.Item.AirDays = new[] { airDate.DayOfWeek };
             result.Item.PremiereDate = airDate;
+        }
+
         if (subject.ProductionYear?.Length == 4)
             result.Item.ProductionYear = int.Parse(subject.ProductionYear);
 
