@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
+using Jellyfin.Plugin.Bangumi.Model;
 using MediaBrowser.Controller.Entities.Movies;
 using MediaBrowser.Controller.Providers;
 using MediaBrowser.Model.Entities;
@@ -38,9 +39,13 @@ public class MovieProvider : IRemoteMetadataProvider<Movie, MovieInfo>, IHasOrde
         var subjectId = info.ProviderIds.GetOrDefault(Constants.ProviderName);
         if (string.IsNullOrEmpty(subjectId))
         {
+
             var searchName = BangumiHelper.NameHelper(info.Name, _plugin);
             _log.LogInformation("Searching {Name} in bgm.tv", searchName);
             var searchResult = await _api.SearchSubject(searchName, token);
+            searchResult = Subject.SortBySimilarity(searchResult, searchName);
+            if (info.Year != null)
+                searchResult = searchResult.FindAll(x => x.ProductionYear == null || x.ProductionYear == info.Year.ToString());
             if (searchResult.Count > 0)
                 subjectId = $"{searchResult[0].Id}";
         }
@@ -51,6 +56,9 @@ public class MovieProvider : IRemoteMetadataProvider<Movie, MovieInfo>, IHasOrde
             var searchName = BangumiHelper.NameHelper(info.OriginalTitle, _plugin);
             _log.LogInformation("Searching {Name} in bgm.tv", searchName);
             var searchResult = await _api.SearchSubject(searchName, token);
+            searchResult = Subject.SortBySimilarity(searchResult, searchName);
+            if (info.Year != null)
+                searchResult = searchResult.FindAll(x => x.ProductionYear == null || x.ProductionYear == info.Year.ToString());
             if (searchResult.Count > 0)
                 subjectId = $"{searchResult[0].Id}";
         }
@@ -66,17 +74,16 @@ public class MovieProvider : IRemoteMetadataProvider<Movie, MovieInfo>, IHasOrde
         result.HasMetadata = true;
 
         result.Item.ProviderIds.Add(Constants.ProviderName, subjectId);
-        if (!string.IsNullOrEmpty(subject.AirDate))
-        {
-            result.Item.PremiereDate = DateTime.Parse(subject.AirDate);
-            result.Item.ProductionYear = DateTime.Parse(subject.AirDate).Year;
-        }
 
         result.Item.CommunityRating = subject.Rating?.Score;
         result.Item.Name = subject.ChineseName;
         result.Item.OriginalTitle = subject.OriginalName;
         result.Item.Overview = subject.Summary;
         result.Item.Tags = subject.PopularTags;
+        if (DateTime.TryParse(subject.AirDate, out var airDate))
+            result.Item.PremiereDate = airDate;
+        if (subject.ProductionYear?.Length == 4)
+            result.Item.ProductionYear = int.Parse(subject.ProductionYear);
 
         (await _api.GetSubjectPeople(subjectId, token)).ForEach(result.AddPerson);
         (await _api.GetSubjectCharacters(subjectId, token)).ForEach(result.AddPerson);
@@ -104,19 +111,17 @@ public class MovieProvider : IRemoteMetadataProvider<Movie, MovieInfo>, IHasOrde
                 ImageUrl = subject.DefaultImage,
                 Overview = subject.Summary
             };
-
-            if (!string.IsNullOrEmpty(subject.AirDate))
-            {
-                result.PremiereDate = DateTime.Parse(subject.AirDate);
-                result.ProductionYear = DateTime.Parse(subject.AirDate).Year;
-            }
-
+            if (DateTime.TryParse(subject.AirDate, out var airDate))
+                result.PremiereDate = airDate;
+            if (subject.ProductionYear?.Length == 4)
+                result.ProductionYear = int.Parse(subject.ProductionYear);
             result.SetProviderId(Constants.ProviderName, id);
             results.Add(result);
         }
         else if (!string.IsNullOrEmpty(searchInfo.Name))
         {
             var series = await _api.SearchSubject(searchInfo.Name, token);
+            series = Subject.SortBySimilarity(series, searchInfo.Name);
             foreach (var item in series)
             {
                 var itemId = $"{item.Id}";
@@ -127,6 +132,13 @@ public class MovieProvider : IRemoteMetadataProvider<Movie, MovieInfo>, IHasOrde
                     ImageUrl = item.DefaultImage,
                     Overview = item.Summary
                 };
+                if (DateTime.TryParse(item.AirDate, out var airDate))
+                    result.PremiereDate = airDate;
+                if (item.ProductionYear?.Length == 4)
+                    result.ProductionYear = int.Parse(item.ProductionYear);
+                if (result.ProductionYear != null && searchInfo.Year != null)
+                    if (result.ProductionYear != searchInfo.Year)
+                        continue;
                 result.SetProviderId(Constants.ProviderName, itemId);
                 results.Add(result);
             }

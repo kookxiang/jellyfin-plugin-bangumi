@@ -135,7 +135,7 @@ public class EpisodeProvider : IRemoteMetadataProvider<Episode, EpisodeInfo>, IH
             {
                 episode = episodeListData.OrderBy(x => x.Type).First(x => x.Order.Equals(episodeIndex));
             }
-            catch (InvalidOperationException e)
+            catch (InvalidOperationException)
             {
                 return result;
             }
