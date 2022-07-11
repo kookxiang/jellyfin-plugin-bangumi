@@ -65,13 +65,13 @@ public class Series
     [TestMethod]
     public async Task GetNameByAnitomySharp()
     {
-        _plugin.Configuration.AlwaysUseAnitomySharp = true;
+        _plugin.Configuration.AlwaysGetTitleByAnitomySharp = true;
         var result = await _provider.GetMetadata(new SeriesInfo
         {
             Name = "[Airota&LoliHouse] Toaru Kagaku no Railgun T [BDRip 1080p HEVC-10bit FLAC]",
             Path = FakePath.Create("[Airota&LoliHouse] Toaru Kagaku no Railgun T [BDRip 1080p HEVC-10bit FLAC]")
         }, _token);        
-        _plugin.Configuration.AlwaysUseAnitomySharp = false;
+        _plugin.Configuration.AlwaysGetTitleByAnitomySharp = false;
         Assert.AreEqual("とある科学の超電磁砲T", result.Item.Name, "should return correct series name");
     }
 

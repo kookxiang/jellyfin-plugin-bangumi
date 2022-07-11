@@ -6,7 +6,7 @@ namespace Jellyfin.Plugin.Bangumi.Utils
     {
         public static String NameHelper(String searchName, Plugin plugin){
 
-            if (plugin.Configuration.AlwaysUseAnitomySharp){
+            if (plugin.Configuration.AlwaysGetTitleByAnitomySharp){
                 searchName = AnitomyHelper.ExtractAnimeTitle(searchName);
             }
 

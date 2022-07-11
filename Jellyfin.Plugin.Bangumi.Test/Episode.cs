@@ -265,4 +265,21 @@ public class Episode
         Assert.IsNotNull(episodeData.Item, "episode data should not be null");
         return episodeData.Item.IndexNumber;
     }
+
+    [TestMethod]
+    public async Task GetEpisodeByAnitomySharp()
+    {
+        _plugin.Configuration.AlwaysGetEpisodeByAnitomySharp = true;
+        var episodeData = await _provider.GetMetadata(new EpisodeInfo
+        {
+            IndexNumber = 0,
+            Path = FakePath.CreateFile("[VCB-Studio] BEATLESS [Ma10p_1080p]/[VCB-Studio] BEATLESS [05][Ma10p_1080p][x265_flac].mkv"),
+            SeriesProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "227102" } }
+        }, _token);
+        _plugin.Configuration.AlwaysGetEpisodeByAnitomySharp = false;
+        Assert.IsNotNull(episodeData, "episode data should not be null");
+        Assert.IsNotNull(episodeData.Item, "episode data should not be null");
+        Assert.AreEqual(5, episodeData.Item.IndexNumber, "should fix episode index automatically");
+        Assert.AreEqual("Tools for outsoucers", episodeData.Item.Name, "should return the right episode title");
+    }
 }

@@ -59,13 +59,13 @@ public class Movie
     [TestMethod]
     public async Task GetNameByAnitomySharp()
     {
-        _plugin.Configuration.AlwaysUseAnitomySharp = true;
+        _plugin.Configuration.AlwaysGetTitleByAnitomySharp = true;
         var result = await _provider.GetMetadata(new MovieInfo
         {
             Name = "[Zagzad] Memories (BDRip 1764x972 1800x976 1788x932 HEVC-10bit THD)",
             Path = FakePath.Create("[Zagzad] Memories (BDRip 1764x972 1800x976 1788x932 HEVC-10bit THD)")
         }, _token);  
-        _plugin.Configuration.AlwaysUseAnitomySharp = false;
+        _plugin.Configuration.AlwaysGetTitleByAnitomySharp = false;
         Assert.AreEqual("回忆三部曲", result.Item.Name, "should return correct series name");
     }
 

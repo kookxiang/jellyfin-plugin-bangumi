@@ -126,16 +126,25 @@
                 </div>
                 <div class="checkboxContainer checkboxContainer-withDescription">
                     <label class="emby-checkbox-label">
+                        <input id="AlwaysGetTitleByAnitomySharp" is="emby-checkbox" type="checkbox"/>
+                        <span>始终使用AnitomySharp猜测动画名</span>
+                    </label>
+                </div>  
+                <div class="selectContainer">
+                    <label class="selectLabel" for="TranslationPreference">集数纠正</label>
+                </div>
+                <div class="checkboxContainer checkboxContainer-withDescription">
+                    <label class="emby-checkbox-label">
                         <input id="AlwaysReplaceEpisodeNumber" is="emby-checkbox" type="checkbox"/>
                         <span>始终根据文件名猜测集数</span>
                     </label>
                 </div>
                 <div class="checkboxContainer checkboxContainer-withDescription">
                     <label class="emby-checkbox-label">
-                        <input id="AlwaysUseAnitomySharp" is="emby-checkbox" type="checkbox"/>
-                        <span>始终使用AnitomySharp猜测动画名</span>
+                        <input id="AlwaysGetEpisodeByAnitomySharp" is="emby-checkbox" type="checkbox"/>
+                        <span>始终使用AnitomySharp猜测集数</span>
                     </label>
-                </div>
+                </div>              
                 <div>
                     <button class="raised button-submit block emby-button" is="emby-button" type="submit">
                         <span>保存</span>
@@ -182,7 +191,8 @@
             function loadConfiguration() {
                 return ApiClient.getPluginConfiguration(pluginId).then(function (config) {
                     container.querySelector('#AlwaysReplaceEpisodeNumber').checked = config.AlwaysReplaceEpisodeNumber;
-                    container.querySelector('#AlwaysUseAnitomySharp').checked = config.AlwaysUseAnitomySharp;
+                    container.querySelector('#AlwaysGetTitleByAnitomySharp').checked = config.AlwaysGetTitleByAnitomySharp;
+                    container.querySelector('#AlwaysGetEpisodeByAnitomySharp').checked = config.AlwaysGetEpisodeByAnitomySharp;
                     container.querySelector('#TranslationPreference').value = config.TranslationPreference;
                 });
             }
@@ -190,7 +200,8 @@
             function saveConfiguration() {
                 return wrapLoading(ApiClient.getPluginConfiguration(pluginId).then(function (config) {
                     config.AlwaysReplaceEpisodeNumber = container.querySelector('#AlwaysReplaceEpisodeNumber').checked;
-                    config.AlwaysUseAnitomySharp = container.querySelector('#AlwaysUseAnitomySharp').checked;
+                    config.AlwaysGetTitleByAnitomySharp = container.querySelector('#AlwaysGetTitleByAnitomySharp').checked;
+                    config.AlwaysGetEpisodeByAnitomySharp = container.querySelector('#AlwaysGetEpisodeByAnitomySharp').checked;
                     config.TranslationPreference = container.querySelector('#TranslationPreference').value;
                     ApiClient.updatePluginConfiguration(pluginId, config)
                         .then(Dashboard.processPluginConfigurationUpdateResult);
