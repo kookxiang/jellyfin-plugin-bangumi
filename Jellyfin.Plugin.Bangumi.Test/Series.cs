@@ -17,6 +17,7 @@ public class Series
     private readonly BangumiApi _api = ServiceLocator.GetService<BangumiApi>();
     private readonly SubjectImageProvider _imageProvider = ServiceLocator.GetService<SubjectImageProvider>();
     private readonly SeriesProvider _provider = ServiceLocator.GetService<SeriesProvider>();
+    private readonly Bangumi.Plugin _plugin = ServiceLocator.GetService<Bangumi.Plugin>();
 
     private readonly CancellationToken _token = new();
 
@@ -59,6 +60,19 @@ public class Series
             Path = FakePath.Create("White Album 2")
         }, _token);
         Assert.IsTrue(searchResults.Any(x => x.ProviderIds[Constants.ProviderName].Equals("69496")), "should have correct search result");
+    }
+
+    [TestMethod]
+    public async Task GetNameByAnitomySharp()
+    {
+        _plugin.Configuration.AlwaysGetTitleByAnitomySharp = true;
+        var result = await _provider.GetMetadata(new SeriesInfo
+        {
+            Name = "[Airota&LoliHouse] Toaru Kagaku no Railgun T [BDRip 1080p HEVC-10bit FLAC]",
+            Path = FakePath.Create("[Airota&LoliHouse] Toaru Kagaku no Railgun T [BDRip 1080p HEVC-10bit FLAC]")
+        }, _token);        
+        _plugin.Configuration.AlwaysGetTitleByAnitomySharp = false;
+        Assert.AreEqual("とある科学の超電磁砲T", result.Item.Name, "should return correct series name");
     }
 
     [TestMethod]

@@ -9,6 +9,7 @@ using MediaBrowser.Controller.Providers;
 using MediaBrowser.Model.Entities;
 using MediaBrowser.Model.Providers;
 using Microsoft.Extensions.Logging;
+using Jellyfin.Plugin.Bangumi.Utils;
 
 namespace Jellyfin.Plugin.Bangumi.Providers;
 
@@ -38,9 +39,24 @@ public class MovieProvider : IRemoteMetadataProvider<Movie, MovieInfo>, IHasOrde
         var subjectId = info.ProviderIds.GetOrDefault(Constants.ProviderName);
         if (string.IsNullOrEmpty(subjectId))
         {
-            _log.LogInformation("Searching {Name} in bgm.tv", info.Name);
-            var searchResult = await _api.SearchSubject(info.Name, token);
-            searchResult = Subject.SortBySimilarity(searchResult, info.Name);
+
+            var searchName = BangumiHelper.NameHelper(info.Name, _plugin);
+            _log.LogInformation("Searching {Name} in bgm.tv", searchName);
+            var searchResult = await _api.SearchSubject(searchName, token);
+            searchResult = Subject.SortBySimilarity(searchResult, searchName);
+            if (info.Year != null)
+                searchResult = searchResult.FindAll(x => x.ProductionYear == null || x.ProductionYear == info.Year.ToString());
+            if (searchResult.Count > 0)
+                subjectId = $"{searchResult[0].Id}";
+        }
+
+        // try search OriginalTitle
+        if (string.IsNullOrEmpty(subjectId) && info.OriginalTitle != null && !String.Equals(info.OriginalTitle, info.Name, StringComparison.Ordinal))
+        {
+            var searchName = BangumiHelper.NameHelper(info.OriginalTitle, _plugin);
+            _log.LogInformation("Searching {Name} in bgm.tv", searchName);
+            var searchResult = await _api.SearchSubject(searchName, token);
+            searchResult = Subject.SortBySimilarity(searchResult, searchName);
             if (info.Year != null)
                 searchResult = searchResult.FindAll(x => x.ProductionYear == null || x.ProductionYear == info.Year.ToString());
             if (searchResult.Count > 0)
