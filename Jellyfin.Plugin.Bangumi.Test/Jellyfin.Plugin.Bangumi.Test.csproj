@@ -15,8 +15,8 @@
     </ItemGroup>
 
     <ItemGroup>
-        <PackageReference Include="Jellyfin.Controller" Version="10.*-*"/>
-        <PackageReference Include="Microsoft.AspNetCore.Authorization" Version="6.0.6"/>
+        <PackageReference Include="Jellyfin.Controller" Version="10.8.0"/>
+        <PackageReference Include="Microsoft.AspNetCore.Authorization" Version="6.0.7"/>
         <PackageReference Include="Microsoft.Extensions.Http" Version="6.0.0"/>
         <PackageReference Include="Microsoft.AspNetCore.Mvc" Version="2.2.0"/>
         <ProjectReference Include="..\Jellyfin.Plugin.Bangumi\Jellyfin.Plugin.Bangumi.csproj"/>
