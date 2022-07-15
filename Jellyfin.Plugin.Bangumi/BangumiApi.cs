@@ -66,13 +66,17 @@ public class BangumiApi
             return result.Data;
 
         // guess offset number
-        var offset = Math.Min(episodeNumber, result.Total) - Offset;
+        var offset = Math.Min((int)episodeNumber, result.Total) - Offset;
 
         var initialResult = result;
+        var history = new HashSet<int>();
 
         RequestEpisodeList:
         if (offset < 0)
             return result.Data;
+        if (history.Contains(offset))
+            return result.Data;
+        history.Add(offset);
 
         try
         {
