@@ -14,8 +14,8 @@ namespace Jellyfin.Plugin.Bangumi.Test;
 [TestClass]
 public class Movie
 {
-    private readonly MovieProvider _provider = ServiceLocator.GetService<MovieProvider>();
     private readonly Bangumi.Plugin _plugin = ServiceLocator.GetService<Bangumi.Plugin>();
+    private readonly MovieProvider _provider = ServiceLocator.GetService<MovieProvider>();
 
     private readonly CancellationToken _token = new();
 
@@ -64,7 +64,7 @@ public class Movie
         {
             Name = "[Zagzad] Memories (BDRip 1764x972 1800x976 1788x932 HEVC-10bit THD)",
             Path = FakePath.Create("[Zagzad] Memories (BDRip 1764x972 1800x976 1788x932 HEVC-10bit THD)")
-        }, _token);  
+        }, _token);
         _plugin.Configuration.AlwaysGetTitleByAnitomySharp = false;
         Assert.AreEqual("回忆三部曲", result.Item.Name, "should return correct series name");
     }

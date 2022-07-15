@@ -16,8 +16,8 @@ public class Series
 {
     private readonly BangumiApi _api = ServiceLocator.GetService<BangumiApi>();
     private readonly SubjectImageProvider _imageProvider = ServiceLocator.GetService<SubjectImageProvider>();
-    private readonly SeriesProvider _provider = ServiceLocator.GetService<SeriesProvider>();
     private readonly Bangumi.Plugin _plugin = ServiceLocator.GetService<Bangumi.Plugin>();
+    private readonly SeriesProvider _provider = ServiceLocator.GetService<SeriesProvider>();
 
     private readonly CancellationToken _token = new();
 
@@ -70,7 +70,7 @@ public class Series
         {
             Name = "[Airota&LoliHouse] Toaru Kagaku no Railgun T [BDRip 1080p HEVC-10bit FLAC]",
             Path = FakePath.Create("[Airota&LoliHouse] Toaru Kagaku no Railgun T [BDRip 1080p HEVC-10bit FLAC]")
-        }, _token);        
+        }, _token);
         _plugin.Configuration.AlwaysGetTitleByAnitomySharp = false;
         Assert.AreEqual("とある科学の超電磁砲T", result.Item.Name, "should return correct series name");
     }

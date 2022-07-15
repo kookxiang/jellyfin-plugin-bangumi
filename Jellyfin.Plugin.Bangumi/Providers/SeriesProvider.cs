@@ -4,12 +4,12 @@ using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using Jellyfin.Plugin.Bangumi.Model;
+using Jellyfin.Plugin.Bangumi.Utils;
 using MediaBrowser.Controller.Entities.TV;
 using MediaBrowser.Controller.Providers;
 using MediaBrowser.Model.Entities;
 using MediaBrowser.Model.Providers;
 using Microsoft.Extensions.Logging;
-using Jellyfin.Plugin.Bangumi.Utils;
 
 namespace Jellyfin.Plugin.Bangumi.Providers;
 
@@ -37,7 +37,6 @@ public class SeriesProvider : IRemoteMetadataProvider<Series, SeriesInfo>, IHasO
         var subjectId = info.ProviderIds.GetOrDefault(Constants.ProviderName);
         if (string.IsNullOrEmpty(subjectId))
         {
-
             var searchName = BangumiHelper.NameHelper(info.Name, _plugin);
             _log.LogInformation("Searching {Name} in bgm.tv", searchName);
             var searchResult = await _api.SearchSubject(searchName, token);
@@ -49,7 +48,7 @@ public class SeriesProvider : IRemoteMetadataProvider<Series, SeriesInfo>, IHasO
         }
 
         // try search OriginalTitle
-        if (string.IsNullOrEmpty(subjectId) && info.OriginalTitle != null && !String.Equals(info.OriginalTitle, info.Name, StringComparison.Ordinal))
+        if (string.IsNullOrEmpty(subjectId) && info.OriginalTitle != null && !string.Equals(info.OriginalTitle, info.Name, StringComparison.Ordinal))
         {
             var searchName = BangumiHelper.NameHelper(info.OriginalTitle, _plugin);
             _log.LogInformation("Searching {Name} in bgm.tv", searchName);

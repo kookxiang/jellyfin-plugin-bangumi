@@ -7,13 +7,13 @@ using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using Jellyfin.Plugin.Bangumi.Model;
+using Jellyfin.Plugin.Bangumi.Utils;
 using MediaBrowser.Controller.Entities.TV;
 using MediaBrowser.Controller.Library;
 using MediaBrowser.Controller.Providers;
 using MediaBrowser.Model.Providers;
 using Microsoft.Extensions.Logging;
 using Episode = MediaBrowser.Controller.Entities.TV.Episode;
-using Jellyfin.Plugin.Bangumi.Utils;
 
 namespace Jellyfin.Plugin.Bangumi.Providers;
 
@@ -199,9 +199,7 @@ public class EpisodeProvider : IRemoteMetadataProvider<Episode, EpisodeInfo>, IH
         var episodeIndexFromFilename = episodeIndex;
 
         // 临时测试，待改造 #TODO
-        if(_plugin.Configuration.AlwaysGetEpisodeByAnitomySharp){
-            return double.Parse(AnitomyHelper.ExtractEpisodeNumber(fileName));
-        }
+        if (_plugin.Configuration.AlwaysGetEpisodeByAnitomySharp) return double.Parse(AnitomyHelper.ExtractEpisodeNumber(fileName));
 
         foreach (var regex in NonEpisodeFileNameRegex)
         {
