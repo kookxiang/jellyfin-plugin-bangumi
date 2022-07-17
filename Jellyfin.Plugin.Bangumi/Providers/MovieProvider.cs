@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
@@ -36,12 +37,13 @@ public class MovieProvider : IRemoteMetadataProvider<Movie, MovieInfo>, IHasOrde
     public async Task<MetadataResult<Movie>> GetMetadata(MovieInfo info, CancellationToken token)
     {
         token.ThrowIfCancellationRequested();
+        var baseName = Path.GetFileName(info.Path);
         var result = new MetadataResult<Movie> { ResultLanguage = Constants.Language };
 
         var subjectId = info.ProviderIds.GetOrDefault(Constants.ProviderName);
         if (string.IsNullOrEmpty(subjectId))
         {
-            var searchName = Configuration.AlwaysGetTitleByAnitomySharp ? Anitomy.ExtractAnimeTitle(info.Path) ?? info.Name : info.Name;
+            var searchName = Configuration.AlwaysGetTitleByAnitomySharp ? Anitomy.ExtractAnimeTitle(baseName) ?? info.Name : info.Name;
             _log.LogInformation("Searching {Name} in bgm.tv", searchName);
             var searchResult = await _api.SearchSubject(searchName, token);
             searchResult = Subject.SortBySimilarity(searchResult, searchName);
@@ -54,7 +56,7 @@ public class MovieProvider : IRemoteMetadataProvider<Movie, MovieInfo>, IHasOrde
         // try search OriginalTitle
         if (string.IsNullOrEmpty(subjectId) && info.OriginalTitle != null && !string.Equals(info.OriginalTitle, info.Name, StringComparison.Ordinal))
         {
-            var searchName = Configuration.AlwaysGetTitleByAnitomySharp ? Anitomy.ExtractAnimeTitle(info.Path) ?? info.OriginalTitle : info.OriginalTitle;
+            var searchName = Configuration.AlwaysGetTitleByAnitomySharp ? Anitomy.ExtractAnimeTitle(baseName) ?? info.OriginalTitle : info.OriginalTitle;
             _log.LogInformation("Searching {Name} in bgm.tv", searchName);
             var searchResult = await _api.SearchSubject(searchName, token);
             searchResult = Subject.SortBySimilarity(searchResult, searchName);
