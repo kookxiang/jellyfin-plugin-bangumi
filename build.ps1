@@ -32,10 +32,8 @@ foreach ($Release in $Releases) {
         timestamp = $Release.published_at
         version = "$version.0"
     } | ConvertTo-Json -Compress | Out-File "meta.json" -Encoding UTF8 -NoNewline
-    foreach ($asset in $Release.assets) {
-        Compress-Archive -LiteralPath $asset.name, "meta.json" -Update -DestinationPath "release/$version.zip"
-        Remove-Item -Path $asset.name
-    }
+    mv $asset.name "release/$version.zip"
+    Compress-Archive -LiteralPath "meta.json" -Update -DestinationPath "release/$version.zip"
     Remove-Item -Path "meta.json"
 
     $PluginInfo.versions = @(@{
