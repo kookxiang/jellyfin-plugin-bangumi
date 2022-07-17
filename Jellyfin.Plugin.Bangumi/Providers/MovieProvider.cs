@@ -3,8 +3,8 @@ using System.Collections.Generic;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
+using Jellyfin.Plugin.Bangumi.Configuration;
 using Jellyfin.Plugin.Bangumi.Model;
-using Jellyfin.Plugin.Bangumi.Utils;
 using MediaBrowser.Controller.Entities.Movies;
 using MediaBrowser.Controller.Providers;
 using MediaBrowser.Model.Entities;
@@ -28,6 +28,8 @@ public class MovieProvider : IRemoteMetadataProvider<Movie, MovieInfo>, IHasOrde
 
     private HttpClient HttpClient => _plugin.GetHttpClient();
 
+    private PluginConfiguration Configuration => _plugin.Configuration;
+
     public int Order => -5;
     public string Name => Constants.ProviderName;
 
@@ -39,7 +41,7 @@ public class MovieProvider : IRemoteMetadataProvider<Movie, MovieInfo>, IHasOrde
         var subjectId = info.ProviderIds.GetOrDefault(Constants.ProviderName);
         if (string.IsNullOrEmpty(subjectId))
         {
-            var searchName = BangumiHelper.NameHelper(info.Name, _plugin);
+            var searchName = Configuration.AlwaysGetTitleByAnitomySharp ? Anitomy.ExtractAnimeTitle(info.Path) ?? info.Name : info.Name;
             _log.LogInformation("Searching {Name} in bgm.tv", searchName);
             var searchResult = await _api.SearchSubject(searchName, token);
             searchResult = Subject.SortBySimilarity(searchResult, searchName);
@@ -52,7 +54,7 @@ public class MovieProvider : IRemoteMetadataProvider<Movie, MovieInfo>, IHasOrde
         // try search OriginalTitle
         if (string.IsNullOrEmpty(subjectId) && info.OriginalTitle != null && !string.Equals(info.OriginalTitle, info.Name, StringComparison.Ordinal))
         {
-            var searchName = BangumiHelper.NameHelper(info.OriginalTitle, _plugin);
+            var searchName = Configuration.AlwaysGetTitleByAnitomySharp ? Anitomy.ExtractAnimeTitle(info.Path) ?? info.OriginalTitle : info.OriginalTitle;
             _log.LogInformation("Searching {Name} in bgm.tv", searchName);
             var searchResult = await _api.SearchSubject(searchName, token);
             searchResult = Subject.SortBySimilarity(searchResult, searchName);

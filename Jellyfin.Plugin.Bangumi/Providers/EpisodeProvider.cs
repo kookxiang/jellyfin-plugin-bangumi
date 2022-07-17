@@ -7,7 +7,6 @@ using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using Jellyfin.Plugin.Bangumi.Model;
-using Jellyfin.Plugin.Bangumi.Utils;
 using MediaBrowser.Controller.Entities.TV;
 using MediaBrowser.Controller.Library;
 using MediaBrowser.Controller.Providers;
@@ -198,8 +197,12 @@ public class EpisodeProvider : IRemoteMetadataProvider<Episode, EpisodeInfo>, IH
         var episodeIndex = current ?? 0;
         var episodeIndexFromFilename = episodeIndex;
 
-        // 临时测试，待改造 #TODO
-        if (_plugin.Configuration.AlwaysGetEpisodeByAnitomySharp) return double.Parse(AnitomyHelper.ExtractEpisodeNumber(fileName));
+        if (_plugin.Configuration.AlwaysGetEpisodeByAnitomySharp)
+        {
+            var anitomyIndex = Anitomy.ExtractEpisodeNumber(fileName);
+            if (!string.IsNullOrEmpty(anitomyIndex))
+                return double.Parse(anitomyIndex);
+        }
 
         foreach (var regex in NonEpisodeFileNameRegex)
         {
@@ -216,7 +219,7 @@ public class EpisodeProvider : IRemoteMetadataProvider<Episode, EpisodeInfo>, IH
             break;
         }
 
-        if (_plugin.Configuration.AlwaysReplaceEpisodeNumber && episodeIndexFromFilename != episodeIndex)
+        if (_plugin.Configuration.AlwaysReplaceEpisodeNumber && !episodeIndexFromFilename.Equals(episodeIndex))
         {
             _log.LogWarning("use episode index {NewIndex} instead of {Index} for {FileName}",
                 episodeIndexFromFilename, episodeIndex, fileName);

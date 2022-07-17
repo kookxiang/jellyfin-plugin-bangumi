@@ -1,4 +1,4 @@
-﻿﻿<!DOCTYPE html>
+﻿<!DOCTYPE html>
 
 <html lang="en" xmlns="http://www.w3.org/1999/xhtml">
 <head>
@@ -124,26 +124,34 @@
                         <option id="optLanguageChinese" value="Chinese">优先使用中文翻译</option>
                     </select>
                 </div>
-                <div class="checkboxContainer checkboxContainer-withDescription">
-                    <label class="emby-checkbox-label">
-                        <input id="AlwaysGetTitleByAnitomySharp" is="emby-checkbox" type="checkbox"/>
-                        <span>始终使用AnitomySharp猜测动画名</span>
-                    </label>
+                <div class="selectContainer">
+                    <div class="checkboxContainer checkboxContainer-withDescription">
+                        <label class="emby-checkbox-label">
+                            <input id="AlwaysReplaceEpisodeNumber" is="emby-checkbox" type="checkbox"/>
+                            <span>始终根据文件名猜测集数</span>
+                        </label>
+                    </div>
+                </div>
+                <div class="verticalSection verticalSection">
+                    <div class="sectionTitleContainer flex align-items-center">
+                        <h2 class="sectionTitle">AnitomySharp</h2>
+                    </div>
                 </div>
                 <div class="selectContainer">
-                    <label class="selectLabel" for="TranslationPreference">集数纠正</label>
+                    <div class="checkboxContainer checkboxContainer-withDescription">
+                        <label class="emby-checkbox-label">
+                            <input id="AlwaysGetEpisodeByAnitomySharp" is="emby-checkbox" type="checkbox"/>
+                            <span>使用 AnitomySharp 猜测集数</span>
+                        </label>
+                    </div>
                 </div>
-                <div class="checkboxContainer checkboxContainer-withDescription">
-                    <label class="emby-checkbox-label">
-                        <input id="AlwaysReplaceEpisodeNumber" is="emby-checkbox" type="checkbox"/>
-                        <span>始终根据文件名猜测集数</span>
-                    </label>
-                </div>
-                <div class="checkboxContainer checkboxContainer-withDescription">
-                    <label class="emby-checkbox-label">
-                        <input id="AlwaysGetEpisodeByAnitomySharp" is="emby-checkbox" type="checkbox"/>
-                        <span>始终使用AnitomySharp猜测集数</span>
-                    </label>
+                <div class="selectContainer">
+                    <div class="checkboxContainer checkboxContainer-withDescription">
+                        <label class="emby-checkbox-label">
+                            <input id="AlwaysGetTitleByAnitomySharp" is="emby-checkbox" type="checkbox"/>
+                            <span>使用 AnitomySharp 猜测动画名</span>
+                        </label>
+                    </div>
                 </div>
                 <div>
                     <button class="raised button-submit block emby-button" is="emby-button" type="submit">
