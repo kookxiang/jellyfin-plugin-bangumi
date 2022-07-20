@@ -34,7 +34,7 @@ public class EpisodeProvider : IRemoteMetadataProvider<Episode, EpisodeInfo>, IH
         new(@"- ?([\d\.]{2,})"),
         new(@"EP?([\d\.]{2,})", RegexOptions.IgnoreCase),
         new(@"\[([\d\.]{2,})"),
-        new(@"([\d\.]{2,})")
+        new(@"(\d{2,})")
     };
 
     private static readonly Regex OpeningEpisodeFileNameRegex = new(@"(NC)?OP\d");
@@ -215,21 +215,28 @@ public class EpisodeProvider : IRemoteMetadataProvider<Episode, EpisodeInfo>, IH
         {
             if (!regex.IsMatch(tempName))
                 continue;
-            episodeIndexFromFilename = double.Parse(regex.Match(tempName).Groups[1].Value);
+            if (!double.TryParse(regex.Match(tempName).Groups[1].Value.Trim('.'), out var index))
+                continue;
+            episodeIndexFromFilename = index;
             break;
         }
 
-        if (_plugin.Configuration.AlwaysReplaceEpisodeNumber && !episodeIndexFromFilename.Equals(episodeIndex))
+        if (_plugin.Configuration.AlwaysReplaceEpisodeNumber)
         {
-            _log.LogWarning("use episode index {NewIndex} instead of {Index} for {FileName}",
-                episodeIndexFromFilename, episodeIndex, fileName);
+            _log.LogWarning("use episode index {NewIndex} from filename {FileName}", episodeIndexFromFilename, fileName);
             return episodeIndexFromFilename;
+        }
+
+        if (episodeIndexFromFilename.Equals(episodeIndex))
+        {
+            _log.LogInformation("use exists episode number {Index} for {FileName}", episodeIndex, fileName);
+            return episodeIndex;
         }
 
         if (episodeIndex > max)
         {
-            _log.LogWarning("file {FileName} has incorrect episode index {Index}, set to {NewIndex}",
-                fileName, episodeIndex, episodeIndexFromFilename);
+            _log.LogWarning("file {FileName} has incorrect episode index {Index} (max {Max}), set to {NewIndex}",
+                fileName, episodeIndex, max, episodeIndexFromFilename);
             return episodeIndexFromFilename;
         }
 

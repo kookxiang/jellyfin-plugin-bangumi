@@ -49,8 +49,8 @@ public class Plugin : BasePlugin<PluginConfiguration>, IHasWebPages
     public HttpClient GetHttpClient()
     {
         var httpClient = _httpClientFactory.CreateClient(NamedClient.Default);
-        httpClient.DefaultRequestHeaders.UserAgent.Add(
-            new ProductInfoHeaderValue(Name, Version.ToString()));
+        httpClient.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("Jellyfin.Plugin.Bangumi", Version.ToString()));
+        httpClient.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("(https://github.com/kookxiang/jellyfin-plugin-bangumi)"));
         return httpClient;
     }
 }
