@@ -40,25 +40,35 @@ public class SeriesProvider : IRemoteMetadataProvider<Series, SeriesInfo>, IHasO
         var result = new MetadataResult<Series> { ResultLanguage = Constants.Language };
 
         var subjectId = info.ProviderIds.GetOrDefault(Constants.ProviderName);
+        
+        if (string.IsNullOrEmpty(subjectId) && Configuration.AlwaysGetTitleByAnitomySharp)
+        {
+            var searchName = Anitomy.ExtractAnimeTitle(baseName) ?? info.Name;
+            _log.LogInformation("Searching {Name} in bgm.tv", searchName);
+            // 不保证使用非原名或中文进行查询时返回正确结果
+            var searchResult = await _api.SearchSubject(searchName, token);
+            if (info.Year != null)
+                searchResult = searchResult.FindAll(x => x.ProductionYear == null || x.ProductionYear == info.Year.ToString());
+            if (searchResult.Count > 0)
+                subjectId = $"{searchResult[0].Id}";
+        }
+        
         if (string.IsNullOrEmpty(subjectId))
         {
-            var searchName = Configuration.AlwaysGetTitleByAnitomySharp ? Anitomy.ExtractAnimeTitle(baseName) ?? info.Name : info.Name;
+            var searchName = info.Name;
             _log.LogInformation("Searching {Name} in bgm.tv", searchName);
             var searchResult = await _api.SearchSubject(searchName, token);
-            searchResult = Subject.SortBySimilarity(searchResult, searchName);
             if (info.Year != null)
                 searchResult = searchResult.FindAll(x => x.ProductionYear == null || x.ProductionYear == info.Year.ToString());
             if (searchResult.Count > 0)
                 subjectId = $"{searchResult[0].Id}";
         }
 
-        // try search OriginalTitle
         if (string.IsNullOrEmpty(subjectId) && info.OriginalTitle != null && !string.Equals(info.OriginalTitle, info.Name, StringComparison.Ordinal))
         {
-            var searchName = Configuration.AlwaysGetTitleByAnitomySharp ? Anitomy.ExtractAnimeTitle(baseName) ?? info.OriginalTitle : info.OriginalTitle;
+            var searchName = info.OriginalTitle;
             _log.LogInformation("Searching {Name} in bgm.tv", searchName);
             var searchResult = await _api.SearchSubject(searchName, token);
-            searchResult = Subject.SortBySimilarity(searchResult, searchName);
             if (info.Year != null)
                 searchResult = searchResult.FindAll(x => x.ProductionYear == null || x.ProductionYear == info.Year.ToString());
             if (searchResult.Count > 0)
