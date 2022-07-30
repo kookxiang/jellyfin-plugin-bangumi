@@ -40,19 +40,7 @@ public class SeriesProvider : IRemoteMetadataProvider<Series, SeriesInfo>, IHasO
         var result = new MetadataResult<Series> { ResultLanguage = Constants.Language };
 
         var subjectId = info.ProviderIds.GetOrDefault(Constants.ProviderName);
-        
-        if (string.IsNullOrEmpty(subjectId) && Configuration.AlwaysGetTitleByAnitomySharp)
-        {
-            var searchName = Anitomy.ExtractAnimeTitle(baseName) ?? info.Name;
-            _log.LogInformation("Searching {Name} in bgm.tv", searchName);
-            // 不保证使用非原名或中文进行查询时返回正确结果
-            var searchResult = await _api.SearchSubject(searchName, token);
-            if (info.Year != null)
-                searchResult = searchResult.FindAll(x => x.ProductionYear == null || x.ProductionYear == info.Year.ToString());
-            if (searchResult.Count > 0)
-                subjectId = $"{searchResult[0].Id}";
-        }
-        
+
         if (string.IsNullOrEmpty(subjectId))
         {
             var searchName = info.Name;
@@ -74,7 +62,19 @@ public class SeriesProvider : IRemoteMetadataProvider<Series, SeriesInfo>, IHasO
             if (searchResult.Count > 0)
                 subjectId = $"{searchResult[0].Id}";
         }
-
+        
+        if (string.IsNullOrEmpty(subjectId) && Configuration.AlwaysGetTitleByAnitomySharp)
+        {
+            var searchName = Anitomy.ExtractAnimeTitle(baseName) ?? info.Name;
+            _log.LogInformation("Searching {Name} in bgm.tv", searchName);
+            // 不保证使用非原名或中文进行查询时返回正确结果
+            var searchResult = await _api.SearchSubject(searchName, token);
+            if (info.Year != null)
+                searchResult = searchResult.FindAll(x => x.ProductionYear == null || x.ProductionYear == info.Year.ToString());
+            if (searchResult.Count > 0)
+                subjectId = $"{searchResult[0].Id}";
+        }
+        
         if (string.IsNullOrEmpty(subjectId))
             return result;
 
