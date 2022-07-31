@@ -112,6 +112,22 @@
                         <span>取消授权</span>
                     </button>
                 </div>
+                <div class="selectContainer">
+                    <div class="checkboxContainer checkboxContainer-withDescription">
+                        <label class="emby-checkbox-label">
+                            <input id="ReportPlaybackStatusToBangumi" is="emby-checkbox" type="checkbox"/>
+                            <span>同步播放进度到 Bangumi</span>
+                        </label>
+                    </div>
+                </div>
+                <div class="selectContainer">
+                    <div class="checkboxContainer checkboxContainer-withDescription">
+                        <label class="emby-checkbox-label">
+                            <input id="ReportManualStatusChangeToBangumi" is="emby-checkbox" type="checkbox"/>
+                            <span>同步手动后的播放状态到 Bangumi</span>
+                        </label>
+                    </div>
+                </div>
                 <div class="verticalSection verticalSection">
                     <div class="sectionTitleContainer flex align-items-center">
                         <h2 class="sectionTitle">元数据</h2>
@@ -192,7 +208,7 @@
                     container.querySelector('.bangumi-user-info .user-avatar').innerHTML = '<img src="' + data.avatar + '" />';
                     container.querySelector('.bangumi-user-info .user-name').textContent = data.nickname;
                     container.querySelector('.bangumi-user-info .profile-link').href = data.url;
-                    container.querySelector('.bangumi-oauth-status').innerHTML = '<p><span class="material-icons schedule"></span> 授权时间: ' + new Date(data.effective).toLocaleString() + '</p><p><span class="material-icons more_time"></span> 过期时间: ' + new Date(data.expire).toLocaleString() + '</p><p><span class="material-icons sync"></span> 同步服务: 当前播放进度将会自动至 bgm.tv</p>';
+                    container.querySelector('.bangumi-oauth-status').innerHTML = '<p><span class="material-icons schedule"></span> 授权时间: ' + new Date(data.effective).toLocaleString() + '</p><p><span class="material-icons more_time"></span> 过期时间: ' + new Date(data.expire).toLocaleString() + '</p>';
                 });
             }
 
