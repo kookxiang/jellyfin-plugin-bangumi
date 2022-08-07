@@ -36,9 +36,17 @@ public class BangumiApi
     public async Task<List<Subject>> SearchSubject(string keyword, CancellationToken token)
     {
         var jsonString = await SendRequest($"https://api.bgm.tv/search/subject/{Uri.EscapeDataString(keyword)}?type=2", token);
-        var searchResult = JsonSerializer.Deserialize<SearchResult<Subject>>(jsonString, _options);
-        var list = searchResult?.List ?? new List<Subject>();
-        return Subject.SortBySimilarity(list, keyword);
+        try
+        {
+            var searchResult = JsonSerializer.Deserialize<SearchResult<Subject>>(jsonString, _options);
+            var list = searchResult?.List ?? new List<Subject>();
+            return Subject.SortBySimilarity(list, keyword);
+        }
+        catch (JsonException)
+        {
+            // 404 Not Found Anime
+            return new List<Subject>();
+        }
     }
 
     public async Task<Subject?> GetSubject(int id, CancellationToken token)
