@@ -34,6 +34,7 @@ public class EpisodeProvider : IRemoteMetadataProvider<Episode, EpisodeInfo>, IH
         new(@"- ?([\d\.]{2,})"),
         new(@"EP?([\d\.]{2,})", RegexOptions.IgnoreCase),
         new(@"\[([\d\.]{2,})"),
+        new(@"#([\d\.]{2,})"),
         new(@"(\d{2,})")
     };
 
