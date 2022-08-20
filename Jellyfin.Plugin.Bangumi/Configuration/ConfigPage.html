@@ -214,6 +214,8 @@
 
             function loadConfiguration() {
                 return ApiClient.getPluginConfiguration(pluginId).then(function (config) {
+                    container.querySelector('#ReportPlaybackStatusToBangumi').checked = config.ReportPlaybackStatusToBangumi;
+                    container.querySelector('#ReportManualStatusChangeToBangumi').checked = config.ReportManualStatusChangeToBangumi;
                     container.querySelector('#AlwaysReplaceEpisodeNumber').checked = config.AlwaysReplaceEpisodeNumber;
                     container.querySelector('#AlwaysGetTitleByAnitomySharp').checked = config.AlwaysGetTitleByAnitomySharp;
                     container.querySelector('#AlwaysGetEpisodeByAnitomySharp').checked = config.AlwaysGetEpisodeByAnitomySharp;
@@ -223,6 +225,8 @@
 
             function saveConfiguration() {
                 return wrapLoading(ApiClient.getPluginConfiguration(pluginId).then(function (config) {
+                    config.ReportPlaybackStatusToBangumi = container.querySelector('#ReportPlaybackStatusToBangumi').checked;
+                    config.ReportManualStatusChangeToBangumi = container.querySelector('#ReportManualStatusChangeToBangumi').checked;
                     config.AlwaysReplaceEpisodeNumber = container.querySelector('#AlwaysReplaceEpisodeNumber').checked;
                     config.AlwaysGetTitleByAnitomySharp = container.querySelector('#AlwaysGetTitleByAnitomySharp').checked;
                     config.AlwaysGetEpisodeByAnitomySharp = container.querySelector('#AlwaysGetEpisodeByAnitomySharp').checked;
