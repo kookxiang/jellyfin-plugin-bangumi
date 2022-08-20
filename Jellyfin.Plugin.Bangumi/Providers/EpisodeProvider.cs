@@ -73,7 +73,6 @@ public class EpisodeProvider : IRemoteMetadataProvider<Episode, EpisodeInfo>, IH
     public async Task<MetadataResult<Episode>> GetMetadata(EpisodeInfo info, CancellationToken token)
     {
         token.ThrowIfCancellationRequested();
-        EpisodeType? type = null;
         Model.Episode? episode = null;
         var result = new MetadataResult<Episode> { ResultLanguage = Constants.Language };
 
@@ -81,15 +80,7 @@ public class EpisodeProvider : IRemoteMetadataProvider<Episode, EpisodeInfo>, IH
         if (string.IsNullOrEmpty(fileName))
             return result;
 
-        if (OpeningEpisodeFileNameRegex.IsMatch(fileName))
-            type = EpisodeType.Opening;
-        else if (EndingEpisodeFileNameRegex.IsMatch(fileName))
-            type = EpisodeType.Ending;
-        else if (SpecialEpisodeFileNameRegex.IsMatch(fileName))
-            type = EpisodeType.Special;
-        else if (PreviewEpisodeFileNameRegex.IsMatch(fileName))
-            type = EpisodeType.Preview;
-
+        var type = GuessEpisodeTypeFromFileName(fileName);
         var seriesId = info.SeriesProviderIds?.GetValueOrDefault(Constants.ProviderName);
 
         var parent = _libraryManager.FindByPath(Path.GetDirectoryName(info.Path), true);
@@ -192,6 +183,27 @@ public class EpisodeProvider : IRemoteMetadataProvider<Episode, EpisodeInfo>, IH
     public Task<HttpResponseMessage> GetImageResponse(string url, CancellationToken token)
     {
         return _plugin.GetHttpClient().GetAsync(url, token);
+    }
+
+    private EpisodeType? GuessEpisodeTypeFromFileName(string fileName)
+    {
+        var tempName = fileName;
+        foreach (var regex in NonEpisodeFileNameRegex)
+        {
+            if (!regex.IsMatch(tempName))
+                continue;
+            tempName = regex.Replace(tempName, "");
+        }
+
+        if (OpeningEpisodeFileNameRegex.IsMatch(tempName))
+            return EpisodeType.Opening;
+        if (EndingEpisodeFileNameRegex.IsMatch(tempName))
+            return EpisodeType.Ending;
+        if (SpecialEpisodeFileNameRegex.IsMatch(tempName))
+            return EpisodeType.Special;
+        if (PreviewEpisodeFileNameRegex.IsMatch(tempName))
+            return EpisodeType.Preview;
+        return null;
     }
 
     private double GuessEpisodeNumber(double? current, string fileName, double max = double.PositiveInfinity)

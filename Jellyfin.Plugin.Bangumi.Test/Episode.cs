@@ -196,6 +196,16 @@ public class Episode
         Assert.IsNotNull(episodeData, "episode data should not be null");
         Assert.IsNotNull(episodeData.Item, "episode data should not be null");
         Assert.AreEqual(2, episodeData.Item.IndexNumber, "should fix episode index automatically");
+
+        episodeData = await _provider.GetMetadata(new EpisodeInfo
+        {
+            IndexNumber = 0,
+            Path = FakePath.CreateFile("Eighty-Six/[AI-Raws] 86 #22 シン (BD HEVC 1920x1080 yuv444p10le FLAC)[65CA4ED3].mkv"),
+            SeriesProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "331887" } }
+        }, _token);
+        Assert.IsNotNull(episodeData, "episode data should not be null");
+        Assert.IsNotNull(episodeData.Item, "episode data should not be null");
+        Assert.AreEqual(22, episodeData.Item.IndexNumber, "should fix episode index automatically");
     }
 
     [TestMethod]
