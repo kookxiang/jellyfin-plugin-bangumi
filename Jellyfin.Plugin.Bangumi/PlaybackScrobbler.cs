@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Jellyfin.Plugin.Bangumi.Model;
 using Jellyfin.Plugin.Bangumi.OAuth;
 using MediaBrowser.Controller.Entities;
+using MediaBrowser.Controller.Entities.Movies;
 using MediaBrowser.Controller.Library;
 using MediaBrowser.Controller.Plugins;
 using MediaBrowser.Model.Entities;
@@ -59,25 +60,25 @@ public class PlaybackScrobbler : IServerEntryPoint
                         _log.LogInformation("mark {Name} (#{Id}) as played for user #{User}", e.Item.Name, e.Item.Id, e.UserId);
                     }).ConfigureAwait(false);
                 if (_plugin.Configuration.ReportManualStatusChangeToBangumi)
-                    ReportPlaybackStatus(e.Item, e.UserId, true);
+                    ReportPlaybackStatus(e.Item, e.UserId, true).ConfigureAwait(false);
                 break;
 
             case UserDataSaveReason.TogglePlayed when !e.UserData.Played:
                 GetPlaybackHistory(e.UserId).Remove(e.UserData.Key);
                 _log.LogInformation("mark {Name} (#{Id}) as new for user #{User}", e.Item.Name, e.Item.Id, e.UserId);
                 if (_plugin.Configuration.ReportManualStatusChangeToBangumi)
-                    ReportPlaybackStatus(e.Item, e.UserId, true);
+                    ReportPlaybackStatus(e.Item, e.UserId, true).ConfigureAwait(false);
                 break;
 
             case UserDataSaveReason.PlaybackFinished when e.UserData.Played:
                 if (_plugin.Configuration.ReportPlaybackStatusToBangumi)
-                    ReportPlaybackStatus(e.Item, e.UserId, true);
+                    ReportPlaybackStatus(e.Item, e.UserId, true).ConfigureAwait(false);
                 e.Keys.ForEach(key => GetPlaybackHistory(e.UserId).Add(key));
                 break;
         }
     }
 
-    private void ReportPlaybackStatus(BaseItem item, Guid userId, bool played)
+    private async Task ReportPlaybackStatus(BaseItem item, Guid userId, bool played)
     {
         var bangumiId = item.GetProviderId(Constants.ProviderName);
 
@@ -85,6 +86,14 @@ public class PlaybackScrobbler : IServerEntryPoint
         {
             _log.LogInformation("item {Name} (#{Id}) doesn't have bangumi id, ignored", item.Name, item.Id);
             return;
+        }
+
+        if (item is Movie)
+        {
+            // jellyfin only have subject id for movie, so we need to get episode id from bangumi api
+            var episodeList = await _api.GetSubjectEpisodeListWithOffset(bangumiId, EpisodeType.Normal, 0, CancellationToken.None);
+            if (episodeList?.Data.Count > 0)
+                bangumiId = episodeList.Data.First().Id.ToString();
         }
 
         var user = _store.Get(userId);
@@ -107,7 +116,7 @@ public class PlaybackScrobbler : IServerEntryPoint
         }
 
         _log.LogInformation("report episode #{Episode} status {Status} to bangumi", bangumiId, EpisodeStatus.Watched);
-        _api.UpdateEpisodeStatus(user.AccessToken, bangumiId, played ? EpisodeStatus.Watched : EpisodeStatus.Removed, CancellationToken.None).Wait();
+        await _api.UpdateEpisodeStatus(user.AccessToken, bangumiId, played ? EpisodeStatus.Watched : EpisodeStatus.Removed, CancellationToken.None);
 
         _log.LogInformation("report completed");
     }
