@@ -62,7 +62,7 @@ public class SeriesProvider : IRemoteMetadataProvider<Series, SeriesInfo>, IHasO
             if (searchResult.Count > 0)
                 subjectId = $"{searchResult[0].Id}";
         }
-        
+
         if (string.IsNullOrEmpty(subjectId) && Configuration.AlwaysGetTitleByAnitomySharp)
         {
             var searchName = Anitomy.ExtractAnimeTitle(baseName) ?? info.Name;
@@ -74,7 +74,7 @@ public class SeriesProvider : IRemoteMetadataProvider<Series, SeriesInfo>, IHasO
             if (searchResult.Count > 0)
                 subjectId = $"{searchResult[0].Id}";
         }
-        
+
         if (string.IsNullOrEmpty(subjectId))
             return result;
 
