@@ -35,6 +35,16 @@ public class Episode
         Assert.IsNotNull(episodeData, "episode data should not be null");
         Assert.IsNotNull(episodeData.Item, "episode data should not be null");
         Assert.AreEqual("WHITE ALBUM", episodeData.Item.Name, "should return the right episode title");
+
+
+        episodeData = await _provider.GetMetadata(new EpisodeInfo
+        {
+            IndexNumber = 0,
+            Path = FakePath.CreateFile("ONE PIECE/海贼王--S01--E1018.mkv.mkv"),
+            SeriesProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "975" } }
+        }, _token);
+        Assert.IsNotNull(episodeData, "episode data should not be null");
+        Assert.IsNotNull(episodeData.Item, "episode data should not be null");
     }
 
     [TestMethod]

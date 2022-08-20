@@ -116,7 +116,8 @@ public class EpisodeProvider : IRemoteMetadataProvider<Episode, EpisodeInfo>, IH
                 episode = null;
         }
 
-        episodeIndex ??= GuessEpisodeNumber(episodeIndex, fileName);
+        if (episodeIndex is null or 0)
+            episodeIndex = GuessEpisodeNumber(episodeIndex, fileName);
 
         if (episode == null)
         {
