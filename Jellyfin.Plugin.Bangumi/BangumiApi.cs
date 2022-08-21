@@ -100,13 +100,20 @@ public class BangumiApi
             throw;
         }
 
-        if (result.Data.Min(x => x.Order) > episodeNumber)
+        if (result.Data.Exists(x => (int)x.Order == (int)episodeNumber))
+            return result.Data;
+
+        var filteredEpisodeList = result.Data.Where(x => x.Type == (type ?? EpisodeType.Normal)).ToList();
+        if (filteredEpisodeList.Count == 0)
+            filteredEpisodeList = result.Data;
+
+        if (filteredEpisodeList.Min(x => x.Order) > episodeNumber)
         {
             offset -= PageSize;
             goto RequestEpisodeList;
         }
 
-        if (result.Data.Max(x => x.Order) < episodeNumber)
+        if (filteredEpisodeList.Max(x => x.Order) < episodeNumber)
         {
             offset += PageSize;
             goto RequestEpisodeList;
