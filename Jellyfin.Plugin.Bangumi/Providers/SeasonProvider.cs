@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Net.Http;
 using System.Threading;
@@ -33,9 +32,6 @@ public class SeasonProvider : IRemoteMetadataProvider<Season, SeasonInfo>, IHasO
         token.ThrowIfCancellationRequested();
         var result = new MetadataResult<Season> { ResultLanguage = Constants.Language };
 
-        if (info.Path == null || !new DirectoryInfo(info.Path).Name.StartsWith("Season"))
-            return result;
-
         var subjectId = info.ProviderIds.GetOrDefault(Constants.ProviderName);
         if (string.IsNullOrEmpty(subjectId) && info.IndexNumber == 1)
             subjectId = info.SeriesProviderIds.GetOrDefault(Constants.ProviderName);
@@ -56,7 +52,11 @@ public class SeasonProvider : IRemoteMetadataProvider<Season, SeasonInfo>, IHasO
         result.Item.Overview = subject.Summary;
         result.Item.Tags = subject.PopularTags;
         if (DateTime.TryParse(subject.AirDate, out var airDate))
+        {
             result.Item.PremiereDate = airDate;
+            result.Item.ProductionYear = airDate.Year;
+        }
+
         if (subject.ProductionYear?.Length == 4)
             result.Item.ProductionYear = int.Parse(subject.ProductionYear);
 
