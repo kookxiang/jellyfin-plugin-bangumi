@@ -20,7 +20,7 @@ public class EpisodeProvider : IRemoteMetadataProvider<Episode, EpisodeInfo>, IH
 {
     private static readonly Regex[] NonEpisodeFileNameRegex =
     {
-        new(@"\[[0-9A-F]{8}\]", RegexOptions.IgnoreCase),
+        new(@"[\[\(][0-9A-F]{8}[\]\)]", RegexOptions.IgnoreCase),
         new(@"S\d{2,}", RegexOptions.IgnoreCase),
         new(@"yuv[4|2|0]{3}p(10|8)?", RegexOptions.IgnoreCase),
         new(@"\d{3,4}p", RegexOptions.IgnoreCase),
