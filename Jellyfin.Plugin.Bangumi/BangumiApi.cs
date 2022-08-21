@@ -72,6 +72,8 @@ public class BangumiApi
             return null;
         if (episodeNumber < PageSize && episodeNumber < result.Total)
             return result.Data;
+        if (episodeNumber > PageSize && episodeNumber > result.Total)
+            return result.Data;
 
         // guess offset number
         var offset = Math.Min((int)episodeNumber, result.Total) - Offset;
