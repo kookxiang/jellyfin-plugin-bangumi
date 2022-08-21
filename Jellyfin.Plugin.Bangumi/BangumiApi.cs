@@ -82,6 +82,8 @@ public class BangumiApi
         RequestEpisodeList:
         if (offset < 0)
             return result.Data;
+        if (offset > result.Total)
+            return result.Data;
         if (history.Contains(offset))
             return result.Data;
         history.Add(offset);
@@ -108,18 +110,11 @@ public class BangumiApi
             filteredEpisodeList = result.Data;
 
         if (filteredEpisodeList.Min(x => x.Order) > episodeNumber)
-        {
             offset -= PageSize;
-            goto RequestEpisodeList;
-        }
-
-        if (filteredEpisodeList.Max(x => x.Order) < episodeNumber)
-        {
+        else
             offset += PageSize;
-            goto RequestEpisodeList;
-        }
 
-        return result.Data;
+        goto RequestEpisodeList;
     }
 
     public async Task<DataList<Episode>?> GetSubjectEpisodeListWithOffset(string seriesId, EpisodeType? type, double offset, CancellationToken token)
