@@ -26,17 +26,6 @@ public class Season
     }
 
     [TestMethod]
-    public async Task WithoutSeasonFolder()
-    {
-        var result = await _provider.GetMetadata(new SeasonInfo
-        {
-            Path = FakePath.Create("White Album 2"),
-            ProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "69496" } }
-        }, _token);
-        Assert.IsFalse(result.HasMetadata, "should not return metadata when folder name not contains season");
-    }
-
-    [TestMethod]
     public async Task WithSeasonFolder()
     {
         var result = await _provider.GetMetadata(new SeasonInfo
