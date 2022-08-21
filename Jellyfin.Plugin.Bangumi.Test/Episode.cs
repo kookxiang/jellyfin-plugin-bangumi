@@ -40,11 +40,12 @@ public class Episode
         episodeData = await _provider.GetMetadata(new EpisodeInfo
         {
             IndexNumber = 0,
-            Path = FakePath.CreateFile("ONE PIECE/海贼王--S01--E1018.mkv.mkv"),
+            Path = FakePath.CreateFile("ONE PIECE/海贼王--S21--E1026.MP4"),
             SeriesProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "975" } }
         }, _token);
         Assert.IsNotNull(episodeData, "episode data should not be null");
         Assert.IsNotNull(episodeData.Item, "episode data should not be null");
+        Assert.AreEqual(1026, episodeData.Item.IndexNumber, "should return the right episode number");
     }
 
     [TestMethod]

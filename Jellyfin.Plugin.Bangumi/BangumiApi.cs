@@ -100,13 +100,13 @@ public class BangumiApi
             throw;
         }
 
-        if (result.Data.First().Order > episodeNumber)
+        if (result.Data.Min(x => x.Order) > episodeNumber)
         {
             offset -= PageSize;
             goto RequestEpisodeList;
         }
 
-        if (result.Data.Last().Order < episodeNumber)
+        if (result.Data.Max(x => x.Order) < episodeNumber)
         {
             offset += PageSize;
             goto RequestEpisodeList;
