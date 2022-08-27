@@ -148,7 +148,7 @@ public class EpisodeProvider : IRemoteMetadataProvider<Episode, EpisodeInfo>, IH
         result.Item.Name = episode.GetName(_plugin.Configuration);
         result.Item.OriginalTitle = episode.OriginalName;
         result.Item.IndexNumber = (int)episode.Order;
-        result.Item.Overview = episode.Description;
+        result.Item.Overview = string.IsNullOrEmpty(episode.Description) ? null : episode.Description;
         result.Item.ParentIndexNumber = 1;
 
         if (parent is Season season)

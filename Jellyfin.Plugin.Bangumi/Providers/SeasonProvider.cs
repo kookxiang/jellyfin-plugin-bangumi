@@ -49,8 +49,9 @@ public class SeasonProvider : IRemoteMetadataProvider<Season, SeasonInfo>, IHasO
         result.Item.CommunityRating = subject.Rating?.Score;
         result.Item.Name = subject.GetName(_plugin.Configuration);
         result.Item.OriginalTitle = subject.OriginalName;
-        result.Item.Overview = subject.Summary;
+        result.Item.Overview = string.IsNullOrEmpty(subject.Summary) ? null : subject.Summary;
         result.Item.Tags = subject.PopularTags;
+
         if (DateTime.TryParse(subject.AirDate, out var airDate))
         {
             result.Item.PremiereDate = airDate;

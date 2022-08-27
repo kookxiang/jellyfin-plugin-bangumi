@@ -89,14 +89,15 @@ public class SeriesProvider : IRemoteMetadataProvider<Series, SeriesInfo>, IHasO
         result.Item.CommunityRating = subject.Rating?.Score;
         result.Item.Name = subject.GetName(_plugin.Configuration);
         result.Item.OriginalTitle = subject.OriginalName;
-        result.Item.Overview = subject.Summary;
+        result.Item.Overview = string.IsNullOrEmpty(subject.Summary) ? null : subject.Summary;
         result.Item.Tags = subject.PopularTags;
-        result.Item.AirTime = subject.AirDate ?? "";
 
         if (DateTime.TryParse(subject.AirDate, out var airDate))
         {
+            result.Item.AirTime = subject.AirDate;
             result.Item.AirDays = new[] { airDate.DayOfWeek };
             result.Item.PremiereDate = airDate;
+            result.Item.ProductionYear = airDate.Year;
         }
 
         if (subject.ProductionYear?.Length == 4)
