@@ -148,6 +148,14 @@
                         </label>
                     </div>
                 </div>
+                <div class="selectContainer">
+                    <div class="checkboxContainer checkboxContainer-withDescription">
+                        <label class="emby-checkbox-label">
+                            <input id="TrustExistedBangumiId" is="emby-checkbox" type="checkbox"/>
+                            <span>始终根据配置的 Bangumi ID 获取元数据</span>
+                        </label>
+                    </div>
+                </div>
                 <div class="verticalSection verticalSection">
                     <div class="sectionTitleContainer flex align-items-center">
                         <h2 class="sectionTitle">AnitomySharp</h2>
@@ -217,6 +225,7 @@
                     container.querySelector('#ReportPlaybackStatusToBangumi').checked = config.ReportPlaybackStatusToBangumi;
                     container.querySelector('#ReportManualStatusChangeToBangumi').checked = config.ReportManualStatusChangeToBangumi;
                     container.querySelector('#AlwaysReplaceEpisodeNumber').checked = config.AlwaysReplaceEpisodeNumber;
+                    container.querySelector('#TrustExistedBangumiId').checked = config.TrustExistedBangumiId;
                     container.querySelector('#AlwaysGetTitleByAnitomySharp').checked = config.AlwaysGetTitleByAnitomySharp;
                     container.querySelector('#AlwaysGetEpisodeByAnitomySharp').checked = config.AlwaysGetEpisodeByAnitomySharp;
                     container.querySelector('#TranslationPreference').value = config.TranslationPreference;
@@ -228,6 +237,7 @@
                     config.ReportPlaybackStatusToBangumi = container.querySelector('#ReportPlaybackStatusToBangumi').checked;
                     config.ReportManualStatusChangeToBangumi = container.querySelector('#ReportManualStatusChangeToBangumi').checked;
                     config.AlwaysReplaceEpisodeNumber = container.querySelector('#AlwaysReplaceEpisodeNumber').checked;
+                    config.TrustExistedBangumiId = container.querySelector('#TrustExistedBangumiId').checked;
                     config.AlwaysGetTitleByAnitomySharp = container.querySelector('#AlwaysGetTitleByAnitomySharp').checked;
                     config.AlwaysGetEpisodeByAnitomySharp = container.querySelector('#AlwaysGetEpisodeByAnitomySharp').checked;
                     config.TranslationPreference = container.querySelector('#TranslationPreference').value;

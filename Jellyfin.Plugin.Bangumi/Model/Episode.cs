@@ -44,4 +44,9 @@ public class Episode
             _ => OriginalName
         };
     }
+
+    public override string ToString()
+    {
+        return $"<Bangumi Episode #{Id}: {OriginalName}>";
+    }
 }

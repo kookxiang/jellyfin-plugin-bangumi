@@ -73,68 +73,14 @@ public class EpisodeProvider : IRemoteMetadataProvider<Episode, EpisodeInfo>, IH
     public async Task<MetadataResult<Episode>> GetMetadata(EpisodeInfo info, CancellationToken token)
     {
         token.ThrowIfCancellationRequested();
-        Model.Episode? episode = null;
+        var episode = await GetEpisode(info, token);
+
+        _log.LogInformation("metadata for {FilePath}: {EpisodeInfo}", Path.GetFileName(info.Path), episode);
+
         var result = new MetadataResult<Episode> { ResultLanguage = Constants.Language };
 
-        var fileName = Path.GetFileName(info.Path);
-        if (string.IsNullOrEmpty(fileName))
-            return result;
-
-        var type = GuessEpisodeTypeFromFileName(fileName);
-        var seriesId = info.SeriesProviderIds?.GetValueOrDefault(Constants.ProviderName);
-
-        var parent = _libraryManager.FindByPath(Path.GetDirectoryName(info.Path), true);
-        if (parent is Season)
-        {
-            var seasonId = parent.ProviderIds.GetValueOrDefault(Constants.ProviderName);
-            if (!string.IsNullOrEmpty(seasonId))
-                seriesId = seasonId;
-        }
-
-        if (string.IsNullOrEmpty(seriesId))
-            return result;
-
-        var episodeId = info.ProviderIds?.GetValueOrDefault(Constants.ProviderName);
-        if (!string.IsNullOrEmpty(episodeId))
-        {
-            episode = await _api.GetEpisode(episodeId, token);
-            if (episode != null)
-                if (episode.Type == EpisodeType.Normal && !AllSpecialEpisodeFileNameRegex.Any(x => x.IsMatch(info.Path)))
-                    if ($"{episode.ParentId}" != seriesId)
-                    {
-                        _log.LogWarning("episode #{Episode} is not belong to series #{Series}, ignored", episodeId, seriesId);
-                        episode = null;
-                    }
-        }
-
-        double? episodeIndex = info.IndexNumber;
-
-        if (_plugin.Configuration.AlwaysReplaceEpisodeNumber)
-        {
-            episodeIndex = GuessEpisodeNumber(episodeIndex, fileName);
-            if ((int)episodeIndex != info.IndexNumber)
-                episode = null;
-        }
-
-        if (episodeIndex is null or 0)
-            episodeIndex = GuessEpisodeNumber(episodeIndex, fileName);
-
         if (episode == null)
-        {
-            var episodeListData = await _api.GetSubjectEpisodeList(seriesId, type, episodeIndex.Value, token);
-            if (episodeListData == null)
-                return result;
-            if (type is null or EpisodeType.Normal)
-                episodeIndex = GuessEpisodeNumber(episodeIndex, fileName, episodeListData.Max(x => x.Order));
-            try
-            {
-                episode = episodeListData.OrderBy(x => x.Type).First(x => x.Order.Equals(episodeIndex));
-            }
-            catch (InvalidOperationException)
-            {
-                return result;
-            }
-        }
+            return result;
 
         result.Item = new Episode();
         result.HasMetadata = true;
@@ -151,6 +97,7 @@ public class EpisodeProvider : IRemoteMetadataProvider<Episode, EpisodeInfo>, IH
         result.Item.Overview = string.IsNullOrEmpty(episode.Description) ? null : episode.Description;
         result.Item.ParentIndexNumber = 1;
 
+        var parent = _libraryManager.FindByPath(Path.GetDirectoryName(info.Path), true);
         if (parent is Season season)
         {
             result.Item.SeasonId = season.Id;
@@ -184,6 +131,66 @@ public class EpisodeProvider : IRemoteMetadataProvider<Episode, EpisodeInfo>, IH
     public Task<HttpResponseMessage> GetImageResponse(string url, CancellationToken token)
     {
         return _plugin.GetHttpClient().GetAsync(url, token);
+    }
+
+    private async Task<Model.Episode?> GetEpisode(EpisodeInfo info, CancellationToken token)
+    {
+        var fileName = Path.GetFileName(info.Path);
+        if (string.IsNullOrEmpty(fileName))
+            return null;
+
+        var type = GuessEpisodeTypeFromFileName(fileName);
+        var seriesId = info.SeriesProviderIds?.GetValueOrDefault(Constants.ProviderName);
+
+        var parent = _libraryManager.FindByPath(Path.GetDirectoryName(info.Path), true);
+        if (parent is Season)
+        {
+            var seasonId = parent.ProviderIds.GetValueOrDefault(Constants.ProviderName);
+            if (!string.IsNullOrEmpty(seasonId))
+                seriesId = seasonId;
+        }
+
+        if (string.IsNullOrEmpty(seriesId))
+            return null;
+
+        double? episodeIndex = info.IndexNumber;
+
+        if (_plugin.Configuration.AlwaysReplaceEpisodeNumber)
+            episodeIndex = GuessEpisodeNumber(episodeIndex, fileName);
+        else if (episodeIndex is null or 0)
+            episodeIndex = GuessEpisodeNumber(episodeIndex, fileName);
+
+        var episodeId = info.ProviderIds?.GetValueOrDefault(Constants.ProviderName);
+        if (!string.IsNullOrEmpty(episodeId))
+        {
+            var episode = await _api.GetEpisode(episodeId, token);
+            if (episode == null)
+                goto SkipBangumiId;
+
+            if (_plugin.Configuration.TrustExistedBangumiId)
+                return episode;
+
+            if (episode.Type != EpisodeType.Normal || AllSpecialEpisodeFileNameRegex.Any(x => x.IsMatch(info.Path)))
+                return episode;
+
+            if ($"{episode.ParentId}" == seriesId && Math.Abs(episode.Order - episodeIndex.Value) < 0.1)
+                return episode;
+        }
+
+        SkipBangumiId:
+        var episodeListData = await _api.GetSubjectEpisodeList(seriesId, type, episodeIndex.Value, token);
+        if (episodeListData == null)
+            return null;
+        if (type is null or EpisodeType.Normal)
+            episodeIndex = GuessEpisodeNumber(episodeIndex, fileName, episodeListData.Max(x => x.Order));
+        try
+        {
+            return episodeListData.OrderBy(x => x.Type).First(x => x.Order.Equals(episodeIndex));
+        }
+        catch (InvalidOperationException)
+        {
+            return null;
+        }
     }
 
     private EpisodeType? GuessEpisodeTypeFromFileName(string fileName)

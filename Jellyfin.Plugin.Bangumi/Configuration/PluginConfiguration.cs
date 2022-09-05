@@ -15,6 +15,7 @@ public class PluginConfiguration : BasePluginConfiguration
         TranslationPreference = TranslationPreferenceType.Chinese;
         ReportPlaybackStatusToBangumi = true;
         ReportManualStatusChangeToBangumi = false;
+        TrustExistedBangumiId = false;
         AlwaysGetTitleByAnitomySharp = false;
         AlwaysGetEpisodeByAnitomySharp = false;
     }
@@ -24,6 +25,8 @@ public class PluginConfiguration : BasePluginConfiguration
     public bool ReportPlaybackStatusToBangumi { get; set; }
 
     public bool ReportManualStatusChangeToBangumi { get; set; }
+
+    public bool TrustExistedBangumiId { get; set; }
 
     public bool AlwaysReplaceEpisodeNumber { get; set; }
 
