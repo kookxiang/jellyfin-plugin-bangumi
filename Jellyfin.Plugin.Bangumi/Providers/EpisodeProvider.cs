@@ -85,11 +85,11 @@ public class EpisodeProvider : IRemoteMetadataProvider<Episode, EpisodeInfo>, IH
         result.Item = new Episode();
         result.HasMetadata = true;
         result.Item.ProviderIds.Add(Constants.ProviderName, $"{episode.Id}");
-        if (!string.IsNullOrEmpty(episode.AirDate))
-        {
-            result.Item.PremiereDate = DateTime.Parse(episode.AirDate);
-            result.Item.ProductionYear = DateTime.Parse(episode.AirDate).Year;
-        }
+
+        if (DateTime.TryParse(episode.AirDate, out var airDate))
+            result.Item.PremiereDate = airDate;
+        if (episode.AirDate.Length == 4)
+            result.Item.ProductionYear = int.Parse(episode.AirDate);
 
         result.Item.Name = episode.GetName(_plugin.Configuration);
         result.Item.OriginalTitle = episode.OriginalName;
