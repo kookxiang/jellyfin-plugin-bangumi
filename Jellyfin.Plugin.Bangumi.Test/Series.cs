@@ -40,6 +40,24 @@ public class Series
     }
 
     [TestMethod]
+    public async Task GetByNameAndAirDate()
+    {
+        var result = await _provider.GetMetadata(new SeriesInfo
+        {
+            Name = "からかい上手の高木さん",
+            Year = 2022,
+        }, _token);
+        Assert.AreEqual(result.Item.ProviderIds[Constants.ProviderName], "347887");
+
+        result = await _provider.GetMetadata(new SeriesInfo
+        {
+            Name = "からかい上手の高木さん",
+            Year = 2018,
+        }, _token);
+        Assert.AreEqual(result.Item.ProviderIds[Constants.ProviderName], "219200");
+    }
+
+    [TestMethod]
     public async Task GetById()
     {
         var result = await _provider.GetMetadata(new SeriesInfo

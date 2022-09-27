@@ -20,7 +20,13 @@ public class Subject
     public string? Summary { get; set; }
 
     [JsonPropertyName("date")]
-    public string? AirDate { get; set; }
+    public string? Date { get; set; }
+
+    [JsonPropertyName("air_date")]
+    public string? Date2 { get; set; }
+
+    [JsonIgnore]
+    public string? AirDate => Date ?? Date2;
 
     [JsonIgnore]
     public string? ProductionYear => AirDate?[..4];
