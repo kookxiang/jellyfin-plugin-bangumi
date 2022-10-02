@@ -11,6 +11,7 @@ using MediaBrowser.Controller.Library;
 using MediaBrowser.Controller.Plugins;
 using MediaBrowser.Model.Entities;
 using Microsoft.Extensions.Logging;
+using CollectionType = Jellyfin.Plugin.Bangumi.Model.CollectionType;
 
 namespace Jellyfin.Plugin.Bangumi;
 
@@ -115,8 +116,16 @@ public class PlaybackScrobbler : IServerEntryPoint
             return;
         }
 
-        _log.LogInformation("report episode #{Episode} status {Status} to bangumi", bangumiId, EpisodeStatus.Watched);
-        await _api.UpdateEpisodeStatus(user.AccessToken, bangumiId, played ? EpisodeStatus.Watched : EpisodeStatus.Removed, CancellationToken.None);
+        if (item is Book)
+        {
+            _log.LogInformation("report subject #{Subject} status {Status} to bangumi", bangumiId, EpisodeStatus.Watched);
+            await _api.UpdateCollectionStatus(user.AccessToken, bangumiId, played ? CollectionType.Watched : CollectionType.Watching, CancellationToken.None);
+        }
+        else
+        {
+            _log.LogInformation("report episode #{Episode} status {Status} to bangumi", bangumiId, EpisodeStatus.Watched);
+            await _api.UpdateEpisodeStatus(user.AccessToken, bangumiId, played ? EpisodeStatus.Watched : EpisodeStatus.Removed, CancellationToken.None);
+        }
 
         _log.LogInformation("report completed");
     }

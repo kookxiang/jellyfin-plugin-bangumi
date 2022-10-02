@@ -23,6 +23,7 @@ public class ServiceLocator
         serviceCollection.AddSingleton<IApplicationPaths, MockedApplicationPaths>();
         serviceCollection.AddSingleton<ILibraryManager, MockedLibraryManager>();
         serviceCollection.AddScoped<Bangumi.Plugin>();
+        serviceCollection.AddScoped<BookProvider>();
         serviceCollection.AddScoped<EpisodeProvider>();
         serviceCollection.AddScoped<MovieProvider>();
         serviceCollection.AddScoped<PersonProvider>();

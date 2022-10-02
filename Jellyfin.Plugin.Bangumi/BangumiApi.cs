@@ -4,6 +4,7 @@ using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
+using System.Text;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
@@ -33,9 +34,17 @@ public class BangumiApi
         _store = store;
     }
 
-    public async Task<List<Subject>> SearchSubject(string keyword, CancellationToken token)
+    public Task<List<Subject>> SearchSubject(string keyword, CancellationToken token)
     {
-        var jsonString = await SendRequest($"https://api.bgm.tv/search/subject/{Uri.EscapeDataString(keyword)}?type=2", token);
+        return SearchSubject(keyword, SubjectType.Anime, token);
+    }
+
+    public async Task<List<Subject>> SearchSubject(string keyword, SubjectType? type, CancellationToken token)
+    {
+        var url = $"https://api.bgm.tv/search/subject/{Uri.EscapeDataString(keyword)}?";
+        if (type != null)
+            url += $"&type={(int)type}";
+        var jsonString = await SendRequest(url, token);
         try
         {
             var searchResult = JsonSerializer.Deserialize<SearchResult<Subject>>(jsonString, _options);
@@ -196,6 +205,13 @@ public class BangumiApi
         return JsonSerializer.Deserialize<User>(jsonString, _options);
     }
 
+    public async Task UpdateCollectionStatus(string accessToken, string subjectId, CollectionType type, CancellationToken token)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Patch, $"https://api.bgm.tv/v0/users/-/collections/{subjectId}");
+        request.Content = new StringContent(JsonSerializer.Serialize(new Collection { Type = type }, _options), Encoding.UTF8, "application/json");
+        await SendRequest(request, accessToken, token);
+    }
+
     public async Task UpdateEpisodeStatus(string accessToken, string episodeId, EpisodeStatus status, CancellationToken token)
     {
         await SendRequest($"https://api.bgm.tv/ep/{episodeId}/status/{status.GetValue()}", accessToken, token);
@@ -206,12 +222,17 @@ public class BangumiApi
         return await SendRequest(url, _store.GetAvailable()?.AccessToken, token);
     }
 
-    private async Task<string> SendRequest(string url, string? accessToken, CancellationToken token)
+    private Task<string> SendRequest(string url, string? accessToken, CancellationToken token)
+    {
+        return SendRequest(new HttpRequestMessage(HttpMethod.Get, url), accessToken, token);
+    }
+
+    private async Task<string> SendRequest(HttpRequestMessage request, string? accessToken, CancellationToken token)
     {
         var httpClient = _plugin.GetHttpClient();
         if (!string.IsNullOrEmpty(accessToken))
-            httpClient.DefaultRequestHeaders.Authorization = AuthenticationHeaderValue.Parse("Bearer " + accessToken);
-        var response = await httpClient.GetAsync(url, token);
+            request.Headers.Authorization = AuthenticationHeaderValue.Parse("Bearer " + accessToken);
+        var response = await httpClient.SendAsync(request, token);
         response.EnsureSuccessStatusCode();
         return await response.Content.ReadAsStringAsync(token);
     }

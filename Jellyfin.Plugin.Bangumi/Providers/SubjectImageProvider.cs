@@ -28,7 +28,7 @@ public class SubjectImageProvider : IRemoteImageProvider, IHasOrder
 
     public bool Supports(BaseItem item)
     {
-        return item is Series or Season or Movie;
+        return item is Series or Season or Movie or Book;
     }
 
     public IEnumerable<ImageType> GetSupportedImages(BaseItem item)
