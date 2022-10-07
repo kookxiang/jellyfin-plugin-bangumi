@@ -41,7 +41,7 @@ public class BangumiApi
 
     public async Task<List<Subject>> SearchSubject(string keyword, SubjectType? type, CancellationToken token)
     {
-        var url = $"https://api.bgm.tv/search/subject/{Uri.EscapeDataString(keyword)}?";
+        var url = $"https://api.bgm.tv/search/subject/{Uri.EscapeDataString(keyword)}?responseGroup=large";
         if (type != null)
             url += $"&type={(int)type}";
         var jsonString = await SendRequest(url, token);
