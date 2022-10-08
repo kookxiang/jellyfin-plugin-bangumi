@@ -15,17 +15,17 @@ public class TokenRefreshTask : IScheduledTask
 {
     private readonly IActivityManager _activity;
     private readonly BangumiApi _api;
+    private readonly PluginDatabase _db;
     private readonly INotificationManager _notification;
     private readonly Plugin _plugin;
-    private readonly OAuthStore _store;
 
-    public TokenRefreshTask(IActivityManager activity, INotificationManager notification, Plugin plugin, BangumiApi api, OAuthStore store)
+    public TokenRefreshTask(IActivityManager activity, INotificationManager notification, Plugin plugin, BangumiApi api, PluginDatabase db)
     {
         _activity = activity;
         _notification = notification;
         _plugin = plugin;
         _api = api;
-        _store = store;
+        _db = db;
     }
 
     public string Key => "OAuthTokenRefreshTask";
@@ -49,22 +49,21 @@ public class TokenRefreshTask : IScheduledTask
 
     public async Task ExecuteAsync(IProgress<double> progress, CancellationToken token)
     {
-        var users = _store.GetUsers();
+        var users = _db.Logins.FindAll();
         var current = 0d;
-        var total = users.Count;
-        foreach (var (guid, user) in users)
+        var total = _db.Logins.Count();
+        foreach (var user in users)
         {
-            var userId = Guid.Parse(guid);
             token.ThrowIfCancellationRequested();
             progress.Report(current / total);
             current++;
             if (user.Expired)
                 continue;
 
-            var activity = new ActivityLog("Bangumi 授权", "Bangumi", userId);
+            var activity = new ActivityLog("Bangumi 授权", "Bangumi", user.Id);
             try
             {
-                await user.Refresh(_plugin.GetHttpClient(), userId, token);
+                await user.Refresh(_plugin.GetHttpClient(), user.Id, token);
                 await user.GetProfile(_api, token);
                 activity.ShortOverview = $"用户 #{user.UserId} 授权刷新成功";
                 activity.LogSeverity = LogLevel.Information;
@@ -78,14 +77,12 @@ public class TokenRefreshTask : IScheduledTask
                     Name = activity.ShortOverview,
                     Description = e.StackTrace,
                     Level = NotificationLevel.Warning,
-                    UserIds = new[] { Guid.Parse(guid) },
+                    UserIds = new[] { user.Id },
                     Date = DateTime.Now
                 }, token);
             }
 
             await _activity.CreateAsync(activity);
         }
-
-        _store.Save();
     }
 }

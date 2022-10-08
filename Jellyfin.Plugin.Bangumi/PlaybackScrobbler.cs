@@ -4,7 +4,6 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Jellyfin.Plugin.Bangumi.Model;
-using Jellyfin.Plugin.Bangumi.OAuth;
 using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Entities.Movies;
 using MediaBrowser.Controller.Library;
@@ -19,17 +18,17 @@ public class PlaybackScrobbler : IServerEntryPoint
 {
     private static readonly Dictionary<Guid, HashSet<string>> Store = new();
     private readonly BangumiApi _api;
+    private readonly PluginDatabase _db;
     private readonly ILogger<PlaybackScrobbler> _log;
 
     private readonly Plugin _plugin;
-    private readonly OAuthStore _store;
     private readonly IUserDataManager _userDataManager;
 
-    public PlaybackScrobbler(Plugin plugin, IUserManager userManager, IUserDataManager userDataManager, OAuthStore store, BangumiApi api, ILogger<PlaybackScrobbler> log)
+    public PlaybackScrobbler(Plugin plugin, IUserManager userManager, IUserDataManager userDataManager, PluginDatabase db, BangumiApi api, ILogger<PlaybackScrobbler> log)
     {
         _plugin = plugin;
         _userDataManager = userDataManager;
-        _store = store;
+        _db = db;
         _api = api;
         _log = log;
 
@@ -97,7 +96,7 @@ public class PlaybackScrobbler : IServerEntryPoint
                 bangumiId = episodeList.Data.First().Id.ToString();
         }
 
-        var user = _store.Get(userId);
+        var user = _db.Logins.FindById(userId);
         if (user == null)
         {
             _log.LogInformation("access token for user #{User} not found, ignored", userId);

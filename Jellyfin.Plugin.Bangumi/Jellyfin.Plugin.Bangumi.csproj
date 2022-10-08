@@ -11,6 +11,7 @@
 
     <ItemGroup>
         <PackageReference Include="Jellyfin.Controller" IncludeAssets="compile" Version="10.8.0"/>
+        <PackageReference Include="LiteDB" Version="5.0.12"/>
         <PackageReference Include="Microsoft.AspNetCore.Authorization" IncludeAssets="compile" Version="6.0.7"/>
         <PackageReference Include="Microsoft.Extensions.Http" IncludeAssets="compile" Version="6.0.0"/>
         <PackageReference Include="Fastenshtein" Version="1.0.0.8"/>

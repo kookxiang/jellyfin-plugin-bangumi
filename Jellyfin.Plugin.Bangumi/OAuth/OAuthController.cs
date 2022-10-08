@@ -17,14 +17,14 @@ public class OAuthController : ControllerBase
     protected internal const string ApplicationSecret = "1b28040afd28882aecf23dcdd86be9f7";
 
     private readonly BangumiApi _api;
+    private readonly PluginDatabase _db;
     private readonly Plugin _plugin;
     private readonly ISessionContext _sessionContext;
-    private readonly OAuthStore _store;
 
-    public OAuthController(BangumiApi api, OAuthStore store, ISessionContext sessionContext, Plugin plugin)
+    public OAuthController(BangumiApi api, PluginDatabase db, ISessionContext sessionContext, Plugin plugin)
     {
         _api = api;
-        _store = store;
+        _db = db;
         _sessionContext = sessionContext;
         _plugin = plugin;
     }
@@ -36,14 +36,14 @@ public class OAuthController : ControllerBase
         var user = await _sessionContext.GetUser(Request);
         if (user == null)
             return null;
-        var info = _store.Get(user.Id);
+        var info = _db.Logins.FindById(user.Id);
         if (info == null)
             return null;
 
         if (string.IsNullOrEmpty(info.Avatar))
         {
             await info.GetProfile(_api);
-            _store.Save();
+            _db.Logins.Update(info);
         }
 
         return new Dictionary<string, object?>
@@ -64,12 +64,12 @@ public class OAuthController : ControllerBase
         var user = await _sessionContext.GetUser(Request);
         if (user == null)
             return BadRequest();
-        var info = _store.Get(user.Id);
+        var info = _db.Logins.FindById(user.Id);
         if (info == null)
             return BadRequest();
         await info.Refresh(_plugin.GetHttpClient(), user.Id);
         await info.GetProfile(_api);
-        _store.Save();
+        _db.Logins.Update(info);
         return Accepted();
     }
 
@@ -80,8 +80,7 @@ public class OAuthController : ControllerBase
         var user = await _sessionContext.GetUser(Request);
         if (user == null)
             return BadRequest();
-        _store.Delete(user.Id);
-        _store.Save();
+        _db.Logins.Delete(user.Id);
         return Accepted();
     }
 
@@ -99,11 +98,10 @@ public class OAuthController : ControllerBase
         var response = await _plugin.GetHttpClient().PostAsync("https://bgm.tv/oauth/access_token", formData);
         var responseBody = await response.Content.ReadAsStringAsync();
         if (!response.IsSuccessStatusCode) return JsonSerializer.Deserialize<OAuthError>(responseBody);
-        var result = JsonSerializer.Deserialize<OAuthUser>(responseBody)!;
+        var result = JsonSerializer.Deserialize<OAuthResponse>(responseBody)!.ToUser(Guid.Parse(user));
         result.EffectiveTime = DateTime.Now;
         await result.GetProfile(_api);
-        _store.Set(user, result);
-        _store.Save();
+        _db.Logins.Upsert(result);
         return Content("<script>window.opener.postMessage('BANGUMI-OAUTH-COMPLETE'); window.close()</script>", "text/html");
     }
 }

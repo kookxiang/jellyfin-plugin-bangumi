@@ -9,7 +9,6 @@ using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using Jellyfin.Plugin.Bangumi.Model;
-using Jellyfin.Plugin.Bangumi.OAuth;
 using MediaBrowser.Controller.Entities;
 using JellyfinPersonType = MediaBrowser.Model.Entities.PersonType;
 
@@ -19,6 +18,7 @@ public class BangumiApi
 {
     private const int PageSize = 50;
     private const int Offset = 20;
+    private readonly PluginDatabase _db;
 
     private readonly JsonSerializerOptions _options = new()
     {
@@ -26,12 +26,11 @@ public class BangumiApi
     };
 
     private readonly Plugin _plugin;
-    private readonly OAuthStore _store;
 
-    public BangumiApi(Plugin plugin, OAuthStore store)
+    public BangumiApi(Plugin plugin, PluginDatabase db)
     {
         _plugin = plugin;
-        _store = store;
+        _db = db;
     }
 
     public Task<List<Subject>> SearchSubject(string keyword, CancellationToken token)
@@ -217,9 +216,9 @@ public class BangumiApi
         await SendRequest($"https://api.bgm.tv/ep/{episodeId}/status/{status.GetValue()}", accessToken, token);
     }
 
-    private async Task<string> SendRequest(string url, CancellationToken token)
+    private Task<string> SendRequest(string url, CancellationToken token)
     {
-        return await SendRequest(url, _store.GetAvailable()?.AccessToken, token);
+        return SendRequest(url, _db.Logins.FindOne(x => !x.Expired)?.AccessToken, token);
     }
 
     private Task<string> SendRequest(string url, string? accessToken, CancellationToken token)
