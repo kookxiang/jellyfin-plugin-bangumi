@@ -45,14 +45,14 @@ public class Series
         var result = await _provider.GetMetadata(new SeriesInfo
         {
             Name = "からかい上手の高木さん",
-            Year = 2022,
+            Year = 2022
         }, _token);
         Assert.AreEqual(result.Item.ProviderIds[Constants.ProviderName], "347887");
 
         result = await _provider.GetMetadata(new SeriesInfo
         {
             Name = "からかい上手の高木さん",
-            Year = 2018,
+            Year = 2018
         }, _token);
         Assert.AreEqual(result.Item.ProviderIds[Constants.ProviderName], "219200");
     }

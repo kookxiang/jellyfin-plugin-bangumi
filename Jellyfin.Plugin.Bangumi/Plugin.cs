@@ -1,10 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Net.Http;
-using System.Net.Http.Headers;
 using Jellyfin.Plugin.Bangumi.Configuration;
 using MediaBrowser.Common.Configuration;
-using MediaBrowser.Common.Net;
 using MediaBrowser.Common.Plugins;
 using MediaBrowser.Model.Plugins;
 using MediaBrowser.Model.Serialization;
@@ -13,15 +10,11 @@ namespace Jellyfin.Plugin.Bangumi;
 
 public class Plugin : BasePlugin<PluginConfiguration>, IHasWebPages
 {
-    private readonly IHttpClientFactory _httpClientFactory;
+    public static Plugin? Instance;
 
-    public Plugin(
-        IApplicationPaths applicationPaths,
-        IXmlSerializer xmlSerializer,
-        IHttpClientFactory httpClientFactory)
-        : base(applicationPaths, xmlSerializer)
+    public Plugin(IApplicationPaths applicationPaths, IXmlSerializer xmlSerializer) : base(applicationPaths, xmlSerializer)
     {
-        _httpClientFactory = httpClientFactory;
+        Instance = this;
     }
 
     /// <inheritdoc />
@@ -44,13 +37,5 @@ public class Plugin : BasePlugin<PluginConfiguration>, IHasWebPages
                 EmbeddedResourcePath = $"{GetType().Namespace}.Configuration.ConfigPage.html"
             }
         };
-    }
-
-    public HttpClient GetHttpClient()
-    {
-        var httpClient = _httpClientFactory.CreateClient(NamedClient.Default);
-        httpClient.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("Jellyfin.Plugin.Bangumi", Version.ToString()));
-        httpClient.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("(https://github.com/kookxiang/jellyfin-plugin-bangumi)"));
-        return httpClient;
     }
 }

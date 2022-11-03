@@ -4,27 +4,28 @@ using System.Linq;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
+using Jellyfin.Plugin.Bangumi.Configuration;
 using MediaBrowser.Controller.Entities.TV;
 using MediaBrowser.Controller.Providers;
 using MediaBrowser.Model.Providers;
-using Microsoft.Extensions.Logging;
 
 namespace Jellyfin.Plugin.Bangumi.Providers;
 
 public class SeasonProvider : IRemoteMetadataProvider<Season, SeasonInfo>, IHasOrder
 {
     private readonly BangumiApi _api;
-    private readonly ILogger<SeasonProvider> _log;
     private readonly Plugin _plugin;
 
-    public SeasonProvider(Plugin plugin, BangumiApi api, ILogger<SeasonProvider> log)
+    public SeasonProvider(Plugin plugin, BangumiApi api)
     {
         _plugin = plugin;
         _api = api;
-        _log = log;
     }
 
+    private PluginConfiguration Configuration => _plugin.Configuration;
+
     public int Order => -5;
+
     public string Name => Constants.ProviderName;
 
     public async Task<MetadataResult<Season>> GetMetadata(SeasonInfo info, CancellationToken token)
@@ -47,7 +48,7 @@ public class SeasonProvider : IRemoteMetadataProvider<Season, SeasonInfo>, IHasO
 
         result.Item.ProviderIds.Add(Constants.ProviderName, subjectId);
         result.Item.CommunityRating = subject.Rating?.Score;
-        result.Item.Name = subject.GetName(_plugin.Configuration);
+        result.Item.Name = subject.GetName(Configuration);
         result.Item.OriginalTitle = subject.OriginalName;
         result.Item.Overview = string.IsNullOrEmpty(subject.Summary) ? null : subject.Summary;
         result.Item.Tags = subject.PopularTags;
@@ -74,6 +75,6 @@ public class SeasonProvider : IRemoteMetadataProvider<Season, SeasonInfo>, IHasO
 
     public Task<HttpResponseMessage> GetImageResponse(string url, CancellationToken token)
     {
-        return _plugin.GetHttpClient().GetAsync(url, token);
+        return _api.GetHttpClient().GetAsync(url, token);
     }
 }

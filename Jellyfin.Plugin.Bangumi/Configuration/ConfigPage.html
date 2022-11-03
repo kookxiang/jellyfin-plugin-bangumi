@@ -130,6 +130,20 @@
                 </div>
                 <div class="verticalSection verticalSection">
                     <div class="sectionTitleContainer flex align-items-center">
+                        <h2 class="sectionTitle">网络</h2>
+                    </div>
+                </div>
+                <div class="selectContainer">
+                    <label class="selectLabel" for="RequestTimeout">请求超时时间</label>
+                    <select class="emby-select-withcolor emby-select" id="RequestTimeout" is="emby-select">
+                        <option value="5000">5 秒</option>
+                        <option value="10000">10 秒</option>
+                        <option value="30000">30 秒</option>
+                        <option value="60000">1 分钟</option>
+                    </select>
+                </div>
+                <div class="verticalSection verticalSection">
+                    <div class="sectionTitleContainer flex align-items-center">
                         <h2 class="sectionTitle">元数据</h2>
                     </div>
                 </div>
@@ -228,6 +242,7 @@
                     container.querySelector('#TrustExistedBangumiId').checked = config.TrustExistedBangumiId;
                     container.querySelector('#AlwaysGetTitleByAnitomySharp').checked = config.AlwaysGetTitleByAnitomySharp;
                     container.querySelector('#AlwaysGetEpisodeByAnitomySharp').checked = config.AlwaysGetEpisodeByAnitomySharp;
+                    container.querySelector('#RequestTimeout').value = config.RequestTimeout;
                     container.querySelector('#TranslationPreference').value = config.TranslationPreference;
                 });
             }
@@ -240,6 +255,7 @@
                     config.TrustExistedBangumiId = container.querySelector('#TrustExistedBangumiId').checked;
                     config.AlwaysGetTitleByAnitomySharp = container.querySelector('#AlwaysGetTitleByAnitomySharp').checked;
                     config.AlwaysGetEpisodeByAnitomySharp = container.querySelector('#AlwaysGetEpisodeByAnitomySharp').checked;
+                    config.RequestTimeout = container.querySelector('#RequestTimeout').value;
                     config.TranslationPreference = container.querySelector('#TranslationPreference').value;
                     ApiClient.updatePluginConfiguration(pluginId, config)
                         .then(Dashboard.processPluginConfigurationUpdateResult);

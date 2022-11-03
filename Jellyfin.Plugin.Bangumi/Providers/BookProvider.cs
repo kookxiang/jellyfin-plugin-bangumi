@@ -24,6 +24,7 @@ public class BookProvider : IRemoteMetadataProvider<Book, BookInfo>, IHasOrder
     }
 
     public int Order => -5;
+
     public string Name => Constants.ProviderName;
 
     public async Task<MetadataResult<Book>> GetMetadata(BookInfo info, CancellationToken token)
@@ -117,6 +118,6 @@ public class BookProvider : IRemoteMetadataProvider<Book, BookInfo>, IHasOrder
 
     public async Task<HttpResponseMessage> GetImageResponse(string url, CancellationToken token)
     {
-        return await _plugin.GetHttpClient().GetAsync(url, token);
+        return await _api.GetHttpClient().GetAsync(url, token);
     }
 }

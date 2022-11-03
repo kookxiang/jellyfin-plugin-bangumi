@@ -130,7 +130,7 @@ public class EpisodeProvider : IRemoteMetadataProvider<Episode, EpisodeInfo>, IH
 
     public Task<HttpResponseMessage> GetImageResponse(string url, CancellationToken token)
     {
-        return _plugin.GetHttpClient().GetAsync(url, token);
+        return _api.GetHttpClient().GetAsync(url, token);
     }
 
     private async Task<Model.Episode?> GetEpisode(EpisodeInfo info, CancellationToken token)

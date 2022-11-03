@@ -10,6 +10,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Jellyfin.Plugin.Bangumi.Model;
 using Jellyfin.Plugin.Bangumi.OAuth;
+using MediaBrowser.Common.Net;
 using MediaBrowser.Controller.Entities;
 using JellyfinPersonType = MediaBrowser.Model.Entities.PersonType;
 
@@ -19,6 +20,7 @@ public class BangumiApi
 {
     private const int PageSize = 50;
     private const int Offset = 20;
+    private readonly IHttpClientFactory _httpClientFactory;
 
     private readonly JsonSerializerOptions _options = new()
     {
@@ -28,9 +30,10 @@ public class BangumiApi
     private readonly Plugin _plugin;
     private readonly OAuthStore _store;
 
-    public BangumiApi(Plugin plugin, OAuthStore store)
+    public BangumiApi(IHttpClientFactory httpClientFactory, OAuthStore store)
     {
-        _plugin = plugin;
+        _plugin = Plugin.Instance!;
+        _httpClientFactory = httpClientFactory;
         _store = store;
     }
 
@@ -229,11 +232,20 @@ public class BangumiApi
 
     private async Task<string> SendRequest(HttpRequestMessage request, string? accessToken, CancellationToken token)
     {
-        var httpClient = _plugin.GetHttpClient();
+        var httpClient = GetHttpClient();
         if (!string.IsNullOrEmpty(accessToken))
             request.Headers.Authorization = AuthenticationHeaderValue.Parse("Bearer " + accessToken);
         var response = await httpClient.SendAsync(request, token);
         response.EnsureSuccessStatusCode();
         return await response.Content.ReadAsStringAsync(token);
+    }
+
+    public HttpClient GetHttpClient()
+    {
+        var httpClient = _httpClientFactory.CreateClient(NamedClient.Default);
+        httpClient.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("Jellyfin.Plugin.Bangumi", _plugin.Version.ToString()));
+        httpClient.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("(https://github.com/kookxiang/jellyfin-plugin-bangumi)"));
+        httpClient.Timeout = TimeSpan.FromMilliseconds(_plugin.Configuration.RequestTimeout);
+        return httpClient;
     }
 }

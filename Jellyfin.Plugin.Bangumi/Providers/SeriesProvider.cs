@@ -87,7 +87,7 @@ public class SeriesProvider : IRemoteMetadataProvider<Series, SeriesInfo>, IHasO
 
         result.Item.ProviderIds.Add(Constants.ProviderName, subjectId);
         result.Item.CommunityRating = subject.Rating?.Score;
-        result.Item.Name = subject.GetName(_plugin.Configuration);
+        result.Item.Name = subject.GetName(Configuration);
         result.Item.OriginalTitle = subject.OriginalName;
         result.Item.Overview = string.IsNullOrEmpty(subject.Summary) ? null : subject.Summary;
         result.Item.Tags = subject.PopularTags;
@@ -124,7 +124,7 @@ public class SeriesProvider : IRemoteMetadataProvider<Series, SeriesInfo>, IHasO
                 return results;
             var result = new RemoteSearchResult
             {
-                Name = subject.GetName(_plugin.Configuration),
+                Name = subject.GetName(Configuration),
                 SearchProviderName = subject.OriginalName,
                 ImageUrl = subject.DefaultImage,
                 Overview = subject.Summary
@@ -145,7 +145,7 @@ public class SeriesProvider : IRemoteMetadataProvider<Series, SeriesInfo>, IHasO
                 var itemId = $"{item.Id}";
                 var result = new RemoteSearchResult
                 {
-                    Name = item.GetName(_plugin.Configuration),
+                    Name = item.GetName(Configuration),
                     SearchProviderName = item.OriginalName,
                     ImageUrl = item.DefaultImage,
                     Overview = item.Summary
@@ -167,6 +167,6 @@ public class SeriesProvider : IRemoteMetadataProvider<Series, SeriesInfo>, IHasO
 
     public async Task<HttpResponseMessage> GetImageResponse(string url, CancellationToken token)
     {
-        return await _plugin.GetHttpClient().GetAsync(url, token).ConfigureAwait(false);
+        return await _api.GetHttpClient().GetAsync(url, token).ConfigureAwait(false);
     }
 }

@@ -12,15 +12,14 @@ namespace Jellyfin.Plugin.Bangumi.Providers;
 public class PersonProvider : IRemoteMetadataProvider<Person, PersonLookupInfo>, IHasOrder
 {
     private readonly BangumiApi _api;
-    private readonly Plugin _plugin;
 
-    public PersonProvider(Plugin plugin, BangumiApi api)
+    public PersonProvider(BangumiApi api)
     {
-        _plugin = plugin;
         _api = api;
     }
 
     public int Order => -5;
+
     public string Name => Constants.ProviderName;
 
     public async Task<MetadataResult<Person>> GetMetadata(PersonLookupInfo info, CancellationToken token)
@@ -52,6 +51,6 @@ public class PersonProvider : IRemoteMetadataProvider<Person, PersonLookupInfo>,
 
     public async Task<HttpResponseMessage> GetImageResponse(string url, CancellationToken token)
     {
-        return await _plugin.GetHttpClient().GetAsync(url, token).ConfigureAwait(false);
+        return await _api.GetHttpClient().GetAsync(url, token).ConfigureAwait(false);
     }
 }

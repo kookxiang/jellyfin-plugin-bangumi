@@ -15,11 +15,9 @@ namespace Jellyfin.Plugin.Bangumi.Providers;
 public class SubjectImageProvider : IRemoteImageProvider, IHasOrder
 {
     private readonly BangumiApi _api;
-    private readonly Plugin _plugin;
 
-    public SubjectImageProvider(Plugin plugin, BangumiApi api)
+    public SubjectImageProvider(BangumiApi api)
     {
-        _plugin = plugin;
         _api = api;
     }
 
@@ -62,6 +60,6 @@ public class SubjectImageProvider : IRemoteImageProvider, IHasOrder
 
     public async Task<HttpResponseMessage> GetImageResponse(string url, CancellationToken token)
     {
-        return await _plugin.GetHttpClient().GetAsync(url, token).ConfigureAwait(false);
+        return await _api.GetHttpClient().GetAsync(url, token).ConfigureAwait(false);
     }
 }

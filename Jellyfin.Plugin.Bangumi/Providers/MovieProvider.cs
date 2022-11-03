@@ -27,8 +27,6 @@ public class MovieProvider : IRemoteMetadataProvider<Movie, MovieInfo>, IHasOrde
         _log = logger;
     }
 
-    private HttpClient HttpClient => _plugin.GetHttpClient();
-
     private PluginConfiguration Configuration => _plugin.Configuration;
 
     public int Order => -5;
@@ -162,6 +160,6 @@ public class MovieProvider : IRemoteMetadataProvider<Movie, MovieInfo>, IHasOrde
 
     public async Task<HttpResponseMessage> GetImageResponse(string url, CancellationToken token)
     {
-        return await HttpClient.GetAsync(url, token).ConfigureAwait(false);
+        return await _api.GetHttpClient().GetAsync(url, token).ConfigureAwait(false);
     }
 }

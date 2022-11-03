@@ -17,16 +17,14 @@ public class OAuthController : ControllerBase
     protected internal const string ApplicationSecret = "1b28040afd28882aecf23dcdd86be9f7";
 
     private readonly BangumiApi _api;
-    private readonly Plugin _plugin;
     private readonly ISessionContext _sessionContext;
     private readonly OAuthStore _store;
 
-    public OAuthController(BangumiApi api, OAuthStore store, ISessionContext sessionContext, Plugin plugin)
+    public OAuthController(BangumiApi api, OAuthStore store, ISessionContext sessionContext)
     {
         _api = api;
         _store = store;
         _sessionContext = sessionContext;
-        _plugin = plugin;
     }
 
     [HttpGet("OAuthState")]
@@ -67,7 +65,7 @@ public class OAuthController : ControllerBase
         var info = _store.Get(user.Id);
         if (info == null)
             return BadRequest();
-        await info.Refresh(_plugin.GetHttpClient(), user.Id);
+        await info.Refresh(_api.GetHttpClient(), user.Id);
         await info.GetProfile(_api);
         _store.Save();
         return Accepted();
@@ -96,7 +94,7 @@ public class OAuthController : ControllerBase
             new KeyValuePair<string, string>("code", code),
             new KeyValuePair<string, string>("redirect_uri", $"{Request.Scheme}://{Request.Host}{Request.PathBase}{Request.Path}?user={user}")
         });
-        var response = await _plugin.GetHttpClient().PostAsync("https://bgm.tv/oauth/access_token", formData);
+        var response = await _api.GetHttpClient().PostAsync("https://bgm.tv/oauth/access_token", formData);
         var responseBody = await response.Content.ReadAsStringAsync();
         if (!response.IsSuccessStatusCode) return JsonSerializer.Deserialize<OAuthError>(responseBody);
         var result = JsonSerializer.Deserialize<OAuthUser>(responseBody)!;

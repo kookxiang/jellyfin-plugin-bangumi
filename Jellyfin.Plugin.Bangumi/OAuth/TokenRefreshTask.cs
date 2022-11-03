@@ -16,14 +16,12 @@ public class TokenRefreshTask : IScheduledTask
     private readonly IActivityManager _activity;
     private readonly BangumiApi _api;
     private readonly INotificationManager _notification;
-    private readonly Plugin _plugin;
     private readonly OAuthStore _store;
 
-    public TokenRefreshTask(IActivityManager activity, INotificationManager notification, Plugin plugin, BangumiApi api, OAuthStore store)
+    public TokenRefreshTask(IActivityManager activity, INotificationManager notification, BangumiApi api, OAuthStore store)
     {
         _activity = activity;
         _notification = notification;
-        _plugin = plugin;
         _api = api;
         _store = store;
     }
@@ -64,7 +62,7 @@ public class TokenRefreshTask : IScheduledTask
             var activity = new ActivityLog("Bangumi 授权", "Bangumi", userId);
             try
             {
-                await user.Refresh(_plugin.GetHttpClient(), userId, token);
+                await user.Refresh(_api.GetHttpClient(), userId, token);
                 await user.GetProfile(_api, token);
                 activity.ShortOverview = $"用户 #{user.UserId} 授权刷新成功";
                 activity.LogSeverity = LogLevel.Information;
