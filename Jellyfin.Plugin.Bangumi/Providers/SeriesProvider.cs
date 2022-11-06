@@ -103,7 +103,7 @@ public class SeriesProvider : IRemoteMetadataProvider<Series, SeriesInfo>, IHasO
         if (subject.ProductionYear?.Length == 4)
             result.Item.ProductionYear = int.Parse(subject.ProductionYear);
 
-        (await _api.GetSubjectPeople(subjectId, token)).ForEach(result.AddPerson);
+        (await _api.GetSubjectPersonInfos(subjectId, token)).ForEach(result.AddPerson);
         (await _api.GetSubjectCharacters(subjectId, token)).ForEach(result.AddPerson);
 
         return result;

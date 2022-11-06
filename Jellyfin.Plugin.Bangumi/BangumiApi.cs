@@ -163,11 +163,16 @@ public class BangumiApi
         return result;
     }
 
-    public async Task<List<PersonInfo>> GetSubjectPeople(string seriesId, CancellationToken token)
+    public async Task<List<RelatedPerson>?> GetSubjectPersons(string seriesId, CancellationToken token)
+    {
+        var jsonString = await SendRequest($"https://api.bgm.tv/v0/subjects/{seriesId}/persons", token);
+        return JsonSerializer.Deserialize<List<RelatedPerson>>(jsonString, _options);
+    }
+
+    public async Task<List<PersonInfo>> GetSubjectPersonInfos(string seriesId, CancellationToken token)
     {
         var result = new List<PersonInfo>();
-        var jsonString = await SendRequest($"https://api.bgm.tv/v0/subjects/{seriesId}/persons", token);
-        var persons = JsonSerializer.Deserialize<List<RelatedPerson>>(jsonString, _options);
+        var persons = await GetSubjectPersons(seriesId, token);
         persons?.ForEach(person =>
         {
             var item = new PersonInfo

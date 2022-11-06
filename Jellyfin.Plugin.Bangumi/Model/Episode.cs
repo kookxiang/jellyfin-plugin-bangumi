@@ -21,6 +21,8 @@ public class Episode
     [JsonPropertyName("sort")]
     public double Order { get; set; }
 
+    public int Disc { get; set; }
+
     /// <summary>
     ///     条目内的集数, 从1开始。非本篇剧集的此字段无意义
     /// </summary>

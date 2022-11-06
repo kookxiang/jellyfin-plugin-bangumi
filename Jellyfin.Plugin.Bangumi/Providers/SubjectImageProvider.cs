@@ -4,6 +4,7 @@ using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using MediaBrowser.Controller.Entities;
+using MediaBrowser.Controller.Entities.Audio;
 using MediaBrowser.Controller.Entities.Movies;
 using MediaBrowser.Controller.Entities.TV;
 using MediaBrowser.Controller.Providers;
@@ -26,7 +27,7 @@ public class SubjectImageProvider : IRemoteImageProvider, IHasOrder
 
     public bool Supports(BaseItem item)
     {
-        return item is Series or Season or Movie or Book;
+        return item is Series or Season or Movie or Book or MusicAlbum or Audio;
     }
 
     public IEnumerable<ImageType> GetSupportedImages(BaseItem item)

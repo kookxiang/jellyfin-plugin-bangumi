@@ -4,6 +4,7 @@ using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using MediaBrowser.Controller.Entities;
+using MediaBrowser.Controller.Entities.Audio;
 using MediaBrowser.Controller.Providers;
 using MediaBrowser.Model.Entities;
 using MediaBrowser.Model.Providers;
@@ -25,7 +26,7 @@ public class PersonImageProvider : IRemoteImageProvider, IHasOrder
 
     public bool Supports(BaseItem item)
     {
-        return item is Person;
+        return item is Person or MusicArtist;
     }
 
     public IEnumerable<ImageType> GetSupportedImages(BaseItem item)
