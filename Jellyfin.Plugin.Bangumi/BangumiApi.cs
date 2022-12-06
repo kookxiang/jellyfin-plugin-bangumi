@@ -47,10 +47,9 @@ public class BangumiApi
         var url = $"https://api.bgm.tv/search/subject/{Uri.EscapeDataString(keyword)}?responseGroup=large";
         if (type != null)
             url += $"&type={(int)type}";
-        var jsonString = await SendRequest(url, token);
         try
         {
-            var searchResult = JsonSerializer.Deserialize<SearchResult<Subject>>(jsonString, _options);
+            var searchResult = await SendRequest<SearchResult<Subject>>(url, token);
             var list = searchResult?.List ?? new List<Subject>();
             return Subject.SortBySimilarity(list, keyword);
         }
@@ -68,8 +67,7 @@ public class BangumiApi
 
     public async Task<Subject?> GetSubject(string id, CancellationToken token)
     {
-        var jsonString = await SendRequest($"https://api.bgm.tv/v0/subjects/{id}", token);
-        return JsonSerializer.Deserialize<Subject>(jsonString, _options);
+        return await SendRequest<Subject>($"https://api.bgm.tv/v0/subjects/{id}", token);
     }
 
     public async Task<List<Episode>?> GetSubjectEpisodeList(string seriesId, int episodeNumber, CancellationToken token)
@@ -138,15 +136,13 @@ public class BangumiApi
             url += $"&type={(int)type}";
         if (offset > 0)
             url += $"&offset={offset}";
-        var jsonString = await SendRequest(url, token);
-        return JsonSerializer.Deserialize<DataList<Episode>>(jsonString, _options);
+        return await SendRequest<DataList<Episode>>(url, token);
     }
 
     public async Task<List<PersonInfo>> GetSubjectCharacters(string seriesId, CancellationToken token)
     {
         var result = new List<PersonInfo>();
-        var jsonString = await SendRequest($"https://api.bgm.tv/v0/subjects/{seriesId}/characters", token);
-        var characters = JsonSerializer.Deserialize<List<RelatedCharacter>?>(jsonString, _options);
+        var characters = await SendRequest<List<RelatedCharacter>>($"https://api.bgm.tv/v0/subjects/{seriesId}/characters", token);
         characters?.ForEach(character =>
         {
             if (character.Actors == null)
@@ -165,8 +161,7 @@ public class BangumiApi
 
     public async Task<List<RelatedPerson>?> GetSubjectPersons(string seriesId, CancellationToken token)
     {
-        var jsonString = await SendRequest($"https://api.bgm.tv/v0/subjects/{seriesId}/persons", token);
-        return JsonSerializer.Deserialize<List<RelatedPerson>>(jsonString, _options);
+        return await SendRequest<List<RelatedPerson>>($"https://api.bgm.tv/v0/subjects/{seriesId}/persons", token);
     }
 
     public async Task<List<PersonInfo>> GetSubjectPersonInfos(string seriesId, CancellationToken token)
@@ -197,20 +192,17 @@ public class BangumiApi
 
     public async Task<Episode?> GetEpisode(string episodeId, CancellationToken token)
     {
-        var jsonString = await SendRequest($"https://api.bgm.tv/v0/episodes/{episodeId}", token);
-        return JsonSerializer.Deserialize<Episode>(jsonString, _options);
+        return await SendRequest<Episode>($"https://api.bgm.tv/v0/episodes/{episodeId}", token);
     }
 
     public async Task<PersonDetail?> GetPerson(string personId, CancellationToken token)
     {
-        var jsonString = await SendRequest($"https://api.bgm.tv/v0/persons/{personId}", token);
-        return JsonSerializer.Deserialize<PersonDetail>(jsonString, _options);
+        return await SendRequest<PersonDetail>($"https://api.bgm.tv/v0/persons/{personId}", token);
     }
 
     public async Task<User?> GetAccountInfo(string accessToken, CancellationToken token)
     {
-        var jsonString = await SendRequest("https://api.bgm.tv/v0/me", accessToken, token);
-        return JsonSerializer.Deserialize<User>(jsonString, _options);
+        return await SendRequest<User>("https://api.bgm.tv/v0/me", accessToken, token);
     }
 
     public async Task UpdateCollectionStatus(string accessToken, string subjectId, CollectionType type, CancellationToken token)
@@ -225,11 +217,6 @@ public class BangumiApi
         await SendRequest($"https://api.bgm.tv/ep/{episodeId}/status/{status.GetValue()}", accessToken, token);
     }
 
-    private async Task<string> SendRequest(string url, CancellationToken token)
-    {
-        return await SendRequest(url, _store.GetAvailable()?.AccessToken, token);
-    }
-
     private Task<string> SendRequest(string url, string? accessToken, CancellationToken token)
     {
         return SendRequest(new HttpRequestMessage(HttpMethod.Get, url), accessToken, token);
@@ -240,9 +227,20 @@ public class BangumiApi
         var httpClient = GetHttpClient();
         if (!string.IsNullOrEmpty(accessToken))
             request.Headers.Authorization = AuthenticationHeaderValue.Parse("Bearer " + accessToken);
-        var response = await httpClient.SendAsync(request, token);
-        response.EnsureSuccessStatusCode();
+        using var response = await httpClient.SendAsync(request, token);
+        if (!response.IsSuccessStatusCode) await ServerException.ThrowFrom(response);
         return await response.Content.ReadAsStringAsync(token);
+    }
+
+    private async Task<T?> SendRequest<T>(string url, CancellationToken token)
+    {
+        return await SendRequest<T>(url, _store.GetAvailable()?.AccessToken, token);
+    }
+
+    private async Task<T?> SendRequest<T>(string url, string? accessToken, CancellationToken token)
+    {
+        var jsonString = await SendRequest(url, accessToken, token);
+        return JsonSerializer.Deserialize<T>(jsonString, _options);
     }
 
     public HttpClient GetHttpClient()
