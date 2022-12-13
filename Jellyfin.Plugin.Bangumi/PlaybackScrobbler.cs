@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Jellyfin.Plugin.Bangumi.Model;
 using Jellyfin.Plugin.Bangumi.OAuth;
 using MediaBrowser.Controller.Entities;
+using MediaBrowser.Controller.Entities.Audio;
 using MediaBrowser.Controller.Entities.Movies;
 using MediaBrowser.Controller.Library;
 using MediaBrowser.Controller.Plugins;
@@ -86,6 +87,12 @@ public class PlaybackScrobbler : IServerEntryPoint
         if (string.IsNullOrEmpty(bangumiId))
         {
             _log.LogInformation("item {Name} (#{Id}) doesn't have bangumi id, ignored", item.Name, item.Id);
+            return;
+        }
+
+        if (item is Audio)
+        {
+            _log.LogInformation("audio playback report is not supported by bgm.tv, ignored");
             return;
         }
 
