@@ -95,7 +95,7 @@ public class EpisodeProvider : IRemoteMetadataProvider<Episode, EpisodeInfo>, IH
         result.Item.OriginalTitle = episode.OriginalName;
         result.Item.IndexNumber = (int)episode.Order;
         result.Item.Overview = string.IsNullOrEmpty(episode.Description) ? null : episode.Description;
-        result.Item.ParentIndexNumber = 1;
+        result.Item.ParentIndexNumber = info.ParentIndexNumber ?? 1;
 
         var parent = _libraryManager.FindByPath(Path.GetDirectoryName(info.Path), true);
         if (parent is Season season)
@@ -104,11 +104,23 @@ public class EpisodeProvider : IRemoteMetadataProvider<Episode, EpisodeInfo>, IH
             result.Item.ParentIndexNumber = season.IndexNumber;
         }
 
-        if (episode.Type == EpisodeType.Normal)
+        if (episode.Type == EpisodeType.Normal && info.ParentIndexNumber != 0)
             return result;
 
         // mark episode as special
         result.Item.ParentIndexNumber = 0;
+
+        // use title and overview from special episode subject if episode data is empty
+        var subject = await _api.GetSubject(episode.ParentId, token);
+        if (subject != null)
+        {
+            if (string.IsNullOrEmpty(result.Item.Name))
+                result.Item.Name = subject.GetName(_plugin.Configuration);
+            if (string.IsNullOrEmpty(result.Item.OriginalTitle))
+                result.Item.OriginalTitle = subject.OriginalName;
+            if (string.IsNullOrEmpty(result.Item.Overview))
+                result.Item.Overview = subject.Summary;
+        }
 
         var series = await _api.GetSubject(episode.ParentId, token);
         if (series == null)

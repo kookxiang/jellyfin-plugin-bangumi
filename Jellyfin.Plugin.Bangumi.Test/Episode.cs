@@ -121,6 +121,22 @@ public class Episode
     }
 
     [TestMethod]
+    public async Task SpecialEpisodeMetadataFromSubject()
+    {
+        var episodeData = await _provider.GetMetadata(new EpisodeInfo
+        {
+            Path = FakePath.CreateFile("OVA\\Tonikaku Kawaii: Seifuku [WebRip 1080p HEVC-10bit AAC ASSx2].mkv"),
+            ParentIndexNumber = 0,
+            ProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "1143188" } },
+            SeriesProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "301541" } }
+        }, _token);
+        Assert.IsNotNull(episodeData, "episode data should not be null");
+        Assert.IsNotNull(episodeData.Item, "episode data should not be null");
+        Assert.AreEqual(episodeData.Item.ParentIndexNumber, 0, "this is special episode");
+        Assert.AreEqual("トニカクカワイイ ～制服～", episodeData.Item.Name, "should use subject title as episode title");
+    }
+
+    [TestMethod]
     public async Task NonIntegerEpisodeIndexSupport()
     {
         var episodeData = await _provider.GetMetadata(new EpisodeInfo
