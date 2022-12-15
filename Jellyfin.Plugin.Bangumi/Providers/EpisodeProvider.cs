@@ -103,28 +103,29 @@ public class EpisodeProvider : IRemoteMetadataProvider<Episode, EpisodeInfo>, IH
             result.Item.SeasonId = season.Id;
             result.Item.ParentIndexNumber = season.IndexNumber;
         }
+        else if (info.ParentIndexNumber is null && SpecialEpisodeFileNameRegex.IsMatch(info.Path))
+        {
+            result.Item.ParentIndexNumber = 0;
+        }
 
-        if (episode.Type == EpisodeType.Normal && info.ParentIndexNumber != 0)
+        if (episode.Type == EpisodeType.Normal && result.Item.ParentIndexNumber > 0)
             return result;
 
         // mark episode as special
         result.Item.ParentIndexNumber = 0;
 
         // use title and overview from special episode subject if episode data is empty
-        var subject = await _api.GetSubject(episode.ParentId, token);
-        if (subject != null)
-        {
-            if (string.IsNullOrEmpty(result.Item.Name))
-                result.Item.Name = subject.GetName(_plugin.Configuration);
-            if (string.IsNullOrEmpty(result.Item.OriginalTitle))
-                result.Item.OriginalTitle = subject.OriginalName;
-            if (string.IsNullOrEmpty(result.Item.Overview))
-                result.Item.Overview = subject.Summary;
-        }
-
         var series = await _api.GetSubject(episode.ParentId, token);
         if (series == null)
             return result;
+
+        // use title and overview from special episode subject if episode data is empty
+        if (string.IsNullOrEmpty(result.Item.Name))
+            result.Item.Name = series.GetName(_plugin.Configuration);
+        if (string.IsNullOrEmpty(result.Item.OriginalTitle))
+            result.Item.OriginalTitle = series.OriginalName;
+        if (string.IsNullOrEmpty(result.Item.Overview))
+            result.Item.Overview = series.Summary;
 
         var seasonNumber = parent is Season ? parent.IndexNumber : 1;
         if (string.Compare(episode.AirDate, series.AirDate, StringComparison.Ordinal) < 0)
