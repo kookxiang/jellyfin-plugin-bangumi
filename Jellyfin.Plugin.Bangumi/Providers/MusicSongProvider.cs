@@ -54,8 +54,7 @@ public class MusicSongProvider : IRemoteMetadataProvider<Audio, SongInfo>, IHasO
         if (episode.AirDate.Length == 4)
             result.Item.ProductionYear = int.Parse(episode.AirDate);
 
-        result.Item.Name = episode.GetName(_plugin.Configuration);
-        result.Item.OriginalTitle = episode.OriginalName;
+        result.Item.Name = episode.OriginalName;
         result.Item.IndexNumber = (int)episode.Order;
         result.Item.ParentIndexNumber = episode.Disc;
         result.Item.Overview = string.IsNullOrEmpty(episode.Description) ? null : episode.Description;
