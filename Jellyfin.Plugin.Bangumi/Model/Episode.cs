@@ -1,3 +1,4 @@
+using System.Net;
 using System.Text.Json.Serialization;
 using Jellyfin.Plugin.Bangumi.Configuration;
 
@@ -12,11 +13,17 @@ public class Episode
 
     public EpisodeType Type { get; set; }
 
+    [JsonIgnore]
+    public string OriginalName => WebUtility.HtmlDecode(OriginalNameRaw);
+
     [JsonPropertyName("name")]
-    public string OriginalName { get; set; } = "";
+    public string OriginalNameRaw { get; set; } = "";
+
+    [JsonIgnore]
+    public string? ChineseName => WebUtility.HtmlDecode(ChineseNameRaw);
 
     [JsonPropertyName("name_cn")]
-    public string? ChineseName { get; set; }
+    public string? ChineseNameRaw { get; set; }
 
     [JsonPropertyName("sort")]
     public double Order { get; set; }
@@ -37,7 +44,7 @@ public class Episode
     [JsonPropertyName("desc")]
     public string? Description { get; set; }
 
-    public string GetName(PluginConfiguration? configuration = default)
+    public string? GetName(PluginConfiguration? configuration = default)
     {
         return configuration?.TranslationPreference switch
         {

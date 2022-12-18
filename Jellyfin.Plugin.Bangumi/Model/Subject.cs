@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
 using System.Text.Json.Serialization;
 using Fastenshtein;
 using Jellyfin.Plugin.Bangumi.Configuration;
@@ -11,11 +12,17 @@ public class Subject
 {
     public int Id { get; set; }
 
+    [JsonIgnore]
+    public string OriginalName => WebUtility.HtmlDecode(OriginalNameRaw);
+
     [JsonPropertyName("name")]
-    public string OriginalName { get; set; } = null!;
+    public string OriginalNameRaw { get; set; } = "";
+
+    [JsonIgnore]
+    public string? ChineseName => WebUtility.HtmlDecode(ChineseNameRaw);
 
     [JsonPropertyName("name_cn")]
-    public string? ChineseName { get; set; }
+    public string? ChineseNameRaw { get; set; }
 
     public string? Summary { get; set; }
 
