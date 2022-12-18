@@ -1,5 +1,4 @@
 ﻿using System.Collections.Generic;
-using Jellyfin.Plugin.Bangumi.Model;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace Jellyfin.Plugin.Bangumi.Test;
@@ -7,12 +6,6 @@ namespace Jellyfin.Plugin.Bangumi.Test;
 [TestClass]
 public class Extensions
 {
-    [TestMethod]
-    public void EnumGetValue()
-    {
-        Assert.AreEqual("watched", EpisodeStatus.Watched.GetValue());
-    }
-
     [TestMethod]
     public void DictionaryGetOrDefault()
     {

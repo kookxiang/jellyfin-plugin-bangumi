@@ -125,13 +125,13 @@ public class PlaybackScrobbler : IServerEntryPoint
 
         if (item is Book)
         {
-            _log.LogInformation("report subject #{Subject} status {Status} to bangumi", bangumiId, EpisodeStatus.Watched);
+            _log.LogInformation("report subject #{Subject} status {Status} to bangumi", bangumiId, CollectionType.Watched);
             await _api.UpdateCollectionStatus(user.AccessToken, bangumiId, played ? CollectionType.Watched : CollectionType.Watching, CancellationToken.None);
         }
         else
         {
-            _log.LogInformation("report episode #{Episode} status {Status} to bangumi", bangumiId, EpisodeStatus.Watched);
-            await _api.UpdateEpisodeStatus(user.AccessToken, bangumiId, played ? EpisodeStatus.Watched : EpisodeStatus.Removed, CancellationToken.None);
+            _log.LogInformation("report episode #{Episode} status {Status} to bangumi", bangumiId, EpisodeCollectionType.Watched);
+            await _api.UpdateEpisodeStatus(user.AccessToken, bangumiId, played ? EpisodeCollectionType.Watched : EpisodeCollectionType.Default, CancellationToken.None);
         }
 
         _log.LogInformation("report completed");
