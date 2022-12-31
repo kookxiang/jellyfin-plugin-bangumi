@@ -29,6 +29,7 @@ public class FakePath
     [AssemblyCleanup]
     public static void CleanupFakePath()
     {
-        Directory.Delete(BasePath, true);
+        if (Directory.Exists(BasePath))
+            Directory.Delete(BasePath, true);
     }
 }

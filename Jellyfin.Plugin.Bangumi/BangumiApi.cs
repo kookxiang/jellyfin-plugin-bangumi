@@ -20,12 +20,13 @@ public class BangumiApi
 {
     private const int PageSize = 50;
     private const int Offset = 20;
-    private readonly IHttpClientFactory _httpClientFactory;
 
-    private readonly JsonSerializerOptions _options = new()
+    private static readonly JsonSerializerOptions Options = new()
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase
     };
+
+    private readonly IHttpClientFactory _httpClientFactory;
 
     private readonly Plugin _plugin;
     private readonly OAuthStore _store;
@@ -207,20 +208,28 @@ public class BangumiApi
 
     public async Task<CollectionType?> GetCollectionStatus(string userName, string subjectId, CancellationToken token)
     {
-        return (await SendRequest<SubjectCollectionInfo>($"https://api.bgm.tv/v0/users/{userName}/collections/{subjectId}", token))?.Status;
+        try
+        {
+            var info = await SendRequest<SubjectCollectionInfo>($"https://api.bgm.tv/v0/users/{userName}/collections/{subjectId}", token);
+            return info?.Status;
+        }
+        catch (ServerException)
+        {
+            return null;
+        }
     }
 
     public async Task UpdateCollectionStatus(string accessToken, string subjectId, CollectionType type, CancellationToken token)
     {
         var request = new HttpRequestMessage(HttpMethod.Patch, $"https://api.bgm.tv/v0/users/-/collections/{subjectId}");
-        request.Content = new StringContent(JsonSerializer.Serialize(new Collection { Type = type }, _options), Encoding.UTF8, "application/json");
+        request.Content = new StringContent(JsonSerializer.Serialize(new Collection { Type = type }, Options), Encoding.UTF8, "application/json");
         await SendRequest(request, accessToken, token);
     }
 
     public async Task UpdateEpisodeStatus(string accessToken, string episodeId, EpisodeCollectionType status, CancellationToken token)
     {
         var request = new HttpRequestMessage(HttpMethod.Put, $"https://api.bgm.tv/v0/users/-/collections/-/episodes/{episodeId}");
-        request.Content = new StringContent(JsonSerializer.Serialize(new EpisodeCollectionInfo { Type = status }, _options), Encoding.UTF8, "application/json");
+        request.Content = new StringContent(JsonSerializer.Serialize(new EpisodeCollectionInfo { Type = status }, Options), Encoding.UTF8, "application/json");
         await SendRequest(request, accessToken, token);
     }
 
@@ -247,7 +256,7 @@ public class BangumiApi
     private async Task<T?> SendRequest<T>(string url, string? accessToken, CancellationToken token)
     {
         var jsonString = await SendRequest(url, accessToken, token);
-        return JsonSerializer.Deserialize<T>(jsonString, _options);
+        return JsonSerializer.Deserialize<T>(jsonString, Options);
     }
 
     public HttpClient GetHttpClient()

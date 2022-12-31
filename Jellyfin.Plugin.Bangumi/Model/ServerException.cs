@@ -7,26 +7,38 @@ namespace Jellyfin.Plugin.Bangumi.Model;
 
 public class ServerException : Exception
 {
-    public string Title { get; set; } = "";
+    private static readonly JsonSerializerOptions Options = new()
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+    };
 
-    public string Description { get; set; } = "";
+    private ServerException(string message) : base(message)
+    {
+    }
 
     public static async Task ThrowFrom(HttpResponseMessage response)
     {
         var content = "<empty>";
-        var inner = new Exception($"unknown response from bangumi server: {content}");
+        var exception = new Exception($"unknown response from bangumi server: {content}");
         try
         {
             content = await response.Content.ReadAsStringAsync();
-            var result = JsonSerializer.Deserialize<ServerException>(content);
+            var result = JsonSerializer.Deserialize<Response>(content, Options);
             if (result?.Title != null)
-                inner = new Exception($"{result.Title}: {result.Description}");
+                exception = new ServerException($"{result.Title}: {result.Description}");
         }
         catch (Exception)
         {
             // ignored
         }
 
-        throw new Exception($"request bangumi api failed, status: {response.StatusCode}", inner);
+        throw exception;
+    }
+
+    private class Response
+    {
+        public string Title { get; set; } = "";
+
+        public string Description { get; set; } = "";
     }
 }
