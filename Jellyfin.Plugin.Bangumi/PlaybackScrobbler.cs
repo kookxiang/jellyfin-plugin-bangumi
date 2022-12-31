@@ -126,25 +126,32 @@ public class PlaybackScrobbler : IServerEntryPoint
             return;
         }
 
-        if (item is Book)
+        try
         {
-            _log.LogInformation("report subject #{Subject} status {Status} to bangumi", episodeId, CollectionType.Watched);
-            await _api.UpdateCollectionStatus(user.AccessToken, episodeId, played ? CollectionType.Watched : CollectionType.Watching, CancellationToken.None);
-        }
-        else
-        {
-            if (subjectId == 0)
+            if (item is Book)
             {
-                var episode = await _api.GetEpisode(episodeId, CancellationToken.None);
-                if (episode != null)
-                    subjectId = episode.ParentId;
+                _log.LogInformation("report subject #{Subject} status {Status} to bangumi", episodeId, CollectionType.Watched);
+                await _api.UpdateCollectionStatus(user.AccessToken, episodeId, played ? CollectionType.Watched : CollectionType.Watching, CancellationToken.None);
+            }
+            else
+            {
+                if (subjectId == 0)
+                {
+                    var episode = await _api.GetEpisode(episodeId, CancellationToken.None);
+                    if (episode != null)
+                        subjectId = episode.ParentId;
+                }
+
+                _log.LogInformation("report episode #{Episode} status {Status} to bangumi", episodeId, EpisodeCollectionType.Watched);
+                await _api.UpdateEpisodeStatus(user.AccessToken, subjectId, episodeId, played ? EpisodeCollectionType.Watched : EpisodeCollectionType.Default, CancellationToken.None);
             }
 
-            _log.LogInformation("report episode #{Episode} status {Status} to bangumi", episodeId, EpisodeCollectionType.Watched);
-            await _api.UpdateEpisodeStatus(user.AccessToken, subjectId, episodeId, played ? EpisodeCollectionType.Watched : EpisodeCollectionType.Default, CancellationToken.None);
+            _log.LogInformation("report completed");
         }
-
-        _log.LogInformation("report completed");
+        catch (Exception e)
+        {
+            _log.LogError(e, "report playback status failed");
+        }
     }
 
     private HashSet<string> GetPlaybackHistory(Guid userId)
