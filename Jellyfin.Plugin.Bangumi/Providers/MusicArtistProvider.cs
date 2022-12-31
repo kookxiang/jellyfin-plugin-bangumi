@@ -26,8 +26,7 @@ public class MusicArtistProvider : IRemoteMetadataProvider<MusicArtist, ArtistIn
     {
         token.ThrowIfCancellationRequested();
         var result = new MetadataResult<MusicArtist> { ResultLanguage = Constants.Language };
-        var personId = info.ProviderIds?.GetValueOrDefault(Constants.ProviderName);
-        if (string.IsNullOrEmpty(personId))
+        if (!int.TryParse(info.ProviderIds?.GetValueOrDefault(Constants.ProviderName), out var personId))
             return result;
         var person = await _api.GetPerson(personId, token);
         if (person == null)

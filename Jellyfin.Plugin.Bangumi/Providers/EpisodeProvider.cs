@@ -153,18 +153,16 @@ public class EpisodeProvider : IRemoteMetadataProvider<Episode, EpisodeInfo>, IH
             return null;
 
         var type = GuessEpisodeTypeFromFileName(fileName);
-        var seriesId = info.SeriesProviderIds?.GetValueOrDefault(Constants.ProviderName);
+        var seriesId = 0;
 
         var parent = _libraryManager.FindByPath(Path.GetDirectoryName(info.Path), true);
         if (parent is Season)
-        {
-            var seasonId = parent.ProviderIds.GetValueOrDefault(Constants.ProviderName);
-            if (!string.IsNullOrEmpty(seasonId))
+            if (int.TryParse(parent.ProviderIds.GetValueOrDefault(Constants.ProviderName), out var seasonId))
                 seriesId = seasonId;
-        }
 
-        if (string.IsNullOrEmpty(seriesId))
-            return null;
+        if (seriesId == 0)
+            if (!int.TryParse(info.SeriesProviderIds?.GetValueOrDefault(Constants.ProviderName), out seriesId))
+                return null;
 
         double? episodeIndex = info.IndexNumber;
 
@@ -173,8 +171,7 @@ public class EpisodeProvider : IRemoteMetadataProvider<Episode, EpisodeInfo>, IH
         else if (episodeIndex is null or 0)
             episodeIndex = GuessEpisodeNumber(episodeIndex, fileName);
 
-        var episodeId = info.ProviderIds?.GetValueOrDefault(Constants.ProviderName);
-        if (!string.IsNullOrEmpty(episodeId))
+        if (int.TryParse(info.ProviderIds?.GetValueOrDefault(Constants.ProviderName), out var episodeId))
         {
             var episode = await _api.GetEpisode(episodeId, token);
             if (episode == null)
@@ -186,7 +183,7 @@ public class EpisodeProvider : IRemoteMetadataProvider<Episode, EpisodeInfo>, IH
             if (episode.Type != EpisodeType.Normal || AllSpecialEpisodeFileNameRegex.Any(x => x.IsMatch(info.Path)))
                 return episode;
 
-            if ($"{episode.ParentId}" == seriesId && Math.Abs(episode.Order - episodeIndex.Value) < 0.1)
+            if (episode.ParentId == seriesId && Math.Abs(episode.Order - episodeIndex.Value) < 0.1)
                 return episode;
         }
 

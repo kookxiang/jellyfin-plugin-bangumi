@@ -37,9 +37,9 @@ public class PersonImageProvider : IRemoteImageProvider, IHasOrder
     public async Task<IEnumerable<RemoteImageInfo>> GetImages(BaseItem item, CancellationToken token)
     {
         token.ThrowIfCancellationRequested();
-        var id = item.GetProviderId(Constants.ProviderName);
 
-        if (string.IsNullOrEmpty(id))
+        if (!int.TryParse(item.GetProviderId(Constants.ProviderName), out var id))
+
             return Enumerable.Empty<RemoteImageInfo>();
 
         var person = await _api.GetPerson(id, token);

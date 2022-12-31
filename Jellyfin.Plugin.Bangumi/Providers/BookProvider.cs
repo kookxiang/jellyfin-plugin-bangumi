@@ -31,8 +31,7 @@ public class BookProvider : IRemoteMetadataProvider<Book, BookInfo>, IHasOrder
     {
         var result = new MetadataResult<Book> { ResultLanguage = Constants.Language };
 
-        var subjectId = info.ProviderIds.GetOrDefault(Constants.ProviderName);
-        if (string.IsNullOrEmpty(subjectId))
+        if (!int.TryParse(info.ProviderIds.GetOrDefault(Constants.ProviderName), out var subjectId))
             return result;
 
         var subject = await _api.GetSubject(subjectId, token);
@@ -42,7 +41,7 @@ public class BookProvider : IRemoteMetadataProvider<Book, BookInfo>, IHasOrder
         result.Item = new Book();
         result.HasMetadata = true;
 
-        result.Item.ProviderIds.Add(Constants.ProviderName, subjectId);
+        result.Item.ProviderIds.Add(Constants.ProviderName, subject.Id.ToString());
         result.Item.CommunityRating = subject.Rating?.Score;
         result.Item.Name = subject.GetName(_plugin.Configuration);
         result.Item.OriginalTitle = subject.OriginalName;
@@ -65,9 +64,7 @@ public class BookProvider : IRemoteMetadataProvider<Book, BookInfo>, IHasOrder
     {
         var results = new List<RemoteSearchResult>();
 
-        var id = searchInfo.ProviderIds.GetOrDefault(Constants.ProviderName);
-
-        if (!string.IsNullOrEmpty(id))
+        if (int.TryParse(searchInfo.ProviderIds.GetOrDefault(Constants.ProviderName), out var id))
         {
             var subject = await _api.GetSubject(id, token);
             if (subject == null)
@@ -83,7 +80,7 @@ public class BookProvider : IRemoteMetadataProvider<Book, BookInfo>, IHasOrder
                 result.PremiereDate = airDate;
             if (subject.ProductionYear?.Length == 4)
                 result.ProductionYear = int.Parse(subject.ProductionYear);
-            result.SetProviderId(Constants.ProviderName, id);
+            result.SetProviderId(Constants.ProviderName, id.ToString());
             results.Add(result);
         }
         else if (!string.IsNullOrEmpty(searchInfo.Name))

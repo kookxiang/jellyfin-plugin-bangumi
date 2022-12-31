@@ -82,14 +82,12 @@ public class MusicSongProvider : IRemoteMetadataProvider<Audio, SongInfo>, IHasO
         if (album is null)
             return null;
 
-        var albumId = album.ProviderIds.GetValueOrDefault(Constants.ProviderName);
-        if (string.IsNullOrEmpty(albumId))
+        if (!int.TryParse(album.ProviderIds.GetValueOrDefault(Constants.ProviderName), out var albumId))
             return null;
 
         double songIndex = info.IndexNumber ?? 0;
 
-        var songId = info.ProviderIds?.GetValueOrDefault(Constants.ProviderName);
-        if (!string.IsNullOrEmpty(songId))
+        if (int.TryParse(info.ProviderIds?.GetValueOrDefault(Constants.ProviderName), out var songId))
         {
             var song = await _api.GetEpisode(songId, token);
             if (song == null)
@@ -98,7 +96,7 @@ public class MusicSongProvider : IRemoteMetadataProvider<Audio, SongInfo>, IHasO
             if (_plugin.Configuration.TrustExistedBangumiId)
                 return song;
 
-            if ($"{song.ParentId}" == albumId && Math.Abs(song.Order - songIndex) < 0.1)
+            if (song.ParentId == albumId && Math.Abs(song.Order - songIndex) < 0.1)
                 return song;
         }
 

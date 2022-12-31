@@ -38,9 +38,8 @@ public class SubjectImageProvider : IRemoteImageProvider, IHasOrder
     public async Task<IEnumerable<RemoteImageInfo>> GetImages(BaseItem item, CancellationToken token)
     {
         token.ThrowIfCancellationRequested();
-        var id = item.GetProviderId(Constants.ProviderName);
 
-        if (string.IsNullOrEmpty(id))
+        if (!int.TryParse(item.GetProviderId(Constants.ProviderName), out var id))
             return Enumerable.Empty<RemoteImageInfo>();
 
         var subject = await _api.GetSubject(id, token);

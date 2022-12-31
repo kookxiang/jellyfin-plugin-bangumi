@@ -33,11 +33,9 @@ public class SeasonProvider : IRemoteMetadataProvider<Season, SeasonInfo>, IHasO
         token.ThrowIfCancellationRequested();
         var result = new MetadataResult<Season> { ResultLanguage = Constants.Language };
 
-        var subjectId = info.ProviderIds.GetOrDefault(Constants.ProviderName);
-        if (string.IsNullOrEmpty(subjectId) && info.IndexNumber == 1)
-            subjectId = info.SeriesProviderIds.GetOrDefault(Constants.ProviderName);
-        if (string.IsNullOrEmpty(subjectId))
-            return result;
+        if (!int.TryParse(info.ProviderIds.GetOrDefault(Constants.ProviderName), out var subjectId))
+            if (info.IndexNumber != 1 || !int.TryParse(info.SeriesProviderIds.GetOrDefault(Constants.ProviderName), out subjectId))
+                return result;
 
         var subject = await _api.GetSubject(subjectId, token);
         if (subject == null)
@@ -46,7 +44,7 @@ public class SeasonProvider : IRemoteMetadataProvider<Season, SeasonInfo>, IHasO
         result.Item = new Season();
         result.HasMetadata = true;
 
-        result.Item.ProviderIds.Add(Constants.ProviderName, subjectId);
+        result.Item.ProviderIds.Add(Constants.ProviderName, subject.Id.ToString());
         result.Item.CommunityRating = subject.Rating?.Score;
         result.Item.Name = subject.GetName(Configuration);
         result.Item.OriginalTitle = subject.OriginalName;
@@ -62,8 +60,8 @@ public class SeasonProvider : IRemoteMetadataProvider<Season, SeasonInfo>, IHasO
         if (subject.ProductionYear?.Length == 4)
             result.Item.ProductionYear = int.Parse(subject.ProductionYear);
 
-        (await _api.GetSubjectPersonInfos(subjectId, token)).ForEach(result.AddPerson);
-        (await _api.GetSubjectCharacters(subjectId, token)).ForEach(result.AddPerson);
+        (await _api.GetSubjectPersonInfos(subject.Id, token)).ForEach(result.AddPerson);
+        (await _api.GetSubjectCharacters(subject.Id, token)).ForEach(result.AddPerson);
 
         return result;
     }

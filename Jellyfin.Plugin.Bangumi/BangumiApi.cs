@@ -63,22 +63,12 @@ public class BangumiApi
 
     public async Task<Subject?> GetSubject(int id, CancellationToken token)
     {
-        return await GetSubject(id.ToString(), token);
-    }
-
-    public async Task<Subject?> GetSubject(string id, CancellationToken token)
-    {
         return await SendRequest<Subject>($"https://api.bgm.tv/v0/subjects/{id}", token);
     }
 
-    public async Task<List<Episode>?> GetSubjectEpisodeList(string seriesId, int episodeNumber, CancellationToken token)
+    public async Task<List<Episode>?> GetSubjectEpisodeList(int id, EpisodeType? type, double episodeNumber, CancellationToken token)
     {
-        return await GetSubjectEpisodeList(seriesId, EpisodeType.Normal, episodeNumber, token);
-    }
-
-    public async Task<List<Episode>?> GetSubjectEpisodeList(string seriesId, EpisodeType? type, double episodeNumber, CancellationToken token)
-    {
-        var result = await GetSubjectEpisodeListWithOffset(seriesId, type, 0, token);
+        var result = await GetSubjectEpisodeListWithOffset(id, type, 0, token);
         if (result == null)
             return null;
         if (episodeNumber < PageSize && episodeNumber < result.Total)
@@ -103,7 +93,7 @@ public class BangumiApi
 
         try
         {
-            result = await GetSubjectEpisodeListWithOffset(seriesId, type, offset, token);
+            result = await GetSubjectEpisodeListWithOffset(id, type, offset, token);
             if (result == null)
                 return initialResult.Data;
         }
@@ -130,9 +120,9 @@ public class BangumiApi
         goto RequestEpisodeList;
     }
 
-    public async Task<DataList<Episode>?> GetSubjectEpisodeListWithOffset(string seriesId, EpisodeType? type, double offset, CancellationToken token)
+    public async Task<DataList<Episode>?> GetSubjectEpisodeListWithOffset(int id, EpisodeType? type, double offset, CancellationToken token)
     {
-        var url = $"https://api.bgm.tv/v0/episodes?subject_id={seriesId}&limit={PageSize}";
+        var url = $"https://api.bgm.tv/v0/episodes?subject_id={id}&limit={PageSize}";
         if (type != null)
             url += $"&type={(int)type}";
         if (offset > 0)
@@ -140,10 +130,10 @@ public class BangumiApi
         return await SendRequest<DataList<Episode>>(url, token);
     }
 
-    public async Task<List<PersonInfo>> GetSubjectCharacters(string seriesId, CancellationToken token)
+    public async Task<List<PersonInfo>> GetSubjectCharacters(int id, CancellationToken token)
     {
         var result = new List<PersonInfo>();
-        var characters = await SendRequest<List<RelatedCharacter>>($"https://api.bgm.tv/v0/subjects/{seriesId}/characters", token);
+        var characters = await SendRequest<List<RelatedCharacter>>($"https://api.bgm.tv/v0/subjects/{id}/characters", token);
         characters?.ForEach(character =>
         {
             if (character.Actors == null)
@@ -160,15 +150,15 @@ public class BangumiApi
         return result;
     }
 
-    public async Task<List<RelatedPerson>?> GetSubjectPersons(string seriesId, CancellationToken token)
+    public async Task<List<RelatedPerson>?> GetSubjectPersons(int id, CancellationToken token)
     {
-        return await SendRequest<List<RelatedPerson>>($"https://api.bgm.tv/v0/subjects/{seriesId}/persons", token);
+        return await SendRequest<List<RelatedPerson>>($"https://api.bgm.tv/v0/subjects/{id}/persons", token);
     }
 
-    public async Task<List<PersonInfo>> GetSubjectPersonInfos(string seriesId, CancellationToken token)
+    public async Task<List<PersonInfo>> GetSubjectPersonInfos(int id, CancellationToken token)
     {
         var result = new List<PersonInfo>();
-        var persons = await GetSubjectPersons(seriesId, token);
+        var persons = await GetSubjectPersons(id, token);
         persons?.ForEach(person =>
         {
             var item = new PersonInfo
@@ -191,14 +181,14 @@ public class BangumiApi
         return result;
     }
 
-    public async Task<Episode?> GetEpisode(string episodeId, CancellationToken token)
+    public async Task<Episode?> GetEpisode(int id, CancellationToken token)
     {
-        return await SendRequest<Episode>($"https://api.bgm.tv/v0/episodes/{episodeId}", token);
+        return await SendRequest<Episode>($"https://api.bgm.tv/v0/episodes/{id}", token);
     }
 
-    public async Task<PersonDetail?> GetPerson(string personId, CancellationToken token)
+    public async Task<PersonDetail?> GetPerson(int id, CancellationToken token)
     {
-        return await SendRequest<PersonDetail>($"https://api.bgm.tv/v0/persons/{personId}", token);
+        return await SendRequest<PersonDetail>($"https://api.bgm.tv/v0/persons/{id}", token);
     }
 
     public async Task<User?> GetAccountInfo(string accessToken, CancellationToken token)
@@ -206,30 +196,21 @@ public class BangumiApi
         return await SendRequest<User>("https://api.bgm.tv/v0/me", accessToken, token);
     }
 
-    public async Task<CollectionType?> GetCollectionStatus(string userName, string subjectId, CancellationToken token)
-    {
-        try
-        {
-            var info = await SendRequest<SubjectCollectionInfo>($"https://api.bgm.tv/v0/users/{userName}/collections/{subjectId}", token);
-            return info?.Status;
-        }
-        catch (ServerException)
-        {
-            return null;
-        }
-    }
-
-    public async Task UpdateCollectionStatus(string accessToken, string subjectId, CollectionType type, CancellationToken token)
+    public async Task UpdateCollectionStatus(string accessToken, int subjectId, CollectionType type, CancellationToken token)
     {
         var request = new HttpRequestMessage(HttpMethod.Patch, $"https://api.bgm.tv/v0/users/-/collections/{subjectId}");
         request.Content = new StringContent(JsonSerializer.Serialize(new Collection { Type = type }, Options), Encoding.UTF8, "application/json");
         await SendRequest(request, accessToken, token);
     }
 
-    public async Task UpdateEpisodeStatus(string accessToken, string episodeId, EpisodeCollectionType status, CancellationToken token)
+    public async Task UpdateEpisodeStatus(string accessToken, int subjectId, int episodeId, EpisodeCollectionType status, CancellationToken token)
     {
-        var request = new HttpRequestMessage(HttpMethod.Put, $"https://api.bgm.tv/v0/users/-/collections/-/episodes/{episodeId}");
-        request.Content = new StringContent(JsonSerializer.Serialize(new EpisodeCollectionInfo { Type = status }, Options), Encoding.UTF8, "application/json");
+        var request = new HttpRequestMessage(HttpMethod.Patch, $"https://api.bgm.tv/v0/users/-/collections/{subjectId}/episodes");
+        request.Content = new StringContent(JsonSerializer.Serialize(new EpisodesCollectionInfo
+        {
+            EpisodeIdList = new List<int> { episodeId },
+            Type = status
+        }, Options), Encoding.UTF8, "application/json");
         await SendRequest(request, accessToken, token);
     }
 
