@@ -200,6 +200,7 @@ public class BangumiApi
     {
         var request = new HttpRequestMessage(HttpMethod.Patch, $"https://api.bgm.tv/v0/users/-/collections/{subjectId}");
         request.Content = new StringContent(JsonSerializer.Serialize(new Collection { Type = type }, Options), Encoding.UTF8, "application/json");
+        request.Content.Headers.ContentType = new MediaTypeHeaderValue("application/json");
         await SendRequest(request, accessToken, token);
     }
 
@@ -211,6 +212,7 @@ public class BangumiApi
             EpisodeIdList = new List<int> { episodeId },
             Type = status
         }, Options), Encoding.UTF8, "application/json");
+        request.Content.Headers.ContentType = new MediaTypeHeaderValue("application/json");
         await SendRequest(request, accessToken, token);
     }
 
