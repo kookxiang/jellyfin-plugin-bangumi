@@ -199,20 +199,18 @@ public class BangumiApi
     public async Task UpdateCollectionStatus(string accessToken, int subjectId, CollectionType type, CancellationToken token)
     {
         var request = new HttpRequestMessage(HttpMethod.Patch, $"https://api.bgm.tv/v0/users/-/collections/{subjectId}");
-        request.Content = new StringContent(JsonSerializer.Serialize(new Collection { Type = type }, Options), Encoding.UTF8, "application/json");
-        request.Content.Headers.ContentType!.CharSet = null;
+        request.Content = new JsonContent(new Collection { Type = type });
         await SendRequest(request, accessToken, token);
     }
 
     public async Task UpdateEpisodeStatus(string accessToken, int subjectId, int episodeId, EpisodeCollectionType status, CancellationToken token)
     {
         var request = new HttpRequestMessage(HttpMethod.Patch, $"https://api.bgm.tv/v0/users/-/collections/{subjectId}/episodes");
-        request.Content = new StringContent(JsonSerializer.Serialize(new EpisodesCollectionInfo
+        request.Content = new JsonContent(new EpisodesCollectionInfo
         {
             EpisodeIdList = new List<int> { episodeId },
             Type = status
-        }, Options), Encoding.UTF8, "application/json");
-        request.Content.Headers.ContentType!.CharSet = null;
+        });
         await SendRequest(request, accessToken, token);
     }
 
@@ -249,5 +247,13 @@ public class BangumiApi
         httpClient.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("(https://github.com/kookxiang/jellyfin-plugin-bangumi)"));
         httpClient.Timeout = TimeSpan.FromMilliseconds(_plugin.Configuration.RequestTimeout);
         return httpClient;
+    }
+
+    private class JsonContent : StringContent
+    {
+        public JsonContent(object obj) : base(JsonSerializer.Serialize(obj, Options), Encoding.UTF8, "application/json")
+        {
+            Headers.ContentType!.CharSet = null;
+        }
     }
 }
