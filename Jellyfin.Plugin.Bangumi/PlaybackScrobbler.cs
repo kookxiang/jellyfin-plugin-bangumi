@@ -82,9 +82,10 @@ public class PlaybackScrobbler : IServerEntryPoint
 
     private async Task ReportPlaybackStatus(BaseItem item, Guid userId, bool played)
     {
-        var bangumiId = item.GetProviderId(Constants.ProviderName);
+        var episodeId = item.GetProviderId(Constants.ProviderName);
+        string? subjectId = null;
 
-        if (string.IsNullOrEmpty(bangumiId))
+        if (string.IsNullOrEmpty(episodeId))
         {
             _log.LogInformation("item {Name} (#{Id}) doesn't have bangumi id, ignored", item.Name, item.Id);
             return;
@@ -98,10 +99,11 @@ public class PlaybackScrobbler : IServerEntryPoint
 
         if (item is Movie)
         {
+            subjectId = episodeId;
             // jellyfin only have subject id for movie, so we need to get episode id from bangumi api
-            var episodeList = await _api.GetSubjectEpisodeListWithOffset(bangumiId, EpisodeType.Normal, 0, CancellationToken.None);
+            var episodeList = await _api.GetSubjectEpisodeListWithOffset(episodeId, EpisodeType.Normal, 0, CancellationToken.None);
             if (episodeList?.Data.Count > 0)
-                bangumiId = episodeList.Data.First().Id.ToString();
+                episodeId = episodeList.Data.First().Id.ToString();
         }
 
         var user = _store.Get(userId);
@@ -125,13 +127,26 @@ public class PlaybackScrobbler : IServerEntryPoint
 
         if (item is Book)
         {
-            _log.LogInformation("report subject #{Subject} status {Status} to bangumi", bangumiId, CollectionType.Watched);
-            await _api.UpdateCollectionStatus(user.AccessToken, bangumiId, played ? CollectionType.Watched : CollectionType.Watching, CancellationToken.None);
+            _log.LogInformation("report subject #{Subject} status {Status} to bangumi", episodeId, CollectionType.Watched);
+            await _api.UpdateCollectionStatus(user.AccessToken, episodeId, played ? CollectionType.Watched : CollectionType.Watching, CancellationToken.None);
         }
         else
         {
-            _log.LogInformation("report episode #{Episode} status {Status} to bangumi", bangumiId, EpisodeCollectionType.Watched);
-            await _api.UpdateEpisodeStatus(user.AccessToken, bangumiId, played ? EpisodeCollectionType.Watched : EpisodeCollectionType.Default, CancellationToken.None);
+            if (string.IsNullOrEmpty(subjectId) && !string.IsNullOrEmpty(user.UserName))
+            {
+                var episode = await _api.GetEpisode(episodeId, CancellationToken.None);
+                if (episode != null)
+                    subjectId = $"{episode.ParentId}";
+                var status = await _api.GetCollectionStatus(user.UserName, subjectId!, CancellationToken.None);
+                if (status is null or CollectionType.Pending)
+                {
+                    _log.LogInformation("report subject #{Subject} status {Status} to bangumi", subjectId!, CollectionType.Watching);
+                    await _api.UpdateCollectionStatus(user.AccessToken, subjectId!, CollectionType.Watching, CancellationToken.None);
+                }
+            }
+
+            _log.LogInformation("report episode #{Episode} status {Status} to bangumi", episodeId, EpisodeCollectionType.Watched);
+            await _api.UpdateEpisodeStatus(user.AccessToken, episodeId, played ? EpisodeCollectionType.Watched : EpisodeCollectionType.Default, CancellationToken.None);
         }
 
         _log.LogInformation("report completed");

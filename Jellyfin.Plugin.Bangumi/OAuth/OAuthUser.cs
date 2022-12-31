@@ -6,13 +6,16 @@ namespace Jellyfin.Plugin.Bangumi.OAuth;
 public partial class OAuthUser
 {
     [JsonPropertyName("access_token")]
-    public string AccessToken { get; set; } = null!;
+    public string AccessToken { get; set; } = "";
 
     [JsonPropertyName("refresh_token")]
-    public string RefreshToken { get; set; } = null!;
+    public string RefreshToken { get; set; } = "";
 
     [JsonPropertyName("user_id")]
     public int UserId { get; set; }
+
+    [JsonPropertyName("username")]
+    public string UserName { get; set; } = "";
 
     [JsonPropertyName("expires_time")]
     public DateTime ExpireTime { get; set; }

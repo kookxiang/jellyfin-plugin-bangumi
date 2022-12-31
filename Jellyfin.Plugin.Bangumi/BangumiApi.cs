@@ -205,6 +205,11 @@ public class BangumiApi
         return await SendRequest<User>("https://api.bgm.tv/v0/me", accessToken, token);
     }
 
+    public async Task<CollectionType?> GetCollectionStatus(string userName, string subjectId, CancellationToken token)
+    {
+        return (await SendRequest<SubjectCollectionInfo>($"https://api.bgm.tv/v0/users/{userName}/collections/{subjectId}", token))?.Status;
+    }
+
     public async Task UpdateCollectionStatus(string accessToken, string subjectId, CollectionType type, CancellationToken token)
     {
         var request = new HttpRequestMessage(HttpMethod.Patch, $"https://api.bgm.tv/v0/users/-/collections/{subjectId}");
@@ -216,7 +221,7 @@ public class BangumiApi
     {
         var request = new HttpRequestMessage(HttpMethod.Put, $"https://api.bgm.tv/v0/users/-/collections/-/episodes/{episodeId}");
         request.Content = new StringContent(JsonSerializer.Serialize(new EpisodeCollectionInfo { Type = status }, _options), Encoding.UTF8, "application/json");
-        await SendRequest($"https://api.bgm.tv/v0/users/-/collections/-/episodes/{episodeId}", accessToken, token);
+        await SendRequest(request, accessToken, token);
     }
 
     private Task<string> SendRequest(string url, string? accessToken, CancellationToken token)
