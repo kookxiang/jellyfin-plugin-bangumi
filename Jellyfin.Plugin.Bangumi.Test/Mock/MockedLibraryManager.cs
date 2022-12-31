@@ -428,4 +428,9 @@ public class MockedLibraryManager : ILibraryManager
     public event EventHandler<ItemChangeEventArgs> ItemAdded;
     public event EventHandler<ItemChangeEventArgs> ItemUpdated;
     public event EventHandler<ItemChangeEventArgs> ItemRemoved;
+
+    public void QueueLibraryScan()
+    {
+        throw new NotImplementedException();
+    }
 }

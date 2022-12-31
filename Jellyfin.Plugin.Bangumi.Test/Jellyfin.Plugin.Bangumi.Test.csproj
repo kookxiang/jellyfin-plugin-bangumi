@@ -7,18 +7,14 @@
 
     <ItemGroup>
         <PackageReference Include="Appveyor.TestLogger" Version="2.0.0"/>
-        <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="2.2.0"/>
-        <PackageReference Include="Microsoft.NET.Test.Sdk" Version="16.11.0"/>
-        <PackageReference Include="MSTest.TestAdapter" Version="2.2.10"/>
-        <PackageReference Include="MSTest.TestFramework" Version="2.2.10"/>
-        <PackageReference Include="coverlet.collector" Version="3.1.2"/>
-    </ItemGroup>
-
-    <ItemGroup>
         <PackageReference Include="Jellyfin.Controller" Version="10.8.0"/>
-        <PackageReference Include="Microsoft.AspNetCore.Authorization" Version="6.0.7"/>
-        <PackageReference Include="Microsoft.Extensions.Http" Version="6.0.0"/>
-        <PackageReference Include="Microsoft.AspNetCore.Mvc" Version="2.2.0"/>
+        <PackageReference Include="Microsoft.AspNetCore.Authorization" Version="6.0.12"/>
+        <PackageReference Include="MSTest.TestAdapter" Version="3.0.2"/>
+        <PackageReference Include="MSTest.TestFramework" Version="3.0.2"/>
+        <PackageReference Include="coverlet.collector" Version="3.2.0">
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </PackageReference>
         <ProjectReference Include="..\Jellyfin.Plugin.Bangumi\Jellyfin.Plugin.Bangumi.csproj"/>
     </ItemGroup>
 
