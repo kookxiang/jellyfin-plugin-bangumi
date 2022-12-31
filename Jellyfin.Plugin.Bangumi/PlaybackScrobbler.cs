@@ -132,11 +132,15 @@ public class PlaybackScrobbler : IServerEntryPoint
         }
         else
         {
-            if (!string.IsNullOrEmpty(subjectId) && !string.IsNullOrEmpty(user.UserName))
+            if (!string.IsNullOrEmpty(subjectId))
             {
                 var episode = await _api.GetEpisode(episodeId, CancellationToken.None);
                 if (episode != null)
                     subjectId = $"{episode.ParentId}";
+            }
+
+            if (!string.IsNullOrEmpty(user.UserName))
+            {
                 var status = await _api.GetCollectionStatus(user.UserName, subjectId!, CancellationToken.None);
                 if (status is null or CollectionType.Pending)
                 {
