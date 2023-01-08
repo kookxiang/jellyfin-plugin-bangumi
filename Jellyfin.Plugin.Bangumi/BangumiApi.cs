@@ -3,42 +3,22 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
-using System.Net.Http.Headers;
-using System.Text;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using Jellyfin.Plugin.Bangumi.Model;
-using Jellyfin.Plugin.Bangumi.OAuth;
-using MediaBrowser.Common.Net;
 using MediaBrowser.Controller.Entities;
-using Microsoft.Extensions.Logging;
 using JellyfinPersonType = MediaBrowser.Model.Entities.PersonType;
+#if EMBY
+using HttpRequestOptions = MediaBrowser.Common.Net.HttpRequestOptions;
+#endif
 
 namespace Jellyfin.Plugin.Bangumi;
 
-public class BangumiApi
+public partial class BangumiApi
 {
-    private const int PageSize = 100;
-    private const int Offset = 40;
-
-    private static readonly JsonSerializerOptions Options = new()
-    {
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase
-    };
-
-    private readonly IHttpClientFactory _httpClientFactory;
-    private readonly ILogger<BangumiApi> _log;
-    private readonly OAuthStore _store;
-
-    public BangumiApi(IHttpClientFactory httpClientFactory, OAuthStore store, ILogger<BangumiApi> log)
-    {
-        _httpClientFactory = httpClientFactory;
-        _store = store;
-        _log = log;
-    }
-
-    private static Plugin Plugin => Plugin.Instance!;
+    private const int PageSize = 50;
+    private const int Offset = 20;
 
     public Task<List<Subject>> SearchSubject(string keyword, CancellationToken token)
     {
@@ -51,13 +31,21 @@ public class BangumiApi
         {
             if (Plugin.Instance!.Configuration.UseTestingSearchApi)
             {
-                var accessToken = _store.GetAvailable()?.AccessToken;
-                var request = new HttpRequestMessage(HttpMethod.Post, "https://api.bgm.tv/v0/search/subjects");
                 var searchParams = new SearchParams { Keyword = keyword };
                 if (type != null)
                     searchParams.Filter.Type = new[] { type.Value };
+#if EMBY
+                var options = new HttpRequestOptions
+                {
+                    Url = "https://api.bgm.tv/v0/search/subjects",
+                    RequestHttpContent = new JsonContent(searchParams)
+                };
+                var jsonString = await SendRequest("POST", options);
+#else
+                var request = new HttpRequestMessage(HttpMethod.Post, "https://api.bgm.tv/v0/search/subjects");
                 request.Content = new JsonContent(searchParams);
-                var jsonString = await SendRequest(request, accessToken, token);
+                var jsonString = await SendRequest(request, token);
+#endif
                 var searchResult = JsonSerializer.Deserialize<SearchResult<Subject>>(jsonString, Options);
                 var list = searchResult?.Data ?? new List<Subject>();
                 return Subject.SortBySimilarity(list, keyword);
@@ -94,38 +82,23 @@ public class BangumiApi
         if (episodeNumber <= result.Data.Max(episode => episode.Order) && episodeNumber >= result.Data.Min(episode => episode.Order))
             return result.Data;
 
-        _log.LogWarning("episode {Episode} from subject #{Subject} not found without offset", episodeNumber, id);
-
         // guess offset number
         var offset = Math.Min((int)episodeNumber, result.Total) - Offset;
 
         var initialResult = result;
         var history = new HashSet<int>();
 
-    RequestEpisodeList:
+        RequestEpisodeList:
         if (offset < 0)
-        {
-            _log.LogWarning("search failed: offset {Offset} should not be less than 0", offset);
             return result.Data;
-        }
-
         if (offset > result.Total)
-        {
-            _log.LogWarning("search failed: offset {Offset} should not be greater than {Total}", offset, result.Total);
             return result.Data;
-        }
-
         if (history.Contains(offset))
-        {
-            _log.LogWarning("search failed: offset {Offset} has been checked before", offset);
             return result.Data;
-        }
-
         history.Add(offset);
 
         try
         {
-            _log.LogInformation("searching episode {Episode} with offset {Offset}...", episodeNumber, offset);
             result = await GetSubjectEpisodeListWithOffset(id, type, offset, token);
             if (result == null)
                 return initialResult.Data;
@@ -167,19 +140,7 @@ public class BangumiApi
     {
         var result = new List<PersonInfo>();
         var characters = await SendRequest<List<RelatedCharacter>>($"https://api.bgm.tv/v0/subjects/{id}/characters", token);
-        characters?.ForEach(character =>
-        {
-            if (character.Actors == null)
-                return;
-            result.AddRange(character.Actors.Select(actor => new PersonInfo
-            {
-                Name = actor.Name,
-                Role = character.Name,
-                ImageUrl = actor.DefaultImage,
-                Type = JellyfinPersonType.Actor,
-                ProviderIds = new Dictionary<string, string> { { Constants.ProviderName, $"{actor.Id}" } }
-            }));
-        });
+        characters?.ForEach(character => result.AddRange(character.ToPersonInfos()));
         return result;
     }
 
@@ -192,25 +153,8 @@ public class BangumiApi
     {
         var result = new List<PersonInfo>();
         var persons = await GetSubjectPersons(id, token);
-        persons?.ForEach(person =>
-        {
-            var item = new PersonInfo
-            {
-                Name = person.Name,
-                ImageUrl = person.DefaultImage,
-                Type = person.Relation switch
-                {
-                    "导演" => JellyfinPersonType.Director,
-                    "制片人" => JellyfinPersonType.Producer,
-                    "系列构成" => JellyfinPersonType.Composer,
-                    "脚本" => JellyfinPersonType.Writer,
-                    _ => ""
-                },
-                ProviderIds = new Dictionary<string, string> { { Constants.ProviderName, $"{person.Id}" } }
-            };
-            if (!string.IsNullOrEmpty(item.Type))
-                result.Add(item);
-        });
+        if (persons?.Count > 0)
+            result.AddRange(persons.Select(person => person.ToPersonInfo()).Where(info => info != null)!);
         return result;
     }
 
@@ -222,80 +166,5 @@ public class BangumiApi
     public async Task<PersonDetail?> GetPerson(int id, CancellationToken token)
     {
         return await SendRequest<PersonDetail>($"https://api.bgm.tv/v0/persons/{id}", token);
-    }
-
-    public async Task<User?> GetAccountInfo(string accessToken, CancellationToken token)
-    {
-        return await SendRequest<User>("https://api.bgm.tv/v0/me", accessToken, token);
-    }
-
-    public async Task<DataList<EpisodeCollectionInfo>?> GetEpisodeCollectionInfo(string accessToken, int subjectId, int episodeType, CancellationToken token)
-    {
-        return await SendRequest<DataList<EpisodeCollectionInfo>>($"https://api.bgm.tv/v0/users/-/collections/{subjectId}/episodes?episode_type={episodeType}", accessToken, token);
-    }
-
-    public async Task UpdateCollectionStatus(string accessToken, int subjectId, CollectionType type, CancellationToken token)
-    {
-        var request = new HttpRequestMessage(HttpMethod.Post, $"https://api.bgm.tv/v0/users/-/collections/{subjectId}");
-        request.Content = new JsonContent(new Collection { Type = type });
-        await SendRequest(request, accessToken, token);
-    }
-
-    public async Task<EpisodeCollectionInfo?> GetEpisodeStatus(string accessToken, int episodeId, CancellationToken token)
-    {
-        return await SendRequest<EpisodeCollectionInfo>($"https://api.bgm.tv/v0/users/-/collections/-/episodes/{episodeId}", accessToken, token);
-    }
-
-    public async Task UpdateEpisodeStatus(string accessToken, int subjectId, int episodeId, EpisodeCollectionType status, CancellationToken token)
-    {
-        var request = new HttpRequestMessage(HttpMethod.Put, $"https://api.bgm.tv/v0/users/-/collections/-/episodes/{episodeId}");
-        request.Content = new JsonContent(new EpisodeCollectionInfo
-        {
-            Type = status
-        });
-        await SendRequest(request, accessToken, token);
-    }
-
-    private Task<string> SendRequest(string url, string? accessToken, CancellationToken token)
-    {
-        return SendRequest(new HttpRequestMessage(HttpMethod.Get, url), accessToken, token);
-    }
-
-    private async Task<string> SendRequest(HttpRequestMessage request, string? accessToken, CancellationToken token)
-    {
-        var httpClient = GetHttpClient();
-        if (!string.IsNullOrEmpty(accessToken))
-            request.Headers.Authorization = AuthenticationHeaderValue.Parse("Bearer " + accessToken);
-        using var response = await httpClient.SendAsync(request, token);
-        if (!response.IsSuccessStatusCode) await ServerException.ThrowFrom(response);
-        return await response.Content.ReadAsStringAsync(token);
-    }
-
-    private async Task<T?> SendRequest<T>(string url, CancellationToken token)
-    {
-        return await SendRequest<T>(url, _store.GetAvailable()?.AccessToken, token);
-    }
-
-    private async Task<T?> SendRequest<T>(string url, string? accessToken, CancellationToken token)
-    {
-        var jsonString = await SendRequest(url, accessToken, token);
-        return JsonSerializer.Deserialize<T>(jsonString, Options);
-    }
-
-    public HttpClient GetHttpClient()
-    {
-        var httpClient = _httpClientFactory.CreateClient(NamedClient.Default);
-        httpClient.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("Jellyfin.Plugin.Bangumi", Plugin.Version.ToString()));
-        httpClient.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("(https://github.com/kookxiang/jellyfin-plugin-bangumi)"));
-        httpClient.Timeout = TimeSpan.FromMilliseconds(Plugin.Configuration.RequestTimeout);
-        return httpClient;
-    }
-
-    private class JsonContent : StringContent
-    {
-        public JsonContent(object obj) : base(JsonSerializer.Serialize(obj, Options), Encoding.UTF8, "application/json")
-        {
-            Headers.ContentType!.CharSet = null;
-        }
     }
 }

@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net6.0</TargetFramework>
+        <RootNamespace>Jellyfin.Plugin.Bangumi</RootNamespace>
+        <AssemblyVersion>1.0.0.0</AssemblyVersion>
+        <FileVersion>1.0.0.0</FileVersion>
+        <Nullable>enable</Nullable>
+        <LangVersion>10</LangVersion>
+        <DefineConstants>EMBY</DefineConstants>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <Compile Include="..\Jellyfin.Plugin.Bangumi\BangumiApi.cs">
+            <Link>BangumiApi.cs</Link>
+        </Compile>
+        <Compile Include="..\Jellyfin.Plugin.Bangumi\Model\*.cs">
+            <Link>Model\*.cs</Link>
+        </Compile>
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="mediabrowser.server.core" Version="4.7.0.30" />
+        <PackageReference Include="System.Text.Json" Version="6.0.4" />
+    </ItemGroup>
+</Project>
