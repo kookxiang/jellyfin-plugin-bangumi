@@ -14,7 +14,7 @@ public class ExternalMovieId : IExternalId
 
     public string ProviderName => Constants.ProviderName;
 
-    public string Key => Constants.PluginName;
+    public string Key => Constants.ProviderName;
 
     public ExternalIdMediaType? Type => ExternalIdMediaType.Series;
 
