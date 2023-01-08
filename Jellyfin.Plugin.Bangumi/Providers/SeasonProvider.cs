@@ -14,15 +14,13 @@ namespace Jellyfin.Plugin.Bangumi.Providers;
 public class SeasonProvider : IRemoteMetadataProvider<Season, SeasonInfo>, IHasOrder
 {
     private readonly BangumiApi _api;
-    private readonly Plugin _plugin;
 
-    public SeasonProvider(Plugin plugin, BangumiApi api)
+    public SeasonProvider(BangumiApi api)
     {
-        _plugin = plugin;
         _api = api;
     }
 
-    private PluginConfiguration Configuration => _plugin.Configuration;
+    private static PluginConfiguration Configuration => Plugin.Instance!.Configuration;
 
     public int Order => -5;
 

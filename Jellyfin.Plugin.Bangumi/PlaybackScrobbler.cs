@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Jellyfin.Plugin.Bangumi.Configuration;
 using Jellyfin.Plugin.Bangumi.Model;
 using Jellyfin.Plugin.Bangumi.OAuth;
 using MediaBrowser.Controller.Entities;
@@ -22,13 +23,11 @@ public class PlaybackScrobbler : IServerEntryPoint
     private readonly BangumiApi _api;
     private readonly ILogger<PlaybackScrobbler> _log;
 
-    private readonly Plugin _plugin;
     private readonly OAuthStore _store;
     private readonly IUserDataManager _userDataManager;
 
-    public PlaybackScrobbler(Plugin plugin, IUserManager userManager, IUserDataManager userDataManager, OAuthStore store, BangumiApi api, ILogger<PlaybackScrobbler> log)
+    public PlaybackScrobbler(IUserManager userManager, IUserDataManager userDataManager, OAuthStore store, BangumiApi api, ILogger<PlaybackScrobbler> log)
     {
-        _plugin = plugin;
         _userDataManager = userDataManager;
         _store = store;
         _api = api;
@@ -37,6 +36,8 @@ public class PlaybackScrobbler : IServerEntryPoint
         foreach (var userId in userManager.UsersIds)
             GetPlaybackHistory(userId);
     }
+
+    private static PluginConfiguration Configuration => Plugin.Instance!.Configuration;
 
     public void Dispose()
     {
@@ -62,19 +63,19 @@ public class PlaybackScrobbler : IServerEntryPoint
                         GetPlaybackHistory(e.UserId).Add(e.UserData.Key);
                         _log.LogInformation("mark {Name} (#{Id}) as played for user #{User}", e.Item.Name, e.Item.Id, e.UserId);
                     }).ConfigureAwait(false);
-                if (_plugin.Configuration.ReportManualStatusChangeToBangumi)
+                if (Configuration.ReportManualStatusChangeToBangumi)
                     ReportPlaybackStatus(e.Item, e.UserId, true).ConfigureAwait(false);
                 break;
 
             case UserDataSaveReason.TogglePlayed when !e.UserData.Played:
                 GetPlaybackHistory(e.UserId).Remove(e.UserData.Key);
                 _log.LogInformation("mark {Name} (#{Id}) as new for user #{User}", e.Item.Name, e.Item.Id, e.UserId);
-                if (_plugin.Configuration.ReportManualStatusChangeToBangumi)
+                if (Configuration.ReportManualStatusChangeToBangumi)
                     ReportPlaybackStatus(e.Item, e.UserId, true).ConfigureAwait(false);
                 break;
 
             case UserDataSaveReason.PlaybackFinished when e.UserData.Played:
-                if (_plugin.Configuration.ReportPlaybackStatusToBangumi)
+                if (Configuration.ReportPlaybackStatusToBangumi)
                     ReportPlaybackStatus(e.Item, e.UserId, true).ConfigureAwait(false);
                 e.Keys.ForEach(key => GetPlaybackHistory(e.UserId).Add(key));
                 break;

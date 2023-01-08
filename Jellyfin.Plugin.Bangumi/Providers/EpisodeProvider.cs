@@ -6,6 +6,7 @@ using System.Net.Http;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
+using Jellyfin.Plugin.Bangumi.Configuration;
 using Jellyfin.Plugin.Bangumi.Model;
 using MediaBrowser.Controller.Entities.TV;
 using MediaBrowser.Controller.Library;
@@ -57,15 +58,14 @@ public class EpisodeProvider : IRemoteMetadataProvider<Episode, EpisodeInfo>, IH
     private readonly ILibraryManager _libraryManager;
     private readonly ILogger<EpisodeProvider> _log;
 
-    private readonly Plugin _plugin;
-
-    public EpisodeProvider(Plugin plugin, BangumiApi api, ILogger<EpisodeProvider> log, ILibraryManager libraryManager)
+    public EpisodeProvider(BangumiApi api, ILogger<EpisodeProvider> log, ILibraryManager libraryManager)
     {
-        _plugin = plugin;
         _api = api;
         _log = log;
         _libraryManager = libraryManager;
     }
+
+    private static PluginConfiguration Configuration => Plugin.Instance!.Configuration;
 
     public int Order => -5;
     public string Name => Constants.ProviderName;
@@ -91,7 +91,7 @@ public class EpisodeProvider : IRemoteMetadataProvider<Episode, EpisodeInfo>, IH
         if (episode.AirDate.Length == 4)
             result.Item.ProductionYear = int.Parse(episode.AirDate);
 
-        result.Item.Name = episode.GetName(_plugin.Configuration);
+        result.Item.Name = episode.GetName(Configuration);
         result.Item.OriginalTitle = episode.OriginalName;
         result.Item.IndexNumber = (int)episode.Order;
         result.Item.Overview = string.IsNullOrEmpty(episode.Description) ? null : episode.Description;
@@ -121,7 +121,7 @@ public class EpisodeProvider : IRemoteMetadataProvider<Episode, EpisodeInfo>, IH
 
         // use title and overview from special episode subject if episode data is empty
         if (string.IsNullOrEmpty(result.Item.Name))
-            result.Item.Name = series.GetName(_plugin.Configuration);
+            result.Item.Name = series.GetName(Configuration);
         if (string.IsNullOrEmpty(result.Item.OriginalTitle))
             result.Item.OriginalTitle = series.OriginalName;
         if (string.IsNullOrEmpty(result.Item.Overview))
@@ -166,7 +166,7 @@ public class EpisodeProvider : IRemoteMetadataProvider<Episode, EpisodeInfo>, IH
 
         double? episodeIndex = info.IndexNumber;
 
-        if (_plugin.Configuration.AlwaysReplaceEpisodeNumber)
+        if (Configuration.AlwaysReplaceEpisodeNumber)
             episodeIndex = GuessEpisodeNumber(episodeIndex, fileName);
         else if (episodeIndex is null or 0)
             episodeIndex = GuessEpisodeNumber(episodeIndex, fileName);
@@ -177,7 +177,7 @@ public class EpisodeProvider : IRemoteMetadataProvider<Episode, EpisodeInfo>, IH
             if (episode == null)
                 goto SkipBangumiId;
 
-            if (_plugin.Configuration.TrustExistedBangumiId)
+            if (Configuration.TrustExistedBangumiId)
                 return episode;
 
             if (episode.Type != EpisodeType.Normal || AllSpecialEpisodeFileNameRegex.Any(x => x.IsMatch(info.Path)))
@@ -230,7 +230,7 @@ public class EpisodeProvider : IRemoteMetadataProvider<Episode, EpisodeInfo>, IH
         var episodeIndex = current ?? 0;
         var episodeIndexFromFilename = episodeIndex;
 
-        if (_plugin.Configuration.AlwaysGetEpisodeByAnitomySharp)
+        if (Configuration.AlwaysGetEpisodeByAnitomySharp)
         {
             var anitomyIndex = Anitomy.ExtractEpisodeNumber(fileName);
             if (!string.IsNullOrEmpty(anitomyIndex))
@@ -254,7 +254,7 @@ public class EpisodeProvider : IRemoteMetadataProvider<Episode, EpisodeInfo>, IH
             break;
         }
 
-        if (_plugin.Configuration.AlwaysReplaceEpisodeNumber)
+        if (Configuration.AlwaysReplaceEpisodeNumber)
         {
             _log.LogWarning("use episode index {NewIndex} from filename {FileName}", episodeIndexFromFilename, fileName);
             return episodeIndexFromFilename;

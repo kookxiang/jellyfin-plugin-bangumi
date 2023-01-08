@@ -5,6 +5,7 @@ using System.Linq;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
+using Jellyfin.Plugin.Bangumi.Configuration;
 using Jellyfin.Plugin.Bangumi.Model;
 using MediaBrowser.Controller.Entities.Audio;
 using MediaBrowser.Controller.Library;
@@ -19,15 +20,15 @@ public class MusicSongProvider : IRemoteMetadataProvider<Audio, SongInfo>, IHasO
     private readonly BangumiApi _api;
     private readonly ILibraryManager _libraryManager;
     private readonly ILogger<MusicSongProvider> _log;
-    private readonly Plugin _plugin;
 
-    public MusicSongProvider(BangumiApi api, Plugin plugin, ILibraryManager libraryManager, ILogger<MusicSongProvider> log)
+    public MusicSongProvider(BangumiApi api, ILibraryManager libraryManager, ILogger<MusicSongProvider> log)
     {
         _api = api;
-        _plugin = plugin;
         _libraryManager = libraryManager;
         _log = log;
     }
+
+    private static PluginConfiguration Configuration => Plugin.Instance!.Configuration;
 
     public int Order => -5;
 
@@ -93,7 +94,7 @@ public class MusicSongProvider : IRemoteMetadataProvider<Audio, SongInfo>, IHasO
             if (song == null)
                 goto NoBangumiId;
 
-            if (_plugin.Configuration.TrustExistedBangumiId)
+            if (Configuration.TrustExistedBangumiId)
                 return song;
 
             if (song.ParentId == albumId && Math.Abs(song.Order - songIndex) < 0.1)

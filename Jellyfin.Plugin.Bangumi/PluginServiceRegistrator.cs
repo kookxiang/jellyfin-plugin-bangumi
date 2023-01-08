@@ -8,7 +8,6 @@ public class PluginServiceRegistrator : IPluginServiceRegistrator
 {
     public void RegisterServices(IServiceCollection serviceCollection)
     {
-        serviceCollection.AddSingleton<Plugin>();
         serviceCollection.AddSingleton<BangumiApi>();
         serviceCollection.AddSingleton<OAuthStore>();
     }

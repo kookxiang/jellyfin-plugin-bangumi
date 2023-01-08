@@ -18,16 +18,14 @@ public class SeriesProvider : IRemoteMetadataProvider<Series, SeriesInfo>, IHasO
 {
     private readonly BangumiApi _api;
     private readonly ILogger<SeriesProvider> _log;
-    private readonly Plugin _plugin;
 
-    public SeriesProvider(Plugin plugin, BangumiApi api, ILogger<SeriesProvider> log)
+    public SeriesProvider(BangumiApi api, ILogger<SeriesProvider> log)
     {
-        _plugin = plugin;
         _api = api;
         _log = log;
     }
 
-    private PluginConfiguration Configuration => _plugin.Configuration;
+    private static PluginConfiguration Configuration => Plugin.Instance!.Configuration;
 
     public int Order => -5;
 

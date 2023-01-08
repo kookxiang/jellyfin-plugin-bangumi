@@ -18,16 +18,14 @@ public class AlbumProvider : IRemoteMetadataProvider<MusicAlbum, AlbumInfo>, IHa
 {
     private readonly BangumiApi _api;
     private readonly ILogger<AlbumProvider> _log;
-    private readonly Plugin _plugin;
 
-    public AlbumProvider(Plugin plugin, BangumiApi api, ILogger<AlbumProvider> log)
+    public AlbumProvider(BangumiApi api, ILogger<AlbumProvider> log)
     {
-        _plugin = plugin;
         _api = api;
         _log = log;
     }
 
-    private PluginConfiguration Configuration => _plugin.Configuration;
+    private static PluginConfiguration Configuration => Plugin.Instance!.Configuration;
 
     public int Order => -5;
 

@@ -27,16 +27,15 @@ public class BangumiApi
     };
 
     private readonly IHttpClientFactory _httpClientFactory;
-
-    private readonly Plugin _plugin;
     private readonly OAuthStore _store;
 
     public BangumiApi(IHttpClientFactory httpClientFactory, OAuthStore store)
     {
-        _plugin = Plugin.Instance!;
         _httpClientFactory = httpClientFactory;
         _store = store;
     }
+
+    private static Plugin Plugin => Plugin.Instance!;
 
     public Task<List<Subject>> SearchSubject(string keyword, CancellationToken token)
     {
@@ -243,9 +242,9 @@ public class BangumiApi
     public HttpClient GetHttpClient()
     {
         var httpClient = _httpClientFactory.CreateClient(NamedClient.Default);
-        httpClient.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("Jellyfin.Plugin.Bangumi", _plugin.Version.ToString()));
+        httpClient.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("Jellyfin.Plugin.Bangumi", Plugin.Version.ToString()));
         httpClient.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("(https://github.com/kookxiang/jellyfin-plugin-bangumi)"));
-        httpClient.Timeout = TimeSpan.FromMilliseconds(_plugin.Configuration.RequestTimeout);
+        httpClient.Timeout = TimeSpan.FromMilliseconds(Plugin.Configuration.RequestTimeout);
         return httpClient;
     }
 

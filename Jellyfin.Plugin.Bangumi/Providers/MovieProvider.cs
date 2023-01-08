@@ -18,16 +18,14 @@ public class MovieProvider : IRemoteMetadataProvider<Movie, MovieInfo>, IHasOrde
 {
     private readonly BangumiApi _api;
     private readonly ILogger<MovieProvider> _log;
-    private readonly Plugin _plugin;
 
-    public MovieProvider(Plugin plugin, BangumiApi api, ILogger<MovieProvider> logger)
+    public MovieProvider(BangumiApi api, ILogger<MovieProvider> logger)
     {
-        _plugin = plugin;
         _api = api;
         _log = logger;
     }
 
-    private PluginConfiguration Configuration => _plugin.Configuration;
+    private static PluginConfiguration Configuration => Plugin.Instance!.Configuration;
 
     public int Order => -5;
     public string Name => Constants.ProviderName;
@@ -117,7 +115,7 @@ public class MovieProvider : IRemoteMetadataProvider<Movie, MovieInfo>, IHasOrde
                 return results;
             var result = new RemoteSearchResult
             {
-                Name = subject.GetName(_plugin.Configuration),
+                Name = subject.GetName(Configuration),
                 SearchProviderName = subject.OriginalName,
                 ImageUrl = subject.DefaultImage,
                 Overview = subject.Summary
@@ -138,7 +136,7 @@ public class MovieProvider : IRemoteMetadataProvider<Movie, MovieInfo>, IHasOrde
                 var itemId = $"{item.Id}";
                 var result = new RemoteSearchResult
                 {
-                    Name = item.GetName(_plugin.Configuration),
+                    Name = item.GetName(Configuration),
                     SearchProviderName = item.OriginalName,
                     ImageUrl = item.DefaultImage,
                     Overview = item.Summary

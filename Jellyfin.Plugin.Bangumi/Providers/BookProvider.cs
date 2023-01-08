@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
+using Jellyfin.Plugin.Bangumi.Configuration;
 using Jellyfin.Plugin.Bangumi.Model;
 using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Providers;
@@ -15,13 +16,12 @@ public class BookProvider : IRemoteMetadataProvider<Book, BookInfo>, IHasOrder
 {
     private readonly BangumiApi _api;
 
-    private readonly Plugin _plugin;
-
-    public BookProvider(Plugin plugin, BangumiApi api)
+    public BookProvider(BangumiApi api)
     {
-        _plugin = plugin;
         _api = api;
     }
+
+    private static PluginConfiguration Configuration => Plugin.Instance!.Configuration;
 
     public int Order => -5;
 
@@ -43,7 +43,7 @@ public class BookProvider : IRemoteMetadataProvider<Book, BookInfo>, IHasOrder
 
         result.Item.ProviderIds.Add(Constants.ProviderName, subject.Id.ToString());
         result.Item.CommunityRating = subject.Rating?.Score;
-        result.Item.Name = subject.GetName(_plugin.Configuration);
+        result.Item.Name = subject.GetName(Configuration);
         result.Item.OriginalTitle = subject.OriginalName;
         result.Item.Overview = string.IsNullOrEmpty(subject.Summary) ? null : subject.Summary;
         result.Item.Tags = subject.PopularTags;
@@ -71,7 +71,7 @@ public class BookProvider : IRemoteMetadataProvider<Book, BookInfo>, IHasOrder
                 return results;
             var result = new RemoteSearchResult
             {
-                Name = subject.GetName(_plugin.Configuration),
+                Name = subject.GetName(Configuration),
                 SearchProviderName = subject.OriginalName,
                 ImageUrl = subject.DefaultImage,
                 Overview = subject.Summary
@@ -92,7 +92,7 @@ public class BookProvider : IRemoteMetadataProvider<Book, BookInfo>, IHasOrder
                 var itemId = $"{item.Id}";
                 var result = new RemoteSearchResult
                 {
-                    Name = item.GetName(_plugin.Configuration),
+                    Name = item.GetName(Configuration),
                     SearchProviderName = item.OriginalName,
                     ImageUrl = item.DefaultImage,
                     Overview = item.Summary
