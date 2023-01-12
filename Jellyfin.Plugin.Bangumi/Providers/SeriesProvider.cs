@@ -103,6 +103,9 @@ public class SeriesProvider : IRemoteMetadataProvider<Series, SeriesInfo>, IHasO
         if (subject.ProductionYear?.Length == 4)
             result.Item.ProductionYear = int.Parse(subject.ProductionYear);
 
+        if (subject.IsNSFW)
+            result.Item.OfficialRating = "X";
+
         (await _api.GetSubjectPersonInfos(subject.Id, token)).ForEach(result.AddPerson);
         (await _api.GetSubjectCharacters(subject.Id, token)).ForEach(result.AddPerson);
 

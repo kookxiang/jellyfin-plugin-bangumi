@@ -52,6 +52,9 @@ public class Subject
     [JsonPropertyName("tags")]
     public List<Tag> Tags { get; set; } = new();
 
+    [JsonPropertyName("nsfw")]
+    public bool IsNSFW { get; set; }
+
     [JsonIgnore]
     public string[] PopularTags
     {
