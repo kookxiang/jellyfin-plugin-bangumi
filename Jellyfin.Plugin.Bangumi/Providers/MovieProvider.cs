@@ -28,6 +28,7 @@ public class MovieProvider : IRemoteMetadataProvider<Movie, MovieInfo>, IHasOrde
     private static PluginConfiguration Configuration => Plugin.Instance!.Configuration;
 
     public int Order => -5;
+
     public string Name => Constants.ProviderName;
 
     public async Task<MetadataResult<Movie>> GetMetadata(MovieInfo info, CancellationToken token)
@@ -85,16 +86,19 @@ public class MovieProvider : IRemoteMetadataProvider<Movie, MovieInfo>, IHasOrde
         result.HasMetadata = true;
 
         result.Item.ProviderIds.Add(Constants.ProviderName, subject.Id.ToString());
-
         result.Item.CommunityRating = subject.Rating?.Score;
-        result.Item.Name = subject.ChineseName;
+        result.Item.Name = subject.GetName(Configuration);
         result.Item.OriginalTitle = subject.OriginalName;
-        result.Item.Overview = subject.Summary;
+        result.Item.Overview = string.IsNullOrEmpty(subject.Summary) ? null : subject.Summary;
         result.Item.Tags = subject.PopularTags;
+
         if (DateTime.TryParse(subject.AirDate, out var airDate))
             result.Item.PremiereDate = airDate;
         if (subject.ProductionYear?.Length == 4)
             result.Item.ProductionYear = int.Parse(subject.ProductionYear);
+
+        if (subject.IsNSFW)
+            result.Item.OfficialRating = "X";
 
         (await _api.GetSubjectPersonInfos(subject.Id, token)).ForEach(result.AddPerson);
         (await _api.GetSubjectCharacters(subject.Id, token)).ForEach(result.AddPerson);
