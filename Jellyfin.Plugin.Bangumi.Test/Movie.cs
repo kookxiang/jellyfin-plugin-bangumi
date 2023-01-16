@@ -66,7 +66,7 @@ public class Movie
             Path = FakePath.Create("[Zagzad] Memories (BDRip 1764x972 1800x976 1788x932 HEVC-10bit THD)")
         }, _token);
         _plugin.Configuration.AlwaysGetTitleByAnitomySharp = false;
-        Assert.AreEqual("回忆三部曲", result.Item.Name, "should return correct series name");
+        Assert.AreEqual("MEMORIES", result.Item.Name, "should return correct series name");
     }
 
     [TestMethod]
@@ -82,7 +82,7 @@ public class Movie
     private static void AssertMovie(MetadataResult<MediaBrowser.Controller.Entities.Movies.Movie> result)
     {
         Assert.IsNotNull(result.Item, "series data should not be null");
-        Assert.AreEqual("命运石之门 负荷领域的既视感", result.Item.Name, "should return correct series name");
+        Assert.AreEqual("STEINS;GATE 負荷領域のデジャヴ", result.Item.Name, "should return correct series name");
         Assert.AreNotEqual("", result.Item.Overview, "should return series overview");
         Assert.AreEqual(DateTime.Parse("2013-04-20"), result.Item.PremiereDate, "should return correct premiere date");
         Assert.IsTrue(result.Item.CommunityRating is > 0 and <= 10, "should return rating info");
