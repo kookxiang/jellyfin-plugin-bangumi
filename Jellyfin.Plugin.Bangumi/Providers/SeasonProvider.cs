@@ -32,7 +32,8 @@ public class SeasonProvider : IRemoteMetadataProvider<Season, SeasonInfo>, IHasO
         var result = new MetadataResult<Season> { ResultLanguage = Constants.Language };
 
         if (!int.TryParse(info.ProviderIds.GetOrDefault(Constants.ProviderName), out var subjectId))
-            if (info.IndexNumber != 1 || !int.TryParse(info.SeriesProviderIds.GetOrDefault(Constants.ProviderName), out subjectId))
+            if (info.IndexNumber != 1 ||
+                !int.TryParse(info.SeriesProviderIds.GetOrDefault(Constants.ProviderName), out subjectId))
                 return result;
 
         var subject = await _api.GetSubject(subjectId, token);
