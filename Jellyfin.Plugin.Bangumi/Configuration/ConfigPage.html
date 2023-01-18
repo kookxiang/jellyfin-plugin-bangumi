@@ -157,6 +157,14 @@
                 <div class="selectContainer">
                     <div class="checkboxContainer checkboxContainer-withDescription">
                         <label class="emby-checkbox-label">
+                            <input id="UseBangumiSeasonTitle" is="emby-checkbox" type="checkbox"/>
+                            <span>使用 Bangumi 词条作为季名称</span>
+                        </label>
+                    </div>
+                </div>
+                <div class="selectContainer">
+                    <div class="checkboxContainer checkboxContainer-withDescription">
+                        <label class="emby-checkbox-label">
                             <input id="AlwaysReplaceEpisodeNumber" is="emby-checkbox" type="checkbox"/>
                             <span>始终根据文件名猜测集数</span>
                         </label>
@@ -238,6 +246,7 @@
                 return ApiClient.getPluginConfiguration(pluginId).then(function (config) {
                     container.querySelector('#ReportPlaybackStatusToBangumi').checked = config.ReportPlaybackStatusToBangumi;
                     container.querySelector('#ReportManualStatusChangeToBangumi').checked = config.ReportManualStatusChangeToBangumi;
+                    container.querySelector('#UseBangumiSeasonTitle').checked = config.UseBangumiSeasonTitle;
                     container.querySelector('#AlwaysReplaceEpisodeNumber').checked = config.AlwaysReplaceEpisodeNumber;
                     container.querySelector('#TrustExistedBangumiId').checked = config.TrustExistedBangumiId;
                     container.querySelector('#AlwaysGetTitleByAnitomySharp').checked = config.AlwaysGetTitleByAnitomySharp;
@@ -251,6 +260,7 @@
                 return wrapLoading(ApiClient.getPluginConfiguration(pluginId).then(function (config) {
                     config.ReportPlaybackStatusToBangumi = container.querySelector('#ReportPlaybackStatusToBangumi').checked;
                     config.ReportManualStatusChangeToBangumi = container.querySelector('#ReportManualStatusChangeToBangumi').checked;
+                    config.UseBangumiSeasonTitle = container.querySelector('#UseBangumiSeasonTitle').checked;
                     config.AlwaysReplaceEpisodeNumber = container.querySelector('#AlwaysReplaceEpisodeNumber').checked;
                     config.TrustExistedBangumiId = container.querySelector('#TrustExistedBangumiId').checked;
                     config.AlwaysGetTitleByAnitomySharp = container.querySelector('#AlwaysGetTitleByAnitomySharp').checked;

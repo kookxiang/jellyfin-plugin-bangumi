@@ -20,6 +20,8 @@ public class PluginConfiguration : BasePluginConfiguration
 
     public bool TrustExistedBangumiId { get; set; } = false;
 
+    public bool UseBangumiSeasonTitle { get; set; } = true;
+
     public bool AlwaysReplaceEpisodeNumber { get; set; }
 
     public bool AlwaysGetTitleByAnitomySharp { get; set; }
