@@ -43,7 +43,7 @@ public class EpisodeProvider : IRemoteMetadataProvider<Episode, EpisodeInfo>, IH
 
     private static readonly Regex OpeningEpisodeFileNameRegex = new(@"(NC)?OP\d");
     private static readonly Regex EndingEpisodeFileNameRegex = new(@"(NC)?ED\d");
-    private static readonly Regex SpecialEpisodeFileNameRegex = new(@"[^\w](SP|OVA|OAD)\d*[^\w]");
+    private static readonly Regex SpecialEpisodeFileNameRegex = new(@"[^\w](SPs?|Specials|OVA|OAD)\d*[^\w]");
     private static readonly Regex PreviewEpisodeFileNameRegex = new(@"[^\w]PV\d*[^\w]");
 
     private static readonly Regex[] AllSpecialEpisodeFileNameRegex =
