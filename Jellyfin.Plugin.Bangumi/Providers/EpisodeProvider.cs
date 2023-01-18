@@ -128,7 +128,7 @@ public class EpisodeProvider : IRemoteMetadataProvider<Episode, EpisodeInfo>, IH
             result.Item.Overview = series.Summary;
 
         var seasonNumber = parent is Season ? parent.IndexNumber : 1;
-        if (string.Compare(episode.AirDate, series.AirDate, StringComparison.Ordinal) < 0)
+        if (!string.IsNullOrEmpty(episode.AirDate) && string.Compare(episode.AirDate, series.AirDate, StringComparison.Ordinal) < 0)
             result.Item.AirsBeforeEpisodeNumber = seasonNumber;
         else
             result.Item.AirsAfterSeasonNumber = seasonNumber;
