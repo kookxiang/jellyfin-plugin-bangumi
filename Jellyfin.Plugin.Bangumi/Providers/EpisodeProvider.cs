@@ -77,7 +77,10 @@ public class EpisodeProvider : IRemoteMetadataProvider<Episode, EpisodeInfo>, IH
 
         _log.LogInformation("metadata for {FilePath}: {EpisodeInfo}", Path.GetFileName(info.Path), episode);
 
-        var result = new MetadataResult<Episode> { ResultLanguage = Constants.Language };
+        var result = new MetadataResult<Episode>
+        {
+            ResultLanguage = Constants.Language
+        };
 
         if (episode == null)
             return result;
@@ -152,7 +155,7 @@ public class EpisodeProvider : IRemoteMetadataProvider<Episode, EpisodeInfo>, IH
         if (string.IsNullOrEmpty(fileName))
             return null;
 
-        var type = GuessEpisodeTypeFromFileName(fileName);
+        var type = GuessEpisodeTypeFromFileName(info.Path);
         var seriesId = 0;
 
         var parent = _libraryManager.FindByPath(Path.GetDirectoryName(info.Path), true);
