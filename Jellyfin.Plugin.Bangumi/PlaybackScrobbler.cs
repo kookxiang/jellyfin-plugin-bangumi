@@ -12,6 +12,7 @@ using MediaBrowser.Controller.Entities.Movies;
 using MediaBrowser.Controller.Library;
 using MediaBrowser.Controller.Plugins;
 using MediaBrowser.Model.Entities;
+using MediaBrowser.Model.Globalization;
 using Microsoft.Extensions.Logging;
 using CollectionType = Jellyfin.Plugin.Bangumi.Model.CollectionType;
 
@@ -19,16 +20,22 @@ namespace Jellyfin.Plugin.Bangumi;
 
 public class PlaybackScrobbler : IServerEntryPoint
 {
+    // https://github.com/jellyfin/jellyfin/blob/master/Emby.Server.Implementations/Localization/Ratings/jp.csv
+    // https://github.com/jellyfin/jellyfin/blob/master/Emby.Server.Implementations/Localization/Ratings/us.csv
+    private const int RatingNSFW = 10;
+
     private static readonly Dictionary<Guid, HashSet<string>> Store = new();
     private readonly BangumiApi _api;
+    private readonly ILocalizationManager _localizationManager;
     private readonly ILogger<PlaybackScrobbler> _log;
 
     private readonly OAuthStore _store;
     private readonly IUserDataManager _userDataManager;
 
-    public PlaybackScrobbler(IUserManager userManager, IUserDataManager userDataManager, OAuthStore store, BangumiApi api, ILogger<PlaybackScrobbler> log)
+    public PlaybackScrobbler(IUserManager userManager, IUserDataManager userDataManager, ILocalizationManager localizationManager, OAuthStore store, BangumiApi api, ILogger<PlaybackScrobbler> log)
     {
         _userDataManager = userDataManager;
+        _localizationManager = localizationManager;
         _store = store;
         _api = api;
         _log = log;
@@ -143,7 +150,17 @@ public class PlaybackScrobbler : IServerEntryPoint
                         subjectId = episode.ParentId;
                 }
 
-                if (item.OfficialRating is "X" or "XXX" && Configuration.SkipNSFWPlaybackReport)
+                var ratingLevel = _localizationManager.GetRatingLevel(item.OfficialRating);
+                if (ratingLevel == null)
+                {
+                    foreach (var parent in item.GetParents())
+                    {
+                        ratingLevel = _localizationManager.GetRatingLevel(parent.OfficialRating);
+                        if (ratingLevel != null) break;
+                    }
+                }
+
+                if (ratingLevel >= RatingNSFW && Configuration.SkipNSFWPlaybackReport)
                 {
                     _log.LogInformation("item #{Name} marked as NSFW, skipped", item.Name);
                     return;

@@ -16,7 +16,7 @@ public class PluginConfiguration : BasePluginConfiguration
 
     public bool ReportPlaybackStatusToBangumi { get; set; } = true;
 
-    public bool SkipNSFWPlaybackReport { get; set; } = false;
+    public bool SkipNSFWPlaybackReport { get; set; } = true;
 
     public bool ReportManualStatusChangeToBangumi { get; set; } = false;
 
