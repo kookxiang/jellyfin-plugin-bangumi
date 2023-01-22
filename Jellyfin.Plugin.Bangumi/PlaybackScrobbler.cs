@@ -150,11 +150,12 @@ public class PlaybackScrobbler : IServerEntryPoint
                         subjectId = episode.ParentId;
                 }
 
-                var ratingLevel = _localizationManager.GetRatingLevel(item.OfficialRating);
+                var ratingLevel = item.OfficialRating is null ? null : _localizationManager.GetRatingLevel(item.OfficialRating);
                 if (ratingLevel == null)
                 {
                     foreach (var parent in item.GetParents())
                     {
+                        if (parent.OfficialRating == null) continue;
                         ratingLevel = _localizationManager.GetRatingLevel(parent.OfficialRating);
                         if (ratingLevel != null) break;
                     }
