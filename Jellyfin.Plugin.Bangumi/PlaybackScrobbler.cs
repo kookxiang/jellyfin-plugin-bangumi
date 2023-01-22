@@ -143,6 +143,13 @@ public class PlaybackScrobbler : IServerEntryPoint
                         subjectId = episode.ParentId;
                 }
 
+                var subject = await _api.GetSubject(subjectId, CancellationToken.None);
+                if (subject?.IsNSFW == true && Configuration.SkipNSFWPlaybackReport)
+                {
+                    _log.LogInformation("subject #{Subject} marked as NSFW, skipped", subject);
+                    return;
+                }
+
                 _log.LogInformation("report episode #{Episode} status {Status} to bangumi", episodeId, EpisodeCollectionType.Watched);
                 await _api.UpdateEpisodeStatus(user.AccessToken, subjectId, episodeId, played ? EpisodeCollectionType.Watched : EpisodeCollectionType.Default, CancellationToken.None);
             }

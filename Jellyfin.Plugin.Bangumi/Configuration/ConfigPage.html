@@ -128,6 +128,14 @@
                         </label>
                     </div>
                 </div>
+                <div class="selectContainer">
+                    <div class="checkboxContainer checkboxContainer-withDescription">
+                        <label class="emby-checkbox-label">
+                            <input id="SkipNSFWPlaybackReport" is="emby-checkbox" type="checkbox"/>
+                            <span>忽略被标记为 NSFW 的内容</span>
+                        </label>
+                    </div>
+                </div>
                 <div class="verticalSection verticalSection">
                     <div class="sectionTitleContainer flex align-items-center">
                         <h2 class="sectionTitle">网络</h2>
@@ -246,6 +254,7 @@
                 return ApiClient.getPluginConfiguration(pluginId).then(function (config) {
                     container.querySelector('#ReportPlaybackStatusToBangumi').checked = config.ReportPlaybackStatusToBangumi;
                     container.querySelector('#ReportManualStatusChangeToBangumi').checked = config.ReportManualStatusChangeToBangumi;
+                    container.querySelector('#SkipNSFWPlaybackReport').checked = config.SkipNSFWPlaybackReport;
                     container.querySelector('#UseBangumiSeasonTitle').checked = config.UseBangumiSeasonTitle;
                     container.querySelector('#AlwaysReplaceEpisodeNumber').checked = config.AlwaysReplaceEpisodeNumber;
                     container.querySelector('#TrustExistedBangumiId').checked = config.TrustExistedBangumiId;
@@ -260,6 +269,7 @@
                 return wrapLoading(ApiClient.getPluginConfiguration(pluginId).then(function (config) {
                     config.ReportPlaybackStatusToBangumi = container.querySelector('#ReportPlaybackStatusToBangumi').checked;
                     config.ReportManualStatusChangeToBangumi = container.querySelector('#ReportManualStatusChangeToBangumi').checked;
+                    config.SkipNSFWPlaybackReport = container.querySelector('#SkipNSFWPlaybackReport').checked;
                     config.UseBangumiSeasonTitle = container.querySelector('#UseBangumiSeasonTitle').checked;
                     config.AlwaysReplaceEpisodeNumber = container.querySelector('#AlwaysReplaceEpisodeNumber').checked;
                     config.TrustExistedBangumiId = container.querySelector('#TrustExistedBangumiId').checked;
