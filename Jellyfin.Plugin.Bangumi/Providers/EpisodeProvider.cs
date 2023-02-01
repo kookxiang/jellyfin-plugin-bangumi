@@ -98,7 +98,7 @@ public class EpisodeProvider : IRemoteMetadataProvider<Episode, EpisodeInfo>, IH
         result.Item.ParentIndexNumber = info.ParentIndexNumber ?? 1;
 
         var parent = _libraryManager.FindByPath(Path.GetDirectoryName(info.Path), true);
-        if (InSpecialFolder(info.Path) || SpecialEpisodeFileNameRegex.IsMatch(Path.GetFileName(info.Path)) || info.ParentIndexNumber == 0)
+        if (IsSpecial(info.Path) || episode.Type == EpisodeType.Special || info.ParentIndexNumber == 0)
         {
             result.Item.ParentIndexNumber = 0;
         }
@@ -146,11 +146,12 @@ public class EpisodeProvider : IRemoteMetadataProvider<Episode, EpisodeInfo>, IH
         return _api.GetHttpClient().GetAsync(url, token);
     }
 
-    private bool InSpecialFolder(string filePath)
+    private static bool IsSpecial(string filePath)
     {
+        var fileName = Path.GetFileName(filePath);
         var parentPath = Path.GetDirectoryName(filePath);
         var folderName = Path.GetFileName(parentPath);
-        return folderName != null && SpecialEpisodeFileNameRegex.IsMatch(folderName);
+        return SpecialEpisodeFileNameRegex.IsMatch(fileName) || SpecialEpisodeFileNameRegex.IsMatch(folderName ?? "");
     }
 
     private async Task<Model.Episode?> GetEpisode(EpisodeInfo info, CancellationToken token)
@@ -159,7 +160,7 @@ public class EpisodeProvider : IRemoteMetadataProvider<Episode, EpisodeInfo>, IH
         if (string.IsNullOrEmpty(fileName))
             return null;
 
-        var type = InSpecialFolder(info.Path) ? EpisodeType.Special : GuessEpisodeTypeFromFileName(fileName);
+        var type = IsSpecial(info.Path) ? EpisodeType.Special : GuessEpisodeTypeFromFileName(fileName);
         var seriesId = 0;
 
         var parent = _libraryManager.FindByPath(Path.GetDirectoryName(info.Path), true);
