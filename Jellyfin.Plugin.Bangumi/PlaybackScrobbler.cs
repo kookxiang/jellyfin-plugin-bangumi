@@ -152,14 +152,12 @@ public class PlaybackScrobbler : IServerEntryPoint
 
                 var ratingLevel = item.OfficialRating is null ? null : _localizationManager.GetRatingLevel(item.OfficialRating);
                 if (ratingLevel == null)
-                {
                     foreach (var parent in item.GetParents())
                     {
                         if (parent.OfficialRating == null) continue;
                         ratingLevel = _localizationManager.GetRatingLevel(parent.OfficialRating);
                         if (ratingLevel != null) break;
                     }
-                }
 
                 if (ratingLevel >= RatingNSFW && Configuration.SkipNSFWPlaybackReport)
                 {

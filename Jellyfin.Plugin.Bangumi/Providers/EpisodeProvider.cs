@@ -43,7 +43,7 @@ public class EpisodeProvider : IRemoteMetadataProvider<Episode, EpisodeInfo>, IH
 
     private static readonly Regex OpeningEpisodeFileNameRegex = new(@"(NC)?OP\d");
     private static readonly Regex EndingEpisodeFileNameRegex = new(@"(NC)?ED\d");
-    private static readonly Regex SpecialEpisodeFileNameRegex = new(@"[^\w](SPs?|Specials|OVA|OAD)\d*[^\w]");
+    private static readonly Regex SpecialEpisodeFileNameRegex = new(@"(SPs?|Specials|OVA|OAD)\d*");
     private static readonly Regex PreviewEpisodeFileNameRegex = new(@"[^\w]PV\d*[^\w]");
 
     private static readonly Regex[] AllSpecialEpisodeFileNameRegex =
@@ -77,10 +77,7 @@ public class EpisodeProvider : IRemoteMetadataProvider<Episode, EpisodeInfo>, IH
 
         _log.LogInformation("metadata for {FilePath}: {EpisodeInfo}", Path.GetFileName(info.Path), episode);
 
-        var result = new MetadataResult<Episode>
-        {
-            ResultLanguage = Constants.Language
-        };
+        var result = new MetadataResult<Episode> { ResultLanguage = Constants.Language };
 
         if (episode == null)
             return result;
@@ -101,14 +98,14 @@ public class EpisodeProvider : IRemoteMetadataProvider<Episode, EpisodeInfo>, IH
         result.Item.ParentIndexNumber = info.ParentIndexNumber ?? 1;
 
         var parent = _libraryManager.FindByPath(Path.GetDirectoryName(info.Path), true);
-        if (parent is Season season)
+        if (InSpecialFolder(info.Path) || SpecialEpisodeFileNameRegex.IsMatch(Path.GetFileName(info.Path)) || info.ParentIndexNumber == 0)
+        {
+            result.Item.ParentIndexNumber = 0;
+        }
+        else if (parent is Season season)
         {
             result.Item.SeasonId = season.Id;
             result.Item.ParentIndexNumber = season.IndexNumber;
-        }
-        else if (info.ParentIndexNumber is null && SpecialEpisodeFileNameRegex.IsMatch(info.Path))
-        {
-            result.Item.ParentIndexNumber = 0;
         }
 
         if (episode.Type == EpisodeType.Normal && result.Item.ParentIndexNumber > 0)
@@ -131,7 +128,7 @@ public class EpisodeProvider : IRemoteMetadataProvider<Episode, EpisodeInfo>, IH
             result.Item.Overview = series.Summary;
 
         var seasonNumber = parent is Season ? parent.IndexNumber : 1;
-        if (!string.IsNullOrEmpty(episode.AirDate) && string.Compare(episode.AirDate, series.AirDate, StringComparison.Ordinal) < 0)
+        if (string.Compare(episode.AirDate, series.AirDate, StringComparison.Ordinal) < 0)
             result.Item.AirsBeforeEpisodeNumber = seasonNumber;
         else
             result.Item.AirsAfterSeasonNumber = seasonNumber;
@@ -149,13 +146,20 @@ public class EpisodeProvider : IRemoteMetadataProvider<Episode, EpisodeInfo>, IH
         return _api.GetHttpClient().GetAsync(url, token);
     }
 
+    private bool InSpecialFolder(string filePath)
+    {
+        var parentPath = Path.GetDirectoryName(filePath);
+        var folderName = Path.GetFileName(parentPath);
+        return folderName != null && SpecialEpisodeFileNameRegex.IsMatch(folderName);
+    }
+
     private async Task<Model.Episode?> GetEpisode(EpisodeInfo info, CancellationToken token)
     {
         var fileName = Path.GetFileName(info.Path);
         if (string.IsNullOrEmpty(fileName))
             return null;
 
-        var type = GuessEpisodeTypeFromFileName(info.Path);
+        var type = InSpecialFolder(info.Path) ? EpisodeType.Special : GuessEpisodeTypeFromFileName(fileName);
         var seriesId = 0;
 
         var parent = _libraryManager.FindByPath(Path.GetDirectoryName(info.Path), true);
@@ -198,7 +202,12 @@ public class EpisodeProvider : IRemoteMetadataProvider<Episode, EpisodeInfo>, IH
             episodeIndex = GuessEpisodeNumber(episodeIndex, fileName, episodeListData.Max(x => x.Order));
         try
         {
-            return episodeListData.OrderBy(x => x.Type).First(x => x.Order.Equals(episodeIndex));
+            var episode = episodeListData.OrderBy(x => x.Type).FirstOrDefault(x => x.Order.Equals(episodeIndex));
+            if (episode != null || type is null or EpisodeType.Normal)
+                return episode;
+            _log.LogWarning("cannot find episode {index} with type {type}, searching all types", episodeIndex, type);
+            type = null;
+            goto SkipBangumiId;
         }
         catch (InvalidOperationException)
         {
