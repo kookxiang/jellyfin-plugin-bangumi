@@ -37,6 +37,12 @@ public class SeriesProvider : IRemoteMetadataProvider<Series, SeriesInfo>, IHasO
         var baseName = Path.GetFileName(info.Path);
         var result = new MetadataResult<Series> { ResultLanguage = Constants.Language };
 
+        var bangumiId = baseName.GetAttributeValue("bangumi");
+        if (!string.IsNullOrEmpty(bangumiId) && !info.HasProviderId(Constants.ProviderName))
+        {
+            info.SetProviderId(Constants.ProviderName, bangumiId);
+        }
+
         if (int.TryParse(info.ProviderIds.GetOrDefault(Constants.ProviderName), out var subjectId))
         {
         }

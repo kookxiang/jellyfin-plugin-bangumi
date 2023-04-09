@@ -40,6 +40,17 @@ public class Series
     }
 
     [TestMethod]
+    public async Task GetByAttribute()
+    {
+        var result = await _provider.GetMetadata(new SeriesInfo
+        {
+            Name = "ホワイトアルバム2",
+            Path = FakePath.Create("ホワイトアルバム2[bangumi-69496]")
+        }, _token);
+        AssertSeries(result);
+    }
+
+    [TestMethod]
     public async Task GetByNameAndAirDate()
     {
         var result = await _provider.GetMetadata(new SeriesInfo
