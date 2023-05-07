@@ -204,10 +204,9 @@ public class BangumiApi
 
     public async Task UpdateEpisodeStatus(string accessToken, int subjectId, int episodeId, EpisodeCollectionType status, CancellationToken token)
     {
-        var request = new HttpRequestMessage(HttpMethod.Patch, $"https://api.bgm.tv/v0/users/-/collections/{subjectId}/episodes");
-        request.Content = new JsonContent(new EpisodesCollectionInfo
+        var request = new HttpRequestMessage(HttpMethod.Put, $"https://api.bgm.tv/v0/users/-/collections/-/episodes/{episodeId}");
+        request.Content = new JsonContent(new EpisodeCollectionInfo
         {
-            EpisodeIdList = new List<int> { episodeId },
             Type = status
         });
         await SendRequest(request, accessToken, token);
