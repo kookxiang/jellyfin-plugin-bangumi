@@ -194,6 +194,11 @@ public class BangumiApi
     {
         return await SendRequest<User>("https://api.bgm.tv/v0/me", accessToken, token);
     }
+    
+    public async Task<DataList<EpisodeCollectionInfo>?> GetEpisodeCollectionInfo(string accessToken, int subjectId, int episodeType, CancellationToken token)
+    {
+        return await SendRequest<DataList<EpisodeCollectionInfo>>($"https://api.bgm.tv/v0/users/-/collections/{subjectId}/episodes?episode_type={episodeType}", accessToken, token);
+    }
 
     public async Task UpdateCollectionStatus(string accessToken, int subjectId, CollectionType type, CancellationToken token)
     {
