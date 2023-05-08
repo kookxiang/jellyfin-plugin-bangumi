@@ -197,7 +197,7 @@ public class BangumiApi
 
     public async Task UpdateCollectionStatus(string accessToken, int subjectId, CollectionType type, CancellationToken token)
     {
-        var request = new HttpRequestMessage(HttpMethod.Patch, $"https://api.bgm.tv/v0/users/-/collections/{subjectId}");
+        var request = new HttpRequestMessage(HttpMethod.Post, $"https://api.bgm.tv/v0/users/-/collections/{subjectId}");
         request.Content = new JsonContent(new Collection { Type = type });
         await SendRequest(request, accessToken, token);
     }
