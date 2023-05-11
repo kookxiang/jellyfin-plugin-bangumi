@@ -78,7 +78,7 @@ public class PlaybackScrobbler : IServerEntryPoint
                 GetPlaybackHistory(e.UserId).Remove(e.UserData.Key);
                 _log.LogInformation("mark {Name} (#{Id}) as new for user #{User}", e.Item.Name, e.Item.Id, e.UserId);
                 if (Configuration.ReportManualStatusChangeToBangumi)
-                    ReportPlaybackStatus(e.Item, e.UserId, true).ConfigureAwait(false);
+                    ReportPlaybackStatus(e.Item, e.UserId, false).ConfigureAwait(false);
                 break;
 
             case UserDataSaveReason.PlaybackFinished when e.UserData.Played:
@@ -130,8 +130,12 @@ public class PlaybackScrobbler : IServerEntryPoint
 
         if (item.GetUserDataKeys().Intersect(GetPlaybackHistory(userId)).Any())
         {
-            _log.LogInformation("item {Name} (#{Id}) has been played before, ignored", item.Name, item.Id);
-            return;
+            var episodeStatus = await _api.GetEpisodeStatus(user.AccessToken, episodeId,  CancellationToken.None);
+            if (played && episodeStatus is {Type: EpisodeCollectionType.Watched})
+            {
+                _log.LogInformation("item {Name} (#{Id}) has been marked as watched before, ignored", item.Name, item.Id);
+                return;
+            }
         }
 
         try
