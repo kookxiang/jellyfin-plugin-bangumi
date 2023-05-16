@@ -169,7 +169,7 @@ public class PlaybackScrobbler : IServerEntryPoint
                     return;
                 }
 
-                _log.LogInformation("report episode #{Episode} status {Status} to bangumi", episodeId, EpisodeCollectionType.Watched);
+                _log.LogInformation("report episode #{Episode} status {Status} to bangumi", episodeId, played ? EpisodeCollectionType.Watched : EpisodeCollectionType.Default);
                 await _api.UpdateEpisodeStatus(user.AccessToken, subjectId, episodeId, played ? EpisodeCollectionType.Watched : EpisodeCollectionType.Default, CancellationToken.None);
             }
 
@@ -177,7 +177,43 @@ public class PlaybackScrobbler : IServerEntryPoint
         }
         catch (Exception e)
         {
-            _log.LogError(e, "report playback status failed");
+            if (played && e.Message == "Bad Request: you need to add subject to your collection first")
+            {
+                _log.LogInformation("report subject #{Subject} status {Status} to bangumi", subjectId, CollectionType.Watching);
+                await _api.UpdateCollectionStatus(user.AccessToken, subjectId, CollectionType.Watching, CancellationToken.None);
+
+                _log.LogInformation("report episode #{Episode} status {Status} to bangumi", episodeId, EpisodeCollectionType.Watched);
+                await _api.UpdateEpisodeStatus(user.AccessToken, subjectId, episodeId, played ? EpisodeCollectionType.Watched : EpisodeCollectionType.Default, CancellationToken.None);
+            }
+            else
+            {
+                _log.LogError(e, "report playback status failed");
+            }
+        }
+        
+        // report subject status watched
+        if (played && item is not Book)
+        {
+            // skip if episode type not normal
+            var episode = await _api.GetEpisode(episodeId, CancellationToken.None);
+            if (episode is {Type: EpisodeType.Normal})
+            {
+                // check each episode status
+                var epList = await _api.GetEpisodeCollectionInfo(user.AccessToken, subjectId, (int)EpisodeType.Normal, CancellationToken.None);
+                if (epList is {Total: > 0})
+                {
+                    var subjectPlayed = true;
+                    epList.Data.ForEach(ep =>
+                    {
+                        if (ep.Type != EpisodeCollectionType.Watched) subjectPlayed = false;
+                    });
+                    if (subjectPlayed)
+                    {
+                        _log.LogInformation("report subject #{Subject} status {Status} to bangumi", subjectId, CollectionType.Watched);
+                        await _api.UpdateCollectionStatus(user.AccessToken, subjectId, CollectionType.Watched, CancellationToken.None);
+                    }
+                }
+            }
         }
     }
 
