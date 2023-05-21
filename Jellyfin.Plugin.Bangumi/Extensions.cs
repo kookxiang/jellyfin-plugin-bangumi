@@ -12,13 +12,13 @@ public static class Extensions
 }
 
 /// <summary>
-/// Class providing extension methods for working with paths.
-/// From: https://github.com/jellyfin/jellyfin/blob/master/Emby.Server.Implementations/Library/PathExtensions.cs#L10
+///     Class providing extension methods for working with paths.
+///     From: https://github.com/jellyfin/jellyfin/blob/master/Emby.Server.Implementations/Library/PathExtensions.cs#L10
 /// </summary>
 public static class PathExtensions
 {
     /// <summary>
-    /// Gets the attribute value.
+    ///     Gets the attribute value.
     /// </summary>
     /// <param name="str">The STR.</param>
     /// <param name="attribute">The attrib.</param>
@@ -27,18 +27,12 @@ public static class PathExtensions
     public static string? GetAttributeValue(this string? str, string attribute)
     {
         if (string.IsNullOrEmpty(str))
-        {
             return null;
-        }
         if (str.Length == 0)
-        {
             throw new ArgumentException("String can't be empty.", nameof(str));
-        }
 
         if (attribute.Length == 0)
-        {
             throw new ArgumentException("String can't be empty.", nameof(attribute));
-        }
 
         var attributeIndex = str.IndexOf(attribute, StringComparison.OrdinalIgnoreCase);
 
@@ -54,9 +48,7 @@ public static class PathExtensions
                 var closingIndex = str[attributeEnd..].IndexOf(']');
                 // Must be at least 1 character before the closing bracket.
                 if (closingIndex > 1)
-                {
-                    return str[(attributeEnd + 1)..(attributeEnd + closingIndex)].Trim().ToString();
-                }
+                    return str[(attributeEnd + 1)..(attributeEnd + closingIndex)].Trim();
             }
 
             str = str[attributeEnd..];

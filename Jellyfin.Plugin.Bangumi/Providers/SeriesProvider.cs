@@ -39,9 +39,7 @@ public class SeriesProvider : IRemoteMetadataProvider<Series, SeriesInfo>, IHasO
 
         var bangumiId = baseName.GetAttributeValue("bangumi");
         if (!string.IsNullOrEmpty(bangumiId) && !info.HasProviderId(Constants.ProviderName))
-        {
             info.SetProviderId(Constants.ProviderName, bangumiId);
-        }
 
         if (int.TryParse(info.ProviderIds.GetOrDefault(Constants.ProviderName), out var subjectId))
         {

@@ -130,8 +130,8 @@ public class PlaybackScrobbler : IServerEntryPoint
 
         if (item.GetUserDataKeys().Intersect(GetPlaybackHistory(userId)).Any())
         {
-            var episodeStatus = await _api.GetEpisodeStatus(user.AccessToken, episodeId,  CancellationToken.None);
-            if (played && episodeStatus is {Type: EpisodeCollectionType.Watched})
+            var episodeStatus = await _api.GetEpisodeStatus(user.AccessToken, episodeId, CancellationToken.None);
+            if (played && episodeStatus is { Type: EpisodeCollectionType.Watched })
             {
                 _log.LogInformation("item {Name} (#{Id}) has been marked as watched before, ignored", item.Name, item.Id);
                 return;
@@ -190,17 +190,17 @@ public class PlaybackScrobbler : IServerEntryPoint
                 _log.LogError(e, "report playback status failed");
             }
         }
-        
+
         // report subject status watched
         if (played && item is not Book)
         {
             // skip if episode type not normal
             var episode = await _api.GetEpisode(episodeId, CancellationToken.None);
-            if (episode is {Type: EpisodeType.Normal})
+            if (episode is { Type: EpisodeType.Normal })
             {
                 // check each episode status
                 var epList = await _api.GetEpisodeCollectionInfo(user.AccessToken, subjectId, (int)EpisodeType.Normal, CancellationToken.None);
-                if (epList is {Total: > 0})
+                if (epList is { Total: > 0 })
                 {
                     var subjectPlayed = true;
                     epList.Data.ForEach(ep =>
