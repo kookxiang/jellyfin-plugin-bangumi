@@ -25,7 +25,7 @@ public class ServerException : Exception
             content = await response.Content.ReadAsStringAsync();
             var result = JsonSerializer.Deserialize<Response>(content, Options);
             if (result?.Title != null)
-                exception = new ServerException($"{result.Title}: {result.Description}");
+                exception = new ServerException($"{result.Title}: {result.Details?.Error ?? result.Description}");
         }
         catch (Exception)
         {
@@ -40,5 +40,16 @@ public class ServerException : Exception
         public string Title { get; set; } = "";
 
         public string Description { get; set; } = "";
+
+        public ErrorDetail? Details { get; set; }
+    }
+
+    private class ErrorDetail
+    {
+        public string Error { get; } = "";
+
+        public string Path { get; set; } = "";
+
+        public string Method { get; set; } = "";
     }
 }
