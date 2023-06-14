@@ -1,17 +1,13 @@
 ﻿using System;
 using System.Net.Http;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 
 namespace Jellyfin.Plugin.Bangumi.Model;
 
 public class ServerException : Exception
 {
-    private static readonly JsonSerializerOptions Options = new()
-    {
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase
-    };
-
     private ServerException(string message) : base(message)
     {
     }
@@ -23,9 +19,9 @@ public class ServerException : Exception
         try
         {
             content = await response.Content.ReadAsStringAsync();
-            var result = JsonSerializer.Deserialize<Response>(content, Options);
+            var result = JsonSerializer.Deserialize<Response>(content);
             if (result?.Title != null)
-                exception = new ServerException($"{result.Title}: {result.Details?.Error ?? result.Description}");
+                exception = new ServerException($"{result.Title}: {result.Error?.Message ?? result.Description}");
         }
         catch (Exception)
         {
@@ -35,21 +31,27 @@ public class ServerException : Exception
         throw exception;
     }
 
-    private class Response
+    public class Response
     {
+        [JsonPropertyName("title")]
         public string Title { get; set; } = "";
 
+        [JsonPropertyName("description")]
         public string Description { get; set; } = "";
 
-        public ErrorDetail? Details { get; set; }
+        [JsonPropertyName("details")]
+        public ErrorDetail? Error { get; set; }
     }
 
-    private class ErrorDetail
+    public class ErrorDetail
     {
-        public string Error { get; } = "";
+        [JsonPropertyName("error")]
+        public string Message { get; set; } = "";
 
-        public string Path { get; set; } = "";
+        [JsonPropertyName("path")]
+        public string RequestPath { get; set; } = "";
 
-        public string Method { get; set; } = "";
+        [JsonPropertyName("method")]
+        public string RequestMethod { get; set; } = "";
     }
 }
