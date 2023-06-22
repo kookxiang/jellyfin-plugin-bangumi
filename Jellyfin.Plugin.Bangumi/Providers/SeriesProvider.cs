@@ -36,14 +36,17 @@ public class SeriesProvider : IRemoteMetadataProvider<Series, SeriesInfo>, IHasO
         token.ThrowIfCancellationRequested();
         var baseName = Path.GetFileName(info.Path);
         var result = new MetadataResult<Series> { ResultLanguage = Constants.Language };
+        var localConfiguration = await LocalConfiguration.ForPath(info.Path);
 
         var bangumiId = baseName.GetAttributeValue("bangumi");
         if (!string.IsNullOrEmpty(bangumiId) && !info.HasProviderId(Constants.ProviderName))
             info.SetProviderId(Constants.ProviderName, bangumiId);
 
-        if (int.TryParse(info.ProviderIds.GetOrDefault(Constants.ProviderName), out var subjectId))
-        {
-        }
+        int subjectId;
+        if (localConfiguration.Id != 0)
+            subjectId = localConfiguration.Id;
+        else
+            _ = int.TryParse(info.ProviderIds.GetOrDefault(Constants.ProviderName), out subjectId);
 
         if (subjectId == 0)
         {

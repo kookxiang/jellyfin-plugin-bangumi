@@ -91,6 +91,7 @@ public class PlaybackScrobbler : IServerEntryPoint
 
     private async Task ReportPlaybackStatus(BaseItem item, Guid userId, bool played)
     {
+        var localConfiguration = await LocalConfiguration.ForPath(item.Path);
         if (!int.TryParse(item.GetProviderId(Constants.ProviderName), out var episodeId))
         {
             _log.LogInformation("item {Name} (#{Id}) doesn't have bangumi id, ignored", item.Name, item.Id);
@@ -99,6 +100,12 @@ public class PlaybackScrobbler : IServerEntryPoint
 
         if (!int.TryParse(item.GetParent()?.GetProviderId(Constants.ProviderName), out var subjectId))
             _log.LogWarning("parent of item {Name} (#{Id}) doesn't have bangumi subject id", item.Name, item.Id);
+
+        if (!localConfiguration.Report)
+        {
+            _log.LogInformation("playback report is disabled via local configuration");
+            return;
+        }
 
         if (item is Audio)
         {

@@ -506,4 +506,19 @@ public class Episode
         Assert.AreEqual(5, episodeData.Item.IndexNumber, "should fix episode index automatically");
         Assert.AreEqual("Tools for outsoucers", episodeData.Item.Name, "should return the right episode title");
     }
+
+    [TestMethod]
+    public async Task EpisodeOffsetSupport()
+    {
+        FakePath.CreateFile("Kimetsu no Yaiba/Season 2/bangumi.ini", "[Bangumi]\nID=350764\nOffset=26\n");
+        var episodeData = await _provider.GetMetadata(new EpisodeInfo
+        {
+            IndexNumber = 0,
+            Path = FakePath.CreateFile("Kimetsu no Yaiba/Season 2/[BeanSub&FZSD&LoliHouse] Kimetsu no Yaiba - 27 [WebRip 1080p HEVC-10bit AAC ASSx2].mkv")
+        }, _token);
+        Assert.IsNotNull(episodeData, "episode data should not be null");
+        Assert.IsNotNull(episodeData.Item, "episode data should not be null");
+        Assert.AreEqual(27, episodeData.Item.IndexNumber, "should fix episode index automatically");
+        Assert.AreEqual("炎柱・煉獄杏寿郎", episodeData.Item.Name, "should return the right episode title");
+    }
 }
