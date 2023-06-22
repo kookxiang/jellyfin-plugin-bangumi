@@ -14,7 +14,7 @@ public class ServerException : Exception
 
     public static async Task ThrowFrom(HttpResponseMessage response)
     {
-        var content = "<empty>";
+        var content = $"HTTP Error {(int)response.StatusCode} {response.ReasonPhrase}";
         var exception = new Exception($"unknown response from bangumi server: {content}");
         try
         {
