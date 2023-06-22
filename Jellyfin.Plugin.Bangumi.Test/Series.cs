@@ -33,7 +33,7 @@ public class Series
     {
         var result = await _provider.GetMetadata(new SeriesInfo
         {
-            Name = "White Album 2",
+            Name = "White Album2",
             Path = FakePath.Create("White Album 2")
         }, _token);
         AssertSeries(result);
@@ -85,7 +85,7 @@ public class Series
     {
         var searchResults = await _provider.GetSearchResults(new SeriesInfo
         {
-            Name = "White Album 2",
+            Name = "White Album2",
             Path = FakePath.Create("White Album 2")
         }, _token);
         Assert.IsTrue(searchResults.Any(x => x.ProviderIds[Constants.ProviderName].Equals("69496")), "should have correct search result");
@@ -151,7 +151,7 @@ public class Series
         Assert.IsNotNull(result.People.Find(x => x.IsType(PersonType.Actor)), "should have at least one actor");
         Assert.IsNotNull(result.People.Find(x => x.IsType(PersonType.Director)), "should have at least one director");
         Assert.IsNotNull(result.People.Find(x => x.IsType(PersonType.Writer)), "should have at least one writer");
-        Assert.AreNotEqual("", result.People?[0].ImageUrl, "person should have image url");
+        Assert.AreNotEqual("", result.People?.Find(x => x.Name.Equals("丸戸史明")).ImageUrl, "person should have image url");
         Assert.IsNotNull(result.Item.ProviderIds[Constants.ProviderName], "should have plugin provider id");
     }
 }
