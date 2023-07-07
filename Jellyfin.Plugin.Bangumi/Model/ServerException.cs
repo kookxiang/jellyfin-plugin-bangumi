@@ -46,7 +46,7 @@ public class ServerException : Exception
     public class ErrorDetail
     {
         [JsonPropertyName("error")]
-        public string Message { get; set; } = "";
+        public string? Message { get; set; }
 
         [JsonPropertyName("path")]
         public string RequestPath { get; set; } = "";
