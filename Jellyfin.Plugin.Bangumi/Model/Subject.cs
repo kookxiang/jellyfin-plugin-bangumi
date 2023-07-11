@@ -36,7 +36,7 @@ public class Subject
     public string? AirDate => Date ?? Date2;
 
     [JsonIgnore]
-    public string? ProductionYear => AirDate?[..4];
+    public string? ProductionYear => AirDate?.Length >= 4 ? AirDate?[..4] : null;
 
     public Dictionary<string, string>? Images { get; set; }
 

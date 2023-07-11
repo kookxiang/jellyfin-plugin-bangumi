@@ -1,12 +1,14 @@
 using System.Collections.Generic;
-using System.Text.Json.Serialization;
 
 namespace Jellyfin.Plugin.Bangumi.Model;
 
 internal class SearchResult<T>
 {
-    [JsonPropertyName("results")]
-    public int ResultCount { get; set; }
+    public int Total { get; set; }
 
-    public List<T> List { get; set; } = new();
+    public int Offset { get; set; }
+
+    public int Limit { get; set; }
+
+    public List<T> Data { get; set; } = new();
 }

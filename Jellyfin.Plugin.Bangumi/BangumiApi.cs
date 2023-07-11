@@ -44,13 +44,17 @@ public class BangumiApi
 
     public async Task<List<Subject>> SearchSubject(string keyword, SubjectType? type, CancellationToken token)
     {
-        var url = $"https://api.bgm.tv/search/subject/{Uri.EscapeDataString(keyword)}?responseGroup=large";
+        var accessToken = _store.GetAvailable()?.AccessToken;
+        var request = new HttpRequestMessage(HttpMethod.Post, "https://api.bgm.tv/v0/search/subjects");
+        var searchParams = new SearchParams { Keyword = keyword };
         if (type != null)
-            url += $"&type={(int)type}";
+            searchParams.Filter.Type = new[] { type.Value };
+        request.Content = new JsonContent(searchParams);
         try
         {
-            var searchResult = await SendRequest<SearchResult<Subject>>(url, token);
-            var list = searchResult?.List ?? new List<Subject>();
+            var jsonString = await SendRequest(request, accessToken, token);
+            var searchResult = JsonSerializer.Deserialize<SearchResult<Subject>>(jsonString, Options);
+            var list = searchResult?.Data ?? new List<Subject>();
             return Subject.SortBySimilarity(list, keyword);
         }
         catch (JsonException)

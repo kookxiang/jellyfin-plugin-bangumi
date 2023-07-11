@@ -92,6 +92,17 @@ public class Series
     }
 
     [TestMethod]
+    public async Task SearchByNewApi()
+    {
+        var searchResults = await _provider.GetSearchResults(new SeriesInfo
+        {
+            Name = "命运-奇异赝品 黎明低语",
+            Path = FakePath.Create("Fate Strange Fake Whispers of Dawn")
+        }, _token);
+        Assert.IsTrue(searchResults.Any(x => x.ProviderIds[Constants.ProviderName].Equals("402128")), "should have correct search result");
+    }
+
+    [TestMethod]
     public async Task GetNameByAnitomySharp()
     {
         _plugin.Configuration.AlwaysGetTitleByAnitomySharp = true;
