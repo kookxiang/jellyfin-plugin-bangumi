@@ -73,7 +73,8 @@ public class EpisodeProvider : IRemoteMetadataProvider<Episode, EpisodeInfo>, IH
     public async Task<MetadataResult<Episode>> GetMetadata(EpisodeInfo info, CancellationToken token)
     {
         token.ThrowIfCancellationRequested();
-        var episode = await GetEpisode(info, token);
+        var localConfiguration = await LocalConfiguration.ForPath(info.Path);
+        var episode = await GetEpisode(info, localConfiguration, token);
 
         _log.LogInformation("metadata for {FilePath}: {EpisodeInfo}", Path.GetFileName(info.Path), episode);
 
@@ -93,7 +94,7 @@ public class EpisodeProvider : IRemoteMetadataProvider<Episode, EpisodeInfo>, IH
 
         result.Item.Name = episode.GetName(Configuration);
         result.Item.OriginalTitle = episode.OriginalName;
-        result.Item.IndexNumber = (int)episode.Order;
+        result.Item.IndexNumber = (int)episode.Order + localConfiguration.Offset;
         result.Item.Overview = string.IsNullOrEmpty(episode.Description) ? null : episode.Description;
         result.Item.ParentIndexNumber = info.ParentIndexNumber ?? 1;
 
@@ -128,7 +129,7 @@ public class EpisodeProvider : IRemoteMetadataProvider<Episode, EpisodeInfo>, IH
             result.Item.Overview = series.Summary;
 
         var seasonNumber = parent is Season ? parent.IndexNumber : 1;
-        if (string.Compare(episode.AirDate, series.AirDate, StringComparison.Ordinal) < 0)
+        if (!string.IsNullOrEmpty(episode.AirDate) && string.Compare(episode.AirDate, series.AirDate, StringComparison.Ordinal) < 0)
             result.Item.AirsBeforeEpisodeNumber = seasonNumber;
         else
             result.Item.AirsAfterSeasonNumber = seasonNumber;
@@ -154,14 +155,14 @@ public class EpisodeProvider : IRemoteMetadataProvider<Episode, EpisodeInfo>, IH
         return SpecialEpisodeFileNameRegex.IsMatch(fileName) || SpecialEpisodeFileNameRegex.IsMatch(folderName ?? "");
     }
 
-    private async Task<Model.Episode?> GetEpisode(EpisodeInfo info, CancellationToken token)
+    private async Task<Model.Episode?> GetEpisode(EpisodeInfo info, LocalConfiguration localConfiguration, CancellationToken token)
     {
         var fileName = Path.GetFileName(info.Path);
         if (string.IsNullOrEmpty(fileName))
             return null;
 
         var type = IsSpecial(info.Path) ? EpisodeType.Special : GuessEpisodeTypeFromFileName(fileName);
-        var seriesId = 0;
+        var seriesId = localConfiguration.Id;
 
         var parent = _libraryManager.FindByPath(Path.GetDirectoryName(info.Path), true);
         if (parent is Season)
@@ -172,12 +173,21 @@ public class EpisodeProvider : IRemoteMetadataProvider<Episode, EpisodeInfo>, IH
             if (!int.TryParse(info.SeriesProviderIds?.GetValueOrDefault(Constants.ProviderName), out seriesId))
                 return null;
 
+        if (localConfiguration.Id != 0)
+            seriesId = localConfiguration.Id;
+
         double? episodeIndex = info.IndexNumber;
 
         if (Configuration.AlwaysReplaceEpisodeNumber)
             episodeIndex = GuessEpisodeNumber(episodeIndex, fileName);
         else if (episodeIndex is null or 0)
             episodeIndex = GuessEpisodeNumber(episodeIndex, fileName);
+
+        if (localConfiguration.Offset != 0)
+        {
+            _log.LogInformation("applying offset {Offset} to episode index {EpisodeIndex}", -localConfiguration.Offset, episodeIndex);
+            episodeIndex -= localConfiguration.Offset;
+        }
 
         if (int.TryParse(info.ProviderIds?.GetValueOrDefault(Constants.ProviderName), out var episodeId))
         {
@@ -200,7 +210,11 @@ public class EpisodeProvider : IRemoteMetadataProvider<Episode, EpisodeInfo>, IH
         if (episodeListData == null)
             return null;
         if (type is null or EpisodeType.Normal)
-            episodeIndex = GuessEpisodeNumber(episodeIndex, fileName, episodeListData.Max(x => x.Order));
+            episodeIndex = GuessEpisodeNumber(
+                episodeIndex + localConfiguration.Offset,
+                fileName,
+                episodeListData.Max(x => x.Order) + localConfiguration.Offset
+            ) - localConfiguration.Offset;
         try
         {
             var episode = episodeListData.OrderBy(x => x.Type).FirstOrDefault(x => x.Order.Equals(episodeIndex));

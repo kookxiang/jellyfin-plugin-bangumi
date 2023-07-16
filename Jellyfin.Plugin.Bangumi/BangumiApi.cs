@@ -44,13 +44,17 @@ public class BangumiApi
 
     public async Task<List<Subject>> SearchSubject(string keyword, SubjectType? type, CancellationToken token)
     {
-        var url = $"https://api.bgm.tv/search/subject/{Uri.EscapeDataString(keyword)}?responseGroup=large";
+        var accessToken = _store.GetAvailable()?.AccessToken;
+        var request = new HttpRequestMessage(HttpMethod.Post, "https://api.bgm.tv/v0/search/subjects");
+        var searchParams = new SearchParams { Keyword = keyword };
         if (type != null)
-            url += $"&type={(int)type}";
+            searchParams.Filter.Type = new[] { type.Value };
+        request.Content = new JsonContent(searchParams);
         try
         {
-            var searchResult = await SendRequest<SearchResult<Subject>>(url, token);
-            var list = searchResult?.List ?? new List<Subject>();
+            var jsonString = await SendRequest(request, accessToken, token);
+            var searchResult = JsonSerializer.Deserialize<SearchResult<Subject>>(jsonString, Options);
+            var list = searchResult?.Data ?? new List<Subject>();
             return Subject.SortBySimilarity(list, keyword);
         }
         catch (JsonException)
@@ -195,19 +199,28 @@ public class BangumiApi
         return await SendRequest<User>("https://api.bgm.tv/v0/me", accessToken, token);
     }
 
+    public async Task<DataList<EpisodeCollectionInfo>?> GetEpisodeCollectionInfo(string accessToken, int subjectId, int episodeType, CancellationToken token)
+    {
+        return await SendRequest<DataList<EpisodeCollectionInfo>>($"https://api.bgm.tv/v0/users/-/collections/{subjectId}/episodes?episode_type={episodeType}", accessToken, token);
+    }
+
     public async Task UpdateCollectionStatus(string accessToken, int subjectId, CollectionType type, CancellationToken token)
     {
-        var request = new HttpRequestMessage(HttpMethod.Patch, $"https://api.bgm.tv/v0/users/-/collections/{subjectId}");
+        var request = new HttpRequestMessage(HttpMethod.Post, $"https://api.bgm.tv/v0/users/-/collections/{subjectId}");
         request.Content = new JsonContent(new Collection { Type = type });
         await SendRequest(request, accessToken, token);
     }
 
+    public async Task<EpisodeCollectionInfo?> GetEpisodeStatus(string accessToken, int episodeId, CancellationToken token)
+    {
+        return await SendRequest<EpisodeCollectionInfo>($"https://api.bgm.tv/v0/users/-/collections/-/episodes/{episodeId}", accessToken, token);
+    }
+
     public async Task UpdateEpisodeStatus(string accessToken, int subjectId, int episodeId, EpisodeCollectionType status, CancellationToken token)
     {
-        var request = new HttpRequestMessage(HttpMethod.Patch, $"https://api.bgm.tv/v0/users/-/collections/{subjectId}/episodes");
-        request.Content = new JsonContent(new EpisodesCollectionInfo
+        var request = new HttpRequestMessage(HttpMethod.Put, $"https://api.bgm.tv/v0/users/-/collections/-/episodes/{episodeId}");
+        request.Content = new JsonContent(new EpisodeCollectionInfo
         {
-            EpisodeIdList = new List<int> { episodeId },
             Type = status
         });
         await SendRequest(request, accessToken, token);

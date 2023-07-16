@@ -16,13 +16,15 @@ public class FakePath
         return path;
     }
 
-    public static string CreateFile(string name)
+    public static string CreateFile(string name, string content = "")
     {
         var path = Path.Join(BasePath, name);
         var parent = Path.GetDirectoryName(path);
         if (parent != null)
             Directory.CreateDirectory(parent);
         File.Create(path).Close();
+        if (!string.IsNullOrEmpty(content))
+            File.WriteAllText(path, content);
         return path;
     }
 

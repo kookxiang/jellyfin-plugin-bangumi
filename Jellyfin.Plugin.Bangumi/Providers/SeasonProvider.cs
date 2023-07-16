@@ -5,6 +5,7 @@ using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using Jellyfin.Plugin.Bangumi.Configuration;
+using Jellyfin.Plugin.Bangumi.Model;
 using MediaBrowser.Controller.Entities.TV;
 using MediaBrowser.Controller.Providers;
 using MediaBrowser.Model.Providers;
@@ -30,8 +31,12 @@ public class SeasonProvider : IRemoteMetadataProvider<Season, SeasonInfo>, IHasO
     {
         token.ThrowIfCancellationRequested();
         var result = new MetadataResult<Season> { ResultLanguage = Constants.Language };
+        var localConfiguration = await LocalConfiguration.ForPath(info.Path);
 
-        if (!int.TryParse(info.ProviderIds.GetOrDefault(Constants.ProviderName), out var subjectId))
+        int subjectId;
+        if (localConfiguration.Id != 0)
+            subjectId = localConfiguration.Id;
+        else if (!int.TryParse(info.ProviderIds.GetOrDefault(Constants.ProviderName), out subjectId))
             if (info.IndexNumber != 1 ||
                 !int.TryParse(info.SeriesProviderIds.GetOrDefault(Constants.ProviderName), out subjectId))
                 return result;
