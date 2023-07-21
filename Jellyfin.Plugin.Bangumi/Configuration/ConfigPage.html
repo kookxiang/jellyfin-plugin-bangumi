@@ -158,8 +158,8 @@
                 <div class="selectContainer">
                     <label class="selectLabel" for="TranslationPreference">标题翻译</label>
                     <select class="emby-select-withcolor emby-select" id="TranslationPreference" is="emby-select">
-                        <option id="optLanguageOriginal" value="Original">优先使用日文</option>
-                        <option id="optLanguageChinese" value="Chinese">优先使用中文翻译</option>
+                        <option value="Original">优先使用日文</option>
+                        <option value="Chinese">优先使用中文翻译</option>
                     </select>
                 </div>
                 <div class="selectContainer">
@@ -207,11 +207,6 @@
                         </label>
                     </div>
                 </div>
-                <div>
-                    <button class="raised button-submit block emby-button" is="emby-button" type="submit">
-                        <span>保存</span>
-                    </button>
-                </div>
             </form>
         </div>
     </div>
@@ -220,6 +215,7 @@
         (function () {
             var pluginId = "41b59f1b-a6cf-474a-b416-785379cbd856";
             var container = document.querySelector('#bangumiConfigurationPage:not(.hide)');
+            var configuration = {};
 
             function windowMessageHandler(e) {
                 if (e.data === 'BANGUMI-OAUTH-COMPLETE') {
@@ -252,34 +248,32 @@
 
             function loadConfiguration() {
                 return ApiClient.getPluginConfiguration(pluginId).then(function (config) {
-                    container.querySelector('#ReportPlaybackStatusToBangumi').checked = config.ReportPlaybackStatusToBangumi;
-                    container.querySelector('#ReportManualStatusChangeToBangumi').checked = config.ReportManualStatusChangeToBangumi;
-                    container.querySelector('#SkipNSFWPlaybackReport').checked = config.SkipNSFWPlaybackReport;
-                    container.querySelector('#UseBangumiSeasonTitle').checked = config.UseBangumiSeasonTitle;
-                    container.querySelector('#AlwaysReplaceEpisodeNumber').checked = config.AlwaysReplaceEpisodeNumber;
-                    container.querySelector('#TrustExistedBangumiId').checked = config.TrustExistedBangumiId;
-                    container.querySelector('#AlwaysGetTitleByAnitomySharp').checked = config.AlwaysGetTitleByAnitomySharp;
-                    container.querySelector('#AlwaysGetEpisodeByAnitomySharp').checked = config.AlwaysGetEpisodeByAnitomySharp;
-                    container.querySelector('#RequestTimeout').value = config.RequestTimeout;
-                    container.querySelector('#TranslationPreference').value = config.TranslationPreference;
+                    configuration = config;
+                    Object.keys(config).forEach(function (configKey) {
+                        var element = container.querySelector('#' + configKey);
+                        if (!element) return;
+                        if (element.type === 'checkbox') {
+                            element.checked = config[configKey];
+                        } else {
+                            element.value = config[configKey];
+                        }
+                    });
                 });
             }
 
             function saveConfiguration() {
-                return wrapLoading(ApiClient.getPluginConfiguration(pluginId).then(function (config) {
-                    config.ReportPlaybackStatusToBangumi = container.querySelector('#ReportPlaybackStatusToBangumi').checked;
-                    config.ReportManualStatusChangeToBangumi = container.querySelector('#ReportManualStatusChangeToBangumi').checked;
-                    config.SkipNSFWPlaybackReport = container.querySelector('#SkipNSFWPlaybackReport').checked;
-                    config.UseBangumiSeasonTitle = container.querySelector('#UseBangumiSeasonTitle').checked;
-                    config.AlwaysReplaceEpisodeNumber = container.querySelector('#AlwaysReplaceEpisodeNumber').checked;
-                    config.TrustExistedBangumiId = container.querySelector('#TrustExistedBangumiId').checked;
-                    config.AlwaysGetTitleByAnitomySharp = container.querySelector('#AlwaysGetTitleByAnitomySharp').checked;
-                    config.AlwaysGetEpisodeByAnitomySharp = container.querySelector('#AlwaysGetEpisodeByAnitomySharp').checked;
-                    config.RequestTimeout = container.querySelector('#RequestTimeout').value;
-                    config.TranslationPreference = container.querySelector('#TranslationPreference').value;
-                    ApiClient.updatePluginConfiguration(pluginId, config)
-                        .then(Dashboard.processPluginConfigurationUpdateResult);
-                }));
+                var config = Object.assign({}, configuration);
+                var elements = container.querySelectorAll('input,select');
+                for (var i = 0; i < elements.length; i++) {
+                    var element = elements[i];
+                    if (element.type === 'checkbox') {
+                        config[element.id] = element.checked;
+                    } else {
+                        config[element.id] = element.value;
+                    }
+                }
+                return wrapLoading(ApiClient.updatePluginConfiguration(pluginId, config)
+                    .then(Dashboard.processPluginConfigurationUpdateResult));
             }
 
             function onLoad() {
@@ -302,10 +296,7 @@
             container.addEventListener('viewshow', onLoad);
             container.addEventListener('viewhide', onUnload);
 
-            container.querySelector('#bangumiConfigurationForm').addEventListener('submit', function (e) {
-                e.preventDefault();
-                saveConfiguration();
-            });
+            container.querySelector('#bangumiConfigurationForm').addEventListener('change', saveConfiguration);
 
             container.querySelector('#bangumi-oauth-btn').addEventListener('click', function (e) {
                 e.preventDefault();
