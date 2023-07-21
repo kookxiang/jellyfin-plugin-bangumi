@@ -29,6 +29,38 @@ public class Series
     }
 
     [TestMethod]
+    public async Task GetByNameUsingOldApi()
+    {
+        var result = await _provider.GetMetadata(new SeriesInfo
+        {
+            Name = "【我推的孩子】",
+            Path = FakePath.Create("Oshi no ko")
+        }, _token);
+        Assert.IsNotNull(result.Item, "series data should not be null");
+        Assert.AreEqual("【推しの子】", result.Item.Name, "should return correct series name");
+    }
+
+    [TestMethod]
+    public async Task GetByNameUsingNewApi()
+    {
+        _plugin.Configuration.UseTestingSearchApi = true;
+        try
+        {
+            var result = await _provider.GetMetadata(new SeriesInfo
+            {
+                Name = "命运-奇异赝品 黎明低语",
+                Path = FakePath.Create("Fate Strange Fake Whispers of Dawn")
+            }, _token);
+            Assert.IsNotNull(result.Item, "series data should not be null");
+            Assert.AreEqual("Fate/strange Fake -Whispers of Dawn-", result.Item.Name, "should return correct series name");
+        }
+        finally
+        {
+            _plugin.Configuration.UseTestingSearchApi = false;
+        }
+    }
+
+    [TestMethod]
     public async Task GetByName()
     {
         var result = await _provider.GetMetadata(new SeriesInfo

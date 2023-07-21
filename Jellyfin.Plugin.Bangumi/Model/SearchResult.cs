@@ -10,5 +10,8 @@ internal class SearchResult<T>
 
     public int Limit { get; set; }
 
-    public List<T> Data { get; set; } = new();
+    // FIXME: workaround for old search api
+    public List<T>? List { get; set; }
+
+    public List<T>? Data { get; set; }
 }
