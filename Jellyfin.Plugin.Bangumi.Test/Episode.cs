@@ -134,7 +134,7 @@ public class Episode
     {
         var episodeData = await _provider.GetMetadata(new EpisodeInfo
         {
-            Path = FakePath.CreateFile("Spy x Family - 10 [WebRip 1080p HEVC-10bit AAC ASSx2].mkv"),
+            Path = FakePath.CreateFile("SPY x FAMILY - 10 [WebRip 1080p HEVC-10bit AAC ASSx2].mkv"),
             IndexNumber = 0,
             SeriesProviderIds = new Dictionary<string, string>
             {
