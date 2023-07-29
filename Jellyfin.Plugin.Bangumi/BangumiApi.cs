@@ -86,9 +86,9 @@ public class BangumiApi
         var result = await GetSubjectEpisodeListWithOffset(id, type, 0, token);
         if (result == null)
             return null;
-        if (episodeNumber < PageSize && episodeNumber < result.Total)
+        if (result.Total <= PageSize)
             return result.Data;
-        if (episodeNumber > PageSize && episodeNumber > result.Total)
+        if (episodeNumber <= result.Data.Max(episode => episode.Order) && episodeNumber >= result.Data.Min(episode => episode.Order))
             return result.Data;
 
         // guess offset number
