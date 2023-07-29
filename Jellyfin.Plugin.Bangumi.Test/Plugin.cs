@@ -1,4 +1,5 @@
 ﻿using System.Linq;
+using Jellyfin.Plugin.Bangumi.Test.Util;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace Jellyfin.Plugin.Bangumi.Test;
