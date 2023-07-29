@@ -45,9 +45,27 @@ public class SeriesProvider : IRemoteMetadataProvider<Series, SeriesInfo>, IHasO
         int subjectId;
         if (localConfiguration.Id != 0)
             subjectId = localConfiguration.Id;
-        else
+        else if (Configuration.TrustExistedBangumiId)
+        {
             _ = int.TryParse(info.ProviderIds.GetOrDefault(Constants.ProviderName), out subjectId);
+            _log.LogInformation("Use subject id: {id} from jellyfin metadata", subjectId);
+        }
+        else
+            subjectId = 0;
 
+        if (subjectId == 0 && Configuration.AlwaysGetTitleByAnitomySharp)
+        {
+            var anitomy = new Anitomy(baseName);
+            var searchName = anitomy.ExtractAnimeTitle() ?? info.Name;
+            _log.LogInformation("Searching {Name} in bgm.tv", searchName);
+            var searchResult = await _api.SearchSubject(searchName, token);
+            if (searchResult.Count > 0)
+            {
+                subjectId = searchResult[0].Id;
+                _log.LogDebug("Use subject id: {id}", subjectId);
+            }
+        }
+        // TODO 匹配错误的条目如何纠正。错误条目如果带年份，则多半会导致重新识别时继续出错
         if (subjectId == 0)
         {
             var searchName = info.Name;
@@ -70,17 +88,6 @@ public class SeriesProvider : IRemoteMetadataProvider<Series, SeriesInfo>, IHasO
                 subjectId = searchResult[0].Id;
         }
 
-        if (subjectId == 0 && Configuration.AlwaysGetTitleByAnitomySharp)
-        {
-            var searchName = Anitomy.ExtractAnimeTitle(baseName) ?? info.Name;
-            _log.LogInformation("Searching {Name} in bgm.tv", searchName);
-            // 不保证使用非原名或中文进行查询时返回正确结果
-            var searchResult = await _api.SearchSubject(searchName, token);
-            if (info.Year != null)
-                searchResult = searchResult.FindAll(x => x.ProductionYear == null || x.ProductionYear == info.Year.ToString());
-            if (searchResult.Count > 0)
-                subjectId = searchResult[0].Id;
-        }
 
         if (subjectId == 0)
             return result;
