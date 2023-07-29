@@ -58,9 +58,9 @@ namespace Jellyfin.Plugin.Bangumi
         /// </summary>
         /// <param name="path">The string path to parse.</param>
         /// <returns>The extracted ElementAnimeType, or null if not found.</returns>
-        public string? ExtractAnimeType()
+        public string[]? ExtractAnimeType()
         {
-            return _elements.FirstOrDefault(p => p.Category == Element.ElementCategory.ElementAnimeType)?.Value;
+            return _elements.Where(p => p.Category == Element.ElementCategory.ElementAnimeType).Select(type=>type.Value).ToArray();
         }
 
         /// <summary>
