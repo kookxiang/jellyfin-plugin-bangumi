@@ -12,14 +12,15 @@ using Jellyfin.Plugin.Bangumi.Model;
 using Jellyfin.Plugin.Bangumi.OAuth;
 using MediaBrowser.Common.Net;
 using MediaBrowser.Controller.Entities;
+using Microsoft.Extensions.Logging;
 using JellyfinPersonType = MediaBrowser.Model.Entities.PersonType;
 
 namespace Jellyfin.Plugin.Bangumi;
 
 public class BangumiApi
 {
-    private const int PageSize = 50;
-    private const int Offset = 20;
+    private const int PageSize = 100;
+    private const int Offset = 40;
 
     private static readonly JsonSerializerOptions Options = new()
     {
@@ -27,12 +28,14 @@ public class BangumiApi
     };
 
     private readonly IHttpClientFactory _httpClientFactory;
+    private readonly ILogger<BangumiApi> _log;
     private readonly OAuthStore _store;
 
-    public BangumiApi(IHttpClientFactory httpClientFactory, OAuthStore store)
+    public BangumiApi(IHttpClientFactory httpClientFactory, OAuthStore store, ILogger<BangumiApi> log)
     {
         _httpClientFactory = httpClientFactory;
         _store = store;
+        _log = log;
     }
 
     private static Plugin Plugin => Plugin.Instance!;
@@ -91,6 +94,8 @@ public class BangumiApi
         if (episodeNumber <= result.Data.Max(episode => episode.Order) && episodeNumber >= result.Data.Min(episode => episode.Order))
             return result.Data;
 
+        _log.LogWarning("episode {Episode} from subject #{Subject} not found without offset", episodeNumber, id);
+
         // guess offset number
         var offset = Math.Min((int)episodeNumber, result.Total) - Offset;
 
@@ -99,15 +104,28 @@ public class BangumiApi
 
         RequestEpisodeList:
         if (offset < 0)
+        {
+            _log.LogWarning("search failed: offset {Offset} should not be less than 0", offset);
             return result.Data;
+        }
+
         if (offset > result.Total)
+        {
+            _log.LogWarning("search failed: offset {Offset} should not be greater than {Total}", offset, result.Total);
             return result.Data;
+        }
+
         if (history.Contains(offset))
+        {
+            _log.LogWarning("search failed: offset {Offset} has been checked before", offset);
             return result.Data;
+        }
+
         history.Add(offset);
 
         try
         {
+            _log.LogInformation("searching episode {Episode} with offset {Offset}...", episodeNumber, offset);
             result = await GetSubjectEpisodeListWithOffset(id, type, offset, token);
             if (result == null)
                 return initialResult.Data;
