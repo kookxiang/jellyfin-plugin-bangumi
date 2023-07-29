@@ -1,16 +1,18 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Net.Http;
-using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using Jellyfin.Plugin.Bangumi.Configuration;
 using Jellyfin.Plugin.Bangumi.Model;
+using Jellyfin.Plugin.Bangumi.Parser;
+using Jellyfin.Plugin.Bangumi.Parser.Anitomy;
+using Jellyfin.Plugin.Bangumi.Parser.Basic;
 using MediaBrowser.Controller.Entities.TV;
 using MediaBrowser.Controller.Library;
 using MediaBrowser.Controller.Providers;
+using MediaBrowser.Model.IO;
 using MediaBrowser.Model.Providers;
 using Microsoft.Extensions.Logging;
 using Episode = MediaBrowser.Controller.Entities.TV.Episode;
@@ -19,50 +21,17 @@ namespace Jellyfin.Plugin.Bangumi.Providers;
 
 public class EpisodeProvider : IRemoteMetadataProvider<Episode, EpisodeInfo>, IHasOrder
 {
-    private static readonly Regex[] NonEpisodeFileNameRegex =
-    {
-        new(@"[\[\(][0-9A-F]{8}[\]\)]", RegexOptions.IgnoreCase),
-        new(@"S\d{2,}", RegexOptions.IgnoreCase),
-        new(@"yuv[4|2|0]{3}p(10|8)?", RegexOptions.IgnoreCase),
-        new(@"\d{3,4}p", RegexOptions.IgnoreCase),
-        new(@"\d{3,4}x\d{3,4}", RegexOptions.IgnoreCase),
-        new(@"(Hi)?10p", RegexOptions.IgnoreCase),
-        new(@"(8|10)bit", RegexOptions.IgnoreCase),
-        new(@"(x|h)(264|265)", RegexOptions.IgnoreCase)
-    };
-
-    private static readonly Regex[] EpisodeFileNameRegex =
-    {
-        new(@"\[([\d\.]{2,})\]"),
-        new(@"- ?([\d\.]{2,})"),
-        new(@"EP?([\d\.]{2,})", RegexOptions.IgnoreCase),
-        new(@"\[([\d\.]{2,})"),
-        new(@"#([\d\.]{2,})"),
-        new(@"(\d{2,})")
-    };
-
-    private static readonly Regex OpeningEpisodeFileNameRegex = new(@"(NC)?OP\d");
-    private static readonly Regex EndingEpisodeFileNameRegex = new(@"(NC)?ED\d");
-    private static readonly Regex SpecialEpisodeFileNameRegex = new(@"(SPs?|Specials|OVA|OAD)\d*");
-    private static readonly Regex PreviewEpisodeFileNameRegex = new(@"[^\w]PV\d*[^\w]");
-
-    private static readonly Regex[] AllSpecialEpisodeFileNameRegex =
-    {
-        SpecialEpisodeFileNameRegex,
-        PreviewEpisodeFileNameRegex,
-        OpeningEpisodeFileNameRegex,
-        EndingEpisodeFileNameRegex
-    };
-
     private readonly BangumiApi _api;
     private readonly ILibraryManager _libraryManager;
-    private readonly ILogger<EpisodeProvider> _log;
+    private readonly IFileSystem _fileSystem;
+    private readonly ILoggerFactory _loggerFactory;
 
-    public EpisodeProvider(BangumiApi api, ILogger<EpisodeProvider> log, ILibraryManager libraryManager)
+    public EpisodeProvider(BangumiApi api, ILoggerFactory loggerFactory, ILibraryManager libraryManager,IFileSystem fileSystem)
     {
         _api = api;
-        _log = log;
+        _loggerFactory = loggerFactory;
         _libraryManager = libraryManager;
+        _fileSystem = fileSystem;
     }
 
     private static PluginConfiguration Configuration => Plugin.Instance!.Configuration;
@@ -73,9 +42,12 @@ public class EpisodeProvider : IRemoteMetadataProvider<Episode, EpisodeInfo>, IH
     public async Task<MetadataResult<Episode>> GetMetadata(EpisodeInfo info, CancellationToken token)
     {
         token.ThrowIfCancellationRequested();
-        var localConfiguration = await LocalConfiguration.ForPath(info.Path);
-        var episode = await GetEpisode(info, localConfiguration, token);
 
+        var _log = _loggerFactory.CreateLogger<EpisodeProvider>();
+        var localConfiguration = await LocalConfiguration.ForPath(info.Path);
+
+        EpisodeHandler episodeHandler = new EpisodeHandler(_api, _loggerFactory, _libraryManager, Configuration, info, localConfiguration, token,_fileSystem);
+        var episode = await episodeHandler.GetEpisode();
         _log.LogInformation("metadata for {FilePath}: {EpisodeInfo}", Path.GetFileName(info.Path), episode);
 
         var result = new MetadataResult<Episode> { ResultLanguage = Constants.Language };
@@ -85,8 +57,6 @@ public class EpisodeProvider : IRemoteMetadataProvider<Episode, EpisodeInfo>, IH
 
         result.Item = new Episode();
         result.HasMetadata = true;
-        result.Item.ProviderIds.Add(Constants.ProviderName, $"{episode.Id}");
-
         if (DateTime.TryParse(episode.AirDate, out var airDate))
             result.Item.PremiereDate = airDate;
         if (episode.AirDate.Length == 4)
@@ -96,10 +66,24 @@ public class EpisodeProvider : IRemoteMetadataProvider<Episode, EpisodeInfo>, IH
         result.Item.OriginalTitle = episode.OriginalName;
         result.Item.IndexNumber = (int)episode.Order + localConfiguration.Offset;
         result.Item.Overview = string.IsNullOrEmpty(episode.Description) ? null : episode.Description;
-        result.Item.ParentIndexNumber = info.ParentIndexNumber ?? 1;
+
+        // 对于 bangumi 中无数据的剧集，如特典，应移除对应 ProviderIds
+        if (episode.Id > 0)
+            result.Item.ProviderIds.Add(Constants.ProviderName, $"{episode.Id}");
+        else
+            result.Item.ProviderIds.Add(Constants.ProviderName, null);
+
+        // 由于特典类型判断条件多，因此当 info.ParentIndexNumber 为 0 时，修改默认值为 1
+        result.Item.ParentIndexNumber = info.ParentIndexNumber == null || info.ParentIndexNumber==0 ? 1 : info.ParentIndexNumber;
+        _log.LogDebug("Parent index number: {index} in info metadata", info.ParentIndexNumber);
 
         var parent = _libraryManager.FindByPath(Path.GetDirectoryName(info.Path), true);
-        if (IsSpecial(info.Path) || episode.Type == EpisodeType.Special || info.ParentIndexNumber == 0)
+
+        // 默认使用基础规则判断季度类型
+        if (!Configuration.AlwaysParseEpisodeByAnitomySharp && BasicEpisodeParser.IsSpecial(info.Path))
+            result.Item.ParentIndexNumber = 0;
+        
+        if (episode.Type != EpisodeType.Normal ||  episode.Id == 0)
         {
             result.Item.ParentIndexNumber = 0;
         }
@@ -112,27 +96,29 @@ public class EpisodeProvider : IRemoteMetadataProvider<Episode, EpisodeInfo>, IH
         if (episode.Type == EpisodeType.Normal && result.Item.ParentIndexNumber > 0)
             return result;
 
-        // mark episode as special
-        result.Item.ParentIndexNumber = 0;
 
-        // use title and overview from special episode subject if episode data is empty
-        var series = await _api.GetSubject(episode.ParentId, token);
-        if (series == null)
-            return result;
+        if (episode.ParentId != 0)
+        {
+            _log.LogDebug("Use series info: {series}", episode.ParentId);
+            // use title and overview from special episode subject if episode data is empty
+            var series = await _api.GetSubject(episode.ParentId, token);
+            if (series == null)
+                return result;
 
-        // use title and overview from special episode subject if episode data is empty
-        if (string.IsNullOrEmpty(result.Item.Name))
-            result.Item.Name = series.GetName(Configuration);
-        if (string.IsNullOrEmpty(result.Item.OriginalTitle))
-            result.Item.OriginalTitle = series.OriginalName;
-        if (string.IsNullOrEmpty(result.Item.Overview))
-            result.Item.Overview = series.Summary;
+            // use title and overview from special episode subject if episode data is empty
+            if (string.IsNullOrEmpty(result.Item.Name))
+                result.Item.Name = series.GetName(Configuration);
+            if (string.IsNullOrEmpty(result.Item.OriginalTitle))
+                result.Item.OriginalTitle = series.OriginalName;
+            if (string.IsNullOrEmpty(result.Item.Overview))
+                result.Item.Overview = series.Summary;
 
-        var seasonNumber = parent is Season ? parent.IndexNumber : 1;
-        if (!string.IsNullOrEmpty(episode.AirDate) && string.Compare(episode.AirDate, series.AirDate, StringComparison.Ordinal) < 0)
-            result.Item.AirsBeforeEpisodeNumber = seasonNumber;
-        else
-            result.Item.AirsAfterSeasonNumber = seasonNumber;
+            var seasonNumber = parent is Season ? parent.IndexNumber : 1;
+            if (!string.IsNullOrEmpty(episode.AirDate) && string.Compare(episode.AirDate, series.AirDate, StringComparison.Ordinal) < 0)
+                result.Item.AirsBeforeEpisodeNumber = seasonNumber;
+            else
+                result.Item.AirsAfterSeasonNumber = seasonNumber;
+        }
 
         return result;
     }
@@ -147,167 +133,4 @@ public class EpisodeProvider : IRemoteMetadataProvider<Episode, EpisodeInfo>, IH
         return _api.GetHttpClient().GetAsync(url, token);
     }
 
-    private static bool IsSpecial(string filePath)
-    {
-        var fileName = Path.GetFileName(filePath);
-        var parentPath = Path.GetDirectoryName(filePath);
-        var folderName = Path.GetFileName(parentPath);
-        return SpecialEpisodeFileNameRegex.IsMatch(fileName) || SpecialEpisodeFileNameRegex.IsMatch(folderName ?? "");
-    }
-
-    private async Task<Model.Episode?> GetEpisode(EpisodeInfo info, LocalConfiguration localConfiguration, CancellationToken token)
-    {
-        var fileName = Path.GetFileName(info.Path);
-        if (string.IsNullOrEmpty(fileName))
-            return null;
-
-        var type = IsSpecial(info.Path) ? EpisodeType.Special : GuessEpisodeTypeFromFileName(fileName);
-        var seriesId = localConfiguration.Id;
-
-        var parent = _libraryManager.FindByPath(Path.GetDirectoryName(info.Path), true);
-        if (parent is Season)
-            if (int.TryParse(parent.ProviderIds.GetValueOrDefault(Constants.ProviderName), out var seasonId))
-                seriesId = seasonId;
-
-        if (seriesId == 0)
-            if (!int.TryParse(info.SeriesProviderIds?.GetValueOrDefault(Constants.ProviderName), out seriesId))
-                return null;
-
-        if (localConfiguration.Id != 0)
-            seriesId = localConfiguration.Id;
-
-        double? episodeIndex = info.IndexNumber;
-
-        if (Configuration.AlwaysReplaceEpisodeNumber)
-            episodeIndex = GuessEpisodeNumber(episodeIndex, fileName);
-        else if (episodeIndex is null or 0)
-            episodeIndex = GuessEpisodeNumber(episodeIndex, fileName);
-
-        if (localConfiguration.Offset != 0)
-        {
-            _log.LogInformation("applying offset {Offset} to episode index {EpisodeIndex}", -localConfiguration.Offset, episodeIndex);
-            episodeIndex -= localConfiguration.Offset;
-        }
-
-        if (int.TryParse(info.ProviderIds?.GetValueOrDefault(Constants.ProviderName), out var episodeId))
-        {
-            var episode = await _api.GetEpisode(episodeId, token);
-            if (episode == null)
-                goto SkipBangumiId;
-
-            if (Configuration.TrustExistedBangumiId)
-                return episode;
-
-            if (episode.Type != EpisodeType.Normal || AllSpecialEpisodeFileNameRegex.Any(x => x.IsMatch(info.Path)))
-                return episode;
-
-            if (episode.ParentId == seriesId && Math.Abs(episode.Order - episodeIndex.Value) < 0.1)
-                return episode;
-        }
-
-        SkipBangumiId:
-        var episodeListData = await _api.GetSubjectEpisodeList(seriesId, type, episodeIndex.Value, token);
-        if (episodeListData == null)
-            return null;
-        if (type is null or EpisodeType.Normal)
-            episodeIndex = GuessEpisodeNumber(
-                episodeIndex + localConfiguration.Offset,
-                fileName,
-                episodeListData.Max(x => x.Order) + localConfiguration.Offset
-            ) - localConfiguration.Offset;
-        try
-        {
-            var episode = episodeListData.OrderBy(x => x.Type).FirstOrDefault(x => x.Order.Equals(episodeIndex));
-            if (episode != null || type is null or EpisodeType.Normal)
-                return episode;
-            _log.LogWarning("cannot find episode {index} with type {type}, searching all types", episodeIndex, type);
-            type = null;
-            goto SkipBangumiId;
-        }
-        catch (InvalidOperationException)
-        {
-            return null;
-        }
-    }
-
-    private EpisodeType? GuessEpisodeTypeFromFileName(string fileName)
-    {
-        var tempName = fileName;
-        foreach (var regex in NonEpisodeFileNameRegex)
-        {
-            if (!regex.IsMatch(tempName))
-                continue;
-            tempName = regex.Replace(tempName, "");
-        }
-
-        if (OpeningEpisodeFileNameRegex.IsMatch(tempName))
-            return EpisodeType.Opening;
-        if (EndingEpisodeFileNameRegex.IsMatch(tempName))
-            return EpisodeType.Ending;
-        if (SpecialEpisodeFileNameRegex.IsMatch(tempName))
-            return EpisodeType.Special;
-        if (PreviewEpisodeFileNameRegex.IsMatch(tempName))
-            return EpisodeType.Preview;
-        return null;
-    }
-
-    private double GuessEpisodeNumber(double? current, string fileName, double max = double.PositiveInfinity)
-    {
-        var tempName = fileName;
-        var episodeIndex = current ?? 0;
-        var episodeIndexFromFilename = episodeIndex;
-
-        if (Configuration.AlwaysGetEpisodeByAnitomySharp)
-        {
-            var anitomyIndex = Anitomy.ExtractEpisodeNumber(fileName);
-            if (!string.IsNullOrEmpty(anitomyIndex))
-                return double.Parse(anitomyIndex);
-        }
-
-        foreach (var regex in NonEpisodeFileNameRegex)
-        {
-            if (!regex.IsMatch(tempName))
-                continue;
-            tempName = regex.Replace(tempName, "");
-        }
-
-        foreach (var regex in EpisodeFileNameRegex)
-        {
-            if (!regex.IsMatch(tempName))
-                continue;
-            if (!double.TryParse(regex.Match(tempName).Groups[1].Value.Trim('.'), out var index))
-                continue;
-            episodeIndexFromFilename = index;
-            break;
-        }
-
-        if (Configuration.AlwaysReplaceEpisodeNumber)
-        {
-            _log.LogWarning("use episode index {NewIndex} from filename {FileName}", episodeIndexFromFilename, fileName);
-            return episodeIndexFromFilename;
-        }
-
-        if (episodeIndexFromFilename.Equals(episodeIndex))
-        {
-            _log.LogInformation("use exists episode number {Index} for {FileName}", episodeIndex, fileName);
-            return episodeIndex;
-        }
-
-        if (episodeIndex > max)
-        {
-            _log.LogWarning("file {FileName} has incorrect episode index {Index} (max {Max}), set to {NewIndex}",
-                fileName, episodeIndex, max, episodeIndexFromFilename);
-            return episodeIndexFromFilename;
-        }
-
-        if (episodeIndexFromFilename > 0 && episodeIndex <= 0)
-        {
-            _log.LogWarning("file {FileName} may has incorrect episode index {Index}, should be {NewIndex}",
-                fileName, episodeIndex, episodeIndexFromFilename);
-            return episodeIndexFromFilename;
-        }
-
-        _log.LogInformation("use exists episode number {Index} from file name {FileName}", episodeIndex, fileName);
-        return episodeIndex;
-    }
 }
