@@ -194,6 +194,14 @@
                 <div class="selectContainer">
                     <div class="checkboxContainer checkboxContainer-withDescription">
                         <label class="emby-checkbox-label">
+                            <input id="AlwaysGetTitleByAnitomySharp" is="emby-checkbox" type="checkbox" />
+                            <span>使用 AnitomySharp 猜测动画名</span>
+                        </label>
+                    </div>
+                </div>
+                <div class="selectContainer">
+                    <div class="checkboxContainer checkboxContainer-withDescription">
+                        <label class="emby-checkbox-label">
                             <input id="AlwaysGetEpisodeByAnitomySharp" is="emby-checkbox" type="checkbox"/>
                             <span>使用 AnitomySharp 猜测集数</span>
                         </label>
@@ -202,8 +210,8 @@
                 <div class="selectContainer">
                     <div class="checkboxContainer checkboxContainer-withDescription">
                         <label class="emby-checkbox-label">
-                            <input id="AlwaysGetTitleByAnitomySharp" is="emby-checkbox" type="checkbox"/>
-                            <span>使用 AnitomySharp 猜测动画名</span>
+                            <input id="AlwaysParseEpisodeByAnitomySharp" is="emby-checkbox" type="checkbox" />
+                            <span>使用 AnitomySharp 处理剧集</span>
                         </label>
                     </div>
                 </div>
@@ -260,6 +268,7 @@
                     container.querySelector('#TrustExistedBangumiId').checked = config.TrustExistedBangumiId;
                     container.querySelector('#AlwaysGetTitleByAnitomySharp').checked = config.AlwaysGetTitleByAnitomySharp;
                     container.querySelector('#AlwaysGetEpisodeByAnitomySharp').checked = config.AlwaysGetEpisodeByAnitomySharp;
+                    container.querySelector('#AlwaysParseEpisodeByAnitomySharp').checked = config.AlwaysParseEpisodeByAnitomySharp;
                     container.querySelector('#RequestTimeout').value = config.RequestTimeout;
                     container.querySelector('#TranslationPreference').value = config.TranslationPreference;
                 });
@@ -275,6 +284,7 @@
                     config.TrustExistedBangumiId = container.querySelector('#TrustExistedBangumiId').checked;
                     config.AlwaysGetTitleByAnitomySharp = container.querySelector('#AlwaysGetTitleByAnitomySharp').checked;
                     config.AlwaysGetEpisodeByAnitomySharp = container.querySelector('#AlwaysGetEpisodeByAnitomySharp').checked;
+                    config.AlwaysParseEpisodeByAnitomySharp = container.querySelector('#AlwaysParseEpisodeByAnitomySharp').checked;
                     config.RequestTimeout = container.querySelector('#RequestTimeout').value;
                     config.TranslationPreference = container.querySelector('#TranslationPreference').value;
                     ApiClient.updatePluginConfiguration(pluginId, config)
