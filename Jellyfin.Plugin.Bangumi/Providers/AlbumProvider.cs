@@ -65,7 +65,8 @@ public class AlbumProvider : IRemoteMetadataProvider<MusicAlbum, AlbumInfo>, IHa
 
         if (subjectId == 0 && Configuration.AlwaysGetTitleByAnitomySharp)
         {
-            var searchName = Anitomy.ExtractAnimeTitle(baseName) ?? info.Name;
+            var anitomy = new Anitomy(baseName);
+            var searchName = anitomy.ExtractAnimeTitle() ?? info.Name;
             _log.LogInformation("Searching {Name} in bgm.tv", searchName);
             // 不保证使用非原名或中文进行查询时返回正确结果
             var searchResult = await _api.SearchSubject(searchName, SubjectType.Music, token);
