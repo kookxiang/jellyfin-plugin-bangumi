@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
@@ -13,7 +14,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Jellyfin.Plugin.Bangumi.Parser.Basic
 {
-    public class BasicEpisodeParser
+    public class BasicEpisodeParser: IEpisodeParser
     {
         private readonly BangumiApi _api;
         private readonly ILogger<BasicEpisodeParser> _log;
@@ -87,6 +88,19 @@ namespace Jellyfin.Plugin.Bangumi.Parser.Basic
             // 剧集类型
             var type = IsSpecial(_info.Path) ? EpisodeType.Special : GuessEpisodeTypeFromFileName(fileName);
 
+            if (int.TryParse(_info.ProviderIds?.GetValueOrDefault(Constants.ProviderName), out var episodeId))
+            {
+                var episode = await _api.GetEpisode(episodeId, _token);
+                if (episode == null)
+                    goto SkipBangumiId;
+
+                if (episode.Type != EpisodeType.Normal || AllSpecialEpisodeFileNameRegex.Any(x => x.IsMatch(_info.Path)))
+                    return episode;
+
+                if (episode.ParentId == seriesId && Math.Abs(episode.Order - episodeIndex.Value) < 0.1)
+                    return episode;
+            }
+
         SkipBangumiId:
             var episodeListData = await _api.GetSubjectEpisodeList(seriesId, type, episodeIndex.Value, _token);
             if (episodeListData == null)
@@ -111,6 +125,10 @@ namespace Jellyfin.Plugin.Bangumi.Parser.Basic
                 return null;
             }
         }
+        public double? GetEpisodeIndex(string fileName, double? episodeIndex)
+        {
+            return GuessEpisodeNumber(episodeIndex, fileName);
+        }
 
         private EpisodeType? GuessEpisodeTypeFromFileName(string fileName)
         {
@@ -131,10 +149,6 @@ namespace Jellyfin.Plugin.Bangumi.Parser.Basic
             if (PreviewEpisodeFileNameRegex.IsMatch(tempName))
                 return EpisodeType.Preview;
             return null;
-        }
-
-        public double? GetEpisodeIndex(string fileName,double? episodeIndex){
-            return GuessEpisodeNumber(episodeIndex, fileName);
         }
 
         private double GuessEpisodeNumber(double? current, string fileName, double max = double.PositiveInfinity)

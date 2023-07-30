@@ -25,6 +25,7 @@ public class EpisodeProvider : IRemoteMetadataProvider<Episode, EpisodeInfo>, IH
     private readonly ILibraryManager _libraryManager;
     private readonly IFileSystem _fileSystem;
     private readonly ILoggerFactory _loggerFactory;
+    private readonly ILogger<EpisodeProvider> _log;
 
     public EpisodeProvider(BangumiApi api, ILoggerFactory loggerFactory, ILibraryManager libraryManager,IFileSystem fileSystem)
     {
@@ -32,6 +33,7 @@ public class EpisodeProvider : IRemoteMetadataProvider<Episode, EpisodeInfo>, IH
         _loggerFactory = loggerFactory;
         _libraryManager = libraryManager;
         _fileSystem = fileSystem;
+        _log = _loggerFactory.CreateLogger<EpisodeProvider>();
     }
 
     private static PluginConfiguration Configuration => Plugin.Instance!.Configuration;
@@ -43,7 +45,6 @@ public class EpisodeProvider : IRemoteMetadataProvider<Episode, EpisodeInfo>, IH
     {
         token.ThrowIfCancellationRequested();
 
-        var _log = _loggerFactory.CreateLogger<EpisodeProvider>();
         var localConfiguration = await LocalConfiguration.ForPath(info.Path);
 
         EpisodeHandler episodeHandler = new EpisodeHandler(_api, _loggerFactory, _libraryManager, Configuration, info, localConfiguration, token,_fileSystem);
@@ -73,7 +74,7 @@ public class EpisodeProvider : IRemoteMetadataProvider<Episode, EpisodeInfo>, IH
         else
             result.Item.ProviderIds.Add(Constants.ProviderName, null);
 
-        // 由于特典类型判断条件多，因此当 info.ParentIndexNumber 为 0 时，修改默认值为 1
+        // 由于缺乏将季度设置为`1`的判断条件，而特典`Specials`判断条件多。将值设置为`1`有助于纠正错误季度
         result.Item.ParentIndexNumber = info.ParentIndexNumber == null || info.ParentIndexNumber==0 ? 1 : info.ParentIndexNumber;
         _log.LogDebug("Parent index number: {index} in info metadata", info.ParentIndexNumber);
 
