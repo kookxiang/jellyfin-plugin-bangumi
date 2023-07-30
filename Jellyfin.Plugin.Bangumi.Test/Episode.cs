@@ -134,7 +134,7 @@ public class Episode
     {
         var episodeData = await _provider.GetMetadata(new EpisodeInfo
         {
-            Path = FakePath.CreateFile("Spy x Family - 10 [WebRip 1080p HEVC-10bit AAC ASSx2].mkv"),
+            Path = FakePath.CreateFile("SPY x FAMILY - 10 [WebRip 1080p HEVC-10bit AAC ASSx2].mkv"),
             IndexNumber = 0,
             SeriesProviderIds = new Dictionary<string, string>
             {
@@ -614,5 +614,16 @@ public class Episode
         Assert.IsNotNull(episodeData.Item, "episode data should not be null");
         Assert.AreEqual(27, episodeData.Item.IndexNumber, "should fix episode index automatically");
         Assert.AreEqual("炎柱・煉獄杏寿郎", episodeData.Item.Name, "should return the right episode title");
+
+        FakePath.CreateFile("Jujutsu Kaisen/Season 2/bangumi.ini", "[Bangumi]\nID=369304\nOffset=-24\n");
+        episodeData = await _provider.GetMetadata(new EpisodeInfo
+        {
+            IndexNumber = 0,
+            Path = FakePath.CreateFile("Jujutsu Kaisen/Season 2/Jujutsu Kaisen (2020) - S02E03 - Hidden Inventory 3 [WEBRip-1080p][10bit][x265][AAC 2.0][JA]-LoliHouse.mkv")
+        }, _token);
+        Assert.IsNotNull(episodeData, "episode data should not be null");
+        Assert.IsNotNull(episodeData.Item, "episode data should not be null");
+        Assert.AreEqual(3, episodeData.Item.IndexNumber, "should fix episode index automatically");
+        Assert.AreEqual("懐玉-参-", episodeData.Item.Name, "should return the right episode title");
     }
 }

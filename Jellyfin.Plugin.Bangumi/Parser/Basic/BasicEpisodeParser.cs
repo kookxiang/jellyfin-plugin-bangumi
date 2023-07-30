@@ -14,7 +14,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Jellyfin.Plugin.Bangumi.Parser.Basic
 {
-    public class BasicEpisodeParser: IEpisodeParser
+    public class BasicEpisodeParser : IEpisodeParser
     {
         private readonly BangumiApi _api;
         private readonly ILogger<BasicEpisodeParser> _log;
@@ -40,38 +40,38 @@ namespace Jellyfin.Plugin.Bangumi.Parser.Basic
 
         private static readonly Regex[] NonEpisodeFileNameRegex =
         {
-        new(@"[\[\(][0-9A-F]{8}[\]\)]", RegexOptions.IgnoreCase),
-        new(@"S\d{2,}", RegexOptions.IgnoreCase),
-        new(@"yuv[4|2|0]{3}p(10|8)?", RegexOptions.IgnoreCase),
-        new(@"\d{3,4}p", RegexOptions.IgnoreCase),
-        new(@"\d{3,4}x\d{3,4}", RegexOptions.IgnoreCase),
-        new(@"(Hi)?10p", RegexOptions.IgnoreCase),
-        new(@"(8|10)bit", RegexOptions.IgnoreCase),
-        new(@"(x|h)(264|265)", RegexOptions.IgnoreCase)
-    };
+            new(@"[\[\(][0-9A-F]{8}[\]\)]", RegexOptions.IgnoreCase),
+            new(@"S\d{2,}", RegexOptions.IgnoreCase),
+            new(@"yuv[4|2|0]{3}p(10|8)?", RegexOptions.IgnoreCase),
+            new(@"\d{3,4}p", RegexOptions.IgnoreCase),
+            new(@"\d{3,4}x\d{3,4}", RegexOptions.IgnoreCase),
+            new(@"(Hi)?10p", RegexOptions.IgnoreCase),
+            new(@"(8|10)bit", RegexOptions.IgnoreCase),
+            new(@"(x|h)(264|265)", RegexOptions.IgnoreCase)
+        };
 
         private static readonly Regex[] EpisodeFileNameRegex =
         {
-        new(@"\[([\d\.]{2,})\]"),
-        new(@"- ?([\d\.]{2,})"),
-        new(@"EP?([\d\.]{2,})", RegexOptions.IgnoreCase),
-        new(@"\[([\d\.]{2,})"),
-        new(@"#([\d\.]{2,})"),
-        new(@"(\d{2,})")
-    };
+            new(@"\[([\d\.]{2,})\]"),
+            new(@"- ?([\d\.]{2,})"),
+            new(@"EP?([\d\.]{2,})", RegexOptions.IgnoreCase),
+            new(@"\[([\d\.]{2,})"),
+            new(@"#([\d\.]{2,})"),
+            new(@"(\d{2,})")
+        };
 
-        private static readonly Regex OpeningEpisodeFileNameRegex = new(@"(NC)?OP\d");
-        private static readonly Regex EndingEpisodeFileNameRegex = new(@"(NC)?ED\d");
-        private static readonly Regex SpecialEpisodeFileNameRegex = new(@"(SPs?|Specials|OVA|OAD)\d*");
-        private static readonly Regex PreviewEpisodeFileNameRegex = new(@"[^\w]PV\d*[^\w]");
+        private static readonly Regex OpeningEpisodeFileNameRegex = new(@"(NC)?OP([^a-zA-Z]|$)");
+        private static readonly Regex EndingEpisodeFileNameRegex = new(@"(NC)?ED([^a-zA-Z]|$)");
+        private static readonly Regex SpecialEpisodeFileNameRegex = new(@"(SPs?|Specials?|OVA|OAD)([^a-zA-Z]|$)");
+        private static readonly Regex PreviewEpisodeFileNameRegex = new(@"[^\w]PV([^a-zA-Z]|$)");
 
         public static readonly Regex[] AllSpecialEpisodeFileNameRegex =
         {
-        SpecialEpisodeFileNameRegex,
-        PreviewEpisodeFileNameRegex,
-        OpeningEpisodeFileNameRegex,
-        EndingEpisodeFileNameRegex
-    };
+            SpecialEpisodeFileNameRegex,
+            PreviewEpisodeFileNameRegex,
+            OpeningEpisodeFileNameRegex,
+            EndingEpisodeFileNameRegex
+        };
 
 
         public static bool IsSpecial(string filePath)

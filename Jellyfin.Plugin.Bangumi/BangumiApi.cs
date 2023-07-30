@@ -44,18 +44,30 @@ public class BangumiApi
 
     public async Task<List<Subject>> SearchSubject(string keyword, SubjectType? type, CancellationToken token)
     {
-        var accessToken = _store.GetAvailable()?.AccessToken;
-        var request = new HttpRequestMessage(HttpMethod.Post, "https://api.bgm.tv/v0/search/subjects");
-        var searchParams = new SearchParams { Keyword = keyword };
-        if (type != null)
-            searchParams.Filter.Type = new[] { type.Value };
-        request.Content = new JsonContent(searchParams);
         try
         {
-            var jsonString = await SendRequest(request, accessToken, token);
-            var searchResult = JsonSerializer.Deserialize<SearchResult<Subject>>(jsonString, Options);
-            var list = searchResult?.Data ?? new List<Subject>();
-            return Subject.SortBySimilarity(list, keyword);
+            if (Plugin.Instance!.Configuration.UseTestingSearchApi)
+            {
+                var accessToken = _store.GetAvailable()?.AccessToken;
+                var request = new HttpRequestMessage(HttpMethod.Post, "https://api.bgm.tv/v0/search/subjects");
+                var searchParams = new SearchParams { Keyword = keyword };
+                if (type != null)
+                    searchParams.Filter.Type = new[] { type.Value };
+                request.Content = new JsonContent(searchParams);
+                var jsonString = await SendRequest(request, accessToken, token);
+                var searchResult = JsonSerializer.Deserialize<SearchResult<Subject>>(jsonString, Options);
+                var list = searchResult?.Data ?? new List<Subject>();
+                return Subject.SortBySimilarity(list, keyword);
+            }
+            else
+            {
+                var url = $"https://api.bgm.tv/search/subject/{Uri.EscapeDataString(keyword)}?responseGroup=large";
+                if (type != null)
+                    url += $"&type={(int)type}";
+                var searchResult = await SendRequest<SearchResult<Subject>>(url, token);
+                var list = searchResult?.List ?? new List<Subject>();
+                return Subject.SortBySimilarity(list, keyword);
+            }
         }
         catch (JsonException)
         {
@@ -74,9 +86,9 @@ public class BangumiApi
         var result = await GetSubjectEpisodeListWithOffset(id, type, 0, token);
         if (result == null)
             return null;
-        if (episodeNumber < PageSize && episodeNumber < result.Total)
+        if (result.Total <= PageSize)
             return result.Data;
-        if (episodeNumber > PageSize && episodeNumber > result.Total)
+        if (episodeNumber <= result.Data.Max(episode => episode.Order) && episodeNumber >= result.Data.Min(episode => episode.Order))
             return result.Data;
 
         // guess offset number
