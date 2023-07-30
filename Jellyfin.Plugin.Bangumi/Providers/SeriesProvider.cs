@@ -45,13 +45,11 @@ public class SeriesProvider : IRemoteMetadataProvider<Series, SeriesInfo>, IHasO
         int subjectId;
         if (localConfiguration.Id != 0)
             subjectId = localConfiguration.Id;
-        else if (Configuration.TrustExistedBangumiId)
+        else
         {
             _ = int.TryParse(info.ProviderIds.GetOrDefault(Constants.ProviderName), out subjectId);
             _log.LogInformation("Use subject id: {id} from jellyfin metadata", subjectId);
         }
-        else
-            subjectId = 0;
 
         if (subjectId == 0 && Configuration.AlwaysGetTitleByAnitomySharp)
         {
