@@ -508,6 +508,100 @@ public class Episode
     }
 
     [TestMethod]
+    public async Task GetSpecialEpisodeByAnitomySharp()
+    {
+        _plugin.Configuration.AlwaysParseEpisodeByAnitomySharp = true;
+        _plugin.Configuration.AlwaysGetEpisodeByAnitomySharp = true;
+
+        //  Special(OAD)
+        var episodeData = await _provider.GetMetadata(new EpisodeInfo
+        {
+            IndexNumber = 0,
+            Path = FakePath.CreateFile("[Moozzi2] Nagato Yuki-chan no Shoushitsu - 17 OAD (BD 1920x1080 x.264 Flac).mkv"),
+            SeriesProviderIds = new Dictionary<string, string>
+            {
+                {
+                    Constants.ProviderName, "129960"
+                }
+            }
+        }, _token);
+        Assert.IsNotNull(episodeData, "episode data should not be null");
+        Assert.IsNotNull(episodeData.Item, "episode data should not be null");
+        Assert.AreEqual("終われない夏休み", episodeData.Item.OriginalTitle, "should return the right episode title");
+
+        // Special(OVA)
+        episodeData = await _provider.GetMetadata(new EpisodeInfo
+        {
+            IndexNumber = 0,
+            Path = FakePath.CreateFile("Toradora! OVA [BD 1080p 23.976fps AVC-yuv420p10 FLAC] - VCB-Studio & mawen1250.mkv"),
+            SeriesProviderIds = new Dictionary<string, string>
+            {
+                {
+                    Constants.ProviderName, "909"
+                }
+            }
+        }, _token);
+        Assert.IsNotNull(episodeData, "episode data should not be null");
+        Assert.IsNotNull(episodeData.Item, "episode data should not be null");
+        Assert.AreEqual(1, episodeData.Item.IndexNumber, "should fix episode index automatically");
+        Assert.AreEqual("亜美のモノマネ150連発!!", episodeData.Item.OriginalTitle, "should return the right episode title");
+
+        // Opening
+        episodeData = await _provider.GetMetadata(new EpisodeInfo
+        {
+            IndexNumber = 0,
+            Path = FakePath.CreateFile("[VCB-Studio] Puella Magi Madoka Magica/[VCB-Studio] Puella Magi Madoka Magica [Ma10p_1080p]/SPs/[VCB-Studio] Puella Magi Madoka Magica [NCOP][Ma10p_1080p][x265_flac].mkv"),
+            SeriesProviderIds = new Dictionary<string, string>
+            {
+                {
+                    Constants.ProviderName, "9717"
+                }
+            }
+        }, _token);
+        Assert.IsNotNull(episodeData, "episode data should not be null");
+        Assert.IsNotNull(episodeData.Item, "episode data should not be null");
+        Assert.AreEqual(1, episodeData.Item.IndexNumber, "should fix episode index automatically");
+        Assert.AreEqual("コネクト", episodeData.Item.OriginalTitle, "should return the right episode title");
+
+        // Opening
+        episodeData = await _provider.GetMetadata(new EpisodeInfo
+        {
+            IndexNumber = 0,
+            Path = FakePath.CreateFile("Toradora! 2008 [BD 1920x1080 AVC FLAC] - mawen1250&VCB-Studio/SPs/Toradora! Uncredited OP 1 [BD 1080p 23.976fps AVC-yuv420p10 FLAC] - VCB-Studio & mawen1250.mkv"),
+            SeriesProviderIds = new Dictionary<string, string>
+            {
+                {
+                    Constants.ProviderName, "909"
+                }
+            }
+        }, _token);
+        Assert.IsNotNull(episodeData, "episode data should not be null");
+        Assert.IsNotNull(episodeData.Item, "episode data should not be null");
+        Assert.AreEqual(1, episodeData.Item.IndexNumber, "should fix episode index automatically");
+        Assert.AreEqual("Toradora! Uncredited OP & OP 1", episodeData.Item.OriginalTitle, "should return the right episode title");
+
+        // Preview
+        episodeData = await _provider.GetMetadata(new EpisodeInfo
+        {
+            IndexNumber = 0,
+            Path = FakePath.CreateFile("Toradora! CM09 [BD 720p 23.976fps AVC-yuv420p10 FLAC] - VCB-Studio & mawen1250.mkv"),
+            SeriesProviderIds = new Dictionary<string, string>
+            {
+                {
+                    Constants.ProviderName, "909"
+                }
+            }
+        }, _token);
+        Assert.IsNotNull(episodeData, "episode data should not be null");
+        Assert.IsNotNull(episodeData.Item, "episode data should not be null");
+        Assert.AreEqual(9, episodeData.Item.IndexNumber, "should fix episode index automatically");
+        Assert.AreEqual("Toradora! CM & CM 09", episodeData.Item.OriginalTitle, "should return the right episode title");
+
+        _plugin.Configuration.AlwaysParseEpisodeByAnitomySharp = false;
+        _plugin.Configuration.AlwaysGetEpisodeByAnitomySharp = false;
+    }
+
+    [TestMethod]
     public async Task EpisodeOffsetSupport()
     {
         FakePath.CreateFile("Kimetsu no Yaiba/Season 2/bangumi.ini", "[Bangumi]\nID=350764\nOffset=26\n");
