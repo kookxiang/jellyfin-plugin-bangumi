@@ -10,7 +10,7 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="AnitomySharp.NET6" Version="0.3.0" />
+        <PackageReference Include="AnitomySharp.NET6" Version="0.3.5" />
         <PackageReference Include="Fastenshtein" Version="1.0.0.8"/>
         <PackageReference Include="Jellyfin.Controller" IncludeAssets="compile" Version="10.8.0"/>
         <PackageReference Include="Microsoft.AspNetCore.Authorization" IncludeAssets="compile" Version="6.0.12"/>
