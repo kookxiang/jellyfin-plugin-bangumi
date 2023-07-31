@@ -82,7 +82,7 @@ namespace Jellyfin.Plugin.Bangumi.Parser.Basic
             return SpecialEpisodeFileNameRegex.IsMatch(fileName) || SpecialEpisodeFileNameRegex.IsMatch(folderName ?? "");
         }
 
-        public async Task<Model.Episode?> GetEpisode(int seriesId, double? episodeIndex)
+        public async Task<Model.Episode?> GetEpisode(int seriesId, double episodeIndex)
         {
             var fileName = Path.GetFileName(_info.Path);
             // 剧集类型
@@ -97,12 +97,12 @@ namespace Jellyfin.Plugin.Bangumi.Parser.Basic
                 if (episode.Type != EpisodeType.Normal || AllSpecialEpisodeFileNameRegex.Any(x => x.IsMatch(_info.Path)))
                     return episode;
 
-                if (episode.ParentId == seriesId && Math.Abs(episode.Order - episodeIndex.Value) < 0.1)
+                if (episode.ParentId == seriesId && Math.Abs(episode.Order - episodeIndex) < 0.1)
                     return episode;
             }
 
         SkipBangumiId:
-            var episodeListData = await _api.GetSubjectEpisodeList(seriesId, type, episodeIndex.Value, _token);
+            var episodeListData = await _api.GetSubjectEpisodeList(seriesId, type, episodeIndex, _token);
             if (episodeListData == null)
                 return null;
             if (type is null or EpisodeType.Normal)
@@ -125,7 +125,7 @@ namespace Jellyfin.Plugin.Bangumi.Parser.Basic
                 return null;
             }
         }
-        public double? GetEpisodeIndex(string fileName, double? episodeIndex)
+        public double GetEpisodeIndex(string fileName, double episodeIndex)
         {
             return GuessEpisodeNumber(episodeIndex, fileName);
         }
@@ -151,10 +151,9 @@ namespace Jellyfin.Plugin.Bangumi.Parser.Basic
             return null;
         }
 
-        private double GuessEpisodeNumber(double? current, string fileName, double max = double.PositiveInfinity)
+        private double GuessEpisodeNumber(double episodeIndex, string fileName, double max = double.PositiveInfinity)
         {
             var tempName = fileName;
-            var episodeIndex = current ?? 0;
             var episodeIndexFromFilename = episodeIndex;
 
 

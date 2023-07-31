@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading;
@@ -10,7 +11,6 @@ using MediaBrowser.Controller.Providers;
 using MediaBrowser.Model.IO;
 using Microsoft.Extensions.Logging;
 
-#nullable enable
 namespace Jellyfin.Plugin.Bangumi.Parser.Anitomy
 {
     public class AnitomyEpisodeParser : IEpisodeParser
@@ -37,7 +37,7 @@ namespace Jellyfin.Plugin.Bangumi.Parser.Anitomy
         }
 
 
-        public async Task<Model.Episode?> GetEpisode(int seriesId, double? episodeIndex)
+        public async Task<Model.Episode?> GetEpisode(int seriesId, double episodeIndex)
         {
             var fileName = Path.GetFileName(_info.Path);
             var anitomy = new Jellyfin.Plugin.Bangumi.Anitomy(fileName);
@@ -67,16 +67,16 @@ namespace Jellyfin.Plugin.Bangumi.Parser.Anitomy
             try
             {
                 // 获取剧集元数据
-                var episodeListData = await _api.GetSubjectEpisodeList(seriesId, bangumiEpisodeType, episodeIndex.Value, _token);
+                var episodeListData = await _api.GetSubjectEpisodeList(seriesId, bangumiEpisodeType, episodeIndex, _token) ?? new List<Episode>();
                 // Bangumi 中本应为`Special`类型的剧集被划分到`Normal`类型的问题
                 if (episodeListData.Count == 0 && bangumiEpisodeType is EpisodeType.Special)
                 {
-                    episodeListData = await _api.GetSubjectEpisodeList(seriesId, null, episodeIndex.Value, _token);
+                    episodeListData = await _api.GetSubjectEpisodeList(seriesId, null, episodeIndex, _token) ?? new List<Episode>();
                     _log.LogInformation("Process Special: {anitomyEpisodeType} for {fileName}", anitomyEpisodeType, fileName);
                 }
 
                 // 匹配剧集元数据
-                var episode = episodeListData.OrderBy(x => x.Type).FirstOrDefault(x => x.Order.Equals(episodeIndex.Value));
+                var episode = episodeListData.OrderBy(x => x.Type).FirstOrDefault(x => x.Order.Equals(episodeIndex));
                 if (episode is null)
                 {
                     // 该剧集类型下由于集数问题导致无法正确匹配
@@ -99,12 +99,13 @@ namespace Jellyfin.Plugin.Bangumi.Parser.Anitomy
                     //     episode = episodeListData.OrderBy(x => x.Type).FirstOrDefault(x => x.Index.Equals(episodeIndex.Value));
                     // }
                 }
-                
+
                 if (episode != null)
                 {
                     // 对于无标题的剧集，手动添加标题，而不是使用 Jellyfin 生成的标题
-                    if (episode.ChineseNameRaw=="" && episode.OriginalNameRaw==""){
-                        episode.OriginalNameRaw=TitleOfSpecialEpisode(anitomy, anitomyEpisodeType);
+                    if (episode.ChineseNameRaw == "" && episode.OriginalNameRaw == "")
+                    {
+                        episode.OriginalNameRaw = TitleOfSpecialEpisode(anitomy, anitomyEpisodeType);
                     }
                     return episode;
                 }
@@ -112,8 +113,8 @@ namespace Jellyfin.Plugin.Bangumi.Parser.Anitomy
                 // 特典
                 var sp = new Jellyfin.Plugin.Bangumi.Model.Episode();
                 sp.Type = bangumiEpisodeType ?? EpisodeType.Special;
-                sp.Order = episodeIndex.Value;
-                sp.OriginalNameRaw = TitleOfSpecialEpisode(anitomy,anitomyEpisodeType);
+                sp.Order = episodeIndex;
+                sp.OriginalNameRaw = TitleOfSpecialEpisode(anitomy, anitomyEpisodeType);
                 _log.LogInformation("Set OriginalName: {OriginalNameRaw} for {fileName}", sp.OriginalNameRaw, fileName);
                 return sp;
             }
@@ -130,7 +131,8 @@ namespace Jellyfin.Plugin.Bangumi.Parser.Anitomy
         /// <param name="anitomy"></param>
         /// <param name="anitomyEpisodeType"></param>
         /// <returns></returns>
-        private string TitleOfSpecialEpisode(Jellyfin.Plugin.Bangumi.Anitomy anitomy,string? anitomyEpisodeType){
+        private string TitleOfSpecialEpisode(Jellyfin.Plugin.Bangumi.Anitomy anitomy, string? anitomyEpisodeType)
+        {
             string[] parts = new string[]
                         {
                             anitomy.ExtractAnimeTitle()?.Trim() ?? "",
@@ -139,11 +141,11 @@ namespace Jellyfin.Plugin.Bangumi.Parser.Anitomy
                             anitomy.ExtractEpisodeNumber()?.Trim() ?? ""
                         };
             string separator = " ";
-            var titleOfSpecialEpisode= string.Join(separator, parts.Where(p => !string.IsNullOrWhiteSpace(p)));
+            var titleOfSpecialEpisode = string.Join(separator, parts.Where(p => !string.IsNullOrWhiteSpace(p)));
             return titleOfSpecialEpisode;
         }
-        
-        public double? GetEpisodeIndex(string fileName, double? episodeIndex)
+
+        public double GetEpisodeIndex(string fileName, double episodeIndex)
         {
             var anitomy = new Jellyfin.Plugin.Bangumi.Anitomy(fileName);
             var anitomyIndex = anitomy.ExtractEpisodeNumber();
@@ -157,7 +159,7 @@ namespace Jellyfin.Plugin.Bangumi.Parser.Anitomy
                 // 大于 100MB 的可能是 Movie 等类型
                 // 存在误判的可能性，导致被识别为第一集。配合 SP 文件夹判断可降低误判的副作用
                 episodeIndex = 1;
-                _log.LogDebug("Use episode number: {episodeIndex} for {fileName}, because file size is {size} GB", episodeIndex, fileName,fileInfo.Length/1000000000);
+                _log.LogDebug("Use episode number: {episodeIndex} for {fileName}, because file size is {size} GB", episodeIndex, fileName, fileInfo.Length / 1000000000);
             }
             else
             {

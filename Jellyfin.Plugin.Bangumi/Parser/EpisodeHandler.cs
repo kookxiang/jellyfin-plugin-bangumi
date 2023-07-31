@@ -54,7 +54,7 @@ namespace Jellyfin.Plugin.Bangumi.Parser
             if (episodeParsers is null || episodeParsers.Count==0)
                 return null;
 
-            double? episodeIndex = GetEpisodeIndex(fileName, _info.IndexNumber, episodeParsers);
+            double episodeIndex = GetEpisodeIndex(fileName, _info.IndexNumber??0, episodeParsers);
 
             // 根据 Jellyfin 中配置的元数据 id 获取 episode
             if (_configuration.TrustExistedBangumiId)
@@ -111,14 +111,14 @@ namespace Jellyfin.Plugin.Bangumi.Parser
         /// <param name="episodeIndex"></param>
         /// <param name="episodeParsers"></param>
         /// <returns></returns>
-        private double? GetEpisodeIndex(string fileName, double? episodeIndex, List<IEpisodeParser> episodeParsers)
+        private double GetEpisodeIndex(string fileName, double episodeIndex, List<IEpisodeParser> episodeParsers)
         {
             if (_configuration.AlwaysGetEpisodeByAnitomySharp)
             {
                 var anitomyEpisodeParser = episodeParsers.OfType<AnitomyEpisodeParser>().First();
                 episodeIndex = anitomyEpisodeParser.GetEpisodeIndex(fileName, episodeIndex);
             }
-            else if (_configuration.AlwaysReplaceEpisodeNumber || (episodeIndex is null or 0))
+            else if (_configuration.AlwaysReplaceEpisodeNumber || (episodeIndex is 0))
             {
                 var basicEpisodeParser = episodeParsers.OfType<BasicEpisodeParser>().First();
                 episodeIndex = basicEpisodeParser.GetEpisodeIndex(fileName, episodeIndex);
@@ -133,7 +133,7 @@ namespace Jellyfin.Plugin.Bangumi.Parser
         /// 对 episodeIndex 应用配置中的偏移值
         /// </summary>
         /// <param name="episodeIndex"></param>
-        private void ApplyOffset(ref double? episodeIndex)
+        private void ApplyOffset(ref double episodeIndex)
         {
             var offset = _localConfiguration.Offset;
             if (offset != 0)
@@ -150,7 +150,7 @@ namespace Jellyfin.Plugin.Bangumi.Parser
         /// <param name="episodeIndex"></param>
         /// <param name="episodeParsers"></param>
         /// <returns></returns>
-        private async Task<Model.Episode?> GetEpisodeByParser(int seriesId, double? episodeIndex, List<IEpisodeParser> episodeParsers)
+        private async Task<Model.Episode?> GetEpisodeByParser(int seriesId, double episodeIndex, List<IEpisodeParser> episodeParsers)
         {
             if (_configuration.AlwaysParseEpisodeByAnitomySharp)
             {
