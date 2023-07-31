@@ -41,28 +41,7 @@ namespace Jellyfin.Plugin.Bangumi.Parser.Anitomy
         {
             var fileName = Path.GetFileName(_info.Path);
             var anitomy = new Jellyfin.Plugin.Bangumi.Anitomy(fileName);
-
-            // 剧集类型
-            var (anitomyEpisodeType, bangumiEpisodeType) = AnitomyEpisodeTypeMapping.GetEpisodeType(anitomy.ExtractAnimeType());
-            _log.LogDebug("Bangumi episode type: {bangumiEpisodeType}", bangumiEpisodeType);
-            // 判断文件夹/ Jellyfin 季度是否为 Special
-            if (bangumiEpisodeType is null)
-            {
-                try
-                {
-                    string[] parent = { (_libraryManager.FindByPath(Path.GetDirectoryName(_info.Path), true)).Name };
-                    // 路径类型
-                    var (anitomyPathType, bangumiPathType) = AnitomyEpisodeTypeMapping.GetEpisodeType(parent);
-                    // 存在误判的可能性
-                    anitomyEpisodeType = anitomyPathType;
-                    bangumiEpisodeType = bangumiPathType;
-                    _log.LogDebug("Jellyfin parent name: {parent}. Path type: {type}", parent, anitomyPathType);
-                }
-                catch
-                {
-                    _log.LogWarning("Failed to get jellyfin parent of {fileName}", fileName);
-                }
-            }
+            var (anitomyEpisodeType, bangumiEpisodeType) =GetEpisodeType(fileName, anitomy);
 
             try
             {
@@ -126,6 +105,37 @@ namespace Jellyfin.Plugin.Bangumi.Parser.Anitomy
         }
 
         /// <summary>
+        /// 获取剧集类型
+        /// </summary>
+        /// <param name="fileName"></param>
+        /// <param name="anitomy"></param>
+        /// <returns></returns>
+        private (string?, EpisodeType?) GetEpisodeType(string fileName, Bangumi.Anitomy anitomy)
+        {
+            var (anitomyEpisodeType, bangumiEpisodeType) = AnitomyEpisodeTypeMapping.GetEpisodeType(anitomy.ExtractAnimeType());
+            _log.LogDebug("Bangumi episode type: {bangumiEpisodeType}", bangumiEpisodeType);
+            // 判断文件夹/ Jellyfin 季度是否为 Special
+            if (bangumiEpisodeType is null)
+            {
+                try
+                {
+                    string[] parent = { (_libraryManager.FindByPath(Path.GetDirectoryName(_info.Path), true)).Name };
+                    // 路径类型
+                    var (anitomyPathType, bangumiPathType) = AnitomyEpisodeTypeMapping.GetEpisodeType(parent);
+                    // 存在误判的可能性
+                    anitomyEpisodeType = anitomyPathType;
+                    bangumiEpisodeType = bangumiPathType;
+                    _log.LogDebug("Jellyfin parent name: {parent}. Path type: {type}", parent, anitomyPathType);
+                }
+                catch
+                {
+                    _log.LogWarning("Failed to get jellyfin parent of {fileName}", fileName);
+                }
+            }
+            return (anitomyEpisodeType, bangumiEpisodeType);
+        }
+
+        /// <summary>
         /// 特殊剧集标题
         /// </summary>
         /// <param name="anitomy"></param>
@@ -167,6 +177,12 @@ namespace Jellyfin.Plugin.Bangumi.Parser.Anitomy
                 episodeIndex = 0;
             }
             _log.LogInformation("Use episode number: {episodeIndex} for {fileName}", episodeIndex, fileName);
+
+            // 特典不应用本地配置的偏移值
+            var (anitomyEpisodeType, bangumiEpisodeType) = GetEpisodeType(fileName, anitomy);
+            if (bangumiEpisodeType is not null or EpisodeType.Normal){
+                episodeIndex+= _localConfiguration.Offset;
+            }
 
             return episodeIndex;
         }

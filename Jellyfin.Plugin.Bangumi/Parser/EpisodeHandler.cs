@@ -77,15 +77,15 @@ namespace Jellyfin.Plugin.Bangumi.Parser
         /// <returns></returns>
         private int GetSeriesId()
         {
+            if (_localConfiguration.Id != 0)
+                return _localConfiguration.Id;
+
             var seriesId = 0;
             var parent = _libraryManager.FindByPath(Path.GetDirectoryName(_info.Path), true);
             if (parent is Season && int.TryParse(parent.ProviderIds.GetValueOrDefault(Constants.ProviderName), out var seasonId))
                 seriesId = seasonId;
             if (seriesId == 0 && int.TryParse(_info.SeriesProviderIds?.GetValueOrDefault(Constants.ProviderName), out seriesId))
                 return seriesId;
-
-            if (_localConfiguration.Id != 0)
-                seriesId = _localConfiguration.Id;
 
             return seriesId;
         }
