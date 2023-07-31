@@ -99,23 +99,21 @@ namespace Jellyfin.Plugin.Bangumi.Parser.Anitomy
                     //     episode = episodeListData.OrderBy(x => x.Type).FirstOrDefault(x => x.Index.Equals(episodeIndex.Value));
                     // }
                 }
-
+                
                 if (episode != null)
+                {
+                    // 对于无标题的剧集，手动添加标题，而不是使用 Jellyfin 生成的标题
+                    if (episode.ChineseNameRaw=="" && episode.OriginalNameRaw==""){
+                        episode.OriginalNameRaw=TitleOfSpecialEpisode(anitomy, anitomyEpisodeType);
+                    }
                     return episode;
+                }
 
                 // 特典
                 var sp = new Jellyfin.Plugin.Bangumi.Model.Episode();
                 sp.Type = bangumiEpisodeType ?? EpisodeType.Special;
                 sp.Order = episodeIndex.Value;
-                string[] parts = new string[]
-                        {
-                            anitomy.ExtractAnimeTitle()?.Trim(),
-                            anitomy.ExtractEpisodeTitle()?.Trim(),
-                            anitomyEpisodeType?.Trim(),
-                            anitomy.ExtractEpisodeNumber()?.Trim()
-                        };
-                string separator = " ";
-                sp.OriginalNameRaw = string.Join(separator, parts.Where(p => !string.IsNullOrWhiteSpace(p)));
+                sp.OriginalNameRaw = TitleOfSpecialEpisode(anitomy,anitomyEpisodeType);
                 _log.LogInformation("Set OriginalName: {OriginalNameRaw} for {fileName}", sp.OriginalNameRaw, fileName);
                 return sp;
             }
@@ -125,6 +123,26 @@ namespace Jellyfin.Plugin.Bangumi.Parser.Anitomy
                 return null;
             }
         }
+
+        /// <summary>
+        /// 特殊剧集标题
+        /// </summary>
+        /// <param name="anitomy"></param>
+        /// <param name="anitomyEpisodeType"></param>
+        /// <returns></returns>
+        private string TitleOfSpecialEpisode(Jellyfin.Plugin.Bangumi.Anitomy anitomy,string? anitomyEpisodeType){
+            string[] parts = new string[]
+                        {
+                            anitomy.ExtractAnimeTitle()?.Trim() ?? "",
+                            anitomy.ExtractEpisodeTitle()?.Trim() ?? "",
+                            anitomyEpisodeType?.Trim() ?? "",
+                            anitomy.ExtractEpisodeNumber()?.Trim() ?? ""
+                        };
+            string separator = " ";
+            var titleOfSpecialEpisode= string.Join(separator, parts.Where(p => !string.IsNullOrWhiteSpace(p)));
+            return titleOfSpecialEpisode;
+        }
+        
         public double? GetEpisodeIndex(string fileName, double? episodeIndex)
         {
             var anitomy = new Jellyfin.Plugin.Bangumi.Anitomy(fileName);
