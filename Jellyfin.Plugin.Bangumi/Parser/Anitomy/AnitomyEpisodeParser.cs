@@ -47,11 +47,23 @@ namespace Jellyfin.Plugin.Bangumi.Parser.Anitomy
             {
                 // 获取剧集元数据
                 var episodeListData = await _api.GetSubjectEpisodeList(seriesId, bangumiEpisodeType, episodeIndex, _token) ?? new List<Episode>();
-                // Bangumi 中本应为`Special`类型的剧集被划分到`Normal`类型的问题
-                if (episodeListData.Count == 0 && bangumiEpisodeType is EpisodeType.Special)
+                if (episodeListData.Count == 0)
                 {
-                    episodeListData = await _api.GetSubjectEpisodeList(seriesId, null, episodeIndex, _token) ?? new List<Episode>();
-                    _log.LogInformation("Process Special: {anitomyEpisodeType} for {fileName}", anitomyEpisodeType, fileName);
+                    // Bangumi 中本应为`Special`类型的剧集被划分到`Normal`类型的问题
+                    if (bangumiEpisodeType is EpisodeType.Special)
+                    {
+                        episodeListData = await _api.GetSubjectEpisodeList(seriesId, null, episodeIndex, _token) ?? new List<Episode>();
+                        _log.LogInformation("Process Special: {anitomyEpisodeType} for {fileName}", anitomyEpisodeType, fileName);
+                    }
+                    // 仅包含 SP，无其他剧集类型时，尝试匹配 Bangumi 的特典元数据 e.g. [Girls und Panzer Saishuushou][Vol.03][SP02][Akiyama Yukari Panzer Lecture][BDRIP][1080P][H264_FLAC].mkv
+                    if (anitomyEpisodeType is not null && bangumiEpisodeType is EpisodeType.Other && anitomyEpisodeType.Contains("SP", StringComparison.OrdinalIgnoreCase)){
+                        var specialEpisodeListData = await _api.GetSubjectEpisodeList(seriesId, EpisodeType.Special, episodeIndex, _token) ?? new List<Episode>();
+                        if (specialEpisodeListData.Count != 0)
+                        {
+                            episodeListData = specialEpisodeListData;
+                            _log.LogDebug("Try match special episode for: {fileName}",fileName);
+                        }
+                    }
                 }
 
                 // 匹配剧集元数据

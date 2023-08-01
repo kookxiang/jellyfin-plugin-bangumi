@@ -7,11 +7,12 @@ namespace Jellyfin.Plugin.Bangumi.Parser.Anitomy
     public static class AnitomyEpisodeTypeMapping
     {
         private static readonly string[] Normal = { "TV", "GEKIJOUBAN", "MOVIE" };
-        private static readonly string[] Special = { "OAD", "OAV", "ONA", "OVA", "番外編", "總集編" };
+        private static readonly string[] Special = { "OAD", "OAV", "ONA", "OVA", "番外編", "總集編", "DRAMA" };
         private static readonly string[] SpecialOther = { "映像特典", "特典", "特典アニメ", "SPECIAL", "SPECIALS", "SP", "SPs" };
         private static readonly string[] Opening = { "NCOP", "OP", "OPENING" };
         private static readonly string[] Ending = { "ED", "ENDING", "NCED" };
-        private static readonly string[] Preview = { "WEB PREVIEW", "PREVIEW", "CM", "SPOT", "PV", "Teaser", "TRAILER" };
+        // 同类型可能被误匹配，如 CM01 匹配上了 PV01 的元数据
+        private static readonly string[] Preview = { "WEB PREVIEW", "PREVIEW", "CM", "SPOT", "PV", "Teaser", "TRAILER","YOKOKU" };
         private static readonly string[] Madness = { "MV" };
         private static readonly string[] Other = { "MENU", "INTERVIEW", "EVENT", "TOKUTEN", "LOGO", "IV" };
 
