@@ -517,7 +517,7 @@ public class Episode
         var episodeData = await _provider.GetMetadata(new EpisodeInfo
         {
             IndexNumber = 0,
-            Path = FakePath.CreateFile("[VCB-Studio] Darker Than Black-Kuro no Keiyakusha [11 クロ][1080p][x264_flac].mkv"),
+            Path = FakePath.CreateFile("[Moozzi2] Nagato Yuki-chan no Shoushitsu - 17 OAD (BD 1920x1080 x.264 Flac).mkv"),
             SeriesProviderIds = new Dictionary<string, string>
             {
                 {
