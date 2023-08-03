@@ -160,7 +160,9 @@ namespace Jellyfin.Plugin.Bangumi.Parser.Anitomy
                             anitomy.ExtractAnimeTitle()?.Trim() ?? "",
                             anitomy.ExtractEpisodeTitle()?.Trim() ?? "",
                             anitomyEpisodeType?.Trim() ?? "",
-                            anitomy.ExtractEpisodeNumber()?.Trim() ?? ""
+                            anitomy.ExtractAnimeSeason()?.Trim()==null? "":"S"+anitomy.ExtractAnimeSeason()?.Trim(),
+                            anitomy.ExtractVolumeNumber()?.Trim()==null? "":"V"+anitomy.ExtractVolumeNumber()?.Trim(),
+                            anitomy.ExtractEpisodeNumber()?.Trim()==null? "":"E"+anitomy.ExtractEpisodeNumber()?.Trim()
                         };
             string separator = " ";
             var titleOfSpecialEpisode = string.Join(separator, parts.Where(p => !string.IsNullOrWhiteSpace(p)));

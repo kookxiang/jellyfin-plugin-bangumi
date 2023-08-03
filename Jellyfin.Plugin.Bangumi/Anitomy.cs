@@ -17,6 +17,11 @@ namespace Jellyfin.Plugin.Bangumi
         {
             _elements = AnitomySharp.AnitomySharp.Parse(path);
         }
+        // The constructor takes a file path and option as input and calls the AnitomySharp.Parse method to parse the file and store the result in the _elements variable
+        public Anitomy(string path, Options options)
+        {
+            _elements = AnitomySharp.AnitomySharp.Parse(path,options);
+        }
 
         // This method returns a List of Element objects from the _elements variable
         public List<Element> GetElements()

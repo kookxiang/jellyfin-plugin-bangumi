@@ -51,10 +51,10 @@ namespace Jellyfin.Plugin.Bangumi.Parser
                 return null;
 
             var episodeParsers = GetEpisodeParsers();
-            if (episodeParsers is null || episodeParsers.Count==0)
+            if (episodeParsers is null || episodeParsers.Count == 0)
                 return null;
 
-            double episodeIndex = GetEpisodeIndex(fileName, _info.IndexNumber??0, episodeParsers);
+            double episodeIndex = GetEpisodeIndex(fileName, _info.IndexNumber ?? 0, episodeParsers);
 
             // 根据 Jellyfin 中配置的元数据 id 获取 episode
             if (_configuration.TrustExistedBangumiId)
@@ -113,6 +113,12 @@ namespace Jellyfin.Plugin.Bangumi.Parser
         /// <returns></returns>
         private double GetEpisodeIndex(string fileName, double episodeIndex, List<IEpisodeParser> episodeParsers)
         {
+            if (fileName is null)
+            {
+                _log.LogWarning("filename was not in a correct format: {fileName}", fileName);
+                return episodeIndex;
+            }
+
             if (_configuration.AlwaysGetEpisodeByAnitomySharp)
             {
                 var anitomyEpisodeParser = episodeParsers.OfType<AnitomyEpisodeParser>().First();
