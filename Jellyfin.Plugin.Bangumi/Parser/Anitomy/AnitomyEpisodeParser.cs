@@ -176,7 +176,12 @@ namespace Jellyfin.Plugin.Bangumi.Parser.Anitomy
             var fileInfo = _fileSystem.GetFileSystemInfo(_info.Path);
             if (!string.IsNullOrEmpty(anitomyIndex))
             {
-                episodeIndex = double.Parse(anitomyIndex);
+                try
+                {
+                    episodeIndex = double.Parse(anitomyIndex);
+                }catch{
+                    _log.LogWarning("Input string was not in a correct format: {anitomyIndex}",anitomyIndex);
+                }
             }
             else if (fileInfo is not null && fileInfo.Length > 100000000)
             {

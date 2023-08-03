@@ -578,7 +578,7 @@ public class Episode
         Assert.IsNotNull(episodeData, "episode data should not be null");
         Assert.IsNotNull(episodeData.Item, "episode data should not be null");
         Assert.AreEqual(1, episodeData.Item.IndexNumber, "should fix episode index automatically");
-        Assert.AreEqual("Toradora! Uncredited OP & OP 1", episodeData.Item.OriginalTitle, "should return the right episode title");
+        Assert.AreEqual("Toradora! Uncredited OP & OP E1", episodeData.Item.OriginalTitle, "should return the right episode title");
 
         // Preview
         episodeData = await _provider.GetMetadata(new EpisodeInfo

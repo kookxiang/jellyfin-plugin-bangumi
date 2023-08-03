@@ -98,7 +98,7 @@ public class EpisodeProvider : IRemoteMetadataProvider<Episode, EpisodeInfo>, IH
             return result;
 
 
-        if (episode.ParentId != 0)
+        if (episode.ParentId > 0)
         {
             _log.LogDebug("Use series info: {series}", episode.ParentId);
             // use title and overview from special episode subject if episode data is empty

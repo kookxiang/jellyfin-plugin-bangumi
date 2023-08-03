@@ -42,6 +42,18 @@ namespace Jellyfin.Plugin.Bangumi.Parser
         }
         public async Task<Model.Episode?> GetEpisode()
         {
+            // 根据 Jellyfin 中配置的元数据 id 获取 episode
+            if (_configuration.TrustExistedBangumiId)
+            {
+                if (int.TryParse(_info.ProviderIds?.GetValueOrDefault(Constants.ProviderName), out var episodeId) && episodeId != 0)
+                {
+                    _log.LogInformation("Use episode id {id} in jellyfin config", episodeId);
+                    var episode = await _api.GetEpisode(episodeId, _token);
+                    if (episode != null)
+                        return episode;
+                }
+            }
+            
             var fileName = Path.GetFileName(_info.Path);
             if (string.IsNullOrEmpty(fileName))
                 return null;
@@ -55,18 +67,6 @@ namespace Jellyfin.Plugin.Bangumi.Parser
                 return null;
 
             double episodeIndex = GetEpisodeIndex(fileName, _info.IndexNumber ?? 0, episodeParsers);
-
-            // 根据 Jellyfin 中配置的元数据 id 获取 episode
-            if (_configuration.TrustExistedBangumiId)
-            {
-                if (int.TryParse(_info.ProviderIds?.GetValueOrDefault(Constants.ProviderName), out var episodeId) && episodeId != 0)
-                {
-                    _log.LogInformation("Use episode id {id} in jellyfin config", episodeId);
-                    var episode = await _api.GetEpisode(episodeId, _token);
-                    if (episode != null)
-                        return episode;
-                }
-            }
 
             return await GetEpisodeByParser(seriesId, episodeIndex, episodeParsers);
         }
@@ -113,12 +113,6 @@ namespace Jellyfin.Plugin.Bangumi.Parser
         /// <returns></returns>
         private double GetEpisodeIndex(string fileName, double episodeIndex, List<IEpisodeParser> episodeParsers)
         {
-            if (fileName is null)
-            {
-                _log.LogWarning("filename was not in a correct format: {fileName}", fileName);
-                return episodeIndex;
-            }
-
             if (_configuration.AlwaysGetEpisodeByAnitomySharp)
             {
                 var anitomyEpisodeParser = episodeParsers.OfType<AnitomyEpisodeParser>().First();
