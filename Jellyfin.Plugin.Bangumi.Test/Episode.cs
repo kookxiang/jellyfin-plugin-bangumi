@@ -517,7 +517,7 @@ public class Episode
         var episodeData = await _provider.GetMetadata(new EpisodeInfo
         {
             IndexNumber = 0,
-            Path = FakePath.CreateFile("[Moozzi2] Nagato Yuki-chan no Shoushitsu - 17 OAD (BD 1920x1080 x.264 Flac).mkv"),
+            Path = FakePath.CreateFile("[VCB-Studio] Darker Than Black-Kuro no Keiyakusha [11 クロ][1080p][x264_flac].mkv"),
             SeriesProviderIds = new Dictionary<string, string>
             {
                 {
@@ -595,7 +595,7 @@ public class Episode
         Assert.IsNotNull(episodeData, "episode data should not be null");
         Assert.IsNotNull(episodeData.Item, "episode data should not be null");
         Assert.AreEqual(9, episodeData.Item.IndexNumber, "should fix episode index automatically");
-        Assert.AreEqual("Toradora! CM & CM 09", episodeData.Item.OriginalTitle, "should return the right episode title");
+        Assert.AreEqual("Toradora! CM & CM E09", episodeData.Item.OriginalTitle, "should return the right episode title");
 
         _plugin.Configuration.AlwaysParseEpisodeByAnitomySharp = false;
         _plugin.Configuration.AlwaysGetEpisodeByAnitomySharp = false;
