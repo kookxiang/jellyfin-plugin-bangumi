@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 using Fastenshtein;
 using Jellyfin.Plugin.Bangumi.Configuration;
@@ -64,6 +65,39 @@ public class Subject
             return Tags.Where(tag => tag.Count >= baseline).Select(tag => tag.Name).ToArray();
         }
     }
+    [JsonPropertyName("infobox")]
+    public List<InfoboxItem> Infobox { get; set; } = new();
+
+    public string[] Alias()
+    {
+        var aliases = new List<string>();
+
+        foreach (var item in Infobox)
+        {
+            if (item.Key == "别名" && item.Value.ValueKind == JsonValueKind.Array)
+            {
+                var values = item.Value.EnumerateArray()
+                    .Select(x => x.GetProperty("v").GetString())
+                    .Where(x => !string.IsNullOrEmpty(x))
+                    .ToArray();
+                if (values != null)
+                {
+                    aliases.AddRange(values!);
+                }
+                return aliases.ToArray();
+            }
+        }
+
+        return aliases.ToArray();
+    }
+    public class InfoboxItem
+    {
+        [JsonPropertyName("key")]
+        public string Key { get; set; }= string.Empty;
+
+        [JsonPropertyName("value")]
+        public JsonElement Value { get; set; }
+    }
 
     public string GetName(PluginConfiguration? configuration = default)
     {
@@ -78,13 +112,19 @@ public class Subject
     public static List<Subject> SortBySimilarity(IEnumerable<Subject> list, string keyword)
     {
         var instance = new Levenshtein(keyword);
-        return list
-            .OrderBy(subject =>
-                Math.Min(
-                    instance.DistanceFrom(subject.ChineseName),
-                    instance.DistanceFrom(subject.OriginalName)
-                )
-            )
-            .ToList();
+        var distances = new Dictionary<Subject, int>();
+
+        foreach (var subject in list)
+        {
+            var chineseNameDistance = instance.DistanceFrom(subject.ChineseName);
+            var originalNameDistance = instance.DistanceFrom(subject.OriginalName);
+            var aliasDistances = subject.Alias().Select(alias => instance.DistanceFrom(alias));
+
+            var minDistance = Math.Min(Math.Min(chineseNameDistance, originalNameDistance), aliasDistances.Any() ? aliasDistances.Min() : int.MaxValue);
+            distances.Add(subject, minDistance);
+        }
+
+        return distances.OrderBy(pair => pair.Value).Select(pair => pair.Key).ToList();
     }
+
 }

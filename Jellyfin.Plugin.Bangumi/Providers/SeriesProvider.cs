@@ -44,15 +44,41 @@ public class SeriesProvider : IRemoteMetadataProvider<Series, SeriesInfo>, IHasO
 
         int subjectId;
         if (localConfiguration.Id != 0)
+        {
             subjectId = localConfiguration.Id;
+            _log.LogInformation("Use subject id: {id} from local configuration", subjectId);
+        }
         else
+        {
             _ = int.TryParse(info.ProviderIds.GetOrDefault(Constants.ProviderName), out subjectId);
+            _log.LogInformation("Use subject id: {id} from jellyfin metadata", subjectId);
+        }
+
+        if (subjectId == 0 && Configuration.AlwaysGetTitleByAnitomySharp)
+        {
+            var anitomy = new Anitomy(baseName);
+            var searchName = anitomy.ExtractAnimeTitle() ?? info.Name;
+            _log.LogInformation("Searching {Name} in bgm.tv", searchName);
+            var searchResult = await _api.SearchSubject(searchName, token);
+
+            // 使用年份进行精确匹配
+            // 示例: [2022 Movie][Bubble][BDRIP][1080P+SP]
+            var animeYear = anitomy.ExtractAnimeYear();
+            if (animeYear != null)
+                searchResult = searchResult.FindAll(x => x.ProductionYear == animeYear);
+            if (searchResult.Count > 0)
+            {
+                subjectId = searchResult[0].Id;
+                _log.LogDebug("Use subject id: {id}", subjectId);
+            }
+        }
 
         if (subjectId == 0)
         {
             var searchName = info.Name;
             _log.LogInformation("Searching {Name} in bgm.tv", searchName);
             var searchResult = await _api.SearchSubject(searchName, token);
+            // TODO 当 subjectId 为 0 时，年份是否仍旧可信？
             if (info.Year != null)
                 searchResult = searchResult.FindAll(x => x.ProductionYear == null || x.ProductionYear == info.Year.ToString());
             if (searchResult.Count > 0)
@@ -70,17 +96,6 @@ public class SeriesProvider : IRemoteMetadataProvider<Series, SeriesInfo>, IHasO
                 subjectId = searchResult[0].Id;
         }
 
-        if (subjectId == 0 && Configuration.AlwaysGetTitleByAnitomySharp)
-        {
-            var searchName = Anitomy.ExtractAnimeTitle(baseName) ?? info.Name;
-            _log.LogInformation("Searching {Name} in bgm.tv", searchName);
-            // 不保证使用非原名或中文进行查询时返回正确结果
-            var searchResult = await _api.SearchSubject(searchName, token);
-            if (info.Year != null)
-                searchResult = searchResult.FindAll(x => x.ProductionYear == null || x.ProductionYear == info.Year.ToString());
-            if (searchResult.Count > 0)
-                subjectId = searchResult[0].Id;
-        }
 
         if (subjectId == 0)
             return result;
