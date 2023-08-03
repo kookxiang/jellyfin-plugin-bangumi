@@ -8,10 +8,12 @@ using System.Text;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
+using Jellyfin.Plugin.Bangumi.ScheduledTasks;
 using Jellyfin.Plugin.Bangumi.Model;
 using Jellyfin.Plugin.Bangumi.OAuth;
 using MediaBrowser.Common.Net;
 using MediaBrowser.Controller.Entities;
+using Microsoft.Extensions.Logging;
 using JellyfinPersonType = MediaBrowser.Model.Entities.PersonType;
 
 namespace Jellyfin.Plugin.Bangumi;
@@ -28,11 +30,15 @@ public class BangumiApi
 
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly OAuthStore _store;
+    private readonly CacheManager _cacheManager;
 
-    public BangumiApi(IHttpClientFactory httpClientFactory, OAuthStore store)
+    private readonly ILoggerFactory _loggerFactory;
+    public BangumiApi(IHttpClientFactory httpClientFactory, OAuthStore store, ILoggerFactory loggerFactory)
     {
         _httpClientFactory = httpClientFactory;
         _store = store;
+        _loggerFactory = loggerFactory;
+        _cacheManager = new CacheManager(_loggerFactory.CreateLogger<CacheManager>());
     }
 
     private static Plugin Plugin => Plugin.Instance!;
@@ -78,7 +84,11 @@ public class BangumiApi
 
     public async Task<Subject?> GetSubject(int id, CancellationToken token)
     {
-        return await SendRequest<Subject>($"https://api.bgm.tv/v0/subjects/{id}", token);
+        string cacheKey = _cacheManager.GenerateCacheKey("Subject", id);
+
+        Func<Task<Subject?>> getDataFunc = () => SendRequest<Subject>($"https://api.bgm.tv/v0/subjects/{id}", token);
+
+        return await _cacheManager.GetCachedResult(cacheKey, getDataFunc, TimeSpan.FromTicks(TimeSpan.TicksPerHour));
     }
 
     public async Task<List<Episode>?> GetSubjectEpisodeList(int id, EpisodeType? type, double episodeNumber, CancellationToken token)
@@ -97,7 +107,7 @@ public class BangumiApi
         var initialResult = result;
         var history = new HashSet<int>();
 
-        RequestEpisodeList:
+    RequestEpisodeList:
         if (offset < 0)
             return result.Data;
         if (offset > result.Total)
@@ -137,12 +147,23 @@ public class BangumiApi
 
     public async Task<DataList<Episode>?> GetSubjectEpisodeListWithOffset(int id, EpisodeType? type, double offset, CancellationToken token)
     {
-        var url = $"https://api.bgm.tv/v0/episodes?subject_id={id}&limit={PageSize}";
-        if (type != null)
-            url += $"&type={(int)type}";
-        if (offset > 0)
-            url += $"&offset={offset}";
-        return await SendRequest<DataList<Episode>>(url, token);
+        string cacheKey;
+        if (type!=null)
+            cacheKey = _cacheManager.GenerateCacheKey("SubjectEpisodeList", id, type, offset);
+        else
+            cacheKey = _cacheManager.GenerateCacheKey("SubjectEpisodeList", id, offset);
+
+        Func<Task<DataList<Episode>?>> getDataFunc = async () =>
+        {
+            var url = $"https://api.bgm.tv/v0/episodes?subject_id={id}&limit={PageSize}";
+            if (type != null)
+                url += $"&type={(int)type}";
+            if (offset > 0)
+                url += $"&offset={offset}";
+            return await SendRequest<DataList<Episode>>(url, token);
+        };
+
+        return await _cacheManager.GetCachedResult(cacheKey, getDataFunc, TimeSpan.FromTicks(TimeSpan.TicksPerHour));
     }
 
     public async Task<List<PersonInfo>> GetSubjectCharacters(int id, CancellationToken token)
