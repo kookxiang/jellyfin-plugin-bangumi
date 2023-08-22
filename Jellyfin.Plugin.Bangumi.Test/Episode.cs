@@ -163,6 +163,22 @@ public class Episode
         Assert.IsNotNull(episodeData.Item, "episode data should not be null");
         Assert.AreEqual(episodeData.Item.ParentIndexNumber, 0, "episode 0 is special episode");
         Assert.AreEqual("リフレクション", episodeData.Item.Name, "should return the right episode title");
+
+        episodeData = await _provider.GetMetadata(new EpisodeInfo
+        {
+            Path = FakePath.CreateFile("妄想学生会 OVA/[VCB-Studio] Seitokai Yakuindomo [16][Ma10p_1080p][x265_flac].mkv"),
+            IndexNumber = 0,
+            SeriesProviderIds = new Dictionary<string, string>
+            {
+                {
+                    Constants.ProviderName, "39118"
+                }
+            }
+        }, _token);
+        Assert.IsNotNull(episodeData, "episode data should not be null");
+        Assert.IsNotNull(episodeData.Item, "episode data should not be null");
+        Assert.AreNotEqual(episodeData.Item.ParentIndexNumber, 0, "should not mark folder as special");
+        Assert.AreEqual("167720", episodeData.Item.ProviderIds[Constants.ProviderName], "should return the right episode id");
     }
 
     [TestMethod]
@@ -176,7 +192,6 @@ public class Episode
         }, _token);
         Assert.IsNotNull(episodeData, "episode data should not be null");
         Assert.IsNotNull(episodeData.Item, "episode data should not be null");
-        Assert.AreEqual(episodeData.Item.ParentIndexNumber, 0, "episode 1 is special episode");
         Assert.AreEqual("MMR Ⅲ 〜もっとまるっと超電磁砲Ⅲ〜", episodeData.Item.Name, "should return the right episode title");
 
         episodeData = await _provider.GetMetadata(new EpisodeInfo
@@ -187,7 +202,6 @@ public class Episode
         }, _token);
         Assert.IsNotNull(episodeData, "episode data should not be null");
         Assert.IsNotNull(episodeData.Item, "episode data should not be null");
-        Assert.AreEqual(episodeData.Item.ParentIndexNumber, 0, "episode 16 is special episode");
         Assert.AreEqual("気分は青空 会長はブルー/ハイリスクが気持ちいい/ハイリスクが気持ちいい/桜才・英稜 学園交流会!", episodeData.Item.Name, "should return the right episode title");
     }
 

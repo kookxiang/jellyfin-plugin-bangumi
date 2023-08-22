@@ -99,7 +99,7 @@ public class EpisodeProvider : IRemoteMetadataProvider<Episode, EpisodeInfo>, IH
         result.Item.ParentIndexNumber = info.ParentIndexNumber ?? 1;
 
         var parent = _libraryManager.FindByPath(Path.GetDirectoryName(info.Path), true);
-        if (IsSpecial(info.Path) || episode.Type == EpisodeType.Special || info.ParentIndexNumber == 0)
+        if (IsSpecial(info.Path, false) || episode.Type == EpisodeType.Special || info.ParentIndexNumber == 0)
         {
             result.Item.ParentIndexNumber = 0;
         }
@@ -147,12 +147,13 @@ public class EpisodeProvider : IRemoteMetadataProvider<Episode, EpisodeInfo>, IH
         return _api.GetHttpClient().GetAsync(url, token);
     }
 
-    private static bool IsSpecial(string filePath)
+    private static bool IsSpecial(string filePath, bool checkParent = true)
     {
         var fileName = Path.GetFileName(filePath);
         var parentPath = Path.GetDirectoryName(filePath);
         var folderName = Path.GetFileName(parentPath);
-        return SpecialEpisodeFileNameRegex.IsMatch(fileName) || SpecialEpisodeFileNameRegex.IsMatch(folderName ?? "");
+        return SpecialEpisodeFileNameRegex.IsMatch(fileName) ||
+               (checkParent && SpecialEpisodeFileNameRegex.IsMatch(folderName ?? ""));
     }
 
     private async Task<Model.Episode?> GetEpisode(EpisodeInfo info, LocalConfiguration localConfiguration, CancellationToken token)
