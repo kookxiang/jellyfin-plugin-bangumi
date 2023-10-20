@@ -102,7 +102,7 @@ public class BangumiApi
         var initialResult = result;
         var history = new HashSet<int>();
 
-        RequestEpisodeList:
+    RequestEpisodeList:
         if (offset < 0)
         {
             _log.LogWarning("search failed: offset {Offset} should not be less than 0", offset);

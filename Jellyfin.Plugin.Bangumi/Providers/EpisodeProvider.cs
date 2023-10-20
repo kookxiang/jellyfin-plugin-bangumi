@@ -211,7 +211,7 @@ public class EpisodeProvider : IRemoteMetadataProvider<Episode, EpisodeInfo>, IH
         if (episodeListData == null)
             return null;
         if (episodeListData.Count == 1 && type is null or EpisodeType.Normal)
-            return episodeListData[0];
+            return episodeListData.First();
         if (type is null or EpisodeType.Normal)
             episodeIndex = GuessEpisodeNumber(
                 episodeIndex + localConfiguration.Offset,
