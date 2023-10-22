@@ -206,10 +206,12 @@ public class EpisodeProvider : IRemoteMetadataProvider<Episode, EpisodeInfo>, IH
                 return episode;
         }
 
-        SkipBangumiId:
+    SkipBangumiId:
         var episodeListData = await _api.GetSubjectEpisodeList(seriesId, type, episodeIndex.Value, token);
         if (episodeListData == null)
             return null;
+        if (episodeListData.Count == 1 && type is null or EpisodeType.Normal)
+            return episodeListData.First();
         if (type is null or EpisodeType.Normal)
             episodeIndex = GuessEpisodeNumber(
                 episodeIndex + localConfiguration.Offset,

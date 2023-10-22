@@ -546,4 +546,23 @@ public class Episode
         Assert.AreEqual(3, episodeData.Item.IndexNumber, "should fix episode index automatically");
         Assert.AreEqual("懐玉-参-", episodeData.Item.Name, "should return the right episode title");
     }
+
+    [TestMethod]
+    public async Task GetEpisodeForSubjectWithSingleEpisode()
+    {
+        var episodeData = await _provider.GetMetadata(new EpisodeInfo
+        {
+            IndexNumber = 0,
+            Path = FakePath.CreateFile("やはり俺の青春ラブコメはまちがっている。完 OVA/[Nekomoe kissaten&VCB-Studio] Oregairu Kan [OVA][Ma10p_1080p][x265_flac].mp4"),
+            SeriesProviderIds = new Dictionary<string, string>
+            {
+                {
+                    Constants.ProviderName, "325587"
+                }
+            }
+        }, _token);
+        Assert.IsNotNull(episodeData, "episode data should not be null");
+        Assert.IsNotNull(episodeData.Item, "episode data should not be null");
+        Assert.AreEqual("だから、思春期は終わらずに、青春は続いていく。", episodeData.Item.Name, "should return the right episode title");
+    }
 }
