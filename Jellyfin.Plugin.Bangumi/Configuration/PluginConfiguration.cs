@@ -31,4 +31,6 @@ public class PluginConfiguration : BasePluginConfiguration
     public bool AlwaysGetEpisodeByAnitomySharp { get; set; }
 
     public bool UseTestingSearchApi { get; set; }
+    
+    public bool IgnoreLessThanFiveMinutes { get; set; }
 }
