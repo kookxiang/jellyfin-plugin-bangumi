@@ -12,7 +12,7 @@
     <ItemGroup>
         <PackageReference Include="AnitomySharp" Version="0.2.0"/>
         <PackageReference Include="Fastenshtein" Version="1.0.0.8"/>
-        <PackageReference Include="Jellyfin.Controller" IncludeAssets="compile" Version="10.8.0"/>
+        <PackageReference Include="Jellyfin.Controller" IncludeAssets="compile" Version="10.8.12"/>
         <PackageReference Include="Microsoft.AspNetCore.Authorization" IncludeAssets="compile" Version="6.0.12"/>
     </ItemGroup>
 

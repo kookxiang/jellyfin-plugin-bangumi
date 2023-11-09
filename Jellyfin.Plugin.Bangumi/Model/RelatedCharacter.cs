@@ -2,7 +2,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json.Serialization;
 using MediaBrowser.Controller.Entities;
-using MediaBrowser.Model.Entities;
 using PersonEntityType = MediaBrowser.Model.Entities.PersonType;
 
 namespace Jellyfin.Plugin.Bangumi.Model;
@@ -35,7 +34,7 @@ public class RelatedCharacter
                 Name = actor.Name,
                 Role = Name,
                 ImageUrl = actor.DefaultImage,
-                Type = PersonEntityType.Actor,
+                Type = PersonEntityType.Actor
             };
             info.ProviderIds.Add(Constants.ProviderName, $"{actor.Id}");
             return info;

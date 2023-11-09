@@ -38,7 +38,7 @@ public partial class BangumiApi
     {
         return await SendRequest(request, _store.GetAvailable()?.AccessToken, token);
     }
-    
+
     private async Task<string> SendRequest(HttpRequestMessage request, string? accessToken, CancellationToken token)
     {
         var httpClient = GetHttpClient();

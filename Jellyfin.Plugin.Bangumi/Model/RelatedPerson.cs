@@ -16,7 +16,7 @@ public class RelatedPerson
         ["导演"] = PersonEntityType.Director,
         ["制片人"] = PersonEntityType.Producer,
         ["系列构成"] = PersonEntityType.Composer,
-        ["脚本"] = PersonEntityType.Writer,
+        ["脚本"] = PersonEntityType.Writer
     };
 
     public int Id { get; set; }
@@ -42,7 +42,7 @@ public class RelatedPerson
         {
             Name = Name,
             Type = type,
-            ImageUrl = DefaultImage,
+            ImageUrl = DefaultImage
         };
         info.ProviderIds.Add(Constants.ProviderName, $"{Id}");
         return info;
