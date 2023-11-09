@@ -1,0 +1,116 @@
+﻿<!DOCTYPE html>
+
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <meta charset="utf-8"/>
+    <title>Bangumi</title>
+</head>
+<body>
+<div class="page type-interior pluginConfigurationPage" data-require="emby-button,emby-select,emby-checkbox"
+     data-role="page" id="bangumiConfigurationPage">
+    <div data-role="content">
+        <div class="content-primary">
+            <form id="bangumiConfigurationForm">
+                <div class="verticalSection verticalSection">
+                    <div class="sectionTitleContainer flex align-items-center">
+                        <h2 class="sectionTitle">网络</h2>
+                    </div>
+                </div>
+                <div class="selectContainer">
+                    <label class="selectLabel" for="RequestTimeout">请求超时时间</label>
+                    <select class="emby-select-withcolor emby-select" id="RequestTimeout" is="emby-select">
+                        <option value="5000">5 秒</option>
+                        <option value="10000">10 秒</option>
+                        <option value="30000">30 秒</option>
+                        <option value="60000">1 分钟</option>
+                    </select>
+                </div>
+                <div class="verticalSection verticalSection">
+                    <div class="sectionTitleContainer flex align-items-center">
+                        <h2 class="sectionTitle">元数据</h2>
+                    </div>
+                </div>
+                <div class="selectContainer">
+                    <label class="selectLabel" for="TranslationPreference">标题翻译</label>
+                    <select class="emby-select-withcolor emby-select" id="TranslationPreference" is="emby-select">
+                        <option value="Original">优先使用日文</option>
+                        <option value="Chinese">优先使用中文翻译</option>
+                    </select>
+                </div>
+                <div class="selectContainer">
+                    <div class="checkboxContainer checkboxContainer-withDescription">
+                        <label class="emby-checkbox-label">
+                            <input id="UseBangumiSeasonTitle" is="emby-checkbox" type="checkbox"/>
+                            <span>使用 Bangumi 词条作为季名称</span>
+                        </label>
+                    </div>
+                </div>
+                <div class="selectContainer">
+                    <div class="checkboxContainer checkboxContainer-withDescription">
+                        <label class="emby-checkbox-label">
+                            <input id="TrustExistedBangumiId" is="emby-checkbox" type="checkbox"/>
+                            <span>始终根据配置的 Bangumi ID 获取元数据</span>
+                        </label>
+                    </div>
+                </div>
+                <div class="selectContainer">
+                    <div class="checkboxContainer checkboxContainer-withDescription">
+                        <label class="emby-checkbox-label">
+                            <input id="UseTestingSearchApi" is="emby-checkbox" type="checkbox"/>
+                            <span>使用测试版 Bangumi 搜索接口</span>
+                        </label>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script type="text/javascript">
+        var pluginId = "41b59f1b-a6cf-474a-b416-785379cbd856";
+        var container = document.querySelector('#bangumiConfigurationPage:not(.hide)');
+        var configuration = {};
+
+        function loadConfiguration() {
+            return ApiClient.getPluginConfiguration(pluginId).then(function (config) {
+                configuration = config;
+                Object.keys(config).forEach(function (configKey) {
+                    var element = container.querySelector('#' + configKey);
+                    if (!element) return;
+                    if (element.type === 'checkbox') {
+                        element.checked = config[configKey];
+                    } else {
+                        element.value = config[configKey];
+                    }
+                });
+            });
+        }
+
+        function saveConfiguration() {
+            var config = Object.assign({}, configuration);
+            var elements = container.querySelectorAll('input,select');
+            for (var i = 0; i < elements.length; i++) {
+                var element = elements[i];
+                if (element.type === 'checkbox') {
+                    config[element.id] = element.checked;
+                } else {
+                    config[element.id] = element.value;
+                }
+            }
+            return wrapLoading(ApiClient.updatePluginConfiguration(pluginId, config)
+                .then(Dashboard.processPluginConfigurationUpdateResult));
+        }
+
+        function wrapLoading(promise) {
+            Dashboard.showLoadingMsg();
+            promise.then(Dashboard.hideLoadingMsg, Dashboard.hideLoadingMsg);
+        }
+
+        $(container).on('viewshow', function () {
+            wrapLoading(loadConfiguration());
+        });
+
+        container.querySelector('#bangumiConfigurationForm').addEventListener('change', saveConfiguration);
+    </script>
+</div>
+</body>
+</html>
