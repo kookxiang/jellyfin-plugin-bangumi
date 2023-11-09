@@ -35,9 +35,7 @@ public class SeriesProvider : IRemoteMetadataProvider<Series, SeriesInfo>, IHasO
         token.ThrowIfCancellationRequested();
         var result = new MetadataResult<Series> { ResultLanguage = Constants.Language };
 
-        if (int.TryParse(info.GetProviderId(Constants.ProviderName), out var subjectId))
-        {
-        }
+        _ = int.TryParse(info.GetProviderId(Constants.ProviderName), out var subjectId);
 
         if (subjectId == 0)
         {
@@ -77,6 +75,9 @@ public class SeriesProvider : IRemoteMetadataProvider<Series, SeriesInfo>, IHasO
 
         if (subject.ProductionYear?.Length == 4)
             result.Item.ProductionYear = int.Parse(subject.ProductionYear);
+
+        if (subject.IsNSFW)
+            result.Item.OfficialRating = "X";
 
         (await _api.GetSubjectPersonInfos(subject.Id, token)).ForEach(result.AddPerson);
         (await _api.GetSubjectCharacters(subject.Id, token)).ForEach(result.AddPerson);

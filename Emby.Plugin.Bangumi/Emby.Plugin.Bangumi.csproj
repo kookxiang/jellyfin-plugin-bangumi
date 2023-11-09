@@ -10,7 +10,7 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="mediabrowser.server.core" Version="4.7.0.30"/>
+        <PackageReference Include="MediaBrowser.Server.Core" Version="4.7.1"/>
         <PackageReference Include="Microsoft.AspNetCore.Authorization" Version="6.0.12"/>
     </ItemGroup>
 
