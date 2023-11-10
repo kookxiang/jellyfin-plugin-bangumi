@@ -30,4 +30,8 @@
         <None Remove="Configuration\configPage.html"/>
         <EmbeddedResource Include="Configuration\ConfigPage.html"/>
     </ItemGroup>
+
+    <Target Name="Release" AfterTargets="Build" Condition="'$(Configuration)'=='Release'">
+        <Copy SourceFiles="$(OutputPath)$(AssemblyName).dll" DestinationFolder="$(MSBuildProjectDirectory)/.."/>
+    </Target>
 </Project>
