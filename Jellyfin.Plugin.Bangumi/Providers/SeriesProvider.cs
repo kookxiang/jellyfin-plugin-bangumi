@@ -35,11 +35,14 @@ public class SeriesProvider : IRemoteMetadataProvider<Series, SeriesInfo>, IHasO
     {
         token.ThrowIfCancellationRequested();
         var baseName = Path.GetFileName(info.Path);
-        var result = new MetadataResult<Series> { ResultLanguage = Constants.Language };
+        var result = new MetadataResult<Series>
+        {
+            ResultLanguage = Constants.Language
+        };
         var localConfiguration = await LocalConfiguration.ForPath(info.Path);
 
         var bangumiId = baseName.GetAttributeValue("bangumi");
-        if (!string.IsNullOrEmpty(bangumiId) && !info.HasProviderId(Constants.ProviderName))
+        if (!string.IsNullOrEmpty(bangumiId))
             info.SetProviderId(Constants.ProviderName, bangumiId);
 
         int subjectId;
@@ -54,18 +57,21 @@ public class SeriesProvider : IRemoteMetadataProvider<Series, SeriesInfo>, IHasO
             _log.LogInformation("Searching {Name} in bgm.tv", searchName);
             var searchResult = await _api.SearchSubject(searchName, token);
             if (info.Year != null)
-                searchResult = searchResult.FindAll(x => x.ProductionYear == null || x.ProductionYear == info.Year.ToString());
+                searchResult = searchResult.FindAll(x =>
+                    x.ProductionYear == null || x.ProductionYear == info.Year.ToString());
             if (searchResult.Count > 0)
                 subjectId = searchResult[0].Id;
         }
 
-        if (subjectId == 0 && info.OriginalTitle != null && !string.Equals(info.OriginalTitle, info.Name, StringComparison.Ordinal))
+        if (subjectId == 0 && info.OriginalTitle != null &&
+            !string.Equals(info.OriginalTitle, info.Name, StringComparison.Ordinal))
         {
             var searchName = info.OriginalTitle;
             _log.LogInformation("Searching {Name} in bgm.tv", searchName);
             var searchResult = await _api.SearchSubject(searchName, token);
             if (info.Year != null)
-                searchResult = searchResult.FindAll(x => x.ProductionYear == null || x.ProductionYear == info.Year.ToString());
+                searchResult = searchResult.FindAll(x =>
+                    x.ProductionYear == null || x.ProductionYear == info.Year.ToString());
             if (searchResult.Count > 0)
                 subjectId = searchResult[0].Id;
         }
@@ -77,7 +83,8 @@ public class SeriesProvider : IRemoteMetadataProvider<Series, SeriesInfo>, IHasO
             // 不保证使用非原名或中文进行查询时返回正确结果
             var searchResult = await _api.SearchSubject(searchName, token);
             if (info.Year != null)
-                searchResult = searchResult.FindAll(x => x.ProductionYear == null || x.ProductionYear == info.Year.ToString());
+                searchResult = searchResult.FindAll(x =>
+                    x.ProductionYear == null || x.ProductionYear == info.Year.ToString());
             if (searchResult.Count > 0)
                 subjectId = searchResult[0].Id;
         }
