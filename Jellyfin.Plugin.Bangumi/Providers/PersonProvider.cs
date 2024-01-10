@@ -43,9 +43,29 @@ public class PersonProvider : IRemoteMetadataProvider<Person, PersonLookupInfo>,
         return result;
     }
 
-    public Task<IEnumerable<RemoteSearchResult>> GetSearchResults(PersonLookupInfo searchInfo, CancellationToken token)
+    public async Task<IEnumerable<RemoteSearchResult>> GetSearchResults(PersonLookupInfo searchInfo, CancellationToken token)
     {
-        throw new NotImplementedException();
+        token.ThrowIfCancellationRequested();
+        var results = new List<RemoteSearchResult>();
+
+        if (!int.TryParse(searchInfo.ProviderIds.GetOrDefault(Constants.ProviderName), out var id))
+            throw new NotImplementedException();
+
+        var person = await _api.GetPerson(id, token);
+        if (person == null)
+            return results;
+
+        var result = new RemoteSearchResult
+        {
+            Name = person.Name,
+            SearchProviderName = person.Name,
+            ImageUrl = person.DefaultImage,
+            Overview = person.Summary,
+            PremiereDate = person.Birthdate
+        };
+        result.ProviderIds.Add(Constants.ProviderName, id.ToString());
+        results.Add(result);
+        return results;
     }
 
     public async Task<HttpResponseMessage> GetImageResponse(string url, CancellationToken token)
