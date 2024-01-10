@@ -308,9 +308,7 @@
 
             container.querySelector('#bangumi-oauth-btn').addEventListener('click', function (e) {
                 e.preventDefault();
-                window.open('https://bgm.tv/oauth/authorize?client_id=bgm16185f43c213d11c9&redirect_uri=' +
-                    encodeURIComponent(ApiClient.getUrl('/Plugins/Bangumi/OAuth?user=' + ApiClient.getCurrentUserId())) +
-                    '&response_type=code');
+                window.open(ApiClient.getUrl('/Plugins/Bangumi/Redirect?prefix=' + encodeURIComponent(ApiClient.serverAddress()) + '&user=' + ApiClient.getCurrentUserId()));
             });
 
             container.querySelector('#bangumi-oauth-delete').addEventListener('click', function (e) {

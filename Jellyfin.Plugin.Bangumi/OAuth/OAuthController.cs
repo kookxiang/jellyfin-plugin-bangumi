@@ -16,6 +16,8 @@ public class OAuthController : ControllerBase
     protected internal const string ApplicationId = "bgm16185f43c213d11c9";
     protected internal const string ApplicationSecret = "1b28040afd28882aecf23dcdd86be9f7";
 
+    private static string? _oAuthPath;
+
     private readonly BangumiApi _api;
     private readonly ISessionContext _sessionContext;
     private readonly OAuthStore _store;
@@ -83,16 +85,26 @@ public class OAuthController : ControllerBase
         return Accepted();
     }
 
+    [HttpGet("Redirect")]
+    public Task<ActionResult> SetCallbackUrl([FromQuery(Name = "prefix")] string urlPrefix, [FromQuery(Name = "user")] string user)
+    {
+        _oAuthPath = $"{urlPrefix}/Plugins/Bangumi/OAuth";
+        var redirectUri = Uri.EscapeDataString($"{_oAuthPath}?user={user}");
+        return Task.FromResult<ActionResult>(
+            Redirect($"https://bgm.tv/oauth/authorize?client_id={ApplicationId}&redirect_uri={redirectUri}&response_type=code"));
+    }
+
     [HttpGet("OAuth")]
     public async Task<object?> OAuthCallback([FromQuery(Name = "code")] string code, [FromQuery(Name = "user")] string user)
     {
+        var urlPrefix = _oAuthPath ?? $"{Request.Scheme}://{Request.Host}{Request.PathBase}{Request.Path}";
         var formData = new FormUrlEncodedContent(new[]
         {
             new KeyValuePair<string, string>("grant_type", "authorization_code"),
             new KeyValuePair<string, string>("client_id", ApplicationId),
             new KeyValuePair<string, string>("client_secret", ApplicationSecret),
             new KeyValuePair<string, string>("code", code),
-            new KeyValuePair<string, string>("redirect_uri", $"{Request.Scheme}://{Request.Host}{Request.PathBase}{Request.Path}?user={user}")
+            new KeyValuePair<string, string>("redirect_uri", $"{urlPrefix}?user={user}")
         });
         var response = await _api.GetHttpClient().PostAsync("https://bgm.tv/oauth/access_token", formData);
         var responseBody = await response.Content.ReadAsStringAsync();
