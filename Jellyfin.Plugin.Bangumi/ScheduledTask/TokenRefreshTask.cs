@@ -3,13 +3,14 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Jellyfin.Data.Entities;
+using Jellyfin.Plugin.Bangumi.OAuth;
 using MediaBrowser.Controller.Notifications;
 using MediaBrowser.Model.Activity;
 using MediaBrowser.Model.Notifications;
 using MediaBrowser.Model.Tasks;
 using Microsoft.Extensions.Logging;
 
-namespace Jellyfin.Plugin.Bangumi.OAuth;
+namespace Jellyfin.Plugin.Bangumi.ScheduledTask;
 
 public class TokenRefreshTask : IScheduledTask
 {
