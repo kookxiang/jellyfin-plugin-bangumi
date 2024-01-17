@@ -14,6 +14,7 @@
         <PackageReference Include="Fastenshtein" Version="1.0.0.8"/>
         <PackageReference Include="Jellyfin.Controller" IncludeAssets="compile" Version="10.8.12"/>
         <PackageReference Include="Microsoft.AspNetCore.Authorization" IncludeAssets="compile" Version="6.0.12"/>
+        <PackageReference Include="OpenAI" Version="1.10.0" />
     </ItemGroup>
 
     <ItemGroup>

@@ -382,6 +382,20 @@ public class Episode
         Assert.IsNotNull(episodeData, "episode data should not be null");
         Assert.IsNotNull(episodeData.Item, "episode data should not be null");
         Assert.AreEqual(22, episodeData.Item.IndexNumber, "should fix episode index automatically");
+
+        episodeData = await _provider.GetMetadata(new EpisodeInfo
+        {
+            IndexNumber = 0,
+            Path = FakePath.CreateFile("りゅうおうのおしごと！/specials/[VCB-Studio] Ryuuou no Oshigoto! [NCED_EP02][Ma10p_1080p][x265_flac].mkv"),
+            SeriesProviderIds = new Dictionary<string, string>
+            {
+                {
+                    Constants.ProviderName, "331887"
+                }
+            }
+        }, _token);
+        Assert.IsNotNull(episodeData, "episode data should not be null");
+        Assert.IsNull(episodeData.Item);
     }
 
     [TestMethod]
