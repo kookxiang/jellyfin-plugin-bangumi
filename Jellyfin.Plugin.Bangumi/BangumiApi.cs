@@ -69,6 +69,8 @@ public partial class BangumiApi
 
     public async Task<Subject?> GetSubject(int id, CancellationToken token)
     {
+        if (id <= 0)
+            return null;
         return await SendRequest<Subject>($"https://api.bgm.tv/v0/subjects/{id}", token);
     }
 

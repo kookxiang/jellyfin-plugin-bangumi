@@ -21,14 +21,18 @@ public class EpisodeProvider : IRemoteMetadataProvider<Episode, EpisodeInfo>, IH
 {
     private static readonly Regex[] NonEpisodeFileNameRegex =
     {
-        new(@"[\[\(][0-9A-F]{8}[\]\)]", RegexOptions.IgnoreCase),
+        new(@"[\[\(](CRC32_)?[0-9A-F]{8}[\]\)]", RegexOptions.IgnoreCase),
         new(@"S\d{2,}", RegexOptions.IgnoreCase),
-        new(@"yuv[4|2|0]{3}p(10|8)?", RegexOptions.IgnoreCase),
-        new(@"\d{3,4}p", RegexOptions.IgnoreCase),
+        new(@"yuv[4|2|0]{3}p(10|8)?(le)?", RegexOptions.IgnoreCase),
+        new(@"(480|576|720|1080|1440|2160)(p|i)", RegexOptions.IgnoreCase),
         new(@"\d{3,4}x\d{3,4}", RegexOptions.IgnoreCase),
-        new(@"(Hi)?10p", RegexOptions.IgnoreCase),
+        new(@"(Hi|Ma)?10p", RegexOptions.IgnoreCase),
         new(@"(8|10)bit", RegexOptions.IgnoreCase),
-        new(@"(x|h)(264|265)", RegexOptions.IgnoreCase)
+        new(@"(x|h)(264|265)", RegexOptions.IgnoreCase),
+        new(@"(BD(-BOX)?|BluRay|DVD(-BOX)?|HDTV)(Rip|\s)", RegexOptions.IgnoreCase),
+        new(@"(\dx?)?(hevc|aac|xvid|av1|flac(2.0)?|mp3|TrueHD|Atmos|DTS(-HDMA)?|ac3|alac|als)(x\d)?", RegexOptions.IgnoreCase),
+        new(@"[2|3|5|7]\.(0|1)(\.2)?ch", RegexOptions.IgnoreCase),
+        new(@"\d{2,3}fps", RegexOptions.IgnoreCase),
     };
 
     private static readonly Regex[] EpisodeFileNameRegex =
@@ -38,29 +42,34 @@ public class EpisodeProvider : IRemoteMetadataProvider<Episode, EpisodeInfo>, IH
         new(@"EP?([\d\.]{2,})", RegexOptions.IgnoreCase),
         new(@"\[([\d\.]{2,})"),
         new(@"#([\d\.]{2,})"),
+        new(@"第(\d{1,})話"),
         new(@"(\d{2,})")
     };
 
-    private static readonly Regex OpeningEpisodeFileNameRegex = new(@"(NC)?OP([^a-zA-Z]|$)");
-    private static readonly Regex EndingEpisodeFileNameRegex = new(@"(NC)?ED([^a-zA-Z]|$)");
+    private static readonly Regex OpeningEpisodeFileNameRegex = new(@"(NC|ノンクレジット|Creditless )?OP([^a-zA-Z]|$)");
+    private static readonly Regex EndingEpisodeFileNameRegex = new(@"(NC|ノンクレジット|Creditless )?ED([^a-zA-Z]|$)");
     private static readonly Regex SpecialEpisodeFileNameRegex = new(@"(SPs?|Specials?|OVA|OAD)([^a-zA-Z]|$)");
-    private static readonly Regex PreviewEpisodeFileNameRegex = new(@"[^\w]PV([^a-zA-Z]|$)");
+    private static readonly Regex PreviewEpisodeFileNameRegex = new(@"[^\w](PV|CM|Preview)([^a-zA-Z]|$)");
+    private static readonly Regex OtherEpisodeFileNameRegex = new(@"[^\w](Menu|IV|interview|Behind the Scene|次回予告|Logo)([^a-zA-Z\s]|$)");
 
     private static readonly Regex[] AllSpecialEpisodeFileNameRegex =
     {
         SpecialEpisodeFileNameRegex,
         PreviewEpisodeFileNameRegex,
         OpeningEpisodeFileNameRegex,
-        EndingEpisodeFileNameRegex
+        EndingEpisodeFileNameRegex,
+        OtherEpisodeFileNameRegex
     };
 
     private readonly BangumiApi _api;
+    private readonly OpenAIApi _openai;
     private readonly ILibraryManager _libraryManager;
     private readonly ILogger<EpisodeProvider> _log;
 
-    public EpisodeProvider(BangumiApi api, ILogger<EpisodeProvider> log, ILibraryManager libraryManager)
+    public EpisodeProvider(BangumiApi api, OpenAIApi openai, ILogger<EpisodeProvider> log, ILibraryManager libraryManager)
     {
         _api = api;
+        _openai = openai;
         _log = log;
         _libraryManager = libraryManager;
     }
@@ -85,7 +94,8 @@ public class EpisodeProvider : IRemoteMetadataProvider<Episode, EpisodeInfo>, IH
 
         result.Item = new Episode();
         result.HasMetadata = true;
-        result.Item.ProviderIds.Add(Constants.ProviderName, $"{episode.Id}");
+        if (episode.Id != 0)
+            result.Item.ProviderIds.Add(Constants.ProviderName, $"{episode.Id}");
 
         if (DateTime.TryParse(episode.AirDate, out var airDate))
             result.Item.PremiereDate = airDate;
@@ -162,7 +172,10 @@ public class EpisodeProvider : IRemoteMetadataProvider<Episode, EpisodeInfo>, IH
         if (string.IsNullOrEmpty(fileName))
             return null;
 
-        var type = IsSpecial(info.Path) ? EpisodeType.Special : GuessEpisodeTypeFromFileName(fileName);
+
+        var type = GuessEpisodeTypeFromFileName(fileName);
+        if (type is null && IsSpecial(info.Path))
+            type = EpisodeType.Special;
         var seriesId = localConfiguration.Id;
 
         var parent = _libraryManager.FindByPath(Path.GetDirectoryName(info.Path), true);
@@ -221,16 +234,42 @@ public class EpisodeProvider : IRemoteMetadataProvider<Episode, EpisodeInfo>, IH
         try
         {
             var episode = episodeListData.OrderBy(x => x.Type).FirstOrDefault(x => x.Order.Equals(episodeIndex));
-            if (episode != null || type is null or EpisodeType.Normal)
+            if (episode == null && type is EpisodeType.Special) {
+                _log.LogWarning("cannot find episode {index} with type {type}, searching all types", episodeIndex, type);
+                type = null;
+                goto SkipBangumiId;
+            }
+            if (episode != null)
                 return episode;
-            _log.LogWarning("cannot find episode {index} with type {type}, searching all types", episodeIndex, type);
-            type = null;
-            goto SkipBangumiId;
+            if (Configuration.UseOpenaiTitleFallback)
+            {
+                var title = await _openai.SummarizeTitleFromFilename(fileName, token);
+                if (!string.IsNullOrEmpty(title))
+                    return BuildEpisodeWithTitle((EpisodeType)(type is null ? EpisodeType.Other : type), title);
+            }
+            return null;
         }
         catch (InvalidOperationException)
         {
             return null;
         }
+    }
+
+    private Model.Episode BuildEpisodeWithTitle(EpisodeType type, string title)
+    {
+        return new Model.Episode
+        {
+            Id = 0,
+            ParentId = 0,
+            Type = type,
+            OriginalNameRaw = title,
+            ChineseNameRaw = title,
+            Order = 0,
+            Disc = 0,
+            Index = 0,
+            AirDate = "",
+            Description = "",
+        };
     }
 
     private EpisodeType? GuessEpisodeTypeFromFileName(string fileName)
@@ -251,6 +290,8 @@ public class EpisodeProvider : IRemoteMetadataProvider<Episode, EpisodeInfo>, IH
             return EpisodeType.Special;
         if (PreviewEpisodeFileNameRegex.IsMatch(tempName))
             return EpisodeType.Preview;
+        if (OtherEpisodeFileNameRegex.IsMatch(tempName))
+            return EpisodeType.Other;
         return null;
     }
 

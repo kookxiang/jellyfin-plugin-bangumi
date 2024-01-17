@@ -19,12 +19,14 @@ public class OAuthController : ControllerBase
     private static string? _oAuthPath;
 
     private readonly BangumiApi _api;
+    private readonly OpenAIApi _openai;
     private readonly ISessionContext _sessionContext;
     private readonly OAuthStore _store;
 
-    public OAuthController(BangumiApi api, OAuthStore store, ISessionContext sessionContext)
+    public OAuthController(BangumiApi api, OpenAIApi openai, OAuthStore store, ISessionContext sessionContext)
     {
         _api = api;
+        _openai = openai;
         _store = store;
         _sessionContext = sessionContext;
     }
@@ -115,5 +117,19 @@ public class OAuthController : ControllerBase
         _store.Set(user, result);
         _store.Save();
         return Content("<script>window.opener.postMessage('BANGUMI-OAUTH-COMPLETE'); window.close()</script>", "text/html");
+    }
+
+    [HttpPost("OpenAITest")]
+    [Authorize("DefaultAuthorization")]
+    public async Task<ActionResult> OpenAITest([FromForm] string filename)
+    {
+        try
+        {
+            return Content(await _openai.SummarizeTitleFromFilename(filename, new()));
+        }
+        catch (Exception e)
+        {
+            return Content("error: " + e.Message);
+        }
     }
 }
