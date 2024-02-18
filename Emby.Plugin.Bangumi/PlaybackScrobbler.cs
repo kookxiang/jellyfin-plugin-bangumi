@@ -95,12 +95,12 @@ public class PlaybackScrobbler : IServerEntryPoint
         var localConfiguration = await LocalConfiguration.ForPath(item.Path);
         if (!int.TryParse(item.GetProviderId(Constants.ProviderName), out var episodeId))
         {
-            _log.Info("item {Name} (#{Id}) doesn't have bangumi id, ignored", item.Name, item.Id);
+            _log.Info($"item {item.Name} (#{item.Id}) doesn't have bangumi id, ignored");
             return;
         }
 
         if (!int.TryParse(item.GetParent()?.GetProviderId(Constants.ProviderName), out var subjectId))
-            _log.Warn("parent of item {Name} (#{Id}) doesn't have bangumi subject id", item.Name, item.Id);
+            _log.Warn($"parent of item {item.Name} (#{item.Id}) doesn't have bangumi subject id");
 
         if (!localConfiguration.Report)
         {
@@ -126,13 +126,13 @@ public class PlaybackScrobbler : IServerEntryPoint
         var _user = _store.Get(user.Id);
         if (_user == null)
         {
-            _log.Info("access token for user #{User} not found, ignored", user.Id);
+            _log.Info($"access token for user #{user.Id} not found, ignored");
             return;
         }
 
         if (_user.Expired)
         {
-            _log.Info("access token for user #{User} expired, ignored", user.Id);
+            _log.Info($"access token for user #{user.Id} expired, ignored");
             return;
         }
 
@@ -141,7 +141,7 @@ public class PlaybackScrobbler : IServerEntryPoint
             var episodeStatus = await _api.GetEpisodeStatus(_user.AccessToken, episodeId, CancellationToken.None);
             if (played && episodeStatus is { Type: EpisodeCollectionType.Watched })
             {
-                _log.Info("item {Name} (#{Id}) has been marked as watched before, ignored", item.Name, item.Id);
+                _log.Info($"item {item.Name} (#{item.Id}) has been marked as watched before, ignored");
                 return;
             }
         }
@@ -150,7 +150,7 @@ public class PlaybackScrobbler : IServerEntryPoint
         {
             if (item is Book)
             {
-                _log.Info("report subject #{Subject} status {Status} to bangumi", episodeId, CollectionType.Watched);
+                _log.Info($"report subject #{episodeId} status {CollectionType.Watched} to bangumi");
                 await _api.UpdateCollectionStatus(_user.AccessToken, episodeId, played ? CollectionType.Watched : CollectionType.Watching, CancellationToken.None);
             }
             else
@@ -173,11 +173,11 @@ public class PlaybackScrobbler : IServerEntryPoint
 
                 if (ratingLevel >= RatingNSFW && Configuration.SkipNSFWPlaybackReport)
                 {
-                    _log.Info("item #{Name} marked as NSFW, skipped", item.Name);
+                    _log.Info($"item #{item.Name} marked as NSFW, skipped");
                     return;
                 }
-
-                _log.Info("report episode #{Episode} status {Status} to bangumi", episodeId, played ? EpisodeCollectionType.Watched : EpisodeCollectionType.Default);
+                var status = played ? CollectionType.Watched : CollectionType.Watching;
+                _log.Info($"report episode #{episodeId} status {status} to bangumi");
                 await _api.UpdateEpisodeStatus(_user.AccessToken, subjectId, episodeId, played ? EpisodeCollectionType.Watched : EpisodeCollectionType.Default, CancellationToken.None);
             }
 
@@ -187,10 +187,10 @@ public class PlaybackScrobbler : IServerEntryPoint
         {
             if (played && e.Message == "Bad Request: you need to add subject to your collection first")
             {
-                _log.Info("report subject #{Subject} status {Status} to bangumi", subjectId, CollectionType.Watching);
+                _log.Info($"report subject #{subjectId} status {CollectionType.Watching} to bangumi");
                 await _api.UpdateCollectionStatus(_user.AccessToken, subjectId, CollectionType.Watching, CancellationToken.None);
 
-                _log.Info("report episode #{Episode} status {Status} to bangumi", episodeId, EpisodeCollectionType.Watched);
+                _log.Info($"report episode #{episodeId} status {EpisodeCollectionType.Watched} to bangumi");
                 await _api.UpdateEpisodeStatus(_user.AccessToken, subjectId, episodeId, played ? EpisodeCollectionType.Watched : EpisodeCollectionType.Default, CancellationToken.None);
             }
             else
@@ -217,7 +217,7 @@ public class PlaybackScrobbler : IServerEntryPoint
                     });
                     if (subjectPlayed)
                     {
-                        _log.Info("report subject #{Subject} status {Status} to bangumi", subjectId, CollectionType.Watched);
+                        _log.Info($"report subject #{subjectId} status {CollectionType.Watched} to bangumi");
                         await _api.UpdateCollectionStatus(_user.AccessToken, subjectId, CollectionType.Watched, CancellationToken.None);
                     }
                 }
