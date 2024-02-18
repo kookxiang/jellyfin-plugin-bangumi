@@ -93,7 +93,7 @@ define([
 
             container.querySelector('#bangumi-oauth-btn').addEventListener('click', function (e) {
                 e.preventDefault();
-                ApiClient.getText(ApiClient.getUrl('/Bangumi/Redirect?prefix=' + encodeURIComponent(ApiClient.serverAddress()) + '&user=' + ApiClient.getCurrentUserId()), redirectUrl => {
+                ApiClient.getText(ApiClient.getUrl('/Bangumi/Redirect?prefix=' + encodeURIComponent(ApiClient.serverAddress()) + '&user=' + ApiClient.getCurrentUserId())).then(redirectUrl => {
                     window.open(redirectUrl);
                 });
             });
