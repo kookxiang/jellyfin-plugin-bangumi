@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Jellyfin.Plugin.Bangumi.Model;
+using Jellyfin.Plugin.Bangumi.Configuration;
 using MediaBrowser.Common.Net;
 using MediaBrowser.Controller.Providers;
 using MediaBrowser.Model.Entities;
@@ -17,6 +18,7 @@ public class EpisodeProvider : IRemoteMetadataProvider<Episode, EpisodeInfo>, IH
 {
     private readonly BangumiApi _api;
     private readonly ILogger _log;
+    private static PluginConfiguration Configuration => Plugin.Instance!.Configuration;
 
     public EpisodeProvider(BangumiApi api, ILogger log)
     {
@@ -106,11 +108,14 @@ public class EpisodeProvider : IRemoteMetadataProvider<Episode, EpisodeInfo>, IH
             if (episode == null)
                 goto SkipBangumiId;
 
+            if (Configuration.TrustExistedBangumiId)
+                return episode;
+
             if (episode.ParentId == seriesId && Math.Abs(episode.Order - episodeIndex.Value) < 0.1)
                 return episode;
         }
 
-        SkipBangumiId:
+    SkipBangumiId:
         var episodeListData = await _api.GetSubjectEpisodeList(seriesId, null, episodeIndex.Value, token);
         if (episodeListData == null)
             return null;

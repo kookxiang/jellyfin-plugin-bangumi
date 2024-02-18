@@ -10,28 +10,41 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="MediaBrowser.Server.Core" Version="4.7.1"/>
-        <PackageReference Include="Microsoft.AspNetCore.Authorization" Version="6.0.12"/>
+        <PackageReference Include="MediaBrowser.Server.Core" Version="4.8.0.80"/>
+        <PackageReference Include="Microsoft.AspNetCore.Authorization" IncludeAssets="compile" Version="6.0.12"/>
     </ItemGroup>
 
     <ItemGroup>
+        <Compile Include="..\Jellyfin.Plugin.Bangumi\BangumiApi.Auth.cs">
+            <Link>BangumiApi.Auth.cs</Link>
+        </Compile>
         <Compile Include="..\Jellyfin.Plugin.Bangumi\BangumiApi.cs">
             <Link>BangumiApi.cs</Link>
-        </Compile>
-        <Compile Include="..\Jellyfin.Plugin.Bangumi\Configuration\PluginConfiguration.cs">
-            <Link>Configuration\PluginConfiguration.cs</Link>
         </Compile>
         <Compile Include="..\Jellyfin.Plugin.Bangumi\Model\*.cs">
             <Link>Model\*.cs</Link>
         </Compile>
+        <Compile Include="..\Jellyfin.Plugin.Bangumi\OAuth\*.cs" Exclude="..\Jellyfin.Plugin.Bangumi\OAuth\OAuthController.cs">
+            <Link>OAuth\*.cs</Link>
+        </Compile>
+        <Compile Include="..\Jellyfin.Plugin.Bangumi\ScheduledTask\*.cs">
+            <Link>ScheduledTask\*.cs</Link>
+        </Compile>
     </ItemGroup>
 
     <ItemGroup>
-        <None Remove="Configuration\configPage.html"/>
+        <!-- <None Remove="Configuration\configPage.html"/> -->
         <EmbeddedResource Include="Configuration\ConfigPage.html"/>
+        <EmbeddedResource Include="Configuration\ConfigPage.js"/>
     </ItemGroup>
 
     <Target Name="Release" AfterTargets="Build" Condition="'$(Configuration)'=='Release'">
-        <Copy SourceFiles="$(OutputPath)$(AssemblyName).dll" DestinationFolder="$(MSBuildProjectDirectory)/.."/>
+        <ItemGroup>
+            <AssemblyDependencies Include="$(OutputPath)*.dll"/>
+        </ItemGroup>
+        <MakeDir Directories="$(OutputPath)zip"/>
+        <Copy SourceFiles="@(AssemblyDependencies)" DestinationFolder="$(OutputPath)\zip"/>
+        <ZipDirectory SourceDirectory="$(OutputPath)zip" DestinationFile="$(MSBuildProjectDirectory)\..\$(AssemblyName).zip" Overwrite="true"/>
+        <RemoveDir Directories="$(OutputPath)zip"/>
     </Target>
 </Project>

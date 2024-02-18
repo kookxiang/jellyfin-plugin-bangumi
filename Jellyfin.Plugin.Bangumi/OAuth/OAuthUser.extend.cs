@@ -1,10 +1,17 @@
 ﻿using System;
+using System.IO;
 using System.Collections.Generic;
+using System.Net;
 using System.Net.Http;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Threading;
 using System.Threading.Tasks;
+
+#if EMBY
+using MediaBrowser.Common.Net;
+using HttpRequestOptions = MediaBrowser.Common.Net.HttpRequestOptions;
+#endif
 
 namespace Jellyfin.Plugin.Bangumi.OAuth;
 
@@ -31,7 +38,13 @@ public partial class OAuthUser
         ProfileUrl = user.URL;
     }
 
-    public async Task Refresh(HttpClient httpClient, Guid userId, CancellationToken cancellationToken = default)
+    public async Task Refresh(
+#if EMBY
+        IHttpClient httpClient,
+#else
+        HttpClient httpClient, 
+#endif
+        CancellationToken cancellationToken = default)
     {
         var formData = new FormUrlEncodedContent(new[]
         {
@@ -40,9 +53,23 @@ public partial class OAuthUser
             new KeyValuePair<string, string>("client_secret", OAuthController.ApplicationSecret),
             new KeyValuePair<string, string>("refresh_token", RefreshToken)
         }!);
+
+#if EMBY
+        var options = new HttpRequestOptions
+        {
+            Url = "https://bgm.tv/oauth/access_token",
+            RequestHttpContent = formData
+        };
+        var response = await httpClient.SendAsync(options, "POST");
+        var isFailed = response.StatusCode >= HttpStatusCode.MovedPermanently;
+        var stream = new StreamReader(response.Content);
+        var responseBody = await stream.ReadToEndAsync();
+#else
         var response = await httpClient.PostAsync("https://bgm.tv/oauth/access_token", formData, cancellationToken);
+        var isFailed = !response.IsSuccessStatusCode;
         var responseBody = await response.Content.ReadAsStringAsync(cancellationToken);
-        if (!response.IsSuccessStatusCode)
+#endif
+        if (isFailed)
         {
             var error = JsonSerializer.Deserialize<OAuthError>(responseBody)!;
             throw new Exception(error.ErrorDescription);

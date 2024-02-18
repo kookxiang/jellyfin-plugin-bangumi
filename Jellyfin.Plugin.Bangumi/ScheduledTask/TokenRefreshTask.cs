@@ -2,25 +2,33 @@
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
-using Jellyfin.Data.Entities;
 using Jellyfin.Plugin.Bangumi.OAuth;
 using MediaBrowser.Controller.Notifications;
 using MediaBrowser.Model.Activity;
-using MediaBrowser.Model.Notifications;
+using MediaBrowser.Controller.Library;
 using MediaBrowser.Model.Tasks;
 using Microsoft.Extensions.Logging;
+
+#if EMBY
+using Emby.Notifications;
+#else
+using MediaBrowser.Model.Notifications;
+using Jellyfin.Data.Entities;
+#endif
 
 namespace Jellyfin.Plugin.Bangumi.ScheduledTask;
 
 public class TokenRefreshTask : IScheduledTask
 {
+    private readonly IUserManager _userManager;
     private readonly IActivityManager _activity;
     private readonly BangumiApi _api;
     private readonly INotificationManager _notification;
     private readonly OAuthStore _store;
 
-    public TokenRefreshTask(IActivityManager activity, INotificationManager notification, BangumiApi api, OAuthStore store)
+    public TokenRefreshTask(IUserManager userManager, IActivityManager activity, INotificationManager notification, BangumiApi api, OAuthStore store)
     {
+        _userManager = userManager;
         _activity = activity;
         _notification = notification;
         _api = api;
@@ -46,6 +54,13 @@ public class TokenRefreshTask : IScheduledTask
         };
     }
 
+#if EMBY
+    public Task Execute(CancellationToken token, IProgress<double> progress)
+    {
+        return Task.Run(async () => await ExecuteAsync(progress, token));
+    }
+#endif
+
     public async Task ExecuteAsync(IProgress<double> progress, CancellationToken token)
     {
         var users = _store.GetUsers();
@@ -60,10 +75,35 @@ public class TokenRefreshTask : IScheduledTask
             if (user.Expired)
                 continue;
 
+#if EMBY
+            var activity = new ActivityLogEntry();
+            try
+            {
+                await user.Refresh(_api.GetHttpClient(), token);
+                await user.GetProfile(_api, token);
+                activity.Name = "Bangumi 授权";
+                activity.ShortOverview = $"用户 #{user.UserId} 授权刷新成功";
+                activity.Severity = MediaBrowser.Model.Logging.LogSeverity.Info;
+            }
+            catch (Exception e)
+            {
+                activity.ShortOverview = $"用户 #{user.UserId} 授权刷新失败: {e.Message}";
+                activity.Severity = MediaBrowser.Model.Logging.LogSeverity.Warn;
+                _notification.SendNotification(new NotificationRequest
+                {
+                    Title = activity.ShortOverview,
+                    Description = e.StackTrace,
+                    User = _userManager.GetUserById(userId),
+                    Date = DateTime.Now
+                });
+            }
+
+            _activity.Create(activity);
+#else
             var activity = new ActivityLog("Bangumi 授权", "Bangumi", userId);
             try
             {
-                await user.Refresh(_api.GetHttpClient(), userId, token);
+                await user.Refresh(_api.GetHttpClient(), token);
                 await user.GetProfile(_api, token);
                 activity.ShortOverview = $"用户 #{user.UserId} 授权刷新成功";
                 activity.LogSeverity = LogLevel.Information;
@@ -81,8 +121,7 @@ public class TokenRefreshTask : IScheduledTask
                     Date = DateTime.Now
                 }, token);
             }
-
-            await _activity.CreateAsync(activity);
+#endif
         }
 
         _store.Save();

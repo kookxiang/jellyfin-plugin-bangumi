@@ -47,9 +47,17 @@ public partial class BangumiApi
         return JsonSerializer.Deserialize<T>(jsonString, Options);
     }
 
-    private Task<T?> SendRequest<T>(string url, string? accessToken, CancellationToken token)
+    private async Task<T?> SendRequest<T>(string url, string? accessToken, CancellationToken token)
     {
-        return SendRequest<T>(url, token);
+        var options = new HttpRequestOptions
+        {
+            Url = url,
+            RequestHeaders = {
+                { "Authorization", "Bearer " + accessToken }
+            }
+        };
+        var jsonString = await SendRequest("GET", options);
+        return JsonSerializer.Deserialize<T>(jsonString, Options);
     }
 
     public class JsonContent : StringContent
