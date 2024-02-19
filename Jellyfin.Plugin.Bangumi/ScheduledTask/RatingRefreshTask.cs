@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Library;
 using MediaBrowser.Model.Tasks;
+using MediaBrowser.Model.Activity;
 
 #if !EMBY
 using Jellyfin.Data.Enums;
@@ -38,7 +39,9 @@ public class RatingRefreshTask : IScheduledTask
 #if EMBY
     public Task Execute(CancellationToken token, IProgress<double> progress)
     {
-        return Task.Run(async () => await ExecuteAsync(progress, token));
+        var task = Task.Run(async () => await ExecuteAsync(progress, token));
+        task.Wait();
+        return Task.CompletedTask;
     }
 #endif
 
