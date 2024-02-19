@@ -43,9 +43,5 @@
         <ItemGroup>
             <AssemblyDependencies Include="$(OutputPath)*.dll"/>
         </ItemGroup>
-        <MakeDir Directories="$(OutputPath)zip"/>
-        <Copy SourceFiles="@(AssemblyDependencies)" DestinationFolder="$(OutputPath)\zip"/>
-        <ZipDirectory SourceDirectory="$(OutputPath)zip" DestinationFile="$(MSBuildProjectDirectory)\..\$(AssemblyName).zip" Overwrite="true"/>
-        <RemoveDir Directories="$(OutputPath)zip"/>
     </Target>
 </Project>
