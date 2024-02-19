@@ -40,8 +40,6 @@
     </ItemGroup>
 
     <Target Name="Release" AfterTargets="Build" Condition="'$(Configuration)'=='Release'">
-        <ItemGroup>
-            <AssemblyDependencies Include="$(OutputPath)*.dll"/>
-        </ItemGroup>
+        <Copy SourceFiles="$(OutputPath)$(AssemblyName).dll" DestinationFolder="$(MSBuildProjectDirectory)/.."/>
     </Target>
 </Project>
