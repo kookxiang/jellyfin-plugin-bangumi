@@ -100,7 +100,11 @@ public class OAuthController : BaseApiService
     {
         var user = _sessionContext.GetUser(Request) ?? throw new ResourceNotFoundException();
         _store.Load();
-        var info = _store.Get(user.Id) ?? throw new ResourceNotFoundException();
+        var info = _store.Get(user.Id);
+        if (info == null)
+        {
+            return "null";
+        }
 
         if (string.IsNullOrEmpty(info.Avatar))
         {
