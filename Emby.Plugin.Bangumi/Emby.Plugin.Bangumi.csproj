@@ -23,7 +23,7 @@
             <Link>BangumiApi.cs</Link>
         </Compile>
         <Compile Include="..\Jellyfin.Plugin.Bangumi\Configuration\PluginConfiguration.cs">
-             <Link>Configuration\PluginConfiguration.cs</Link>
+            <Link>Configuration\PluginConfiguration.cs</Link>
         </Compile>
         <Compile Include="..\Jellyfin.Plugin.Bangumi\Model\*.cs">
             <Link>Model\*.cs</Link>

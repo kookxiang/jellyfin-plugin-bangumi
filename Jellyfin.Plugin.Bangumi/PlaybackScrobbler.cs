@@ -163,15 +163,21 @@ public class PlaybackScrobbler : IServerEntryPoint
                 }
 
                 var ratingLevel = item.OfficialRating is null ? null : _localizationManager.GetRatingLevel(item.OfficialRating);
+                // Brazil rating has digital rating level, up to 18 is not NSFW
+                var digitalRatingLevel = 0;
                 if (ratingLevel == null)
                     foreach (var parent in item.GetParents())
                     {
                         if (parent.OfficialRating == null) continue;
+
+                        if (int.TryParse(parent.OfficialRating, out digitalRatingLevel)) break;
+
                         ratingLevel = _localizationManager.GetRatingLevel(parent.OfficialRating);
                         if (ratingLevel != null) break;
                     }
 
-                if (ratingLevel >= RatingNSFW && Configuration.SkipNSFWPlaybackReport)
+                var isNSFW = (digitalRatingLevel >= 18) || (digitalRatingLevel == 0 && ratingLevel != null && ratingLevel >= RatingNSFW);
+                if (isNSFW && Configuration.SkipNSFWPlaybackReport)
                 {
                     _log.LogInformation("item #{Name} marked as NSFW, skipped", item.Name);
                     return;
