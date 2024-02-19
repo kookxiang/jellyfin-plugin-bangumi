@@ -10,8 +10,9 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="MediaBrowser.Server.Core" Version="4.8.0.80"/>
-        <PackageReference Include="Microsoft.AspNetCore.Authorization" IncludeAssets="compile" Version="6.0.12"/>
+        <PackageReference Include="MediaBrowser.Server.Core" Version="4.8.0.80" />
+        <PackageReference Include="Microsoft.AspNetCore.Authorization" IncludeAssets="compile" Version="6.0.12" />
+        <PackageReference Include="System.IO.Pipelines" IncludeAssets="compile" Version="6.0.0" />
     </ItemGroup>
 
     <ItemGroup>
@@ -33,13 +34,13 @@
     </ItemGroup>
 
     <ItemGroup>
-        <None Remove="Configuration\ConfigPage.html"/>
-        <None Remove="Configuration\ConfigPage.js"/>
-        <EmbeddedResource Include="Configuration\ConfigPage.html"/>
-        <EmbeddedResource Include="Configuration\ConfigPage.js"/>
+        <None Remove="Configuration\ConfigPage.html" />
+        <None Remove="Configuration\ConfigPage.js" />
+        <EmbeddedResource Include="Configuration\ConfigPage.html" />
+        <EmbeddedResource Include="Configuration\ConfigPage.js" />
     </ItemGroup>
 
     <Target Name="Release" AfterTargets="Build" Condition="'$(Configuration)'=='Release'">
-        <Copy SourceFiles="$(OutputPath)$(AssemblyName).dll" DestinationFolder="$(MSBuildProjectDirectory)/.."/>
+        <Copy SourceFiles="$(OutputPath)$(AssemblyName).dll" DestinationFolder="$(MSBuildProjectDirectory)/.." />
     </Target>
 </Project>

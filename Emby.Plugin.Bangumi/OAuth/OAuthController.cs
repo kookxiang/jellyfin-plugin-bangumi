@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using System.IO.Pipes;
 using System.Net;
 using System.Collections.Generic;
 using System.Net.Http;
@@ -12,8 +13,9 @@ using MediaBrowser.Model.Serialization;
 using MediaBrowser.Common.Net;
 using MediaBrowser.Controller.Configuration;
 using MediaBrowser.Controller.Devices;
-using MediaBrowser.Controller.Library;
 using MediaBrowser.Model.Services;
+using System.Text;
+using MediaBrowser.Controller.Library;
 using MediaBrowser.Controller.Session;
 using MediaBrowser.Model.Configuration;
 using MediaBrowser.Model.Connect;
@@ -58,14 +60,14 @@ public class DeAuth : IReturnVoid
 }
 
 [Route("/Bangumi/Redirect", "GET")]
-public class Redirect : IReturn<string>
+public class Redirect : IReturnVoid
 {
     public string prefix { get; set; } = string.Empty;
     public string user { get; set; } = string.Empty;
 }
 
 [Route("/Bangumi/OAuth", "GET")]
-public class OAuth : IReturn<string>
+public class OAuth : IReturnVoid
 {
     public string code { get; set; } = string.Empty;
     public string user { get; set; } = string.Empty;
@@ -141,17 +143,34 @@ public class OAuthController : BaseApiService
         _store.Save();
     }
 
-    public string Get(Redirect redirect)
+    public void Get(Redirect redirect)
     {
         _oAuthPath = $"{redirect.prefix}/Bangumi/OAuth";
         var redirectUri = Uri.EscapeDataString($"{_oAuthPath}?user={redirect.user}");
         var url = $"https://bgm.tv/oauth/authorize?client_id={ApplicationId}&redirect_uri={redirectUri}&response_type=code";
-        return url;
+        Request.Response.Redirect(url);
     }
 
-    public async Task<string> Get(OAuth oAuth)
+    public async Task MakeHtmlResp(string content)
     {
-        var urlPrefix = _oAuthPath ?? throw new Exception("Please reopen the authorization page");
+        var response = Request.Response;
+        response.ContentType = "text/html";
+        response.StatusCode = (int)HttpStatusCode.OK;
+
+        var writer = response.OutputWriter;
+        var bytes = Encoding.UTF8.GetBytes(content);
+        await writer.WriteAsync(bytes);
+        await response.CompleteAsync();
+    }
+
+    public async Task Get(OAuth oAuth)
+    {
+        var urlPrefix = _oAuthPath;
+        if (urlPrefix == null)
+        {
+            await MakeHtmlResp("Please reopen the authorization page");
+            return;
+        }
         var formData = new FormUrlEncodedContent(new[]
         {
             new KeyValuePair<string, string>("grant_type", "authorization_code"),
@@ -169,7 +188,11 @@ public class OAuthController : BaseApiService
         var isFailed = response.StatusCode >= HttpStatusCode.MovedPermanently;
         var stream = new StreamReader(response.Content);
         var responseBody = await stream.ReadToEndAsync();
-        if (isFailed) return responseBody;
+        if (isFailed)
+        {
+            await MakeHtmlResp(responseBody);
+            return;
+        }
         var result = JsonSerializer.Deserialize<OAuthUser>(responseBody)!;
         result.EffectiveTime = DateTime.Now;
         await result.GetProfile(_api);
@@ -178,6 +201,6 @@ public class OAuthController : BaseApiService
         _store.Set(oAuth.user, result);
         _store.Save();
 
-        return $"Authenticate success for {result.NickName}, please close the window and refresh the Emby window";
+        await MakeHtmlResp("<script>window.opener.postMessage('BANGUMI-OAUTH-COMPLETE'); window.close()</script>");
     }
 }
