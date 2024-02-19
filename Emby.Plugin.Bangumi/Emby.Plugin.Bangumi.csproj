@@ -33,7 +33,8 @@
     </ItemGroup>
 
     <ItemGroup>
-        <!-- <None Remove="Configuration\configPage.html"/> -->
+        <None Remove="Configuration\ConfigPage.html"/>
+        <None Remove="Configuration\ConfigPage.js"/>
         <EmbeddedResource Include="Configuration\ConfigPage.html"/>
         <EmbeddedResource Include="Configuration\ConfigPage.js"/>
     </ItemGroup>

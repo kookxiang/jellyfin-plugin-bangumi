@@ -1,6 +1,4 @@
 ﻿using System;
-using System.IO;
-using System.Net;
 using System.Collections.Generic;
 using System.Net.Http;
 using System.Text.Json;
@@ -8,10 +6,6 @@ using System.Threading.Tasks;
 using MediaBrowser.Controller.Net;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-
-#if EMBY
-using HttpRequestOptions = MediaBrowser.Common.Net.HttpRequestOptions;
-#endif
 
 namespace Jellyfin.Plugin.Bangumi.OAuth;
 
@@ -39,13 +33,10 @@ public class OAuthController : ControllerBase
     [Authorize("DefaultAuthorization")]
     public async Task<Dictionary<string, object?>?> OAuthState()
     {
-#if EMBY
-        var user = await Task.Run(() => _sessionContext.GetUser(Request));
-#else
         var user = await _sessionContext.GetUser(Request);
-#endif
         if (user == null)
             return null;
+        _store.Load();
         var info = _store.Get(user.Id);
         if (info == null)
             return null;
@@ -71,13 +62,10 @@ public class OAuthController : ControllerBase
     [Authorize("DefaultAuthorization")]
     public async Task<ActionResult> RefreshOAuthToken()
     {
-#if EMBY
-        var user = await Task.Run(() => _sessionContext.GetUser(Request));
-#else
         var user = await _sessionContext.GetUser(Request);
-#endif
         if (user == null)
             return BadRequest();
+        _store.Load();
         var info = _store.Get(user.Id);
         if (info == null)
             return BadRequest();
@@ -91,13 +79,10 @@ public class OAuthController : ControllerBase
     [Authorize("DefaultAuthorization")]
     public async Task<ActionResult> DeAuth()
     {
-#if EMBY
-        var user = await Task.Run(() => _sessionContext.GetUser(Request));
-#else
         var user = await _sessionContext.GetUser(Request);
-#endif
         if (user == null)
             return BadRequest();
+        _store.Load();
         _store.Delete(user.Id);
         _store.Save();
         return Accepted();
@@ -124,25 +109,13 @@ public class OAuthController : ControllerBase
             new KeyValuePair<string, string>("code", code),
             new KeyValuePair<string, string>("redirect_uri", $"{urlPrefix}?user={user}")
         });
-#if EMBY
-        var options = new HttpRequestOptions
-        {
-            Url = "https://bgm.tv/oauth/access_token",
-            RequestHttpContent = formData
-        };
-        var response = await _api.GetHttpClient().SendAsync(options, "POST");
-        var isFailed = response.StatusCode >= HttpStatusCode.MovedPermanently;
-        var stream = new StreamReader(response.Content);
-        var responseBody = await stream.ReadToEndAsync();
-#else
         var response = await _api.GetHttpClient().PostAsync("https://bgm.tv/oauth/access_token", formData);
         var responseBody = await response.Content.ReadAsStringAsync();
-        var isFailed = !response.IsSuccessStatusCode;
-#endif
-        if (isFailed) return JsonSerializer.Deserialize<OAuthError>(responseBody);
+        if (!response.IsSuccessStatusCode) return JsonSerializer.Deserialize<OAuthError>(responseBody);
         var result = JsonSerializer.Deserialize<OAuthUser>(responseBody)!;
         result.EffectiveTime = DateTime.Now;
         await result.GetProfile(_api);
+        _store.Load();
         _store.Set(user, result);
         _store.Save();
         return Content("<script>window.opener.postMessage('BANGUMI-OAUTH-COMPLETE'); window.close()</script>", "text/html");

@@ -122,6 +122,7 @@ public class PlaybackScrobbler : IServerEntryPoint
                 episodeId = episodeList.Data.First().Id;
         }
 
+        _store.Load();
         var user = _store.Get(userId);
         if (user == null)
         {

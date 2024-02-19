@@ -99,6 +99,7 @@ public class OAuthController : BaseApiService
     public async Task<object?> Get(OAuthState oAuthState)
     {
         var user = _sessionContext.GetUser(Request) ?? throw new ResourceNotFoundException();
+        _store.Load();
         var info = _store.Get(user.Id) ?? throw new ResourceNotFoundException();
 
         if (string.IsNullOrEmpty(info.Avatar))
@@ -121,6 +122,7 @@ public class OAuthController : BaseApiService
     public async Task Post(RefreshOAuthToken refreshOAuthToken)
     {
         var user = await Task.Run(() => _sessionContext.GetUser(Request)) ?? throw new ResourceNotFoundException();
+        _store.Load();
         var info = _store.Get(user.Id) ?? throw new ResourceNotFoundException();
         await info.Refresh(_api.GetHttpClient());
         await info.GetProfile(_api);
@@ -130,6 +132,7 @@ public class OAuthController : BaseApiService
     public void Delete(DeAuth deAuth)
     {
         var user = _sessionContext.GetUser(Request) ?? throw new ResourceNotFoundException();
+        _store.Load();
         _store.Delete(user.Id);
         _store.Save();
     }
@@ -167,6 +170,7 @@ public class OAuthController : BaseApiService
         result.EffectiveTime = DateTime.Now;
         await result.GetProfile(_api);
         _log.Info($"UserName: {result.NickName}, ProfileUrl: {result.ProfileUrl}");
+        _store.Load();
         _store.Set(oAuth.user, result);
         _store.Save();
 

@@ -57,12 +57,15 @@ public class TokenRefreshTask : IScheduledTask
 #if EMBY
     public Task Execute(CancellationToken token, IProgress<double> progress)
     {
-        return Task.Run(async () => await ExecuteAsync(progress, token));
+        var task = Task.Run(async () => await ExecuteAsync(progress, token));
+        task.Wait();
+        return Task.CompletedTask;
     }
 #endif
 
     public async Task ExecuteAsync(IProgress<double> progress, CancellationToken token)
     {
+        _store.Load();
         var users = _store.GetUsers();
         var current = 0d;
         var total = users.Count;
@@ -76,12 +79,15 @@ public class TokenRefreshTask : IScheduledTask
                 continue;
 
 #if EMBY
-            var activity = new ActivityLogEntry();
+            var activity = new ActivityLogEntry
+            {
+                Name = "Bangumi 授权",
+                Type = "Bangumi",
+            };
             try
             {
                 await user.Refresh(_api.GetHttpClient(), token);
                 await user.GetProfile(_api, token);
-                activity.Name = "Bangumi 授权";
                 activity.ShortOverview = $"用户 #{user.UserId} 授权刷新成功";
                 activity.Severity = MediaBrowser.Model.Logging.LogSeverity.Info;
             }
