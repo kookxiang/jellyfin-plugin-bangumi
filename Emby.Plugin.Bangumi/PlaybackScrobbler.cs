@@ -116,8 +116,8 @@ public class PlaybackScrobbler : IServerEntryPoint
 
         if (item is Movie)
         {
-            episodeId = subjectId;
-            // jellyfin only have subject id for movie, so we need to get episode id from bangumi api
+            // emby will store the subject id as the sole provider id, and there is no episode id
+            subjectId = episodeId;
             var episodeList = await _api.GetSubjectEpisodeListWithOffset(subjectId, EpisodeType.Normal, 0, CancellationToken.None);
             if (episodeList?.Data.Count > 0)
                 episodeId = episodeList.Data.First().Id;
