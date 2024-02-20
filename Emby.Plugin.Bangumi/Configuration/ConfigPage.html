@@ -1,6 +1,7 @@
 ﻿<div is="emby-scroller" class="view flex flex-direction-column scrollFrameY flex-grow" data-horizontal="false"
     data-forcescrollbar="true" data-centerfocus="true" data-bindheader="true" data-title="Bangumi"
-    data-controller="__plugin/BangumiJS" id="bangumiConfigurationPage">
+    data-require="emby-select,emby-input,emby-checkbox,emby-button,material-icons" data-controller="__plugin/BangumiJS"
+    id="bangumiConfigurationPage">
     <div
         class="scrollSlider flex-grow flex-direction-column padded-left padded-left-page padded-right padded-top-page padded-bottom-page">
 
@@ -90,7 +91,7 @@
                             </div>
                             <div class="user-name">未登录</div>
                             <a class="profile-link fab" href="https://bgm.tv/" target="_blank">
-                                <span class="material-icons open_in_new"></span>
+                                <i class="md-icon">open_in_new</i>
                             </a>
                         </div>
                     </div>
@@ -137,8 +138,7 @@
                     </div>
                 </div>
                 <div class="selectContainer">
-                    <label class="selectLabel" for="RequestTimeout">请求超时时间</label>
-                    <select class="emby-select-withcolor emby-select" id="RequestTimeout" is="emby-select">
+                    <select is="emby-select" id="RequestTimeout" label="请求超时时间">
                         <option value="5000">5 秒</option>
                         <option value="10000">10 秒</option>
                         <option value="30000">30 秒</option>
@@ -151,8 +151,7 @@
                     </div>
                 </div>
                 <div class="selectContainer">
-                    <label class="selectLabel" for="TranslationPreference">标题翻译</label>
-                    <select class="emby-select-withcolor emby-select" id="TranslationPreference" is="emby-select">
+                    <select is="emby-select" id="TranslationPreference" label="标题翻译">
                         <option value="Original">优先使用日文</option>
                         <option value="Chinese">优先使用中文翻译</option>
                     </select>
@@ -189,12 +188,12 @@
                         </label>
                     </div>
                 </div>
-                <div class="verticalSection verticalSection">
+                <!-- <div class="verticalSection verticalSection">
                     <div class="sectionTitleContainer flex align-items-center">
                         <h2 class="sectionTitle">AnitomySharp</h2>
                     </div>
                 </div>
-                <!-- <div class="selectContainer">
+                <div class="selectContainer">
                     <div class="checkboxContainer checkboxContainer-withDescription">
                         <label class="emby-checkbox-label">
                             <input id="AlwaysGetEpisodeByAnitomySharp" is="emby-checkbox" type="checkbox" />

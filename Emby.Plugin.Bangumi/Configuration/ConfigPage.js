@@ -1,6 +1,6 @@
 define([
     'baseView', 'loading', 'alert', 'confirm', 'jQuery',
-    'emby-scroller'],
+    'emby-scroller', 'emby-select', 'emby-input', 'emby-checkbox', 'emby-button'],
     function (BaseView, loading, alert, confirm, $) {
         'use strict';
 
