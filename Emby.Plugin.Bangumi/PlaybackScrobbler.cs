@@ -54,13 +54,11 @@ public class PlaybackScrobbler : IServerEntryPoint
 
     public void Run()
     {
-        _log.Info("Init PlaybackScrobbler");
         _userDataManager.UserDataSaved += OnUserDataSaved;
     }
 
     private void OnUserDataSaved(object? sender, UserDataSaveEventArgs e)
     {
-        _log.Info($"OnUserDataSaved, reason: {e.SaveReason}, item: {e.Item}");
         switch (e.SaveReason)
         {
             case UserDataSaveReason.TogglePlayed when e.UserData.Played:
