@@ -10,7 +10,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace Jellyfin.Plugin.Bangumi.OAuth;
 
 [ApiController]
-[Route("/Bangumi")]
+[Route("Plugins/Bangumi")]
 public class OAuthController : ControllerBase
 {
     protected internal const string ApplicationId = "bgm16185f43c213d11c9";
