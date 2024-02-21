@@ -167,10 +167,10 @@ public class PlaybackScrobbler : IServerEntryPoint
                     {
                         if (parent.OfficialRating == null) continue;
 
-                        if (int.TryParse(parent.OfficialRating, out ratingLevel))
+                        if (int.TryParse(parent.OfficialRating, out int digitalRating))
                         {
                             // Brazil rating has digital rating level, up to 18 is not NSFW
-                            ratingLevel = ratingLevel >= 18 ? RatingNSFW : 0;
+                            ratingLevel = digitalRating >= 18 ? RatingNSFW : 0;
                             break;
                         }
 
