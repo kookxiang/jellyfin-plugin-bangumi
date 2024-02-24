@@ -1,29 +1,17 @@
 ﻿using System;
 using System.IO;
-using System.IO.Pipes;
 using System.Net;
 using System.Collections.Generic;
 using System.Net.Http;
 using System.Text.Json;
-using System.Linq;
 using MediaBrowser.Common.Extensions;
 using MediaBrowser.Model.Logging;
 using MediaBrowser.Controller.Net;
-using MediaBrowser.Model.Serialization;
-using MediaBrowser.Common.Net;
-using MediaBrowser.Controller.Configuration;
-using MediaBrowser.Controller.Devices;
 using MediaBrowser.Model.Services;
 using System.Text;
 using MediaBrowser.Controller.Library;
 using MediaBrowser.Controller.Session;
-using MediaBrowser.Model.Configuration;
-using MediaBrowser.Model.Connect;
-using MediaBrowser.Model.Dto;
-using MediaBrowser.Model.Users;
 using System.Threading.Tasks;
-using MediaBrowser.Controller.Authentication;
-using Microsoft.AspNetCore.Authorization;
 
 using HttpRequestOptions = MediaBrowser.Common.Net.HttpRequestOptions;
 using MediaBrowser.Controller.Api;
@@ -42,19 +30,16 @@ public class AuthState
 }
 
 [Route("/Bangumi/OAuthState", "GET")]
-// [Authenticated]
 public class OAuthState : IReturn<AuthState>
 {
 }
 
 [Route("/Bangumi/RefreshOAuthToken", "POST")]
-// [Authenticated]
 public class RefreshOAuthToken : IReturnVoid
 {
 }
 
 [Route("/Bangumi/OAuth", "DELETE")]
-// [Authenticated]
 public class DeAuth : IReturnVoid
 {
 }
@@ -74,7 +59,7 @@ public class OAuth : IReturnVoid
 }
 
 [Unauthenticated]
-public class OAuthController : BaseApiService
+public class OAuthController : IService, IRequiresRequest
 {
     protected internal const string ApplicationId = "bgm16185f43c213d11c9";
     protected internal const string ApplicationSecret = "1b28040afd28882aecf23dcdd86be9f7";
@@ -85,6 +70,8 @@ public class OAuthController : BaseApiService
     private readonly OAuthStore _store;
     private readonly ISessionContext _sessionContext;
     private readonly ISessionManager _sessionManager;
+
+    public IRequest Request { get; set; }
 
     ILogger _log;
 
