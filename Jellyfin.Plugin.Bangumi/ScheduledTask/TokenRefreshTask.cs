@@ -7,12 +7,10 @@ using MediaBrowser.Controller.Notifications;
 using MediaBrowser.Model.Activity;
 using MediaBrowser.Controller.Library;
 using MediaBrowser.Model.Tasks;
-using Microsoft.Extensions.Logging;
-
-#if EMBY
-using Emby.Notifications;
-#else
 using MediaBrowser.Model.Notifications;
+
+#if !EMBY
+using Microsoft.Extensions.Logging;
 using Jellyfin.Data.Entities;
 #endif
 
@@ -95,15 +93,15 @@ public class TokenRefreshTask : IScheduledTask
             {
                 activity.ShortOverview = $"用户 #{user.UserId} 授权刷新失败: {e.Message}";
                 activity.Severity = MediaBrowser.Model.Logging.LogSeverity.Warn;
-                _notification.SendNotification(new NotificationRequest
+                await _notification.SendNotification(new NotificationRequest
                 {
-                    Title = activity.ShortOverview,
+                    Name = activity.ShortOverview,
                     Description = e.StackTrace,
-                    User = _userManager.GetUserById(userId),
+                    Level = NotificationLevel.Warning,
+                    UserIds = new[] { _userManager.GetUserById(userId).InternalId },
                     Date = DateTime.Now
-                });
+                }, token);
             }
-
             _activity.Create(activity);
 #else
             var activity = new ActivityLog("Bangumi 授权", "Bangumi", userId);
@@ -127,6 +125,7 @@ public class TokenRefreshTask : IScheduledTask
                     Date = DateTime.Now
                 }, token);
             }
+            await _activity.CreateAsync(activity);
 #endif
         }
 
