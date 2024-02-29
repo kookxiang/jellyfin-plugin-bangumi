@@ -40,7 +40,7 @@ public class SeriesProvider : IRemoteMetadataProvider<Series, SeriesInfo>, IHasO
         if (subjectId == 0)
         {
             var searchName = info.Name;
-            _log.Info("Searching {Name} in bgm.tv", searchName);
+            _log.Info("Searching {0} in bgm.tv", searchName);
             var searchResult = await _api.SearchSubject(searchName, token);
             if (info.Year != null)
                 searchResult = searchResult.FindAll(x => x.ProductionYear == null || x.ProductionYear == info.Year.ToString());

@@ -34,7 +34,7 @@ public class EpisodeProvider : IRemoteMetadataProvider<Episode, EpisodeInfo>, IH
         token.ThrowIfCancellationRequested();
         var episode = await GetEpisode(info, token);
 
-        _log.Info("metadata for {File}: {EpisodeInfo}", info.Name, episode);
+        _log.Info("metadata for {0}: {1}", info.Name, episode);
 
         var result = new MetadataResult<Episode> { ResultLanguage = Constants.Language };
 
