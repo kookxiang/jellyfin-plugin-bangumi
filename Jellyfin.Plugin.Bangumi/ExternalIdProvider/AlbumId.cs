@@ -1,22 +1,22 @@
-using MediaBrowser.Controller.Entities.Movies;
+using MediaBrowser.Controller.Entities.Audio;
 using MediaBrowser.Controller.Providers;
 using MediaBrowser.Model.Entities;
 using MediaBrowser.Model.Providers;
 
-namespace Jellyfin.Plugin.Bangumi.Extension;
+namespace Jellyfin.Plugin.Bangumi.ExternalIdProvider;
 
-public class ExternalMovieId : IExternalId
+public class AlbumId : IExternalId
 {
     public bool Supports(IHasProviderIds item)
     {
-        return item is Movie;
+        return item is MusicAlbum;
     }
 
     public string ProviderName => Constants.ProviderName;
 
     public string Key => Constants.ProviderName;
 
-    public ExternalIdMediaType? Type => ExternalIdMediaType.Series;
+    public ExternalIdMediaType? Type => ExternalIdMediaType.Album;
 
     public string UrlFormatString => "https://bgm.tv/subject/{0}";
 }
