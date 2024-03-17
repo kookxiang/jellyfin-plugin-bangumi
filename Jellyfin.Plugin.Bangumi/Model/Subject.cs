@@ -12,7 +12,17 @@ namespace Jellyfin.Plugin.Bangumi.Model;
 
 public class Subject
 {
+    private static PluginConfiguration Configuration => Plugin.Instance!.Configuration;
+
     public int Id { get; set; }
+
+    [JsonIgnore]
+    public string? Name => Configuration.TranslationPreference switch
+    {
+        TranslationPreferenceType.Chinese => string.IsNullOrEmpty(ChineseName) ? OriginalName : ChineseName,
+        TranslationPreferenceType.Original => OriginalName,
+        _ => OriginalName
+    };
 
     [JsonIgnore]
     public string OriginalName => WebUtility.HtmlDecode(OriginalNameRaw);
@@ -26,7 +36,11 @@ public class Subject
     [JsonPropertyName("name_cn")]
     public string? ChineseNameRaw { get; set; }
 
-    public string? Summary { get; set; }
+    [JsonIgnore]
+    public string? Summary => Configuration.ConvertLineBreaks ? SummaryRaw?.ReplaceLineEndings(Constants.HtmlLineBreak) : SummaryRaw;
+
+    [JsonPropertyName("summary")]
+    public string? SummaryRaw { get; set; }
 
     [JsonPropertyName("date")]
     public string? Date { get; set; }
@@ -65,16 +79,6 @@ public class Subject
             var baseline = Tags.Sum(tag => tag.Count) / 25;
             return Tags.Where(tag => tag.Count >= baseline).Select(tag => tag.Name).ToArray();
         }
-    }
-
-    public string GetName(PluginConfiguration? configuration = default)
-    {
-        return configuration?.TranslationPreference switch
-        {
-            TranslationPreferenceType.Chinese => string.IsNullOrEmpty(ChineseName) ? OriginalName : ChineseName!,
-            TranslationPreferenceType.Original => OriginalName,
-            _ => OriginalName
-        };
     }
 
     public static List<Subject> SortBySimilarity(IEnumerable<Subject> list, string keyword)

@@ -47,7 +47,7 @@ public class SeasonProvider : IRemoteMetadataProvider<Season, SeasonInfo>, IHasO
         result.Item.CommunityRating = subject.Rating?.Score;
         if (Configuration.UseBangumiSeasonTitle)
         {
-            result.Item.Name = subject.GetName(Configuration);
+            result.Item.Name = subject.Name;
             result.Item.OriginalTitle = subject.OriginalName;
         }
 

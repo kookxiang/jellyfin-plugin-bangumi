@@ -38,6 +38,18 @@ public class Person
     }
 
     [TestMethod]
+    public async Task LineBreaksConversion()
+    {
+        var result = await _provider.GetMetadata(new PersonLookupInfo
+        {
+            ProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "389" } }
+        }, _token);
+        Assert.IsNotNull(result.Item, "person info should not be null");
+        Assert.IsTrue(result.Item.Overview.Contains("<br>"), "should convert line breaks to html tag");
+        Assert.IsNotNull(result.Item.ProviderIds[Constants.ProviderName], "should have plugin provider id");
+    }
+
+    [TestMethod]
     public async Task ImageProvider()
     {
         var person = new MediaBrowser.Controller.Entities.Person();

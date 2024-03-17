@@ -87,7 +87,7 @@ public class MovieProvider : IRemoteMetadataProvider<Movie, MovieInfo>, IHasOrde
 
         result.Item.ProviderIds.Add(Constants.ProviderName, subject.Id.ToString());
         result.Item.CommunityRating = subject.Rating?.Score;
-        result.Item.Name = subject.GetName(Configuration);
+        result.Item.Name = subject.Name;
         result.Item.OriginalTitle = subject.OriginalName;
         result.Item.Overview = string.IsNullOrEmpty(subject.Summary) ? null : subject.Summary;
         result.Item.Tags = subject.PopularTags;
@@ -119,7 +119,7 @@ public class MovieProvider : IRemoteMetadataProvider<Movie, MovieInfo>, IHasOrde
                 return results;
             var result = new RemoteSearchResult
             {
-                Name = subject.GetName(Configuration),
+                Name = subject.Name,
                 SearchProviderName = subject.OriginalName,
                 ImageUrl = subject.DefaultImage,
                 Overview = subject.Summary
@@ -140,7 +140,7 @@ public class MovieProvider : IRemoteMetadataProvider<Movie, MovieInfo>, IHasOrde
                 var itemId = $"{item.Id}";
                 var result = new RemoteSearchResult
                 {
-                    Name = item.GetName(Configuration),
+                    Name = item.Name,
                     SearchProviderName = item.OriginalName,
                     ImageUrl = item.DefaultImage,
                     Overview = item.Summary
