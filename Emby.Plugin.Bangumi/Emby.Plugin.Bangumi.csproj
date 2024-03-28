@@ -10,7 +10,7 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="MediaBrowser.Server.Core" Version="4.8.0.80" />
+        <PackageReference Include="MediaBrowser.Server.Core" Version="4.9.0.12-beta" />
         <PackageReference Include="System.IO.Pipelines" IncludeAssets="compile" Version="6.0.0" />
     </ItemGroup>
 

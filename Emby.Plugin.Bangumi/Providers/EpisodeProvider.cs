@@ -94,8 +94,9 @@ public class EpisodeProvider : IRemoteMetadataProvider<Episode, EpisodeInfo>, IH
 
     private async Task<Model.Episode?> GetEpisode(EpisodeInfo info, CancellationToken token)
     {
-        if (!int.TryParse(info.SeriesProviderIds.GetOrDefault(Constants.ProviderName), out var seriesId))
-            return null;
+        if (!int.TryParse(info.SeasonProviderIds.GetOrDefault(Constants.ProviderName), out var seasonId))
+            if (!int.TryParse(info.SeriesProviderIds.GetOrDefault(Constants.ProviderName), out seasonId))
+                return null;
 
         double? episodeIndex = info.IndexNumber;
 
@@ -111,12 +112,12 @@ public class EpisodeProvider : IRemoteMetadataProvider<Episode, EpisodeInfo>, IH
             if (Configuration.TrustExistedBangumiId)
                 return episode;
 
-            if (episode.ParentId == seriesId && Math.Abs(episode.Order - episodeIndex.Value) < 0.1)
+            if (episode.ParentId == seasonId && Math.Abs(episode.Order - episodeIndex.Value) < 0.1)
                 return episode;
         }
 
     SkipBangumiId:
-        var episodeListData = await _api.GetSubjectEpisodeList(seriesId, null, episodeIndex.Value, token);
+        var episodeListData = await _api.GetSubjectEpisodeList(seasonId, null, episodeIndex.Value, token);
         if (episodeListData == null)
             return null;
         try
