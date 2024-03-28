@@ -1,27 +1,28 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using Jellyfin.Plugin.Bangumi.Configuration;
 using Jellyfin.Plugin.Bangumi.Model;
+using MediaBrowser.Controller.Entities.Movies;
 using MediaBrowser.Common.Net;
-using MediaBrowser.Controller.Entities.TV;
 using MediaBrowser.Controller.Providers;
 using MediaBrowser.Model.Entities;
-using MediaBrowser.Model.Logging;
 using MediaBrowser.Model.Providers;
+using MediaBrowser.Model.Logging;
 
 namespace Jellyfin.Plugin.Bangumi.Providers;
 
-public class SeriesProvider : IRemoteMetadataProvider<Series, SeriesInfo>, IHasOrder
+public class MovieProvider : IRemoteMetadataProvider<Movie, MovieInfo>, IHasOrder
 {
     private readonly BangumiApi _api;
     private readonly ILogger _log;
 
-    public SeriesProvider(BangumiApi api, ILogger log)
+    public MovieProvider(BangumiApi api, ILogger logger)
     {
         _api = api;
-        _log = log;
+        _log = logger;
     }
 
     private static PluginConfiguration Configuration => Plugin.Instance!.Configuration;
@@ -30,17 +31,19 @@ public class SeriesProvider : IRemoteMetadataProvider<Series, SeriesInfo>, IHasO
 
     public string Name => Constants.ProviderName;
 
-    public async Task<MetadataResult<Series>> GetMetadata(SeriesInfo info, CancellationToken token)
+    public async Task<MetadataResult<Movie>> GetMetadata(MovieInfo info, CancellationToken token)
     {
         token.ThrowIfCancellationRequested();
-        var result = new MetadataResult<Series> { ResultLanguage = Constants.Language };
+        var result = new MetadataResult<Movie> { ResultLanguage = Constants.Language };
 
-        _ = int.TryParse(info.GetProviderId(Constants.ProviderName), out var subjectId);
+        if (int.TryParse(info.ProviderIds.GetOrDefault(Constants.ProviderName), out var subjectId))
+        {
+        }
 
         if (subjectId == 0)
         {
             var searchName = info.Name;
-            _log.Info("Searching {Name} in bgm.tv", searchName);
+            _log.Info("Searching {0} in bgm.tv", searchName);
             var searchResult = await _api.SearchSubject(searchName, token);
             if (info.Year != null)
                 searchResult = searchResult.FindAll(x => x.ProductionYear == null || x.ProductionYear == info.Year.ToString());
@@ -55,7 +58,7 @@ public class SeriesProvider : IRemoteMetadataProvider<Series, SeriesInfo>, IHasO
         if (subject == null)
             return result;
 
-        result.Item = new Series();
+        result.Item = new Movie();
         result.HasMetadata = true;
 
         result.Item.ProviderIds.Add(Constants.ProviderName, subject.Id.ToString());
@@ -66,13 +69,7 @@ public class SeriesProvider : IRemoteMetadataProvider<Series, SeriesInfo>, IHasO
         result.Item.Tags = subject.PopularTags;
 
         if (DateTime.TryParse(subject.AirDate, out var airDate))
-        {
-            result.Item.AirTime = subject.AirDate;
-            result.Item.AirDays = new[] { airDate.DayOfWeek };
             result.Item.PremiereDate = airDate;
-            result.Item.ProductionYear = airDate.Year;
-        }
-
         if (subject.ProductionYear?.Length == 4)
             result.Item.ProductionYear = int.Parse(subject.ProductionYear);
 
@@ -85,13 +82,13 @@ public class SeriesProvider : IRemoteMetadataProvider<Series, SeriesInfo>, IHasO
         return result;
     }
 
-    public async Task<IEnumerable<RemoteSearchResult>> GetSearchResults(SeriesInfo searchInfo,
+    public async Task<IEnumerable<RemoteSearchResult>> GetSearchResults(MovieInfo searchInfo,
         CancellationToken token)
     {
         token.ThrowIfCancellationRequested();
         var results = new List<RemoteSearchResult>();
 
-        if (int.TryParse(searchInfo.GetProviderId(Constants.ProviderName), out var id))
+        if (int.TryParse(searchInfo.ProviderIds.GetOrDefault(Constants.ProviderName), out var id))
         {
             var subject = await _api.GetSubject(id, token);
             if (subject == null)

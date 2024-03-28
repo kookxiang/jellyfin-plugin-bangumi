@@ -36,6 +36,7 @@ public class OAuthController : ControllerBase
         var user = await _sessionContext.GetUser(Request);
         if (user == null)
             return null;
+        _store.Load();
         var info = _store.Get(user.Id);
         if (info == null)
             return null;
@@ -64,10 +65,11 @@ public class OAuthController : ControllerBase
         var user = await _sessionContext.GetUser(Request);
         if (user == null)
             return BadRequest();
+        _store.Load();
         var info = _store.Get(user.Id);
         if (info == null)
             return BadRequest();
-        await info.Refresh(_api.GetHttpClient(), user.Id);
+        await info.Refresh(_api.GetHttpClient());
         await info.GetProfile(_api);
         _store.Save();
         return Accepted();
@@ -80,6 +82,7 @@ public class OAuthController : ControllerBase
         var user = await _sessionContext.GetUser(Request);
         if (user == null)
             return BadRequest();
+        _store.Load();
         _store.Delete(user.Id);
         _store.Save();
         return Accepted();
@@ -88,7 +91,7 @@ public class OAuthController : ControllerBase
     [HttpGet("Redirect")]
     public Task<ActionResult> SetCallbackUrl([FromQuery(Name = "prefix")] string urlPrefix, [FromQuery(Name = "user")] string user)
     {
-        _oAuthPath = $"{urlPrefix}/Plugins/Bangumi/OAuth";
+        _oAuthPath = $"{urlPrefix}/Bangumi/OAuth";
         var redirectUri = Uri.EscapeDataString($"{_oAuthPath}?user={user}");
         return Task.FromResult<ActionResult>(
             Redirect($"https://bgm.tv/oauth/authorize?client_id={ApplicationId}&redirect_uri={redirectUri}&response_type=code"));
@@ -112,6 +115,7 @@ public class OAuthController : ControllerBase
         var result = JsonSerializer.Deserialize<OAuthUser>(responseBody)!;
         result.EffectiveTime = DateTime.Now;
         await result.GetProfile(_api);
+        _store.Load();
         _store.Set(user, result);
         _store.Save();
         return Content("<script>window.opener.postMessage('BANGUMI-OAUTH-COMPLETE'); window.close()</script>", "text/html");

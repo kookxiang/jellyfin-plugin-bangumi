@@ -10,11 +10,14 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="MediaBrowser.Server.Core" Version="4.7.1"/>
-        <PackageReference Include="Microsoft.AspNetCore.Authorization" Version="6.0.12"/>
+        <PackageReference Include="MediaBrowser.Server.Core" Version="4.9.0.12-beta" />
+        <PackageReference Include="System.IO.Pipelines" IncludeAssets="compile" Version="6.0.0" />
     </ItemGroup>
 
     <ItemGroup>
+        <Compile Include="..\Jellyfin.Plugin.Bangumi\BangumiApi.Auth.cs">
+            <Link>BangumiApi.Auth.cs</Link>
+        </Compile>
         <Compile Include="..\Jellyfin.Plugin.Bangumi\BangumiApi.cs">
             <Link>BangumiApi.cs</Link>
         </Compile>
@@ -24,14 +27,22 @@
         <Compile Include="..\Jellyfin.Plugin.Bangumi\Model\*.cs">
             <Link>Model\*.cs</Link>
         </Compile>
+        <Compile Include="..\Jellyfin.Plugin.Bangumi\OAuth\*.cs" Exclude="..\Jellyfin.Plugin.Bangumi\OAuth\OAuthController.cs">
+            <Link>OAuth\*.cs</Link>
+        </Compile>
+        <Compile Include="..\Jellyfin.Plugin.Bangumi\ScheduledTask\*.cs">
+            <Link>ScheduledTask\*.cs</Link>
+        </Compile>
     </ItemGroup>
 
     <ItemGroup>
-        <None Remove="Configuration\configPage.html"/>
-        <EmbeddedResource Include="Configuration\ConfigPage.html"/>
+        <None Remove="Configuration\ConfigPage.html" />
+        <None Remove="Configuration\ConfigPage.js" />
+        <EmbeddedResource Include="Configuration\ConfigPage.html" />
+        <EmbeddedResource Include="Configuration\ConfigPage.js" />
     </ItemGroup>
 
     <Target Name="Release" AfterTargets="Build" Condition="'$(Configuration)'=='Release'">
-        <Copy SourceFiles="$(OutputPath)$(AssemblyName).dll" DestinationFolder="$(MSBuildProjectDirectory)/.."/>
+        <Copy SourceFiles="$(OutputPath)$(AssemblyName).dll" DestinationFolder="$(MSBuildProjectDirectory)/.." />
     </Target>
 </Project>

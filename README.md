@@ -27,3 +27,12 @@ Jellyfin bgm.tv 数据源插件，用于拉取中文番剧信息及图片。
 
 1. 下载插件 DLL 文件至 `Jellyfin 数据目录/Plugins/Bangumi`
 2. 重新启动 Jellyfin
+
+# Emby 安装
+
+Emby 版本的插件要求 4.9.0.12 及以上的版本，低于这个版本的会无法启动插件。
+
+可以从 [linuxserver/emby](https://hub.docker.com/r/linuxserver/emby/tags) 和 [emby/embyserver](https://hub.docker.com/r/emby/embyserver/tags) 上找到比 4.9.0.12 更高的版本。
+
+1. 下载插件 DLL 文件至 `Emby 数据目录/plugins/`
+2. 重新启动 Emby

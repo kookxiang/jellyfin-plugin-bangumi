@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Jellyfin.Plugin.Bangumi.Model;
+using Jellyfin.Plugin.Bangumi.Configuration;
 using MediaBrowser.Common.Net;
 using MediaBrowser.Controller.Providers;
 using MediaBrowser.Model.Entities;
@@ -17,6 +18,7 @@ public class EpisodeProvider : IRemoteMetadataProvider<Episode, EpisodeInfo>, IH
 {
     private readonly BangumiApi _api;
     private readonly ILogger _log;
+    private static PluginConfiguration Configuration => Plugin.Instance!.Configuration;
 
     public EpisodeProvider(BangumiApi api, ILogger log)
     {
@@ -32,7 +34,7 @@ public class EpisodeProvider : IRemoteMetadataProvider<Episode, EpisodeInfo>, IH
         token.ThrowIfCancellationRequested();
         var episode = await GetEpisode(info, token);
 
-        _log.Info("metadata for {File}: {EpisodeInfo}", info.Name, episode);
+        _log.Info("metadata for {0}: {1}", info.Name, episode);
 
         var result = new MetadataResult<Episode> { ResultLanguage = Constants.Language };
 
@@ -92,8 +94,9 @@ public class EpisodeProvider : IRemoteMetadataProvider<Episode, EpisodeInfo>, IH
 
     private async Task<Model.Episode?> GetEpisode(EpisodeInfo info, CancellationToken token)
     {
-        if (!int.TryParse(info.SeriesProviderIds.GetOrDefault(Constants.ProviderName), out var seriesId))
-            return null;
+        if (!int.TryParse(info.SeasonProviderIds.GetOrDefault(Constants.ProviderName), out var seasonId))
+            if (!int.TryParse(info.SeriesProviderIds.GetOrDefault(Constants.ProviderName), out seasonId))
+                return null;
 
         double? episodeIndex = info.IndexNumber;
 
@@ -106,12 +109,15 @@ public class EpisodeProvider : IRemoteMetadataProvider<Episode, EpisodeInfo>, IH
             if (episode == null)
                 goto SkipBangumiId;
 
-            if (episode.ParentId == seriesId && Math.Abs(episode.Order - episodeIndex.Value) < 0.1)
+            if (Configuration.TrustExistedBangumiId)
+                return episode;
+
+            if (episode.ParentId == seasonId && Math.Abs(episode.Order - episodeIndex.Value) < 0.1)
                 return episode;
         }
 
-        SkipBangumiId:
-        var episodeListData = await _api.GetSubjectEpisodeList(seriesId, null, episodeIndex.Value, token);
+    SkipBangumiId:
+        var episodeListData = await _api.GetSubjectEpisodeList(seasonId, null, episodeIndex.Value, token);
         if (episodeListData == null)
             return null;
         try
