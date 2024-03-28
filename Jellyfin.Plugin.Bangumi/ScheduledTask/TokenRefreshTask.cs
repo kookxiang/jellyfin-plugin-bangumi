@@ -7,9 +7,11 @@ using MediaBrowser.Controller.Notifications;
 using MediaBrowser.Model.Activity;
 using MediaBrowser.Controller.Library;
 using MediaBrowser.Model.Tasks;
-using MediaBrowser.Model.Notifications;
 
-#if !EMBY
+#if EMBY
+using Emby.Notifications;
+#else
+using MediaBrowser.Model.Notifications;
 using Microsoft.Extensions.Logging;
 using Jellyfin.Data.Entities;
 #endif
@@ -93,14 +95,13 @@ public class TokenRefreshTask : IScheduledTask
             {
                 activity.ShortOverview = $"用户 #{user.UserId} 授权刷新失败: {e.Message}";
                 activity.Severity = MediaBrowser.Model.Logging.LogSeverity.Warn;
-                await _notification.SendNotification(new NotificationRequest
-                {
-                    Name = activity.ShortOverview,
-                    Description = e.StackTrace,
-                    Level = NotificationLevel.Warning,
-                    UserIds = new[] { _userManager.GetUserById(userId).InternalId },
-                    Date = DateTime.Now
-                }, token);
+                _notification.SendNotification(new NotificationRequest
+                 {
+                     Title = activity.ShortOverview,
+                     Description = e.StackTrace,
+                     User = _userManager.GetUserById(userId),
+                     Date = DateTime.Now
+                 });
             }
             _activity.Create(activity);
 #else
