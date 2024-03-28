@@ -1,11 +1,18 @@
 using System;
 using System.Text.Json.Serialization;
+using Jellyfin.Plugin.Bangumi.Configuration;
 
 namespace Jellyfin.Plugin.Bangumi.Model;
 
 public class PersonDetail : Person
 {
-    public string Summary { get; set; } = "";
+    private static PluginConfiguration Configuration => Plugin.Instance!.Configuration;
+
+    [JsonIgnore]
+    public string Summary => Configuration.ConvertLineBreaks ? SummaryRaw.ReplaceLineEndings(Constants.HtmlLineBreak) : SummaryRaw;
+
+    [JsonPropertyName("summary")]
+    public string SummaryRaw { get; set; } = "";
 
     [JsonPropertyName("blood_type")]
     public BloodType? BloodType { get; set; }

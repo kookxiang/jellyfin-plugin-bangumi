@@ -6,12 +6,22 @@ namespace Jellyfin.Plugin.Bangumi.Model;
 
 public class Episode
 {
+    private static PluginConfiguration Configuration => Plugin.Instance!.Configuration;
+
     public int Id { get; set; }
 
     [JsonPropertyName("subject_id")]
     public int ParentId { get; set; }
 
     public EpisodeType Type { get; set; }
+
+    [JsonIgnore]
+    public string? Name => Configuration.TranslationPreference switch
+    {
+        TranslationPreferenceType.Chinese => string.IsNullOrEmpty(ChineseName) ? OriginalName : ChineseName,
+        TranslationPreferenceType.Original => OriginalName,
+        _ => OriginalName
+    };
 
     [JsonIgnore]
     public string OriginalName => WebUtility.HtmlDecode(OriginalNameRaw);
@@ -41,18 +51,11 @@ public class Episode
 
     public string? Duration { get; set; }
 
-    [JsonPropertyName("desc")]
-    public string? Description { get; set; }
+    [JsonIgnore]
+    public string? Description => Configuration.ConvertLineBreaks ? DescriptionRaw?.ReplaceLineEndings(Constants.HtmlLineBreak) : DescriptionRaw;
 
-    public string? GetName(PluginConfiguration? configuration = default)
-    {
-        return configuration?.TranslationPreference switch
-        {
-            TranslationPreferenceType.Chinese => string.IsNullOrEmpty(ChineseName) ? OriginalName : ChineseName,
-            TranslationPreferenceType.Original => OriginalName,
-            _ => OriginalName
-        };
-    }
+    [JsonPropertyName("desc")]
+    public string? DescriptionRaw { get; set; }
 
     public override string ToString()
     {

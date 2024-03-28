@@ -92,7 +92,7 @@ public class EpisodeProvider : IRemoteMetadataProvider<Episode, EpisodeInfo>, IH
         if (episode.AirDate.Length == 4)
             result.Item.ProductionYear = int.Parse(episode.AirDate);
 
-        result.Item.Name = episode.GetName(Configuration);
+        result.Item.Name = episode.Name;
         result.Item.OriginalTitle = episode.OriginalName;
         result.Item.IndexNumber = (int)episode.Order + localConfiguration.Offset;
         result.Item.Overview = string.IsNullOrEmpty(episode.Description) ? null : episode.Description;
@@ -122,7 +122,7 @@ public class EpisodeProvider : IRemoteMetadataProvider<Episode, EpisodeInfo>, IH
 
         // use title and overview from special episode subject if episode data is empty
         if (string.IsNullOrEmpty(result.Item.Name))
-            result.Item.Name = series.GetName(Configuration);
+            result.Item.Name = series.Name;
         if (string.IsNullOrEmpty(result.Item.OriginalTitle))
             result.Item.OriginalTitle = series.OriginalName;
         if (string.IsNullOrEmpty(result.Item.Overview))

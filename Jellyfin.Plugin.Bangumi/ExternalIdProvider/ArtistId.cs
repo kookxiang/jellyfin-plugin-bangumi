@@ -3,20 +3,20 @@ using MediaBrowser.Controller.Providers;
 using MediaBrowser.Model.Entities;
 using MediaBrowser.Model.Providers;
 
-namespace Jellyfin.Plugin.Bangumi.Extension;
+namespace Jellyfin.Plugin.Bangumi.ExternalIdProvider;
 
-public class MusicAlbumId : IExternalId
+public class ArtistId : IExternalId
 {
     public bool Supports(IHasProviderIds item)
     {
-        return item is MusicAlbum;
+        return item is MusicArtist;
     }
 
     public string ProviderName => Constants.ProviderName;
 
     public string Key => Constants.ProviderName;
 
-    public ExternalIdMediaType? Type => ExternalIdMediaType.Album;
+    public ExternalIdMediaType? Type => ExternalIdMediaType.Artist;
 
-    public string UrlFormatString => "https://bgm.tv/subject/{0}";
+    public string UrlFormatString => "https://bgm.tv/person/{0}";
 }

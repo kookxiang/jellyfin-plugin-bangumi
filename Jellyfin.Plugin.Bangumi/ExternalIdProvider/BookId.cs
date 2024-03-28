@@ -1,22 +1,22 @@
-﻿using MediaBrowser.Controller.Entities.TV;
+using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Providers;
 using MediaBrowser.Model.Entities;
 using MediaBrowser.Model.Providers;
 
-namespace Jellyfin.Plugin.Bangumi.Extension;
+namespace Jellyfin.Plugin.Bangumi.ExternalIdProvider;
 
-public class ExternalSeriesId : IExternalId
+public class BookId : IExternalId
 {
     public bool Supports(IHasProviderIds item)
     {
-        return item is Series;
+        return item is Book;
     }
 
     public string ProviderName => Constants.ProviderName;
 
     public string Key => Constants.ProviderName;
 
-    public ExternalIdMediaType? Type => ExternalIdMediaType.Series;
+    public ExternalIdMediaType? Type => ExternalIdMediaType.Season;
 
     public string UrlFormatString => "https://bgm.tv/subject/{0}";
 }
