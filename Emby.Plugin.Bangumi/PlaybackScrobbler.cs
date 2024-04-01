@@ -16,6 +16,7 @@ using MediaBrowser.Model.Logging;
 using Jellyfin.Plugin.Bangumi.OAuth;
 using System.Linq;
 using CollectionType = Jellyfin.Plugin.Bangumi.Model.CollectionType;
+using MediaBrowser.Model.Net;
 
 namespace Jellyfin.Plugin.Bangumi;
 
@@ -194,11 +195,18 @@ public class PlaybackScrobbler : IServerEntryPoint
         {
             if (played && e.Message == "Bad Request: you need to add subject to your collection first")
             {
-                _log.Info($"report subject #{subjectId} status {CollectionType.Watching} to bangumi");
-                await _api.UpdateCollectionStatus(_user.AccessToken, subjectId, CollectionType.Watching, CancellationToken.None);
+                try
+                {
+                    _log.Info($"report subject #{subjectId} status {CollectionType.Watching} to bangumi");
+                    await _api.UpdateCollectionStatus(_user.AccessToken, subjectId, CollectionType.Watching, CancellationToken.None);
 
-                _log.Info($"report episode #{episodeId} status {EpisodeCollectionType.Watched} to bangumi");
-                await _api.UpdateEpisodeStatus(_user.AccessToken, subjectId, episodeId, played ? EpisodeCollectionType.Watched : EpisodeCollectionType.Default, CancellationToken.None);
+                    _log.Info($"report episode #{episodeId} status {EpisodeCollectionType.Watched} to bangumi");
+                    await _api.UpdateEpisodeStatus(_user.AccessToken, subjectId, episodeId, played ? EpisodeCollectionType.Watched : EpisodeCollectionType.Default, CancellationToken.None);
+                }
+                catch (Exception e2)
+                {
+                    _log.Error($"report playback status failed, err: {e2}");
+                }
             }
             else
             {

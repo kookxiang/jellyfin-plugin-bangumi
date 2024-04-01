@@ -27,7 +27,11 @@ public partial class BangumiApi
         var options = new HttpRequestOptions
         {
             Url = $"https://api.bgm.tv/v0/users/-/collections/{subjectId}",
-            RequestHttpContent = new JsonContent(new Collection { Type = type })
+            RequestHttpContent = new JsonContent(new Collection { Type = type }),
+            RequestHeaders = {
+                { "Authorization", "Bearer " + accessToken }
+            },
+            ThrowOnErrorResponse = false,
         };
         await SendRequest("POST", options);
 #else
@@ -54,7 +58,8 @@ public partial class BangumiApi
             }),
             RequestHeaders = {
                 { "Authorization", "Bearer " + accessToken }
-            }
+            },
+            ThrowOnErrorResponse = false,
         };
         await SendRequest("PUT", options);
 #else
