@@ -35,6 +35,7 @@ public partial class BangumiApi
     {
         options.UserAgent = $"Jellyfin.Plugin.Bangumi/{Plugin.Version} (https://github.com/kookxiang/jellyfin-plugin-bangumi)";
         options.TimeoutMs = Plugin.Configuration.RequestTimeout;
+        options.ThrowOnErrorResponse = false;
         using var response = await _httpClient.SendAsync(options, method);
         if (response.StatusCode >= HttpStatusCode.MovedPermanently) await ServerException.ThrowFrom(response);
         using var stream = new StreamReader(response.Content);

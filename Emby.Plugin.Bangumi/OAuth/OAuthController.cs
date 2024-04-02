@@ -14,7 +14,6 @@ using MediaBrowser.Controller.Session;
 using System.Threading.Tasks;
 
 using HttpRequestOptions = MediaBrowser.Common.Net.HttpRequestOptions;
-using MediaBrowser.Controller.Api;
 
 namespace Jellyfin.Plugin.Bangumi.OAuth;
 
@@ -169,24 +168,34 @@ public class OAuthController : IService, IRequiresRequest
         var options = new HttpRequestOptions
         {
             Url = "https://bgm.tv/oauth/access_token",
-            RequestHttpContent = formData
+            RequestHttpContent = formData,
+            ThrowOnErrorResponse = false
         };
         var response = await _api.GetHttpClient().SendAsync(options, "POST");
         var isFailed = response.StatusCode >= HttpStatusCode.MovedPermanently;
-        var stream = new StreamReader(response.Content);
-        var responseBody = await stream.ReadToEndAsync();
-        if (isFailed)
+        try
         {
-            await MakeHtmlResp(responseBody);
+            var stream = new StreamReader(response.Content);
+            var responseBody = await stream.ReadToEndAsync();
+            if (isFailed)
+            {
+                await MakeHtmlResp(responseBody);
+                return;
+            }
+            var result = JsonSerializer.Deserialize<OAuthUser>(responseBody)!;
+            result.EffectiveTime = DateTime.Now;
+            await result.GetProfile(_api);
+            _log.Info($"UserName: {result.NickName}, ProfileUrl: {result.ProfileUrl}");
+            _store.Load();
+            _store.Set(oAuth.user, result);
+            _store.Save();
+        }
+        catch (Exception e)
+        {
+            _log.Error(e.Message);
+            await MakeHtmlResp($"Failed to handle bangumi callback: {e.Message}");
             return;
         }
-        var result = JsonSerializer.Deserialize<OAuthUser>(responseBody)!;
-        result.EffectiveTime = DateTime.Now;
-        await result.GetProfile(_api);
-        _log.Info($"UserName: {result.NickName}, ProfileUrl: {result.ProfileUrl}");
-        _store.Load();
-        _store.Set(oAuth.user, result);
-        _store.Save();
 
         await MakeHtmlResp("<script>window.opener.postMessage('BANGUMI-OAUTH-COMPLETE'); window.close()</script>");
     }

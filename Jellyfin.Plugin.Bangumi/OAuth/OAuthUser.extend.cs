@@ -58,7 +58,8 @@ public partial class OAuthUser
         var options = new HttpRequestOptions
         {
             Url = "https://bgm.tv/oauth/access_token",
-            RequestHttpContent = formData
+            RequestHttpContent = formData,
+            ThrowOnErrorResponse = false
         };
         var response = await httpClient.SendAsync(options, "POST");
         var isFailed = response.StatusCode >= HttpStatusCode.MovedPermanently;
