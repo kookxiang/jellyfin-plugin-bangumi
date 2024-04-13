@@ -1,38 +1,24 @@
-using System.Runtime.Serialization;
-using System.Text.Json.Serialization;
-
 namespace Jellyfin.Plugin.Bangumi.Model;
 
-[JsonConverter(typeof(JsonStringEnumConverter))]
-public enum SubjectRelation
+public static class SubjectRelation
 {
-    [EnumMember(Value = "续集")]
-    Sequel,
+    public const string Sequel = "续集";
 
-    [EnumMember(Value = "前传")]
-    Prequel,
+    public const string Prequel = "前传";
 
-    [EnumMember(Value = "片头曲")]
-    Opening,
+    public const string Opening = "片头曲";
 
-    [EnumMember(Value = "片尾曲")]
-    Ending,
+    public const string Ending = "片尾曲";
 
-    [EnumMember(Value = "原声集")]
-    OriginalSoundTrack,
+    public const string OriginalSoundTrack = "原声集";
 
-    [EnumMember(Value = "角色歌")]
-    CharacterSong,
+    public const string CharacterSong = "角色歌";
 
-    [EnumMember(Value = "番外篇")]
-    Extra,
+    public const string Extra = "番外篇";
 
-    [EnumMember(Value = "书籍")]
-    Book,
+    public const string Book = "书籍";
 
-    [EnumMember(Value = "游戏")]
-    Game,
+    public const string Game = "游戏";
 
-    [EnumMember(Value = "其他")]
-    Other
+    public const string Othe = "其他";
 }

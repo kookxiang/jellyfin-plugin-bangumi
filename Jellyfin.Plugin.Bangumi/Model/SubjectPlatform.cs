@@ -1,14 +1,8 @@
-using System.Runtime.Serialization;
-using System.Text.Json.Serialization;
-
 namespace Jellyfin.Plugin.Bangumi.Model;
 
-[JsonConverter(typeof(JsonStringEnumConverter))]
-public enum SubjectPlatform
+public static class SubjectPlatform
 {
-    [EnumMember(Value = "TV")]
-    Tv,
+    public const string Tv = "TV";
 
-    [EnumMember(Value = "剧场版")]
-    Movie
+    public const string Movie = "剧场版";
 }

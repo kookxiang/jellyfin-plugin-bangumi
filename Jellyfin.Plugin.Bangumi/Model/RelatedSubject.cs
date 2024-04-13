@@ -32,5 +32,5 @@ public class RelatedSubject
     [JsonPropertyName("name_cn")]
     public string? ChineseNameRaw { get; set; }
 
-    public SubjectRelation? Relation { get; set; }
+    public string? Relation { get; set; }
 }
