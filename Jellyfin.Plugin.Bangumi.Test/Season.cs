@@ -13,6 +13,7 @@ namespace Jellyfin.Plugin.Bangumi.Test;
 [TestClass]
 public class Season
 {
+    private readonly BangumiApi _api = ServiceLocator.GetService<BangumiApi>();
     private readonly SubjectImageProvider _imageProvider = ServiceLocator.GetService<SubjectImageProvider>();
     private readonly SeasonProvider _provider = ServiceLocator.GetService<SeasonProvider>();
 
@@ -34,6 +35,17 @@ public class Season
             ProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "69496" } }
         }, _token);
         Assert.IsTrue(result.HasMetadata, "should return metadata when folder name contains season");
+    }
+
+    [TestMethod]
+    public async Task GuessNextSeason()
+    {
+        var subject = await _api.SearchNextSubject(135275, _token);
+        Assert.AreEqual(174043, subject?.Id, "can guess next season by subject id");
+
+        subject = await _api.SearchNextSubject(174043, _token);
+        Assert.AreNotEqual(220631, subject?.Id, "should skip movie");
+        Assert.AreEqual(342667, subject?.Id, "can guess next season by subject id");
     }
 
     [TestMethod]

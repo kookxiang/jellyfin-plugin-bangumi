@@ -71,6 +71,8 @@ public class Subject
     [JsonPropertyName("nsfw")]
     public bool IsNSFW { get; set; }
 
+    public SubjectPlatform? Platform { get; set; }
+
     [JsonIgnore]
     public string[] PopularTags
     {

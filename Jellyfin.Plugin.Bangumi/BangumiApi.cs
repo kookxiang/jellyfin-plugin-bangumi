@@ -8,7 +8,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using Jellyfin.Plugin.Bangumi.Model;
 using MediaBrowser.Controller.Entities;
-using JellyfinPersonType = MediaBrowser.Model.Entities.PersonType;
 #if EMBY
 using HttpRequestOptions = MediaBrowser.Common.Net.HttpRequestOptions;
 #endif
@@ -134,6 +133,23 @@ public partial class BangumiApi
         if (offset > 0)
             url += $"&offset={offset}";
         return await SendRequest<DataList<Episode>>(url, token);
+    }
+
+    public async Task<List<RelatedSubject>?> GetSubjectRelations(int id, CancellationToken token)
+    {
+        return await SendRequest<List<RelatedSubject>>($"https://api.bgm.tv/v0/subjects/{id}/subjects", token);
+    }
+
+    public async Task<Subject?> SearchNextSubject(int id, CancellationToken token)
+    {
+        var relatedSubjects = await GetSubjectRelations(id, token);
+        var subjectInfo = relatedSubjects?.FirstOrDefault(item => item.Relation == SubjectRelation.Sequel);
+        if (subjectInfo == null)
+            return null;
+        var subject = await GetSubject(subjectInfo.Id, token);
+        if (subject?.Platform == SubjectPlatform.Movie)
+            subject = await SearchNextSubject(subject.Id, token);
+        return subject;
     }
 
     public async Task<List<PersonInfo>> GetSubjectCharacters(int id, CancellationToken token)
