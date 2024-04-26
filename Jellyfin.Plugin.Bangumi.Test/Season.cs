@@ -46,6 +46,11 @@ public class Season
         subject = await _api.SearchNextSubject(174043, _token);
         Assert.AreNotEqual(220631, subject?.Id, "should skip movie");
         Assert.AreEqual(342667, subject?.Id, "can guess next season by subject id");
+
+        subject = await _api.SearchNextSubject(28900, _token);
+        Assert.AreNotEqual(99796, subject?.Id, "should skip OVA");
+        Assert.AreNotEqual(136311, subject?.Id, "should skip OVA but with wrong metadata in Bangumi");
+        Assert.AreEqual(127573, subject?.Id, "can guess next season by subject id");
     }
 
     [TestMethod]

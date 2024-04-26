@@ -147,7 +147,8 @@ public partial class BangumiApi
         if (subjectInfo == null)
             return null;
         var subject = await GetSubject(subjectInfo.Id, token);
-        if (subject?.Platform == SubjectPlatform.Movie)
+        if (subject?.Platform == SubjectPlatform.Movie || subject?.Platform == SubjectPlatform.OVA
+            || subject?.PopularTags.Contains("OVA") == true || subject?.PopularTags.Contains("剧场版") == true)
             subject = await SearchNextSubject(subject.Id, token);
         return subject;
     }
