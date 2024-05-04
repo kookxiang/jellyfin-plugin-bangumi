@@ -33,6 +33,11 @@ public class Plugin : BasePlugin<PluginConfiguration>, IHasWebPages
                 MenuSection = "server",
                 EnableInMainMenu = true,
                 EmbeddedResourcePath = $"{GetType().Namespace}.Configuration.ConfigPage.html"
+            },
+            new PluginPageInfo
+            {
+                Name = "BangumiJS",
+                EmbeddedResourcePath = $"{GetType().Namespace}.Configuration.ConfigPage.js"
             }
         };
     }

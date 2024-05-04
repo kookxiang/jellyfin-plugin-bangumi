@@ -1,20 +1,22 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading;
+using System;
 using System.Threading.Tasks;
-using Jellyfin.Plugin.Bangumi.Configuration;
-using Jellyfin.Plugin.Bangumi.Model;
-using Jellyfin.Plugin.Bangumi.OAuth;
 using MediaBrowser.Controller.Entities;
+using System.Collections.Generic;
 using MediaBrowser.Controller.Entities.Audio;
+using Jellyfin.Plugin.Bangumi.Configuration;
 using MediaBrowser.Controller.Entities.Movies;
 using MediaBrowser.Controller.Library;
 using MediaBrowser.Controller.Plugins;
 using MediaBrowser.Model.Entities;
 using MediaBrowser.Model.Globalization;
-using Microsoft.Extensions.Logging;
+using Jellyfin.Plugin.Bangumi.Model;
+using System.Threading;
+using MediaBrowser.Model.Querying;
+using MediaBrowser.Model.Logging;
+using Jellyfin.Plugin.Bangumi.OAuth;
+using System.Linq;
 using CollectionType = Jellyfin.Plugin.Bangumi.Model.CollectionType;
+using MediaBrowser.Model.Net;
 
 namespace Jellyfin.Plugin.Bangumi;
 
@@ -23,28 +25,27 @@ public class PlaybackScrobbler : IServerEntryPoint
     // https://github.com/jellyfin/jellyfin/blob/master/Emby.Server.Implementations/Localization/Ratings/jp.csv
     // https://github.com/jellyfin/jellyfin/blob/master/Emby.Server.Implementations/Localization/Ratings/us.csv
     private const int RatingNSFW = 10;
-
-    private static readonly Dictionary<Guid, HashSet<string>> Store = new();
-    private readonly BangumiApi _api;
     private readonly ILocalizationManager _localizationManager;
-    private readonly ILogger<PlaybackScrobbler> _log;
-
+    private readonly ILogger _log;
+    private static readonly Dictionary<long, HashSet<string>> Store = new();
+    private readonly BangumiApi _api;
     private readonly OAuthStore _store;
     private readonly IUserDataManager _userDataManager;
+    private static PluginConfiguration Configuration => Plugin.Instance!.Configuration;
 
-    public PlaybackScrobbler(IUserManager userManager, IUserDataManager userDataManager, ILocalizationManager localizationManager, OAuthStore store, BangumiApi api, ILogger<PlaybackScrobbler> log)
+    public PlaybackScrobbler(IUserManager userManager, IUserDataManager userDataManager, ILocalizationManager localizationManager, OAuthStore store, BangumiApi api, ILogger log)
     {
         _userDataManager = userDataManager;
         _localizationManager = localizationManager;
+        _log = log;
         _store = store;
         _api = api;
-        _log = log;
 
-        foreach (var userId in userManager.UsersIds)
-            GetPlaybackHistory(userId);
+        foreach (var userId in userManager.GetUsers(new UserQuery { }).Items)
+        {
+            GetPlaybackHistory(userId.InternalId);
+        }
     }
-
-    private static PluginConfiguration Configuration => Plugin.Instance!.Configuration;
 
     public void Dispose()
     {
@@ -52,10 +53,9 @@ public class PlaybackScrobbler : IServerEntryPoint
         GC.SuppressFinalize(this);
     }
 
-    public Task RunAsync()
+    public void Run()
     {
         _userDataManager.UserDataSaved += OnUserDataSaved;
-        return Task.CompletedTask;
     }
 
     private void OnUserDataSaved(object? sender, UserDataSaveEventArgs e)
@@ -63,85 +63,85 @@ public class PlaybackScrobbler : IServerEntryPoint
         switch (e.SaveReason)
         {
             case UserDataSaveReason.TogglePlayed when e.UserData.Played:
-                // delay 3 seconds to avoid conflict with playback finished event
                 Task.Delay(TimeSpan.FromSeconds(3))
                     .ContinueWith(_ =>
                     {
-                        GetPlaybackHistory(e.UserId).Add(e.UserData.Key);
-                        _log.LogInformation("mark {Name} (#{Id}) as played for user #{User}", e.Item.Name, e.Item.Id, e.UserId);
+                        GetPlaybackHistory(e.User.InternalId).Add(e.UserData.Key);
+                        _log.Info($"mark {e.Item.Name} (#{e.Item.Id}) as played for user #{e.User.InternalId}");
                     }).ConfigureAwait(false);
                 if (Configuration.ReportManualStatusChangeToBangumi)
-                    ReportPlaybackStatus(e.Item, e.UserId, true).ConfigureAwait(false);
+                    ReportPlaybackStatus(e.Item, e.User, true).ConfigureAwait(false);
                 break;
 
             case UserDataSaveReason.TogglePlayed when !e.UserData.Played:
-                GetPlaybackHistory(e.UserId).Remove(e.UserData.Key);
-                _log.LogInformation("mark {Name} (#{Id}) as new for user #{User}", e.Item.Name, e.Item.Id, e.UserId);
+                GetPlaybackHistory(e.User.InternalId).Remove(e.UserData.Key);
+                _log.Info($"mark {e.Item.Name} (#{e.Item.Id}) as new for user #{e.User.InternalId}");
                 if (Configuration.ReportManualStatusChangeToBangumi)
-                    ReportPlaybackStatus(e.Item, e.UserId, false).ConfigureAwait(false);
+                    ReportPlaybackStatus(e.Item, e.User, false).ConfigureAwait(false);
                 break;
 
             case UserDataSaveReason.PlaybackFinished when e.UserData.Played:
                 if (Configuration.ReportPlaybackStatusToBangumi)
-                    ReportPlaybackStatus(e.Item, e.UserId, true).ConfigureAwait(false);
-                e.Keys.ForEach(key => GetPlaybackHistory(e.UserId).Add(key));
+                    ReportPlaybackStatus(e.Item, e.User, true).ConfigureAwait(false);
+                GetPlaybackHistory(e.User.InternalId).Add(e.UserData.Key);
                 break;
         }
     }
 
-    private async Task ReportPlaybackStatus(BaseItem item, Guid userId, bool played)
+
+    private async Task ReportPlaybackStatus(BaseItem item, MediaBrowser.Controller.Entities.User user, bool played)
     {
         var localConfiguration = await LocalConfiguration.ForPath(item.Path);
         if (!int.TryParse(item.GetProviderId(Constants.ProviderName), out var episodeId))
         {
-            _log.LogInformation("item {Name} (#{Id}) doesn't have bangumi id, ignored", item.Name, item.Id);
+            _log.Info($"item {item.Name} (#{item.Id}) doesn't have bangumi id, ignored");
             return;
         }
 
         if (!int.TryParse(item.GetParent()?.GetProviderId(Constants.ProviderName), out var subjectId))
-            _log.LogWarning("parent of item {Name} (#{Id}) doesn't have bangumi subject id", item.Name, item.Id);
+            _log.Warn($"parent of item {item.Name} (#{item.Id}) doesn't have bangumi subject id");
 
         if (!localConfiguration.Report)
         {
-            _log.LogInformation("playback report is disabled via local configuration");
+            _log.Info("playback report is disabled via local configuration");
             return;
         }
 
         if (item is Audio)
         {
-            _log.LogInformation("audio playback report is not supported by bgm.tv, ignored");
+            _log.Info("audio playback report is not supported by bgm.tv, ignored");
             return;
         }
 
         if (item is Movie)
         {
-            episodeId = subjectId;
-            // jellyfin only have subject id for movie, so we need to get episode id from bangumi api
+            // emby will store the subject id as the sole provider id, and there is no episode id
+            subjectId = episodeId;
             var episodeList = await _api.GetSubjectEpisodeListWithOffset(subjectId, EpisodeType.Normal, 0, CancellationToken.None);
             if (episodeList?.Data.Count > 0)
                 episodeId = episodeList.Data.First().Id;
         }
 
         _store.Load();
-        var user = _store.Get(userId);
-        if (user == null)
+        var _user = _store.Get(user.Id);
+        if (_user == null)
         {
-            _log.LogInformation("access token for user #{User} not found, ignored", userId);
+            _log.Info($"access token for user #{user.Id} not found, ignored");
             return;
         }
 
-        if (user.Expired)
+        if (_user.Expired)
         {
-            _log.LogInformation("access token for user #{User} expired, ignored", userId);
+            _log.Info($"access token for user #{user.Id} expired, ignored");
             return;
         }
 
-        if (item.GetUserDataKeys().Intersect(GetPlaybackHistory(userId)).Any())
+        if (GetPlaybackHistory(user.InternalId).Contains(item.UserDataKey))
         {
-            var episodeStatus = await _api.GetEpisodeStatus(user.AccessToken, episodeId, CancellationToken.None);
+            var episodeStatus = await _api.GetEpisodeStatus(_user.AccessToken, episodeId, CancellationToken.None);
             if (played && episodeStatus is { Type: EpisodeCollectionType.Watched })
             {
-                _log.LogInformation("item {Name} (#{Id}) has been marked as watched before, ignored", item.Name, item.Id);
+                _log.Info($"item {item.Name} (#{item.Id}) has been marked as watched before, ignored");
                 return;
             }
         }
@@ -150,8 +150,8 @@ public class PlaybackScrobbler : IServerEntryPoint
         {
             if (item is Book)
             {
-                _log.LogInformation("report subject #{Subject} status {Status} to bangumi", episodeId, CollectionType.Watched);
-                await _api.UpdateCollectionStatus(user.AccessToken, episodeId, played ? CollectionType.Watched : CollectionType.Watching, CancellationToken.None);
+                _log.Info($"report subject #{episodeId} status {CollectionType.Watched} to bangumi");
+                await _api.UpdateCollectionStatus(_user.AccessToken, episodeId, played ? CollectionType.Watched : CollectionType.Watching, CancellationToken.None);
             }
             else
             {
@@ -181,29 +181,36 @@ public class PlaybackScrobbler : IServerEntryPoint
 
                 if (ratingLevel != null && ratingLevel >= RatingNSFW && Configuration.SkipNSFWPlaybackReport)
                 {
-                    _log.LogInformation("item #{Name} marked as NSFW, skipped", item.Name);
+                    _log.Info($"item #{item.Name} has rating {ratingLevel} marked as NSFW, skipped");
                     return;
                 }
-
-                _log.LogInformation("report episode #{Episode} status {Status} to bangumi", episodeId, played ? EpisodeCollectionType.Watched : EpisodeCollectionType.Default);
-                await _api.UpdateEpisodeStatus(user.AccessToken, subjectId, episodeId, played ? EpisodeCollectionType.Watched : EpisodeCollectionType.Default, CancellationToken.None);
+                var status = played ? CollectionType.Watched : CollectionType.Watching;
+                _log.Info($"report episode #{episodeId} status {status} to bangumi");
+                await _api.UpdateEpisodeStatus(_user.AccessToken, subjectId, episodeId, played ? EpisodeCollectionType.Watched : EpisodeCollectionType.Default, CancellationToken.None);
             }
 
-            _log.LogInformation("report completed");
+            _log.Info("report completed");
         }
         catch (Exception e)
         {
             if (played && e.Message == "Bad Request: you need to add subject to your collection first")
             {
-                _log.LogInformation("report subject #{Subject} status {Status} to bangumi", subjectId, CollectionType.Watching);
-                await _api.UpdateCollectionStatus(user.AccessToken, subjectId, CollectionType.Watching, CancellationToken.None);
+                try
+                {
+                    _log.Info($"report subject #{subjectId} status {CollectionType.Watching} to bangumi");
+                    await _api.UpdateCollectionStatus(_user.AccessToken, subjectId, CollectionType.Watching, CancellationToken.None);
 
-                _log.LogInformation("report episode #{Episode} status {Status} to bangumi", episodeId, EpisodeCollectionType.Watched);
-                await _api.UpdateEpisodeStatus(user.AccessToken, subjectId, episodeId, played ? EpisodeCollectionType.Watched : EpisodeCollectionType.Default, CancellationToken.None);
+                    _log.Info($"report episode #{episodeId} status {EpisodeCollectionType.Watched} to bangumi");
+                    await _api.UpdateEpisodeStatus(_user.AccessToken, subjectId, episodeId, played ? EpisodeCollectionType.Watched : EpisodeCollectionType.Default, CancellationToken.None);
+                }
+                catch (Exception e2)
+                {
+                    _log.Error($"report playback status failed, err: {e2}");
+                }
             }
             else
             {
-                _log.LogError(e, "report playback status failed");
+                _log.Error($"report playback status failed, err: {e}");
             }
         }
 
@@ -215,7 +222,7 @@ public class PlaybackScrobbler : IServerEntryPoint
             if (episode is { Type: EpisodeType.Normal })
             {
                 // check each episode status
-                var epList = await _api.GetEpisodeCollectionInfo(user.AccessToken, subjectId, (int)EpisodeType.Normal, CancellationToken.None);
+                var epList = await _api.GetEpisodeCollectionInfo(_user.AccessToken, subjectId, (int)EpisodeType.Normal, CancellationToken.None);
                 if (epList is { Total: > 0 })
                 {
                     var subjectPlayed = true;
@@ -225,15 +232,15 @@ public class PlaybackScrobbler : IServerEntryPoint
                     });
                     if (subjectPlayed)
                     {
-                        _log.LogInformation("report subject #{Subject} status {Status} to bangumi", subjectId, CollectionType.Watched);
-                        await _api.UpdateCollectionStatus(user.AccessToken, subjectId, CollectionType.Watched, CancellationToken.None);
+                        _log.Info($"report subject #{subjectId} status {CollectionType.Watched} to bangumi");
+                        await _api.UpdateCollectionStatus(_user.AccessToken, subjectId, CollectionType.Watched, CancellationToken.None);
                     }
                 }
             }
         }
     }
 
-    private HashSet<string> GetPlaybackHistory(Guid userId)
+    private HashSet<string> GetPlaybackHistory(long userId)
     {
         if (!Store.TryGetValue(userId, out var history))
             Store[userId] = history = _userDataManager.GetAllUserData(userId).Where(item => item.Played).Select(item => item.Key).ToHashSet();

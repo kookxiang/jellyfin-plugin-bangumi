@@ -7,6 +7,7 @@ using Jellyfin.Plugin.Bangumi.Configuration;
 using MediaBrowser.Common.Net;
 using MediaBrowser.Controller.Entities.TV;
 using MediaBrowser.Controller.Providers;
+using MediaBrowser.Model.Logging;
 using MediaBrowser.Model.Providers;
 
 namespace Jellyfin.Plugin.Bangumi.Providers;
@@ -14,10 +15,12 @@ namespace Jellyfin.Plugin.Bangumi.Providers;
 public class SeasonProvider : IRemoteMetadataProvider<Season, SeasonInfo>, IHasOrder
 {
     private readonly BangumiApi _api;
+    private readonly ILogger _log;
 
-    public SeasonProvider(BangumiApi api)
+    public SeasonProvider(BangumiApi api, ILogger log)
     {
         _api = api;
+        _log = log;
     }
 
     private static PluginConfiguration Configuration => Plugin.Instance!.Configuration;
@@ -32,9 +35,16 @@ public class SeasonProvider : IRemoteMetadataProvider<Season, SeasonInfo>, IHasO
         var result = new MetadataResult<Season> { ResultLanguage = Constants.Language };
 
         if (!int.TryParse(info.ProviderIds.GetOrDefault(Constants.ProviderName), out var subjectId))
+        {
             if (info.IndexNumber != 1 ||
-                !int.TryParse(info.SeriesProviderIds.GetOrDefault(Constants.ProviderName), out subjectId))
+            !int.TryParse(info.SeriesProviderIds.GetOrDefault(Constants.ProviderName), out subjectId))
                 return result;
+            _log.Info("Seacon GetMetadata from series id: {0}", subjectId);
+        }
+        else
+        {
+            _log.Info("Seacon GetMetadata from builtin id: {0}", subjectId);
+        }
 
         var subject = await _api.GetSubject(subjectId, token);
         if (subject == null)

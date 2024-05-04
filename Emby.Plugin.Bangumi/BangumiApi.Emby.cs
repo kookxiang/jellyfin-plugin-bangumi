@@ -35,6 +35,7 @@ public partial class BangumiApi
     {
         options.UserAgent = $"Jellyfin.Plugin.Bangumi/{Plugin.Version} (https://github.com/kookxiang/jellyfin-plugin-bangumi)";
         options.TimeoutMs = Plugin.Configuration.RequestTimeout;
+        options.ThrowOnErrorResponse = false;
         using var response = await _httpClient.SendAsync(options, method);
         if (response.StatusCode >= HttpStatusCode.MovedPermanently) await ServerException.ThrowFrom(response);
         using var stream = new StreamReader(response.Content);
@@ -47,9 +48,17 @@ public partial class BangumiApi
         return JsonSerializer.Deserialize<T>(jsonString, Options);
     }
 
-    private Task<T?> SendRequest<T>(string url, string? accessToken, CancellationToken token)
+    private async Task<T?> SendRequest<T>(string url, string? accessToken, CancellationToken token)
     {
-        return SendRequest<T>(url, token);
+        var options = new HttpRequestOptions
+        {
+            Url = url,
+            RequestHeaders = {
+                { "Authorization", "Bearer " + accessToken }
+            }
+        };
+        var jsonString = await SendRequest("GET", options);
+        return JsonSerializer.Deserialize<T>(jsonString, Options);
     }
 
     public class JsonContent : StringContent
