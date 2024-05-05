@@ -1,6 +1,8 @@
 # [bgm.tv](https://bgm.tv) metadata provider for Jellyfin
 
-[![Build status](https://ci.appveyor.com/api/projects/status/mvh65ujs7oja6bbs?svg=true)](https://ci.appveyor.com/project/kookxiang/jellyfin-plugin-bangumi)
+[![Jellyfin Plugin](https://github.com/kookxiang/jellyfin-plugin-bangumi/actions/workflows/jellyfin.yml/badge.svg)](https://github.com/kookxiang/jellyfin-plugin-bangumi/actions/workflows/jellyfin.yml)
+[![Jellyfin (unstable) Plugin](https://github.com/kookxiang/jellyfin-plugin-bangumi/actions/workflows/jellyfin-unstable.yml/badge.svg)](https://github.com/kookxiang/jellyfin-plugin-bangumi/actions/workflows/jellyfin-unstable.yml)
+[![Emby Plugin](https://github.com/kookxiang/jellyfin-plugin-bangumi/actions/workflows/emby.yml/badge.svg)](https://github.com/kookxiang/jellyfin-plugin-bangumi/actions/workflows/emby.yml)
 
 Jellyfin bgm.tv 数据源插件，用于拉取中文番剧信息及图片。
 
@@ -10,7 +12,7 @@ Jellyfin bgm.tv 数据源插件，用于拉取中文番剧信息及图片。
 
 # 下载
 
- - [CI 最新版](https://ci.appveyor.com/project/kookxiang/jellyfin-plugin-bangumi/build/artifacts)
+ - [CI 最新版](https://github.com/kookxiang/jellyfin-plugin-bangumi/actions/workflows/jellyfin.yml)
  - [GitHub 稳定版](https://github.com/kookxiang/jellyfin-plugin-bangumi/releases)
 
 # 安装

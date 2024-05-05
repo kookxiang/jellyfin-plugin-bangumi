@@ -1,0 +1,30 @@
+name: 'Jellyfin Plugin'
+
+on:
+  push:
+    branches:
+      - master
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build Plugin
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 6
+      - name: Restore NuGet Packages
+        run: dotnet restore
+      - name: .NET Test
+        run: dotnet test --configuration Release Jellyfin.Plugin.Bangumi.Test
+      - name: .NET Publish
+        run: dotnet publish --configuration Release --output publish Jellyfin.Plugin.Bangumi
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Jellyfin.Plugin.Bangumi
+          path: publish/*.dll
