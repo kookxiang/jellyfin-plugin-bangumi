@@ -1,17 +1,15 @@
-﻿using System;
+﻿
+using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Jellyfin.Plugin.Bangumi.OAuth;
-using MediaBrowser.Controller.Notifications;
-using MediaBrowser.Model.Activity;
 using MediaBrowser.Controller.Library;
+using MediaBrowser.Model.Activity;
 using MediaBrowser.Model.Tasks;
-
 #if EMBY
-using Emby.Notifications;
+using MediaBrowser.Model.Logging;
 #else
-using MediaBrowser.Model.Notifications;
 using Microsoft.Extensions.Logging;
 using Jellyfin.Data.Entities;
 #endif
@@ -20,17 +18,15 @@ namespace Jellyfin.Plugin.Bangumi.ScheduledTask;
 
 public class TokenRefreshTask : IScheduledTask
 {
-    private readonly IUserManager _userManager;
     private readonly IActivityManager _activity;
     private readonly BangumiApi _api;
-    private readonly INotificationManager _notification;
     private readonly OAuthStore _store;
+    private readonly IUserManager _userManager;
 
-    public TokenRefreshTask(IUserManager userManager, IActivityManager activity, INotificationManager notification, BangumiApi api, OAuthStore store)
+    public TokenRefreshTask(IUserManager userManager, IActivityManager activity, BangumiApi api, OAuthStore store)
     {
         _userManager = userManager;
         _activity = activity;
-        _notification = notification;
         _api = api;
         _store = store;
     }
@@ -89,20 +85,14 @@ public class TokenRefreshTask : IScheduledTask
                 await user.Refresh(_api.GetHttpClient(), token);
                 await user.GetProfile(_api, token);
                 activity.ShortOverview = $"用户 #{user.UserId} 授权刷新成功";
-                activity.Severity = MediaBrowser.Model.Logging.LogSeverity.Info;
+                activity.Severity = LogSeverity.Info;
             }
             catch (Exception e)
             {
                 activity.ShortOverview = $"用户 #{user.UserId} 授权刷新失败: {e.Message}";
-                activity.Severity = MediaBrowser.Model.Logging.LogSeverity.Warn;
-                _notification.SendNotification(new NotificationRequest
-                 {
-                     Title = activity.ShortOverview,
-                     Description = e.StackTrace,
-                     User = _userManager.GetUserById(userId),
-                     Date = DateTime.Now
-                 });
+                activity.Severity = LogSeverity.Warn;
             }
+
             _activity.Create(activity);
 #else
             var activity = new ActivityLog("Bangumi 授权", "Bangumi", userId);
@@ -117,15 +107,8 @@ public class TokenRefreshTask : IScheduledTask
             {
                 activity.ShortOverview = $"用户 #{user.UserId} 授权刷新失败: {e.Message}";
                 activity.LogSeverity = LogLevel.Warning;
-                await _notification.SendNotification(new NotificationRequest
-                {
-                    Name = activity.ShortOverview,
-                    Description = e.StackTrace,
-                    Level = NotificationLevel.Warning,
-                    UserIds = new[] { Guid.Parse(guid) },
-                    Date = DateTime.Now
-                }, token);
             }
+
             await _activity.CreateAsync(activity);
 #endif
         }

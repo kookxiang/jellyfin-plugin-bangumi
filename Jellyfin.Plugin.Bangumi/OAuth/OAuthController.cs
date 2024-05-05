@@ -19,21 +19,22 @@ public class OAuthController : ControllerBase
     private static string? _oAuthPath;
 
     private readonly BangumiApi _api;
-    private readonly ISessionContext _sessionContext;
+    private readonly IAuthorizationContext _authorizationContext;
     private readonly OAuthStore _store;
 
-    public OAuthController(BangumiApi api, OAuthStore store, ISessionContext sessionContext)
+    public OAuthController(BangumiApi api, OAuthStore store, IAuthorizationContext authorizationContext)
     {
         _api = api;
         _store = store;
-        _sessionContext = sessionContext;
+        _authorizationContext = authorizationContext;
     }
 
     [HttpGet("OAuthState")]
-    [Authorize("DefaultAuthorization")]
+    [Authorize]
     public async Task<Dictionary<string, object?>?> OAuthState()
     {
-        var user = await _sessionContext.GetUser(Request);
+        var authorizationInfo = await _authorizationContext.GetAuthorizationInfo(Request);
+        var user = authorizationInfo.User;
         if (user == null)
             return null;
         _store.Load();
@@ -59,10 +60,11 @@ public class OAuthController : ControllerBase
     }
 
     [HttpPost("RefreshOAuthToken")]
-    [Authorize("DefaultAuthorization")]
+    [Authorize]
     public async Task<ActionResult> RefreshOAuthToken()
     {
-        var user = await _sessionContext.GetUser(Request);
+        var authorizationInfo = await _authorizationContext.GetAuthorizationInfo(Request);
+        var user = authorizationInfo.User;
         if (user == null)
             return BadRequest();
         _store.Load();
@@ -76,10 +78,11 @@ public class OAuthController : ControllerBase
     }
 
     [HttpDelete("OAuth")]
-    [Authorize("DefaultAuthorization")]
+    [Authorize]
     public async Task<ActionResult> DeAuth()
     {
-        var user = await _sessionContext.GetUser(Request);
+        var authorizationInfo = await _authorizationContext.GetAuthorizationInfo(Request);
+        var user = authorizationInfo.User;
         if (user == null)
             return BadRequest();
         _store.Load();

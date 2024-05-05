@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFramework>net6.0</TargetFramework>
+        <TargetFramework>net8.0</TargetFramework>
         <RootNamespace>Jellyfin.Plugin.Bangumi</RootNamespace>
         <AssemblyVersion>1.0.0.0</AssemblyVersion>
         <FileVersion>1.0.0.0</FileVersion>
@@ -12,8 +12,7 @@
     <ItemGroup>
         <PackageReference Include="AnitomySharp" Version="0.2.0"/>
         <PackageReference Include="Fastenshtein" Version="1.0.0.8"/>
-        <PackageReference Include="Jellyfin.Controller" IncludeAssets="compile" Version="10.8.12"/>
-        <PackageReference Include="Microsoft.AspNetCore.Authorization" IncludeAssets="compile" Version="6.0.12"/>
+        <PackageReference Include="Jellyfin.Controller" IncludeAssets="compile" Version="10.9.0-*"/>
     </ItemGroup>
 
     <ItemGroup>
