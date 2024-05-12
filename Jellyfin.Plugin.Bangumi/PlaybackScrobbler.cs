@@ -10,15 +10,15 @@ using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Entities.Audio;
 using MediaBrowser.Controller.Entities.Movies;
 using MediaBrowser.Controller.Library;
-using MediaBrowser.Controller.Plugins;
 using MediaBrowser.Model.Entities;
 using MediaBrowser.Model.Globalization;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using CollectionType = Jellyfin.Plugin.Bangumi.Model.CollectionType;
 
 namespace Jellyfin.Plugin.Bangumi;
 
-public class PlaybackScrobbler : IServerEntryPoint
+public class PlaybackScrobbler : IHostedService
 {
     // https://github.com/jellyfin/jellyfin/blob/master/Emby.Server.Implementations/Localization/Ratings/jp.csv
     // https://github.com/jellyfin/jellyfin/blob/master/Emby.Server.Implementations/Localization/Ratings/us.csv
@@ -46,13 +46,13 @@ public class PlaybackScrobbler : IServerEntryPoint
 
     private static PluginConfiguration Configuration => Plugin.Instance!.Configuration;
 
-    public void Dispose()
+    public Task StopAsync(CancellationToken token)
     {
         _userDataManager.UserDataSaved -= OnUserDataSaved;
-        GC.SuppressFinalize(this);
+        return Task.CompletedTask;
     }
 
-    public Task RunAsync()
+    public Task StartAsync(CancellationToken token)
     {
         _userDataManager.UserDataSaved += OnUserDataSaved;
         return Task.CompletedTask;

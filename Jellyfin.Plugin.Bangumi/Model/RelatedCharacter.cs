@@ -1,8 +1,12 @@
+#if EMBY
+using PersonEntityType = MediaBrowser.Model.Entities.PersonType;
+#else
+using Jellyfin.Data.Enums;
+#endif
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json.Serialization;
 using MediaBrowser.Controller.Entities;
-using PersonEntityType = MediaBrowser.Model.Entities.PersonType;
 
 namespace Jellyfin.Plugin.Bangumi.Model;
 
@@ -34,7 +38,11 @@ public class RelatedCharacter
                 Name = actor.Name,
                 Role = Name,
                 ImageUrl = actor.DefaultImage,
+#if EMBY
                 Type = PersonEntityType.Actor
+#else
+                Type = PersonKind.Actor
+#endif
             };
             info.ProviderIds.Add(Constants.ProviderName, $"{actor.Id}");
             return info;
