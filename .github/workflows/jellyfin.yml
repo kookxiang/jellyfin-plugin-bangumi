@@ -13,10 +13,12 @@ jobs:
     name: Build Plugin
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-dotnet@v4
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+      - name: Setup .NET 8.x
+        uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: 6
+          dotnet-version: 8
       - name: Restore NuGet Packages
         run: dotnet restore
       - name: .NET Test
