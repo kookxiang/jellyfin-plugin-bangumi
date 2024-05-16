@@ -94,7 +94,7 @@ public class OAuthController : ControllerBase
     [HttpGet("Redirect")]
     public Task<ActionResult> SetCallbackUrl([FromQuery(Name = "prefix")] string urlPrefix, [FromQuery(Name = "user")] string user)
     {
-        _oAuthPath = $"{urlPrefix}/Bangumi/OAuth";
+        _oAuthPath = $"{urlPrefix}/Plugins/Bangumi/OAuth";
         var redirectUri = Uri.EscapeDataString($"{_oAuthPath}?user={user}");
         return Task.FromResult<ActionResult>(
             Redirect($"https://bgm.tv/oauth/authorize?client_id={ApplicationId}&redirect_uri={redirectUri}&response_type=code"));
