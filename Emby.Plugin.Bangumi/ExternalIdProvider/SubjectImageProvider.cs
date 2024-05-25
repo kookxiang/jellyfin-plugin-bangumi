@@ -11,7 +11,7 @@ using MediaBrowser.Model.Configuration;
 using MediaBrowser.Model.Entities;
 using MediaBrowser.Model.Providers;
 
-namespace Jellyfin.Plugin.Bangumi.Providers;
+namespace Jellyfin.Plugin.Bangumi.ExternalIdProvider;
 
 public class SubjectImageProvider : IRemoteImageProvider, IHasOrder
 {

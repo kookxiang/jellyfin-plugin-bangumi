@@ -7,7 +7,7 @@ using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Providers;
 using MediaBrowser.Model.Providers;
 
-namespace Jellyfin.Plugin.Bangumi.Providers;
+namespace Jellyfin.Plugin.Bangumi.ExternalIdProvider;
 
 public class PersonProvider : IRemoteMetadataProvider<Person, PersonLookupInfo>, IHasOrder
 {

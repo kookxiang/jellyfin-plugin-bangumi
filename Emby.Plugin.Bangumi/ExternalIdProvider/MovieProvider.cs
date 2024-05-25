@@ -1,18 +1,17 @@
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using Jellyfin.Plugin.Bangumi.Configuration;
 using Jellyfin.Plugin.Bangumi.Model;
-using MediaBrowser.Controller.Entities.Movies;
 using MediaBrowser.Common.Net;
+using MediaBrowser.Controller.Entities.Movies;
 using MediaBrowser.Controller.Providers;
 using MediaBrowser.Model.Entities;
-using MediaBrowser.Model.Providers;
 using MediaBrowser.Model.Logging;
+using MediaBrowser.Model.Providers;
 
-namespace Jellyfin.Plugin.Bangumi.Providers;
+namespace Jellyfin.Plugin.Bangumi.ExternalIdProvider;
 
 public class MovieProvider : IRemoteMetadataProvider<Movie, MovieInfo>, IHasOrder
 {

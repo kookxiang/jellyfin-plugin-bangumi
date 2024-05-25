@@ -10,7 +10,7 @@ using MediaBrowser.Controller.Providers;
 using MediaBrowser.Model.Logging;
 using MediaBrowser.Model.Providers;
 
-namespace Jellyfin.Plugin.Bangumi.Providers;
+namespace Jellyfin.Plugin.Bangumi.ExternalIdProvider;
 
 public class SeasonProvider : IRemoteMetadataProvider<Season, SeasonInfo>, IHasOrder
 {
@@ -37,7 +37,7 @@ public class SeasonProvider : IRemoteMetadataProvider<Season, SeasonInfo>, IHasO
         if (!int.TryParse(info.ProviderIds.GetOrDefault(Constants.ProviderName), out var subjectId))
         {
             if (info.IndexNumber != 1 ||
-            !int.TryParse(info.SeriesProviderIds.GetOrDefault(Constants.ProviderName), out subjectId))
+                !int.TryParse(info.SeriesProviderIds.GetOrDefault(Constants.ProviderName), out subjectId))
                 return result;
             _log.Info("Seacon GetMetadata from series id: {0}", subjectId);
         }
@@ -58,6 +58,7 @@ public class SeasonProvider : IRemoteMetadataProvider<Season, SeasonInfo>, IHasO
         if (Configuration.UseBangumiSeasonTitle)
         {
             result.Item.Name = subject.Name;
+            result.Item.SortName = subject.Name;
             result.Item.OriginalTitle = subject.OriginalName;
         }
 
