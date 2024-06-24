@@ -142,15 +142,43 @@ public partial class BangumiApi
 
     public async Task<Subject?> SearchNextSubject(int id, CancellationToken token)
     {
+        bool SeriesSequelUnqualified(Subject subject)
+        {
+            return subject?.Platform == SubjectPlatform.Movie || subject?.Platform == SubjectPlatform.OVA
+                                                              || subject?.PopularTags.Contains("OVA") == true 
+                                                              || subject?.PopularTags.Contains("剧场版") == true;
+        }
         var relatedSubjects = await GetSubjectRelations(id, token);
-        var subjectInfo = relatedSubjects?.FirstOrDefault(item => item.Relation == SubjectRelation.Sequel);
-        if (subjectInfo == null)
-            return null;
-        var subject = await GetSubject(subjectInfo.Id, token);
-        if (subject?.Platform == SubjectPlatform.Movie || subject?.Platform == SubjectPlatform.OVA
-            || subject?.PopularTags.Contains("OVA") == true || subject?.PopularTags.Contains("剧场版") == true)
-            subject = await SearchNextSubject(subject.Id, token);
-        return subject;
+        var subjectsQueue = new Queue<RelatedSubject>(relatedSubjects?.Where(item => item.Relation == SubjectRelation.Sequel) ?? []);
+        while (subjectsQueue.Any())
+        {
+            var relatedSubject = subjectsQueue.Dequeue();
+            var subjectCandidate = await GetSubject(relatedSubject.Id, token);
+            if (subjectCandidate != null && SeriesSequelUnqualified(subjectCandidate)) 
+            {
+                var nextRelatedSubjects = await GetSubjectRelations(subjectCandidate.Id, token);
+                foreach (var nextRelatedSubject in nextRelatedSubjects?.Where(item => item.Relation == SubjectRelation.Sequel) ?? [])
+                {
+                    subjectsQueue.Enqueue(nextRelatedSubject);
+                }
+            }
+            else
+            {
+                // BFS until meets criteria
+                return subjectCandidate;
+            }
+        }
+        
+        return null;
+        // var relatedSubjects = await GetSubjectRelations(id, token);
+        // var subjectInfo = relatedSubjects?.FirstOrDefault(item => item.Relation == SubjectRelation.Sequel);
+        // if (subjectInfo == null)
+        //     return null;
+        // var subject = await GetSubject(subjectInfo.Id, token);
+        // if (subject?.Platform == SubjectPlatform.Movie || subject?.Platform == SubjectPlatform.OVA
+        //     || subject?.PopularTags.Contains("OVA") == true || subject?.PopularTags.Contains("剧场版") == true)
+        //     subject = await SearchNextSubject(subject.Id, token);
+        // return subject;
     }
 
     public async Task<List<PersonInfo>> GetSubjectCharacters(int id, CancellationToken token)

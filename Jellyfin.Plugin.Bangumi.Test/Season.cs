@@ -42,7 +42,10 @@ public class Season
     {
         var subject = await _api.SearchNextSubject(135275, _token);
         Assert.AreEqual(174043, subject?.Id, "can guess next season by subject id");
-
+        
+        subject = await _api.SearchNextSubject(152091, _token);
+        Assert.AreEqual(283643, subject?.Id, "Can guess next TV season with BFS");
+        
         subject = await _api.SearchNextSubject(174043, _token);
         Assert.AreNotEqual(220631, subject?.Id, "should skip movie");
         Assert.AreEqual(342667, subject?.Id, "can guess next season by subject id");
