@@ -54,7 +54,7 @@ public partial class BangumiApi
     {
         var options = new HttpRequestOptions { Url = url };
         if (accessToken != null)
-            options.RequestHeaders.Add("c", $"Bearer {accessToken}");
+            options.RequestHeaders.Add("Authorization", $"Bearer {accessToken}");
         var jsonString = await SendRequest("GET", options);
         return JsonSerializer.Deserialize<T>(jsonString, Options);
     }
