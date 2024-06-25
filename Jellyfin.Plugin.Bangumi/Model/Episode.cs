@@ -52,7 +52,7 @@ public class Episode
     public string? Duration { get; set; }
 
     [JsonIgnore]
-    public string? Description => Configuration.ConvertLineBreaks ? DescriptionRaw?.ReplaceLineEndings(Constants.HtmlLineBreak) : DescriptionRaw;
+    public string? Description => Configuration.ConvertLineBreaks ? DescriptionRaw?.ReplaceLineEndings(Constants.HtmlLineBreak).TrimStart() : DescriptionRaw;
 
     [JsonPropertyName("desc")]
     public string? DescriptionRaw { get; set; }
