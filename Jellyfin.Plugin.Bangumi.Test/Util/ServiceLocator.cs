@@ -38,6 +38,7 @@ public class ServiceLocator
 
         var plugin = GetService<Bangumi.Plugin>();
         plugin.Configuration.TranslationPreference = TranslationPreferenceType.Original;
+        plugin.Configuration.SeasonGuessMaxSearchCount = 10;
     }
 
     public static T GetService<T>()

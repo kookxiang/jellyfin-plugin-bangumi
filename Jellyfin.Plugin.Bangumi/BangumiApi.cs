@@ -148,12 +148,17 @@ public partial class BangumiApi
                                                               || subject?.PopularTags.Contains("OVA") == true 
                                                               || subject?.PopularTags.Contains("剧场版") == true;
         }
+
+        var requestCount = 0;
+        //What would happen in Emby if I use `_plugin`?
+        int maxRequestCount = Plugin.Instance?.Configuration?.SeasonGuessMaxSearchCount ?? 2;
         var relatedSubjects = await GetSubjectRelations(id, token);
         var subjectsQueue = new Queue<RelatedSubject>(relatedSubjects?.Where(item => item.Relation == SubjectRelation.Sequel) ?? []);
-        while (subjectsQueue.Any())
+        while (subjectsQueue.Any() && requestCount < maxRequestCount)
         {
             var relatedSubject = subjectsQueue.Dequeue();
             var subjectCandidate = await GetSubject(relatedSubject.Id, token);
+            requestCount++;
             if (subjectCandidate != null && SeriesSequelUnqualified(subjectCandidate)) 
             {
                 var nextRelatedSubjects = await GetSubjectRelations(subjectCandidate.Id, token);
@@ -165,20 +170,12 @@ public partial class BangumiApi
             else
             {
                 // BFS until meets criteria
+                Console.WriteLine($"BangumiApi: Season guess of id #{id} end with {requestCount} searches");
                 return subjectCandidate;
             }
         }
-        
+        Console.WriteLine($"BangumiApi: Season guess of id #{id} failed with {requestCount} searches");
         return null;
-        // var relatedSubjects = await GetSubjectRelations(id, token);
-        // var subjectInfo = relatedSubjects?.FirstOrDefault(item => item.Relation == SubjectRelation.Sequel);
-        // if (subjectInfo == null)
-        //     return null;
-        // var subject = await GetSubject(subjectInfo.Id, token);
-        // if (subject?.Platform == SubjectPlatform.Movie || subject?.Platform == SubjectPlatform.OVA
-        //     || subject?.PopularTags.Contains("OVA") == true || subject?.PopularTags.Contains("剧场版") == true)
-        //     subject = await SearchNextSubject(subject.Id, token);
-        // return subject;
     }
 
     public async Task<List<PersonInfo>> GetSubjectCharacters(int id, CancellationToken token)
