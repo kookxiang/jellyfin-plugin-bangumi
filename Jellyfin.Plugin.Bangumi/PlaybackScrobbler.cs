@@ -115,7 +115,7 @@ public class PlaybackScrobbler : IHostedService
 
         if (item is Movie)
         {
-            episodeId = subjectId;
+            subjectId = (subjectId == 0) ? episodeId : subjectId;
             // jellyfin only have subject id for movie, so we need to get episode id from bangumi api
             var episodeList = await _api.GetSubjectEpisodeListWithOffset(subjectId, EpisodeType.Normal, 0, CancellationToken.None);
             if (episodeList?.Data.Count > 0)
