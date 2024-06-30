@@ -33,4 +33,6 @@ public class PluginConfiguration : BasePluginConfiguration
     public bool UseTestingSearchApi { get; set; }
 
     public bool ConvertLineBreaks { get; set; } = true;
+
+    public int SeasonGuessMaxSearchCount { get; set; } = 2;
 }
