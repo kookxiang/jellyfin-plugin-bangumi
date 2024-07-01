@@ -70,7 +70,7 @@ public class SeasonProvider : IRemoteMetadataProvider<Season, SeasonInfo>, IHasO
             var previousSeason = series.Children
                 // Search "Season 2" for "Season 1" and "Season 2 Part X"  
                 .Where(x => x.IndexNumber == info.IndexNumber - 1 || x.IndexNumber == info.IndexNumber)
-                .MaxBy(x => int.Parse(x.GetProviderId(Constants.ProviderName) ?? string.Empty));
+                .MaxBy(x => int.Parse(x.GetProviderId(Constants.ProviderName) ?? "0"));
             if (int.TryParse(previousSeason?.GetProviderId(Constants.ProviderName), out var previousSeasonId) && previousSeasonId > 0)
             {
                 _log.LogInformation("Guessing season id from previous season #{ID}", previousSeasonId);
