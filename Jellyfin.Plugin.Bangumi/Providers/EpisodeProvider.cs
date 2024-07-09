@@ -106,7 +106,8 @@ public class EpisodeProvider : IRemoteMetadataProvider<Episode, EpisodeInfo>, IH
         else if (parent is Season season)
         {
             result.Item.SeasonId = season.Id;
-            result.Item.ParentIndexNumber = season.IndexNumber;
+            if (season.IndexNumber != null)
+                result.Item.ParentIndexNumber = season.IndexNumber;
         }
 
         if (episode.Type == EpisodeType.Normal && result.Item.ParentIndexNumber > 0)
