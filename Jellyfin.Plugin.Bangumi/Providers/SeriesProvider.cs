@@ -97,11 +97,13 @@ public class SeriesProvider(BangumiApi api, ILogger<SeriesProvider> log)
         result.Item.OriginalTitle = subject.OriginalName;
         result.Item.Overview = string.IsNullOrEmpty(subject.Summary) ? null : subject.Summary;
         result.Item.Tags = subject.PopularTags;
+        result.Item.HomePageUrl = subject.OfficialWebSite;
+        result.Item.EndDate = subject.EndDate;
 
         if (DateTime.TryParse(subject.AirDate, out var airDate))
         {
             result.Item.AirTime = subject.AirDate;
-            result.Item.AirDays = new[] { airDate.DayOfWeek };
+            result.Item.AirDays = [airDate.DayOfWeek];
             result.Item.PremiereDate = airDate;
             result.Item.ProductionYear = airDate.Year;
         }

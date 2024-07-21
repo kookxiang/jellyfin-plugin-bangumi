@@ -1,4 +1,5 @@
 using System;
+using System.Globalization;
 using System.Text.Json.Serialization;
 using Jellyfin.Plugin.Bangumi.Configuration;
 
@@ -26,6 +27,33 @@ public class PersonDetail : Person
     [JsonPropertyName("birth_day")]
     public int? Birthday { get; set; }
 
+    [JsonIgnore]
     public DateTime? Birthdate =>
         BirthYear != null && BirthMonth != null && Birthday != null ? new DateTime((int)BirthYear, (int)BirthMonth, (int)Birthday) : null;
+
+    [JsonIgnore]
+    public string? BirthPlace => InfoBox?.GetString("出生地") ?? InfoBox?.GetString("出身地");
+
+    [JsonIgnore]
+    public DateTime? DeathDate
+    {
+        get
+        {
+            var dateStr = InfoBox?.GetString("卒日");
+            if (dateStr != null && DateTime.TryParseExact(dateStr, "yyyy年MM月dd日", CultureInfo.GetCultureInfo("zh-CN"), DateTimeStyles.None, out var date))
+                return date;
+            return null;
+        }
+    }
+
+    [JsonPropertyName("infobox")]
+    public InfoBox? InfoBox { get; set; }
+
+    [JsonIgnore]
+    public string TranslatedName => Configuration.PersonTranslationPreference switch
+    {
+        TranslationPreferenceType.Original => Name,
+        TranslationPreferenceType.Chinese => InfoBox?.GetString("简体中文名") ?? Name,
+        _ => Name
+    };
 }

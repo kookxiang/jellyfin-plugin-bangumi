@@ -28,10 +28,13 @@ public class PersonProvider(BangumiApi api)
         result.HasMetadata = true;
         result.Item = new Person
         {
-            Name = person.Name,
+            Name = person.TranslatedName,
+            OriginalTitle = person.Name,
             Overview = person.Summary,
             PremiereDate = person.Birthdate,
-            ProductionYear = person.BirthYear
+            ProductionYear = person.BirthYear,
+            ProductionLocations = [person.BirthPlace],
+            EndDate = person.DeathDate
         };
         result.Item.ProviderIds.Add(Constants.ProviderName, $"{person.Id}");
         return result;

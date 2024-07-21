@@ -1,10 +1,11 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Net;
 using System.Text.Json.Serialization;
 using Jellyfin.Plugin.Bangumi.Configuration;
 #if !EMBY
-using System;
 using Fastenshtein;
 #endif
 
@@ -80,6 +81,24 @@ public class Subject
         {
             var baseline = Tags.Sum(tag => tag.Count) / 25;
             return Tags.Where(tag => tag.Count >= baseline).Select(tag => tag.Name).ToArray();
+        }
+    }
+
+    [JsonPropertyName("infobox")]
+    public InfoBox? InfoBox { get; set; }
+
+    [JsonIgnore]
+    public string? OfficialWebSite => InfoBox?.GetString("官方网站");
+
+    [JsonIgnore]
+    public DateTime? EndDate
+    {
+        get
+        {
+            var dateStr = InfoBox?.GetString("播放结束");
+            if (dateStr != null && DateTime.TryParseExact(dateStr, "yyyy年MM月dd日", CultureInfo.GetCultureInfo("zh-CN"), DateTimeStyles.None, out var date))
+                return date;
+            return null;
         }
     }
 

@@ -107,6 +107,9 @@ public class SeasonProvider(BangumiApi api, ILogger<EpisodeProvider> log, ILibra
         if (subject.ProductionYear?.Length == 4)
             result.Item.ProductionYear = int.Parse(subject.ProductionYear);
 
+        result.Item.HomePageUrl = subject.OfficialWebSite;
+        result.Item.EndDate = subject.EndDate;
+
         if (subject.IsNSFW)
             result.Item.OfficialRating = "X";
 
