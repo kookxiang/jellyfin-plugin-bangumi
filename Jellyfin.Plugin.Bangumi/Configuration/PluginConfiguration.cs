@@ -14,6 +14,8 @@ public class PluginConfiguration : BasePluginConfiguration
 
     public int RequestTimeout { get; set; } = 5000;
 
+    public string BaseServerUrl { get; set; } = "https://api.bgm.tv";
+
     public bool ReportPlaybackStatusToBangumi { get; set; } = true;
 
     public bool SkipNSFWPlaybackReport { get; set; } = true;

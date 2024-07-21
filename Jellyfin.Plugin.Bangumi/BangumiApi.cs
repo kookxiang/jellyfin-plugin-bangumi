@@ -19,6 +19,9 @@ public partial class BangumiApi
     private const int PageSize = 50;
     private const int Offset = 20;
 
+    private static string BaseUrl =>
+        string.IsNullOrEmpty(Plugin.Instance?.Configuration?.BaseServerUrl) ? "https://api.bgm.tv" : Plugin.Instance!.Configuration.BaseServerUrl.TrimEnd('/');
+
     public Task<List<Subject>> SearchSubject(string keyword, CancellationToken token)
     {
         return SearchSubject(keyword, SubjectType.Anime, token);
@@ -36,12 +39,12 @@ public partial class BangumiApi
 #if EMBY
                 var options = new HttpRequestOptions
                 {
-                    Url = "https://api.bgm.tv/v0/search/subjects",
+                    Url = $"{BaseUrl}/v0/search/subjects",
                     RequestHttpContent = new JsonContent(searchParams)
                 };
                 var jsonString = await SendRequest("POST", options);
 #else
-                var request = new HttpRequestMessage(HttpMethod.Post, "https://api.bgm.tv/v0/search/subjects");
+                var request = new HttpRequestMessage(HttpMethod.Post, $"{BaseUrl}/v0/search/subjects");
                 request.Content = new JsonContent(searchParams);
                 var jsonString = await SendRequest(request, token);
 #endif
@@ -51,7 +54,7 @@ public partial class BangumiApi
             }
             else
             {
-                var url = $"https://api.bgm.tv/search/subject/{Uri.EscapeDataString(keyword)}?responseGroup=large";
+                var url = $"{BaseUrl}/search/subject/{Uri.EscapeDataString(keyword)}?responseGroup=large";
                 if (type != null)
                     url += $"&type={(int)type}";
                 var searchResult = await SendRequest<SearchResult<Subject>>(url, token);
@@ -68,7 +71,7 @@ public partial class BangumiApi
 
     public async Task<Subject?> GetSubject(int id, CancellationToken token)
     {
-        return await SendRequest<Subject>($"https://api.bgm.tv/v0/subjects/{id}", token);
+        return await SendRequest<Subject>($"{BaseUrl}/v0/subjects/{id}", token);
     }
 
     public async Task<List<Episode>?> GetSubjectEpisodeList(int id, EpisodeType? type, double episodeNumber, CancellationToken token)
@@ -127,7 +130,7 @@ public partial class BangumiApi
 
     public async Task<DataList<Episode>?> GetSubjectEpisodeListWithOffset(int id, EpisodeType? type, double offset, CancellationToken token)
     {
-        var url = $"https://api.bgm.tv/v0/episodes?subject_id={id}&limit={PageSize}";
+        var url = $"{BaseUrl}/v0/episodes?subject_id={id}&limit={PageSize}";
         if (type != null)
             url += $"&type={(int)type}";
         if (offset > 0)
@@ -137,7 +140,7 @@ public partial class BangumiApi
 
     public async Task<List<RelatedSubject>?> GetSubjectRelations(int id, CancellationToken token)
     {
-        return await SendRequest<List<RelatedSubject>>($"https://api.bgm.tv/v0/subjects/{id}/subjects", token);
+        return await SendRequest<List<RelatedSubject>>($"{BaseUrl}/v0/subjects/{id}/subjects", token);
     }
 
     public async Task<Subject?> SearchNextSubject(int id, CancellationToken token)
@@ -145,7 +148,7 @@ public partial class BangumiApi
         bool SeriesSequelUnqualified(Subject subject)
         {
             return subject?.Platform == SubjectPlatform.Movie || subject?.Platform == SubjectPlatform.OVA
-                                                              || subject?.PopularTags.Contains("OVA") == true 
+                                                              || subject?.PopularTags.Contains("OVA") == true
                                                               || subject?.PopularTags.Contains("剧场版") == true;
         }
 
@@ -159,7 +162,7 @@ public partial class BangumiApi
             var relatedSubject = subjectsQueue.Dequeue();
             var subjectCandidate = await GetSubject(relatedSubject.Id, token);
             requestCount++;
-            if (subjectCandidate != null && SeriesSequelUnqualified(subjectCandidate)) 
+            if (subjectCandidate != null && SeriesSequelUnqualified(subjectCandidate))
             {
                 var nextRelatedSubjects = await GetSubjectRelations(subjectCandidate.Id, token);
                 foreach (var nextRelatedSubject in nextRelatedSubjects?.Where(item => item.Relation == SubjectRelation.Sequel) ?? [])
@@ -174,6 +177,7 @@ public partial class BangumiApi
                 return subjectCandidate;
             }
         }
+
         Console.WriteLine($"BangumiApi: Season guess of id #{id} failed with {requestCount} searches");
         return null;
     }
@@ -181,14 +185,14 @@ public partial class BangumiApi
     public async Task<List<PersonInfo>> GetSubjectCharacters(int id, CancellationToken token)
     {
         var result = new List<PersonInfo>();
-        var characters = await SendRequest<List<RelatedCharacter>>($"https://api.bgm.tv/v0/subjects/{id}/characters", token);
+        var characters = await SendRequest<List<RelatedCharacter>>($"{BaseUrl}/v0/subjects/{id}/characters", token);
         characters?.ForEach(character => result.AddRange(character.ToPersonInfos()));
         return result;
     }
 
     public async Task<List<RelatedPerson>?> GetSubjectPersons(int id, CancellationToken token)
     {
-        return await SendRequest<List<RelatedPerson>>($"https://api.bgm.tv/v0/subjects/{id}/persons", token);
+        return await SendRequest<List<RelatedPerson>>($"{BaseUrl}/v0/subjects/{id}/persons", token);
     }
 
     public async Task<List<PersonInfo>> GetSubjectPersonInfos(int id, CancellationToken token)
@@ -202,11 +206,11 @@ public partial class BangumiApi
 
     public async Task<Episode?> GetEpisode(int id, CancellationToken token)
     {
-        return await SendRequest<Episode>($"https://api.bgm.tv/v0/episodes/{id}", token);
+        return await SendRequest<Episode>($"{BaseUrl}/v0/episodes/{id}", token);
     }
 
     public async Task<PersonDetail?> GetPerson(int id, CancellationToken token)
     {
-        return await SendRequest<PersonDetail>($"https://api.bgm.tv/v0/persons/{id}", token);
+        return await SendRequest<PersonDetail>($"{BaseUrl}/v0/persons/{id}", token);
     }
 }

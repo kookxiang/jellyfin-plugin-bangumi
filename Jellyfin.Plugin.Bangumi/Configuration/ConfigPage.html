@@ -141,6 +141,12 @@
                         <h2 class="sectionTitle">网络</h2>
                     </div>
                 </div>
+                <div class="inputContainer">
+                    <label class="inputLabel" for="BaseServerUrl">Bangumi API 地址</label>
+                    <input class="emby-input" id="BaseServerUrl" is="emby-input" placeholder="https://api.bgm.tv" type="text"/>
+                    <div class="fieldDescription">官方 API 部署在海外，请确保 Jellyfin 上能够稳定访问或配置反代站点。
+                    </div>
+                </div>
                 <div class="selectContainer">
                     <label class="selectLabel" for="RequestTimeout">请求超时时间</label>
                     <select class="emby-select-withcolor emby-select" id="RequestTimeout" is="emby-select">
@@ -149,6 +155,7 @@
                         <option value="30000">30 秒</option>
                         <option value="60000">1 分钟</option>
                     </select>
+                    <div class="fieldDescription">只能缓解国内访问不稳定的情况，要确保国内能稳定访问请配置代理。</div>
                 </div>
                 <div class="selectContainer">
                     <label class="selectLabel" for="SeasonGuessMaxSearchCount">季度搜索最大请求数</label>
@@ -157,11 +164,12 @@
                         <option value="2">2</option>
                         <option value="5">5</option>
                         <option value="10">10</option>
-<!--                        <option value="114514">无限制</option>-->
+                        <!--<option value="114514">无限制</option>-->
                     </select>
-                    <div class="fieldDescription">本插件使用遍历搜索关联条目的方式匹配TV动画季度。大部分情况下只需一次搜索即可完成，但某些条目可能需要多次搜索才能匹配到下一季。默认最多搜索两次，如果某些季度匹配错误，您可以尝试增加最大搜索次数。</div>
+                    <div class="fieldDescription">
+                        本插件使用遍历搜索关联条目的方式匹配TV动画季度。大部分情况下只需一次搜索即可完成，但某些条目可能需要多次搜索才能匹配到下一季。默认最多搜索两次，如果某些季度匹配错误，您可以尝试增加最大搜索次数。
+                    </div>
                 </div>
-                
                 <div class="verticalSection verticalSection">
                     <div class="sectionTitleContainer flex align-items-center">
                         <h2 class="sectionTitle">元数据</h2>
@@ -234,6 +242,11 @@
                             <span>使用 AnitomySharp 猜测动画名</span>
                         </label>
                     </div>
+                </div>
+                <div>
+                    <button class="raised button-submit block emby-button" is="emby-button" type="submit">
+                        <span>保存</span>
+                    </button>
                 </div>
             </form>
         </div>
@@ -324,7 +337,10 @@
             container.addEventListener('viewshow', onLoad);
             container.addEventListener('viewhide', onUnload);
 
-            container.querySelector('#bangumiConfigurationForm').addEventListener('change', saveConfiguration);
+            container.querySelector('#bangumiConfigurationForm').addEventListener('submit', function (e) {
+                e.preventDefault();
+                saveConfiguration();
+            });
 
             container.querySelector('#bangumi-oauth-btn').addEventListener('click', function (e) {
                 e.preventDefault();
