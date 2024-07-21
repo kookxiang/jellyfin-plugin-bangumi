@@ -13,17 +13,9 @@ using MediaBrowser.Model.Providers;
 
 namespace Jellyfin.Plugin.Bangumi.ExternalIdProvider;
 
-public class MovieProvider : IRemoteMetadataProvider<Movie, MovieInfo>, IHasOrder
+public class MovieProvider(BangumiApi api, ILogger logger)
+    : IRemoteMetadataProvider<Movie, MovieInfo>, IHasOrder
 {
-    private readonly BangumiApi _api;
-    private readonly ILogger _log;
-
-    public MovieProvider(BangumiApi api, ILogger logger)
-    {
-        _api = api;
-        _log = logger;
-    }
-
     private static PluginConfiguration Configuration => Plugin.Instance!.Configuration;
 
     public int Order => -5;
@@ -42,8 +34,8 @@ public class MovieProvider : IRemoteMetadataProvider<Movie, MovieInfo>, IHasOrde
         if (subjectId == 0)
         {
             var searchName = info.Name;
-            _log.Info("Searching {0} in bgm.tv", searchName);
-            var searchResult = await _api.SearchSubject(searchName, token);
+            logger.Info("Searching {0} in bgm.tv", searchName);
+            var searchResult = await api.SearchSubject(searchName, token);
             if (info.Year != null)
                 searchResult = searchResult.FindAll(x => x.ProductionYear == null || x.ProductionYear == info.Year.ToString());
             if (searchResult.Count > 0)
@@ -53,7 +45,7 @@ public class MovieProvider : IRemoteMetadataProvider<Movie, MovieInfo>, IHasOrde
         if (subjectId == 0)
             return result;
 
-        var subject = await _api.GetSubject(subjectId, token);
+        var subject = await api.GetSubject(subjectId, token);
         if (subject == null)
             return result;
 
@@ -75,8 +67,8 @@ public class MovieProvider : IRemoteMetadataProvider<Movie, MovieInfo>, IHasOrde
         if (subject.IsNSFW)
             result.Item.OfficialRating = "X";
 
-        (await _api.GetSubjectPersonInfos(subject.Id, token)).ForEach(result.AddPerson);
-        (await _api.GetSubjectCharacters(subject.Id, token)).ForEach(result.AddPerson);
+        (await api.GetSubjectPersonInfos(subject.Id, token)).ForEach(result.AddPerson);
+        (await api.GetSubjectCharacters(subject.Id, token)).ForEach(result.AddPerson);
 
         return result;
     }
@@ -89,7 +81,7 @@ public class MovieProvider : IRemoteMetadataProvider<Movie, MovieInfo>, IHasOrde
 
         if (int.TryParse(searchInfo.ProviderIds.GetOrDefault(Constants.ProviderName), out var id))
         {
-            var subject = await _api.GetSubject(id, token);
+            var subject = await api.GetSubject(id, token);
             if (subject == null)
                 return results;
             var result = new RemoteSearchResult
@@ -108,7 +100,7 @@ public class MovieProvider : IRemoteMetadataProvider<Movie, MovieInfo>, IHasOrde
         }
         else if (!string.IsNullOrEmpty(searchInfo.Name))
         {
-            var series = await _api.SearchSubject(searchInfo.Name, token);
+            var series = await api.SearchSubject(searchInfo.Name, token);
             series = Subject.SortBySimilarity(series, searchInfo.Name);
             foreach (var item in series)
             {
@@ -137,7 +129,7 @@ public class MovieProvider : IRemoteMetadataProvider<Movie, MovieInfo>, IHasOrde
 
     public Task<HttpResponseInfo> GetImageResponse(string url, CancellationToken token)
     {
-        return _api.GetHttpClient().GetResponse(new HttpRequestOptions
+        return api.GetHttpClient().GetResponse(new HttpRequestOptions
         {
             Url = url,
             CancellationToken = token

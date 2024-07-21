@@ -11,27 +11,18 @@ using HttpRequestOptions = MediaBrowser.Common.Net.HttpRequestOptions;
 
 namespace Jellyfin.Plugin.Bangumi;
 
-public partial class BangumiApi
+public partial class BangumiApi(IHttpClient httpClient, OAuthStore store)
 {
     private static readonly JsonSerializerOptions Options = new()
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase
     };
 
-    private readonly IHttpClient _httpClient;
-    private readonly OAuthStore _store;
-
-    public BangumiApi(IHttpClient httpClient, OAuthStore store)
-    {
-        _httpClient = httpClient;
-        _store = store;
-    }
-
     private static Plugin Plugin => Plugin.Instance!;
 
     public IHttpClient GetHttpClient()
     {
-        return _httpClient;
+        return httpClient;
     }
 
     private async Task<string> SendRequest(string method, HttpRequestOptions options)
@@ -39,7 +30,7 @@ public partial class BangumiApi
         options.UserAgent = $"Jellyfin.Plugin.Bangumi/{Plugin.Version} (https://github.com/kookxiang/jellyfin-plugin-bangumi)";
         options.TimeoutMs = Plugin.Configuration.RequestTimeout;
         options.ThrowOnErrorResponse = false;
-        using var response = await _httpClient.SendAsync(options, method);
+        using var response = await httpClient.SendAsync(options, method);
         if (response.StatusCode >= HttpStatusCode.MovedPermanently) await ServerException.ThrowFrom(response);
         using var stream = new StreamReader(response.Content);
         return await stream.ReadToEndAsync();
@@ -47,7 +38,7 @@ public partial class BangumiApi
 
     private Task<T?> SendRequest<T>(string url, CancellationToken token)
     {
-        return SendRequest<T>(url, _store.GetAvailable()?.AccessToken, token);
+        return SendRequest<T>(url, store.GetAvailable()?.AccessToken, token);
     }
 
     private async Task<T?> SendRequest<T>(string url, string? accessToken, CancellationToken token)

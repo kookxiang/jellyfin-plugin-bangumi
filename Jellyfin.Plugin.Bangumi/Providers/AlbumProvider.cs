@@ -14,17 +14,9 @@ using Microsoft.Extensions.Logging;
 
 namespace Jellyfin.Plugin.Bangumi.Providers;
 
-public class AlbumProvider : IRemoteMetadataProvider<MusicAlbum, AlbumInfo>, IHasOrder
+public class AlbumProvider(BangumiApi api, ILogger<AlbumProvider> log)
+    : IRemoteMetadataProvider<MusicAlbum, AlbumInfo>, IHasOrder
 {
-    private readonly BangumiApi _api;
-    private readonly ILogger<AlbumProvider> _log;
-
-    public AlbumProvider(BangumiApi api, ILogger<AlbumProvider> log)
-    {
-        _api = api;
-        _log = log;
-    }
-
     private static PluginConfiguration Configuration => Plugin.Instance!.Configuration;
 
     public int Order => -5;
@@ -44,8 +36,8 @@ public class AlbumProvider : IRemoteMetadataProvider<MusicAlbum, AlbumInfo>, IHa
         if (subjectId == 0)
         {
             var searchName = info.Name;
-            _log.LogInformation("Searching {Name} in bgm.tv", searchName);
-            var searchResult = await _api.SearchSubject(searchName, SubjectType.Music, token);
+            log.LogInformation("Searching {Name} in bgm.tv", searchName);
+            var searchResult = await api.SearchSubject(searchName, SubjectType.Music, token);
             if (info.Year != null)
                 searchResult = searchResult.FindAll(x => x.ProductionYear == null || x.ProductionYear == info.Year.ToString());
             if (searchResult.Count > 0)
@@ -55,8 +47,8 @@ public class AlbumProvider : IRemoteMetadataProvider<MusicAlbum, AlbumInfo>, IHa
         if (subjectId == 0 && info.OriginalTitle != null && !string.Equals(info.OriginalTitle, info.Name, StringComparison.Ordinal))
         {
             var searchName = info.OriginalTitle;
-            _log.LogInformation("Searching {Name} in bgm.tv", searchName);
-            var searchResult = await _api.SearchSubject(searchName, SubjectType.Music, token);
+            log.LogInformation("Searching {Name} in bgm.tv", searchName);
+            var searchResult = await api.SearchSubject(searchName, SubjectType.Music, token);
             if (info.Year != null)
                 searchResult = searchResult.FindAll(x => x.ProductionYear == null || x.ProductionYear == info.Year.ToString());
             if (searchResult.Count > 0)
@@ -66,9 +58,9 @@ public class AlbumProvider : IRemoteMetadataProvider<MusicAlbum, AlbumInfo>, IHa
         if (subjectId == 0 && Configuration.AlwaysGetTitleByAnitomySharp)
         {
             var searchName = Anitomy.ExtractAnimeTitle(baseName) ?? info.Name;
-            _log.LogInformation("Searching {Name} in bgm.tv", searchName);
+            log.LogInformation("Searching {Name} in bgm.tv", searchName);
             // 不保证使用非原名或中文进行查询时返回正确结果
-            var searchResult = await _api.SearchSubject(searchName, SubjectType.Music, token);
+            var searchResult = await api.SearchSubject(searchName, SubjectType.Music, token);
             if (info.Year != null)
                 searchResult = searchResult.FindAll(x => x.ProductionYear == null || x.ProductionYear == info.Year.ToString());
             if (searchResult.Count > 0)
@@ -78,7 +70,7 @@ public class AlbumProvider : IRemoteMetadataProvider<MusicAlbum, AlbumInfo>, IHa
         if (subjectId == 0)
             return result;
 
-        var subject = await _api.GetSubject(subjectId, token);
+        var subject = await api.GetSubject(subjectId, token);
         if (subject == null)
             return result;
 
@@ -101,7 +93,7 @@ public class AlbumProvider : IRemoteMetadataProvider<MusicAlbum, AlbumInfo>, IHa
         if (subject.ProductionYear?.Length == 4)
             result.Item.ProductionYear = int.Parse(subject.ProductionYear);
 
-        var persons = await _api.GetSubjectPersons(subject.Id, token);
+        var persons = await api.GetSubjectPersons(subject.Id, token);
         result.Item.AlbumArtists = persons?.FindAll(person => person.Type == 3)?.ConvertAll(person => person.Name);
 
         return result;
@@ -115,7 +107,7 @@ public class AlbumProvider : IRemoteMetadataProvider<MusicAlbum, AlbumInfo>, IHa
 
         if (int.TryParse(searchInfo.ProviderIds.GetOrDefault(Constants.ProviderName), out var id))
         {
-            var subject = await _api.GetSubject(id, token);
+            var subject = await api.GetSubject(id, token);
             if (subject == null)
                 return results;
             var result = new RemoteSearchResult
@@ -134,7 +126,7 @@ public class AlbumProvider : IRemoteMetadataProvider<MusicAlbum, AlbumInfo>, IHa
         }
         else if (!string.IsNullOrEmpty(searchInfo.Name))
         {
-            var series = await _api.SearchSubject(searchInfo.Name, SubjectType.Music, token);
+            var series = await api.SearchSubject(searchInfo.Name, SubjectType.Music, token);
             series = Subject.SortBySimilarity(series, searchInfo.Name);
             foreach (var item in series)
             {
@@ -163,6 +155,6 @@ public class AlbumProvider : IRemoteMetadataProvider<MusicAlbum, AlbumInfo>, IHa
 
     public async Task<HttpResponseMessage> GetImageResponse(string url, CancellationToken token)
     {
-        return await _api.GetHttpClient().GetAsync(url, token).ConfigureAwait(false);
+        return await api.GetHttpClient().GetAsync(url, token).ConfigureAwait(false);
     }
 }

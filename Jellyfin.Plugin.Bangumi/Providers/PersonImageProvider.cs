@@ -11,15 +11,9 @@ using MediaBrowser.Model.Providers;
 
 namespace Jellyfin.Plugin.Bangumi.Providers;
 
-public class PersonImageProvider : IRemoteImageProvider, IHasOrder
+public class PersonImageProvider(BangumiApi api)
+    : IRemoteImageProvider, IHasOrder
 {
-    private readonly BangumiApi _api;
-
-    public PersonImageProvider(BangumiApi api)
-    {
-        _api = api;
-    }
-
     public int Order => -5;
 
     public string Name => Constants.ProviderName;
@@ -42,7 +36,7 @@ public class PersonImageProvider : IRemoteImageProvider, IHasOrder
 
             return Enumerable.Empty<RemoteImageInfo>();
 
-        var person = await _api.GetPerson(id, token);
+        var person = await api.GetPerson(id, token);
 
         if (person != null && person.DefaultImage != "")
             return new List<RemoteImageInfo>
@@ -60,6 +54,6 @@ public class PersonImageProvider : IRemoteImageProvider, IHasOrder
 
     public async Task<HttpResponseMessage> GetImageResponse(string url, CancellationToken token)
     {
-        return await _api.GetHttpClient().GetAsync(url, token).ConfigureAwait(false);
+        return await api.GetHttpClient().GetAsync(url, token).ConfigureAwait(false);
     }
 }

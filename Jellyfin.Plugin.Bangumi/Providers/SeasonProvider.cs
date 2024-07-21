@@ -16,19 +16,9 @@ using Microsoft.Extensions.Logging;
 
 namespace Jellyfin.Plugin.Bangumi.Providers;
 
-public class SeasonProvider : IRemoteMetadataProvider<Season, SeasonInfo>, IHasOrder
+public class SeasonProvider(BangumiApi api, ILogger<EpisodeProvider> log, ILibraryManager libraryManager)
+    : IRemoteMetadataProvider<Season, SeasonInfo>, IHasOrder
 {
-    private readonly BangumiApi _api;
-    private readonly ILibraryManager _libraryManager;
-    private readonly ILogger<EpisodeProvider> _log;
-
-    public SeasonProvider(BangumiApi api, ILogger<EpisodeProvider> log, ILibraryManager libraryManager)
-    {
-        _api = api;
-        _log = log;
-        _libraryManager = libraryManager;
-    }
-
     private static PluginConfiguration Configuration => Plugin.Instance!.Configuration;
 
     public int Order => -5;
@@ -69,7 +59,7 @@ public class SeasonProvider : IRemoteMetadataProvider<Season, SeasonInfo>, IHasO
         {
             subjectId = subjectIdFromParent;
         }
-        else if (seasonPath is not null && _libraryManager.FindByPath(seasonPath, true) is Series series)
+        else if (seasonPath is not null && libraryManager.FindByPath(seasonPath, true) is Series series)
         {
             var previousSeason = series.Children
                 // Search "Season 2" for "Season 1" and "Season 2 Part X"  
@@ -77,11 +67,11 @@ public class SeasonProvider : IRemoteMetadataProvider<Season, SeasonInfo>, IHasO
                 .MaxBy(x => int.Parse(x.GetProviderId(Constants.ProviderName) ?? "0"));
             if (int.TryParse(previousSeason?.GetProviderId(Constants.ProviderName), out var previousSeasonId) && previousSeasonId > 0)
             {
-                _log.LogInformation("Guessing season id from previous season #{ID}", previousSeasonId);
-                subject = await _api.SearchNextSubject(previousSeasonId, token);
+                log.LogInformation("Guessing season id from previous season #{ID}", previousSeasonId);
+                subject = await api.SearchNextSubject(previousSeasonId, token);
                 if (subject != null)
                 {
-                    _log.LogInformation("Guessed result: {Name} (#{ID})", subject.Name, subject.Id);
+                    log.LogInformation("Guessed result: {Name} (#{ID})", subject.Name, subject.Id);
                     subjectId = subject.Id;
                 }
             }
@@ -90,7 +80,7 @@ public class SeasonProvider : IRemoteMetadataProvider<Season, SeasonInfo>, IHasO
         if (subjectId == 0)
             return result;
 
-        subject ??= await _api.GetSubject(subjectId, token);
+        subject ??= await api.GetSubject(subjectId, token);
         if (subject == null)
             return result;
 
@@ -120,8 +110,8 @@ public class SeasonProvider : IRemoteMetadataProvider<Season, SeasonInfo>, IHasO
         if (subject.IsNSFW)
             result.Item.OfficialRating = "X";
 
-        (await _api.GetSubjectPersonInfos(subject.Id, token)).ForEach(result.AddPerson);
-        (await _api.GetSubjectCharacters(subject.Id, token)).ForEach(result.AddPerson);
+        (await api.GetSubjectPersonInfos(subject.Id, token)).ForEach(result.AddPerson);
+        (await api.GetSubjectCharacters(subject.Id, token)).ForEach(result.AddPerson);
 
         return result;
     }
@@ -133,6 +123,6 @@ public class SeasonProvider : IRemoteMetadataProvider<Season, SeasonInfo>, IHasO
 
     public Task<HttpResponseMessage> GetImageResponse(string url, CancellationToken token)
     {
-        return _api.GetHttpClient().GetAsync(url, token);
+        return api.GetHttpClient().GetAsync(url, token);
     }
 }

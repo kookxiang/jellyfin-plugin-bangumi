@@ -1,22 +1,18 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Net;
-using System.Collections.Generic;
 using System.Net.Http;
-using System.Text.Json;
-using MediaBrowser.Common.Extensions;
-using MediaBrowser.Model.Logging;
-using MediaBrowser.Controller.Net;
-using MediaBrowser.Model.Services;
 using System.Text;
-using MediaBrowser.Controller.Library;
-using MediaBrowser.Controller.Session;
+using System.Text.Json;
 using System.Threading.Tasks;
-
+using MediaBrowser.Common.Extensions;
+using MediaBrowser.Controller.Net;
+using MediaBrowser.Model.Logging;
+using MediaBrowser.Model.Services;
 using HttpRequestOptions = MediaBrowser.Common.Net.HttpRequestOptions;
 
 namespace Jellyfin.Plugin.Bangumi.OAuth;
-
 
 public class AuthState
 {
@@ -58,37 +54,21 @@ public class OAuth : IReturnVoid
 }
 
 [Unauthenticated]
-public class OAuthController : IService, IRequiresRequest
+public class OAuthController(BangumiApi api, OAuthStore store, ILogger log, ISessionContext sessionContext)
+    : IService, IRequiresRequest
 {
     protected internal const string ApplicationId = "bgm16185f43c213d11c9";
     protected internal const string ApplicationSecret = "1b28040afd28882aecf23dcdd86be9f7";
 
     private static string? _oAuthPath;
-    private readonly BangumiApi _api;
-    private readonly IUserManager _userManager;
-    private readonly OAuthStore _store;
-    private readonly ISessionContext _sessionContext;
-    private readonly ISessionManager _sessionManager;
 
     public IRequest Request { get; set; }
 
-    ILogger _log;
-
-    public OAuthController(IUserManager userManager, BangumiApi api, OAuthStore store, ILogger log, ISessionContext sessionContext, ISessionManager sessionManager)
-    {
-        _userManager = userManager;
-        _api = api;
-        _store = store;
-        _log = log;
-        _sessionContext = sessionContext;
-        _sessionManager = sessionManager;
-    }
-
     public async Task<object?> Get(OAuthState oAuthState)
     {
-        var user = _sessionContext.GetUser(Request) ?? throw new ResourceNotFoundException();
-        _store.Load();
-        var info = _store.Get(user.Id);
+        var user = sessionContext.GetUser(Request) ?? throw new ResourceNotFoundException();
+        store.Load();
+        var info = store.Get(user.Id);
         if (info == null)
         {
             return "null";
@@ -96,8 +76,8 @@ public class OAuthController : IService, IRequiresRequest
 
         if (string.IsNullOrEmpty(info.Avatar))
         {
-            await info.GetProfile(_api);
-            _store.Save();
+            await info.GetProfile(api);
+            store.Save();
         }
 
         return new AuthState
@@ -113,20 +93,20 @@ public class OAuthController : IService, IRequiresRequest
 
     public async Task Post(RefreshOAuthToken refreshOAuthToken)
     {
-        var user = await Task.Run(() => _sessionContext.GetUser(Request)) ?? throw new ResourceNotFoundException();
-        _store.Load();
-        var info = _store.Get(user.Id) ?? throw new ResourceNotFoundException();
-        await info.Refresh(_api.GetHttpClient());
-        await info.GetProfile(_api);
-        _store.Save();
+        var user = await Task.Run(() => sessionContext.GetUser(Request)) ?? throw new ResourceNotFoundException();
+        store.Load();
+        var info = store.Get(user.Id) ?? throw new ResourceNotFoundException();
+        await info.Refresh(api.GetHttpClient());
+        await info.GetProfile(api);
+        store.Save();
     }
 
     public void Delete(DeAuth deAuth)
     {
-        var user = _sessionContext.GetUser(Request) ?? throw new ResourceNotFoundException();
-        _store.Load();
-        _store.Delete(user.Id);
-        _store.Save();
+        var user = sessionContext.GetUser(Request) ?? throw new ResourceNotFoundException();
+        store.Load();
+        store.Delete(user.Id);
+        store.Save();
     }
 
     public void Get(Redirect redirect)
@@ -157,6 +137,7 @@ public class OAuthController : IService, IRequiresRequest
             await MakeHtmlResp("Please reopen the authorization page");
             return;
         }
+
         var formData = new FormUrlEncodedContent(new[]
         {
             new KeyValuePair<string, string>("grant_type", "authorization_code"),
@@ -171,7 +152,7 @@ public class OAuthController : IService, IRequiresRequest
             RequestHttpContent = formData,
             ThrowOnErrorResponse = false
         };
-        var response = await _api.GetHttpClient().SendAsync(options, "POST");
+        var response = await api.GetHttpClient().SendAsync(options, "POST");
         var isFailed = response.StatusCode >= HttpStatusCode.MovedPermanently;
         try
         {
@@ -182,17 +163,18 @@ public class OAuthController : IService, IRequiresRequest
                 await MakeHtmlResp(responseBody);
                 return;
             }
+
             var result = JsonSerializer.Deserialize<OAuthUser>(responseBody)!;
             result.EffectiveTime = DateTime.Now;
-            await result.GetProfile(_api);
-            _log.Info($"UserName: {result.NickName}, ProfileUrl: {result.ProfileUrl}");
-            _store.Load();
-            _store.Set(oAuth.user, result);
-            _store.Save();
+            await result.GetProfile(api);
+            log.Info($"UserName: {result.NickName}, ProfileUrl: {result.ProfileUrl}");
+            store.Load();
+            store.Set(oAuth.user, result);
+            store.Save();
         }
         catch (Exception e)
         {
-            _log.Error(e.Message);
+            log.Error(e.Message);
             await MakeHtmlResp($"Failed to handle bangumi callback: {e.Message}");
             return;
         }

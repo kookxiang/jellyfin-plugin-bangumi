@@ -17,7 +17,8 @@ using Episode = MediaBrowser.Controller.Entities.TV.Episode;
 
 namespace Jellyfin.Plugin.Bangumi.Providers;
 
-public class EpisodeProvider : IRemoteMetadataProvider<Episode, EpisodeInfo>, IHasOrder
+public class EpisodeProvider(BangumiApi api, ILogger<EpisodeProvider> log, ILibraryManager libraryManager)
+    : IRemoteMetadataProvider<Episode, EpisodeInfo>, IHasOrder
 {
     private static readonly Regex[] NonEpisodeFileNameRegex =
     {
@@ -54,17 +55,6 @@ public class EpisodeProvider : IRemoteMetadataProvider<Episode, EpisodeInfo>, IH
         EndingEpisodeFileNameRegex
     };
 
-    private readonly BangumiApi _api;
-    private readonly ILibraryManager _libraryManager;
-    private readonly ILogger<EpisodeProvider> _log;
-
-    public EpisodeProvider(BangumiApi api, ILogger<EpisodeProvider> log, ILibraryManager libraryManager)
-    {
-        _api = api;
-        _log = log;
-        _libraryManager = libraryManager;
-    }
-
     private static PluginConfiguration Configuration => Plugin.Instance!.Configuration;
 
     public int Order => -5;
@@ -76,7 +66,7 @@ public class EpisodeProvider : IRemoteMetadataProvider<Episode, EpisodeInfo>, IH
         var localConfiguration = await LocalConfiguration.ForPath(info.Path);
         var episode = await GetEpisode(info, localConfiguration, token);
 
-        _log.LogInformation("metadata for {FilePath}: {EpisodeInfo}", Path.GetFileName(info.Path), episode);
+        log.LogInformation("metadata for {FilePath}: {EpisodeInfo}", Path.GetFileName(info.Path), episode);
 
         var result = new MetadataResult<Episode> { ResultLanguage = Constants.Language };
 
@@ -98,7 +88,7 @@ public class EpisodeProvider : IRemoteMetadataProvider<Episode, EpisodeInfo>, IH
         result.Item.Overview = string.IsNullOrEmpty(episode.Description) ? null : episode.Description;
         result.Item.ParentIndexNumber = info.ParentIndexNumber ?? 1;
 
-        var parent = _libraryManager.FindByPath(Path.GetDirectoryName(info.Path), true);
+        var parent = libraryManager.FindByPath(Path.GetDirectoryName(info.Path), true);
         if (IsSpecial(info.Path, false) || episode.Type == EpisodeType.Special || info.ParentIndexNumber == 0)
         {
             result.Item.ParentIndexNumber = 0;
@@ -117,7 +107,7 @@ public class EpisodeProvider : IRemoteMetadataProvider<Episode, EpisodeInfo>, IH
         result.Item.ParentIndexNumber = 0;
 
         // use title and overview from special episode subject if episode data is empty
-        var series = await _api.GetSubject(episode.ParentId, token);
+        var series = await api.GetSubject(episode.ParentId, token);
         if (series == null)
             return result;
 
@@ -145,7 +135,7 @@ public class EpisodeProvider : IRemoteMetadataProvider<Episode, EpisodeInfo>, IH
 
     public Task<HttpResponseMessage> GetImageResponse(string url, CancellationToken token)
     {
-        return _api.GetHttpClient().GetAsync(url, token);
+        return api.GetHttpClient().GetAsync(url, token);
     }
 
     private static bool IsSpecial(string filePath, bool checkParent = true)
@@ -166,7 +156,7 @@ public class EpisodeProvider : IRemoteMetadataProvider<Episode, EpisodeInfo>, IH
         var type = IsSpecial(info.Path) ? EpisodeType.Special : GuessEpisodeTypeFromFileName(fileName);
         var seriesId = localConfiguration.Id;
 
-        var parent = _libraryManager.FindByPath(Path.GetDirectoryName(info.Path), true);
+        var parent = libraryManager.FindByPath(Path.GetDirectoryName(info.Path), true);
         if (parent is Season)
             if (int.TryParse(parent.ProviderIds.GetValueOrDefault(Constants.ProviderName), out var seasonId))
                 seriesId = seasonId;
@@ -187,13 +177,13 @@ public class EpisodeProvider : IRemoteMetadataProvider<Episode, EpisodeInfo>, IH
 
         if (localConfiguration.Offset != 0)
         {
-            _log.LogInformation("applying offset {Offset} to episode index {EpisodeIndex}", -localConfiguration.Offset, episodeIndex);
+            log.LogInformation("applying offset {Offset} to episode index {EpisodeIndex}", -localConfiguration.Offset, episodeIndex);
             episodeIndex -= localConfiguration.Offset;
         }
 
         if (int.TryParse(info.ProviderIds?.GetValueOrDefault(Constants.ProviderName), out var episodeId))
         {
-            var episode = await _api.GetEpisode(episodeId, token);
+            var episode = await api.GetEpisode(episodeId, token);
             if (episode == null)
                 goto SkipBangumiId;
 
@@ -208,7 +198,7 @@ public class EpisodeProvider : IRemoteMetadataProvider<Episode, EpisodeInfo>, IH
         }
 
         SkipBangumiId:
-        var episodeListData = await _api.GetSubjectEpisodeList(seriesId, type, episodeIndex.Value, token);
+        var episodeListData = await api.GetSubjectEpisodeList(seriesId, type, episodeIndex.Value, token);
         if (episodeListData == null)
             return null;
         if (episodeListData.Count == 1 && type is null or EpisodeType.Normal)
@@ -224,7 +214,7 @@ public class EpisodeProvider : IRemoteMetadataProvider<Episode, EpisodeInfo>, IH
             var episode = episodeListData.OrderBy(x => x.Type).FirstOrDefault(x => x.Order.Equals(episodeIndex));
             if (episode != null || type is null or EpisodeType.Normal)
                 return episode;
-            _log.LogWarning("cannot find episode {index} with type {type}, searching all types", episodeIndex, type);
+            log.LogWarning("cannot find episode {index} with type {type}, searching all types", episodeIndex, type);
             type = null;
             goto SkipBangumiId;
         }
@@ -287,31 +277,31 @@ public class EpisodeProvider : IRemoteMetadataProvider<Episode, EpisodeInfo>, IH
 
         if (Configuration.AlwaysReplaceEpisodeNumber)
         {
-            _log.LogWarning("use episode index {NewIndex} from filename {FileName}", episodeIndexFromFilename, fileName);
+            log.LogWarning("use episode index {NewIndex} from filename {FileName}", episodeIndexFromFilename, fileName);
             return episodeIndexFromFilename;
         }
 
         if (episodeIndexFromFilename.Equals(episodeIndex))
         {
-            _log.LogInformation("use exists episode number {Index} for {FileName}", episodeIndex, fileName);
+            log.LogInformation("use exists episode number {Index} for {FileName}", episodeIndex, fileName);
             return episodeIndex;
         }
 
         if (episodeIndex > max)
         {
-            _log.LogWarning("file {FileName} has incorrect episode index {Index} (max {Max}), set to {NewIndex}",
+            log.LogWarning("file {FileName} has incorrect episode index {Index} (max {Max}), set to {NewIndex}",
                 fileName, episodeIndex, max, episodeIndexFromFilename);
             return episodeIndexFromFilename;
         }
 
         if (episodeIndexFromFilename > 0 && episodeIndex <= 0)
         {
-            _log.LogWarning("file {FileName} may has incorrect episode index {Index}, should be {NewIndex}",
+            log.LogWarning("file {FileName} may has incorrect episode index {Index}, should be {NewIndex}",
                 fileName, episodeIndex, episodeIndexFromFilename);
             return episodeIndexFromFilename;
         }
 
-        _log.LogInformation("use exists episode number {Index} from file name {FileName}", episodeIndex, fileName);
+        log.LogInformation("use exists episode number {Index} from file name {FileName}", episodeIndex, fileName);
         return episodeIndex;
     }
 }

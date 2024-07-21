@@ -12,17 +12,9 @@ using MediaBrowser.Model.Providers;
 
 namespace Jellyfin.Plugin.Bangumi.ExternalIdProvider;
 
-public class SeasonProvider : IRemoteMetadataProvider<Season, SeasonInfo>, IHasOrder
+public class SeasonProvider(BangumiApi api, ILogger log)
+    : IRemoteMetadataProvider<Season, SeasonInfo>, IHasOrder
 {
-    private readonly BangumiApi _api;
-    private readonly ILogger _log;
-
-    public SeasonProvider(BangumiApi api, ILogger log)
-    {
-        _api = api;
-        _log = log;
-    }
-
     private static PluginConfiguration Configuration => Plugin.Instance!.Configuration;
 
     public int Order => -5;
@@ -39,14 +31,14 @@ public class SeasonProvider : IRemoteMetadataProvider<Season, SeasonInfo>, IHasO
             if (info.IndexNumber != 1 ||
                 !int.TryParse(info.SeriesProviderIds.GetOrDefault(Constants.ProviderName), out subjectId))
                 return result;
-            _log.Info("Seacon GetMetadata from series id: {0}", subjectId);
+            log.Info("Seacon GetMetadata from series id: {0}", subjectId);
         }
         else
         {
-            _log.Info("Seacon GetMetadata from builtin id: {0}", subjectId);
+            log.Info("Seacon GetMetadata from builtin id: {0}", subjectId);
         }
 
-        var subject = await _api.GetSubject(subjectId, token);
+        var subject = await api.GetSubject(subjectId, token);
         if (subject == null)
             return result;
 
@@ -77,8 +69,8 @@ public class SeasonProvider : IRemoteMetadataProvider<Season, SeasonInfo>, IHasO
         if (subject.IsNSFW)
             result.Item.OfficialRating = "X";
 
-        (await _api.GetSubjectPersonInfos(subject.Id, token)).ForEach(result.AddPerson);
-        (await _api.GetSubjectCharacters(subject.Id, token)).ForEach(result.AddPerson);
+        (await api.GetSubjectPersonInfos(subject.Id, token)).ForEach(result.AddPerson);
+        (await api.GetSubjectCharacters(subject.Id, token)).ForEach(result.AddPerson);
 
         return result;
     }
@@ -90,7 +82,7 @@ public class SeasonProvider : IRemoteMetadataProvider<Season, SeasonInfo>, IHasO
 
     public Task<HttpResponseInfo> GetImageResponse(string url, CancellationToken token)
     {
-        return _api.GetHttpClient().GetResponse(new HttpRequestOptions
+        return api.GetHttpClient().GetResponse(new HttpRequestOptions
         {
             Url = url,
             CancellationToken = token
