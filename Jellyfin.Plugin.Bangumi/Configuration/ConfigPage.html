@@ -78,6 +78,19 @@
         #bangumi-oauth-container .material-icons {
             line-height: inherit;
         }
+
+        #bangumiConfigurationPage div[data-role="content"] {
+            overflow: inherit;
+        }
+
+        #bangumiConfigurationForm .submit-button-container {
+            position: sticky;
+            bottom: 0;
+            z-index: 5;
+            padding: 16px;
+            margin: 0 -16px -16px;
+            backdrop-filter: blur(16px);
+        }
     </style>
     <div data-role="content">
         <div class="content-primary">
@@ -142,8 +155,8 @@
                     </div>
                 </div>
                 <div class="inputContainer">
-                    <label class="inputLabel" for="BaseServerUrl">Bangumi API 地址</label>
-                    <input class="emby-input" id="BaseServerUrl" is="emby-input" placeholder="https://api.bgm.tv" type="text"/>
+                    <label class="inputLabel inputLabelUnfocused" for="BaseServerUrl">Bangumi API 地址</label>
+                    <input class="emby-input" id="BaseServerUrl" type="url"/>
                     <div class="fieldDescription">官方 API 部署在海外，请确保 Jellyfin 上能够稳定访问或配置反代站点。
                     </div>
                 </div>
@@ -182,45 +195,44 @@
                         <option value="Chinese">优先使用中文翻译</option>
                     </select>
                 </div>
-                <div class="selectContainer">
-                    <div class="checkboxContainer checkboxContainer-withDescription">
-                        <label class="emby-checkbox-label">
-                            <input id="UseBangumiSeasonTitle" is="emby-checkbox" type="checkbox"/>
-                            <span>使用 Bangumi 词条作为季名称</span>
-                        </label>
+                <div class="checkboxContainer checkboxContainer-withDescription">
+                    <label class="emby-checkbox-label">
+                        <input id="UseBangumiSeasonTitle" is="emby-checkbox" type="checkbox"/>
+                        <span>使用 Bangumi 词条作为季名称</span>
+                    </label>
+                    <div class="fieldDescription">会将默认的“第 * 季”替换为对应条目的标题，如 ***** ** 篇。</div>
+                </div>
+                <div class="checkboxContainer checkboxContainer-withDescription">
+                    <label class="emby-checkbox-label">
+                        <input id="AlwaysReplaceEpisodeNumber" is="emby-checkbox" type="checkbox"/>
+                        <span>始终根据文件名猜测集数</span>
+                    </label>
+                    <div class="fieldDescription">
+                        用于修正 Jellyfin 自动识别集号错误的情况，由插件重新按文件名判断并纠正。少数情况下插件可能识别错误。
                     </div>
                 </div>
-                <div class="selectContainer">
-                    <div class="checkboxContainer checkboxContainer-withDescription">
-                        <label class="emby-checkbox-label">
-                            <input id="AlwaysReplaceEpisodeNumber" is="emby-checkbox" type="checkbox"/>
-                            <span>始终根据文件名猜测集数</span>
-                        </label>
+                <div class="checkboxContainer checkboxContainer-withDescription">
+                    <label class="emby-checkbox-label">
+                        <input id="TrustExistedBangumiId" is="emby-checkbox" type="checkbox"/>
+                        <span>始终根据配置的 Bangumi ID 获取元数据</span>
+                    </label>
+                    <div class="fieldDescription">
+                        默认情况下会判断 ID 是否属当前的季度，当修改系列 / 季度后可自动更新下面的剧集信息；<br>
+                        启用后不再更新，直到剧集元数据中的 ID 被清除才会查询。
                     </div>
                 </div>
-                <div class="selectContainer">
-                    <div class="checkboxContainer checkboxContainer-withDescription">
-                        <label class="emby-checkbox-label">
-                            <input id="TrustExistedBangumiId" is="emby-checkbox" type="checkbox"/>
-                            <span>始终根据配置的 Bangumi ID 获取元数据</span>
-                        </label>
-                    </div>
+                <div class="checkboxContainer checkboxContainer-withDescription">
+                    <label class="emby-checkbox-label">
+                        <input id="ConvertLineBreaks" is="emby-checkbox" type="checkbox"/>
+                        <span>转换元数据信息中的换行符</span>
+                    </label>
                 </div>
-                <div class="selectContainer">
-                    <div class="checkboxContainer checkboxContainer-withDescription">
-                        <label class="emby-checkbox-label">
-                            <input id="ConvertLineBreaks" is="emby-checkbox" type="checkbox"/>
-                            <span>转换元数据信息中的换行符</span>
-                        </label>
-                    </div>
-                </div>
-                <div class="selectContainer">
-                    <div class="checkboxContainer checkboxContainer-withDescription">
-                        <label class="emby-checkbox-label">
-                            <input id="UseTestingSearchApi" is="emby-checkbox" type="checkbox"/>
-                            <span>使用测试版 Bangumi 搜索接口</span>
-                        </label>
-                    </div>
+                <div class="checkboxContainer checkboxContainer-withDescription">
+                    <label class="emby-checkbox-label">
+                        <input id="UseTestingSearchApi" is="emby-checkbox" type="checkbox"/>
+                        <span>使用测试版 Bangumi 搜索接口</span>
+                    </label>
+                    <div class="fieldDescription">注：搜索结果不一定更准确。</div>
                 </div>
                 <div class="verticalSection verticalSection">
                     <div class="sectionTitleContainer flex align-items-center">
@@ -243,7 +255,7 @@
                         </label>
                     </div>
                 </div>
-                <div>
+                <div class="submit-button-container">
                     <button class="raised button-submit block emby-button" is="emby-button" type="submit">
                         <span>保存</span>
                     </button>
