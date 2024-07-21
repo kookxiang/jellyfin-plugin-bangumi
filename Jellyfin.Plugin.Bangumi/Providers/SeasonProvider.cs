@@ -39,6 +39,10 @@ public class SeasonProvider : IRemoteMetadataProvider<Season, SeasonInfo>, IHasO
     {
         token.ThrowIfCancellationRequested();
         Subject? subject = null;
+
+        if (string.IsNullOrEmpty(info.Path))
+            return new MetadataResult<Season>();
+
         var baseName = Path.GetFileName(info.Path);
         var result = new MetadataResult<Season>
         {
