@@ -9,7 +9,14 @@ public class InfoBox : List<InfoBoxItem>
 {
     public string? GetString(string key)
     {
-        return this.FirstOrDefault(x => x.Key == key)?.Value.GetString();
+        try
+        {
+            return this.FirstOrDefault(x => x.Key == key)?.Value.GetString();
+        }
+        catch
+        {
+            return null;
+        }
     }
 }
 
