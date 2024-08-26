@@ -382,6 +382,21 @@ public class Episode
         Assert.IsNotNull(episodeData, "episode data should not be null");
         Assert.IsNotNull(episodeData.Item, "episode data should not be null");
         Assert.AreEqual(22, episodeData.Item.IndexNumber, "should fix episode index automatically");
+
+        episodeData = await _provider.GetMetadata(new EpisodeInfo
+        {
+            IndexNumber = 0,
+            Path = FakePath.CreateFile("Detective Conan/[SBSUB][CONAN][5][WEBRIP][1080P][HEVC_AAC][CHS_CHT_JP](951D8C84).mkv"),
+            SeriesProviderIds = new Dictionary<string, string>
+            {
+                {
+                    Constants.ProviderName, "899"
+                }
+            }
+        }, _token);
+        Assert.IsNotNull(episodeData, "episode data should not be null");
+        Assert.IsNotNull(episodeData.Item, "episode data should not be null");
+        Assert.AreEqual(5, episodeData.Item.IndexNumber, "should fix episode index automatically");
     }
 
     [TestMethod]

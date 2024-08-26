@@ -39,7 +39,8 @@ public class EpisodeProvider(BangumiApi api, ILogger<EpisodeProvider> log, ILibr
         new(@"EP?([\d\.]{2,})", RegexOptions.IgnoreCase),
         new(@"\[([\d\.]{2,})"),
         new(@"#([\d\.]{2,})"),
-        new(@"(\d{2,})")
+        new(@"(\d{2,})"),
+        new(@"\[([\d\.]+)\]")
     };
 
     private static readonly Regex OpeningEpisodeFileNameRegex = new(@"(NC)?OP([^a-zA-Z]|$)");
