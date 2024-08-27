@@ -17,11 +17,11 @@ using Episode = MediaBrowser.Controller.Entities.TV.Episode;
 
 namespace Jellyfin.Plugin.Bangumi.Providers;
 
-public class EpisodeProvider(BangumiApi api, ILogger<EpisodeProvider> log, ILibraryManager libraryManager)
+public partial class EpisodeProvider(BangumiApi api, ILogger<EpisodeProvider> log, ILibraryManager libraryManager)
     : IRemoteMetadataProvider<Episode, EpisodeInfo>, IHasOrder
 {
     private static readonly Regex[] NonEpisodeFileNameRegex =
-    {
+    [
         new(@"[\[\(][0-9A-F]{8}[\]\)]", RegexOptions.IgnoreCase),
         new(@"S\d{2,}", RegexOptions.IgnoreCase),
         new(@"yuv[4|2|0]{3}p(10|8)?", RegexOptions.IgnoreCase),
@@ -29,11 +29,13 @@ public class EpisodeProvider(BangumiApi api, ILogger<EpisodeProvider> log, ILibr
         new(@"\d{3,4}x\d{3,4}", RegexOptions.IgnoreCase),
         new(@"(Hi)?10p", RegexOptions.IgnoreCase),
         new(@"(8|10)bit", RegexOptions.IgnoreCase),
-        new(@"(x|h)(264|265)", RegexOptions.IgnoreCase)
-    };
+        new Regex(@"(x|h)(264|265)", RegexOptions.IgnoreCase),
+        new Regex(@"\[\d{2}(0[1-9]|1[0-2])(0[1-9]|1[0-9]|2[0-9]|3[0-1])]"),
+        new Regex(@"(?<=[^P])V\d+")
+    ];
 
     private static readonly Regex[] EpisodeFileNameRegex =
-    {
+    [
         new(@"\[([\d\.]{2,})\]"),
         new(@"- ?([\d\.]{2,})"),
         new(@"EP?([\d\.]{2,})", RegexOptions.IgnoreCase),
@@ -41,20 +43,15 @@ public class EpisodeProvider(BangumiApi api, ILogger<EpisodeProvider> log, ILibr
         new(@"#([\d\.]{2,})"),
         new(@"(\d{2,})"),
         new(@"\[([\d\.]+)\]")
-    };
-
-    private static readonly Regex OpeningEpisodeFileNameRegex = new(@"(NC)?OP([^a-zA-Z]|$)");
-    private static readonly Regex EndingEpisodeFileNameRegex = new(@"(NC)?ED([^a-zA-Z]|$)");
-    private static readonly Regex SpecialEpisodeFileNameRegex = new(@"(SPs?|Specials?|OVA|OAD)([^a-zA-Z]|$)");
-    private static readonly Regex PreviewEpisodeFileNameRegex = new(@"[^\w]PV([^a-zA-Z]|$)");
+    ];
 
     private static readonly Regex[] AllSpecialEpisodeFileNameRegex =
-    {
-        SpecialEpisodeFileNameRegex,
-        PreviewEpisodeFileNameRegex,
-        OpeningEpisodeFileNameRegex,
-        EndingEpisodeFileNameRegex
-    };
+    [
+        SpecialEpisodeFileNameRegex(),
+        PreviewEpisodeFileNameRegex(),
+        OpeningEpisodeFileNameRegex(),
+        EndingEpisodeFileNameRegex()
+    ];
 
     private static PluginConfiguration Configuration => Plugin.Instance!.Configuration;
 
@@ -139,13 +136,25 @@ public class EpisodeProvider(BangumiApi api, ILogger<EpisodeProvider> log, ILibr
         return api.GetHttpClient().GetAsync(url, token);
     }
 
+    [GeneratedRegex(@"(NC)?OP([^a-zA-Z]|$)")]
+    private static partial Regex OpeningEpisodeFileNameRegex();
+
+    [GeneratedRegex(@"(NC)?ED([^a-zA-Z]|$)")]
+    private static partial Regex EndingEpisodeFileNameRegex();
+
+    [GeneratedRegex(@"(SPs?|Specials?|OVA|OAD)([^a-zA-Z]|$)")]
+    private static partial Regex SpecialEpisodeFileNameRegex();
+
+    [GeneratedRegex(@"[^\w]PV([^a-zA-Z]|$)")]
+    private static partial Regex PreviewEpisodeFileNameRegex();
+
     private static bool IsSpecial(string filePath, bool checkParent = true)
     {
         var fileName = Path.GetFileName(filePath);
         var parentPath = Path.GetDirectoryName(filePath);
         var folderName = Path.GetFileName(parentPath);
-        return SpecialEpisodeFileNameRegex.IsMatch(fileName) ||
-               (checkParent && SpecialEpisodeFileNameRegex.IsMatch(folderName ?? ""));
+        return SpecialEpisodeFileNameRegex().IsMatch(fileName) ||
+               (checkParent && SpecialEpisodeFileNameRegex().IsMatch(folderName ?? ""));
     }
 
     private async Task<Model.Episode?> GetEpisode(EpisodeInfo info, LocalConfiguration localConfiguration, CancellationToken token)
@@ -235,13 +244,13 @@ public class EpisodeProvider(BangumiApi api, ILogger<EpisodeProvider> log, ILibr
             tempName = regex.Replace(tempName, "");
         }
 
-        if (OpeningEpisodeFileNameRegex.IsMatch(tempName))
+        if (OpeningEpisodeFileNameRegex().IsMatch(tempName))
             return EpisodeType.Opening;
-        if (EndingEpisodeFileNameRegex.IsMatch(tempName))
+        if (EndingEpisodeFileNameRegex().IsMatch(tempName))
             return EpisodeType.Ending;
-        if (SpecialEpisodeFileNameRegex.IsMatch(tempName))
+        if (SpecialEpisodeFileNameRegex().IsMatch(tempName))
             return EpisodeType.Special;
-        if (PreviewEpisodeFileNameRegex.IsMatch(tempName))
+        if (PreviewEpisodeFileNameRegex().IsMatch(tempName))
             return EpisodeType.Preview;
         return null;
     }
