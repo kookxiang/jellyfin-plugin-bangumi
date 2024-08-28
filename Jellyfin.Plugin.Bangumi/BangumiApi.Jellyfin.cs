@@ -7,10 +7,11 @@ using System.Threading;
 using System.Threading.Tasks;
 using Jellyfin.Plugin.Bangumi.OAuth;
 using MediaBrowser.Common.Net;
+using Microsoft.Extensions.Logging;
 
 namespace Jellyfin.Plugin.Bangumi;
 
-public partial class BangumiApi(IHttpClientFactory httpClientFactory, OAuthStore store)
+public partial class BangumiApi(IHttpClientFactory httpClientFactory, OAuthStore store, ILogger<BangumiApi> logger)
 {
     private static readonly JsonSerializerOptions Options = new()
     {
@@ -27,16 +28,6 @@ public partial class BangumiApi(IHttpClientFactory httpClientFactory, OAuthStore
     private async Task<string> SendRequest(HttpRequestMessage request, CancellationToken token)
     {
         return await SendRequest(request, store.GetAvailable()?.AccessToken, token);
-    }
-
-    private async Task<string> SendRequest(HttpRequestMessage request, string? accessToken, CancellationToken token)
-    {
-        var httpClient = GetHttpClient();
-        if (!string.IsNullOrEmpty(accessToken))
-            request.Headers.Authorization = AuthenticationHeaderValue.Parse("Bearer " + accessToken);
-        using var response = await httpClient.SendAsync(request, token);
-        if (!response.IsSuccessStatusCode) await ServerException.ThrowFrom(response);
-        return await response.Content.ReadAsStringAsync(token);
     }
 
     private async Task<T?> SendRequest<T>(string url, CancellationToken token)
