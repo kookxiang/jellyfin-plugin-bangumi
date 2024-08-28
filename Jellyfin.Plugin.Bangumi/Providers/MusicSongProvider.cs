@@ -69,7 +69,7 @@ public class MusicSongProvider(BangumiApi api, ILibraryManager libraryManager, I
         if (string.IsNullOrEmpty(fileName))
             return null;
 
-        var album = libraryManager.FindByPath(info.Path, false).FindParent<MusicAlbum>();
+        var album = libraryManager.FindByPath(info.Path, false)?.FindParent<MusicAlbum>();
         if (album is null)
             return null;
 

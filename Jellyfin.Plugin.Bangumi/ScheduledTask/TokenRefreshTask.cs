@@ -1,22 +1,20 @@
-﻿
-using System;
-using System.Collections.Generic;
-using System.Threading;
-using System.Threading.Tasks;
-using Jellyfin.Plugin.Bangumi.OAuth;
-using MediaBrowser.Controller.Library;
-using MediaBrowser.Model.Activity;
-using MediaBrowser.Model.Tasks;
-#if EMBY
+﻿#if EMBY
 using MediaBrowser.Model.Logging;
 #else
 using Microsoft.Extensions.Logging;
 using Jellyfin.Data.Entities;
 #endif
+using System;
+using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
+using Jellyfin.Plugin.Bangumi.OAuth;
+using MediaBrowser.Model.Activity;
+using MediaBrowser.Model.Tasks;
 
 namespace Jellyfin.Plugin.Bangumi.ScheduledTask;
 
-public class TokenRefreshTask(IUserManager userManager, IActivityManager activity, BangumiApi api, OAuthStore store)
+public class TokenRefreshTask(IActivityManager activity, BangumiApi api, OAuthStore store)
     : IScheduledTask
 {
     public string Key => "OAuthTokenRefreshTask";
@@ -55,7 +53,6 @@ public class TokenRefreshTask(IUserManager userManager, IActivityManager activit
         var total = users.Count;
         foreach (var (guid, user) in users)
         {
-            var userId = Guid.Parse(guid);
             token.ThrowIfCancellationRequested();
             progress.Report(current / total);
             current++;
@@ -83,6 +80,7 @@ public class TokenRefreshTask(IUserManager userManager, IActivityManager activit
 
             activity.Create(activityLogEntry);
 #else
+            var userId = Guid.Parse(guid);
             var activityLog = new ActivityLog("Bangumi 授权", "Bangumi", userId);
             try
             {

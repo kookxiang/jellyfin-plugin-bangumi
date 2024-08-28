@@ -59,6 +59,7 @@ public class RatingRefreshTask(ILibraryManager library, BangumiApi api)
 
             // obtain library item
             var item = library.GetItemById(id);
+            if (item == null) continue;
 
             // skip item if it was refreshed recently 
 #if EMBY
