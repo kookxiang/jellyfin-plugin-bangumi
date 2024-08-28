@@ -86,7 +86,7 @@ public partial class EpisodeProvider(BangumiApi api, ILogger<EpisodeProvider> lo
         result.Item.Overview = string.IsNullOrEmpty(episode.Description) ? null : episode.Description;
         result.Item.ParentIndexNumber = info.ParentIndexNumber ?? 1;
 
-        var parent = libraryManager.FindByPath(Path.GetDirectoryName(info.Path), true);
+        var parent = libraryManager.FindByPath(Path.GetDirectoryName(info.Path)!, true);
         if (IsSpecial(info.Path, false) || episode.Type == EpisodeType.Special || info.ParentIndexNumber == 0)
         {
             result.Item.ParentIndexNumber = 0;
@@ -166,24 +166,36 @@ public partial class EpisodeProvider(BangumiApi api, ILogger<EpisodeProvider> lo
         var type = IsSpecial(info.Path) ? EpisodeType.Special : GuessEpisodeTypeFromFileName(fileName);
         var seriesId = localConfiguration.Id;
 
-        var parent = libraryManager.FindByPath(Path.GetDirectoryName(info.Path), true);
+        var parent = libraryManager.FindByPath(Path.GetDirectoryName(info.Path)!, true);
         if (parent is Season)
             if (int.TryParse(parent.ProviderIds.GetValueOrDefault(Constants.ProviderName), out var seasonId))
+            {
+                log.LogInformation("used session id {SeasonId} from parent", seasonId);
                 seriesId = seasonId;
+            }
 
         if (seriesId == 0)
             if (!int.TryParse(info.SeriesProviderIds?.GetValueOrDefault(Constants.ProviderName), out seriesId))
                 return null;
 
         if (localConfiguration.Id != 0)
+        {
+            log.LogInformation("used session id {SeasonId} from local configuration", localConfiguration.Id);
             seriesId = localConfiguration.Id;
+        }
 
         double? episodeIndex = info.IndexNumber;
 
         if (Configuration.AlwaysReplaceEpisodeNumber)
+        {
+            log.LogInformation("guess episode number from filename {FileName} because of plugin configuration", fileName);
             episodeIndex = GuessEpisodeNumber(episodeIndex, fileName);
+        }
         else if (episodeIndex is null or 0)
+        {
+            log.LogInformation("guess episode number from filename {FileName} because it's empty", fileName);
             episodeIndex = GuessEpisodeNumber(episodeIndex, fileName);
+        }
 
         if (localConfiguration.Offset != 0)
         {
@@ -193,26 +205,44 @@ public partial class EpisodeProvider(BangumiApi api, ILogger<EpisodeProvider> lo
 
         if (int.TryParse(info.ProviderIds?.GetValueOrDefault(Constants.ProviderName), out var episodeId))
         {
+            log.LogInformation("fetching episode info using saved id: {EpisodeId}", episodeId);
             var episode = await api.GetEpisode(episodeId, token);
             if (episode == null)
                 goto SkipBangumiId;
 
             if (Configuration.TrustExistedBangumiId)
+            {
+                log.LogInformation("trust exists bangumi id is enabled, skip further checks");
                 return episode;
+            }
 
             if (episode.Type != EpisodeType.Normal || AllSpecialEpisodeFileNameRegex.Any(x => x.IsMatch(info.Path)))
+            {
+                log.LogInformation("current episode is special episode, skip further checks");
                 return episode;
+            }
 
             if (episode.ParentId == seriesId && Math.Abs(episode.Order - episodeIndex.Value) < 0.1)
                 return episode;
+
+            log.LogInformation("episode is not belongs to series {SeriesId}, ignoring result", seriesId);
         }
 
         SkipBangumiId:
+        log.LogInformation("searching episode in series episode list");
         var episodeListData = await api.GetSubjectEpisodeList(seriesId, type, episodeIndex.Value, token);
         if (episodeListData == null)
+        {
+            log.LogWarning("search failed: no episode found in episode");
             return null;
+        }
+
         if (episodeListData.Count == 1 && type is null or EpisodeType.Normal)
+        {
+            log.LogInformation("only one episode found");
             return episodeListData.First();
+        }
+
         if (type is null or EpisodeType.Normal)
             episodeIndex = GuessEpisodeNumber(
                 episodeIndex + localConfiguration.Offset,
@@ -223,7 +253,11 @@ public partial class EpisodeProvider(BangumiApi api, ILogger<EpisodeProvider> lo
         {
             var episode = episodeListData.OrderBy(x => x.Type).FirstOrDefault(x => x.Order.Equals(episodeIndex));
             if (episode != null || type is null or EpisodeType.Normal)
+            {
+                log.LogInformation("found matching episode {index} with type {type}", episodeIndex, type);
                 return episode;
+            }
+
             log.LogWarning("cannot find episode {index} with type {type}, searching all types", episodeIndex, type);
             type = null;
             goto SkipBangumiId;
@@ -234,7 +268,7 @@ public partial class EpisodeProvider(BangumiApi api, ILogger<EpisodeProvider> lo
         }
     }
 
-    private EpisodeType? GuessEpisodeTypeFromFileName(string fileName)
+    private static EpisodeType? GuessEpisodeTypeFromFileName(string fileName)
     {
         var tempName = fileName;
         foreach (var regex in NonEpisodeFileNameRegex)
@@ -265,7 +299,10 @@ public partial class EpisodeProvider(BangumiApi api, ILogger<EpisodeProvider> lo
         {
             var anitomyIndex = Anitomy.ExtractEpisodeNumber(fileName);
             if (!string.IsNullOrEmpty(anitomyIndex))
+            {
+                log.LogInformation("used episode number {index} from anitomy", anitomyIndex);
                 return double.Parse(anitomyIndex);
+            }
         }
 
         foreach (var regex in NonEpisodeFileNameRegex)
@@ -282,36 +319,37 @@ public partial class EpisodeProvider(BangumiApi api, ILogger<EpisodeProvider> lo
             if (!double.TryParse(regex.Match(tempName).Groups[1].Value.Trim('.'), out var index))
                 continue;
             episodeIndexFromFilename = index;
+            log.LogInformation("used episode number {index} from filename because it matches {pattern}", index, regex);
             break;
         }
 
         if (Configuration.AlwaysReplaceEpisodeNumber)
         {
-            log.LogWarning("use episode index {NewIndex} from filename {FileName}", episodeIndexFromFilename, fileName);
+            log.LogWarning("use episode number {NewIndex} from filename {FileName}", episodeIndexFromFilename, fileName);
             return episodeIndexFromFilename;
         }
 
         if (episodeIndexFromFilename.Equals(episodeIndex))
         {
-            log.LogInformation("use exists episode number {Index} for {FileName}", episodeIndex, fileName);
+            log.LogInformation("use exists episode number {Index} because it's same", episodeIndex);
             return episodeIndex;
         }
 
         if (episodeIndex > max)
         {
-            log.LogWarning("file {FileName} has incorrect episode index {Index} (max {Max}), set to {NewIndex}",
+            log.LogWarning("{FileName} has incorrect episode index {Index} (max {Max}), set to {NewIndex}",
                 fileName, episodeIndex, max, episodeIndexFromFilename);
             return episodeIndexFromFilename;
         }
 
         if (episodeIndexFromFilename > 0 && episodeIndex <= 0)
         {
-            log.LogWarning("file {FileName} may has incorrect episode index {Index}, should be {NewIndex}",
+            log.LogWarning("{FileName} may has incorrect episode index {Index}, should be {NewIndex}",
                 fileName, episodeIndex, episodeIndexFromFilename);
             return episodeIndexFromFilename;
         }
 
-        log.LogInformation("use exists episode number {Index} from file name {FileName}", episodeIndex, fileName);
+        log.LogInformation("use exists episode number {Index}", episodeIndex);
         return episodeIndex;
     }
 }
