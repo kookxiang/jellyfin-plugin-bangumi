@@ -1,17 +1,19 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFramework>net8.0</TargetFramework>
+        <TargetFramework>netstandard2.1</TargetFramework>
         <RootNamespace>Jellyfin.Plugin.Bangumi</RootNamespace>
         <AssemblyVersion>1.6.0.0</AssemblyVersion>
         <FileVersion>1.6.0.0</FileVersion>
         <Nullable>enable</Nullable>
         <DefineConstants>EMBY</DefineConstants>
+        <LangVersion>latest</LangVersion>
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="MediaBrowser.Server.Core" Version="4.9.0.12-beta" />
+        <PackageReference Include="MediaBrowser.Server.Core" Version="4.9.0.14-beta"/>
         <PackageReference Include="System.IO.Pipelines" IncludeAssets="compile" Version="6.0.0" />
+        <PackageReference Include="System.Text.Json" Version="8.0.4"/>
     </ItemGroup>
 
     <ItemGroup>

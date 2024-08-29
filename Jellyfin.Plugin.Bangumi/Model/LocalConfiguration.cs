@@ -36,7 +36,7 @@ public class LocalConfiguration
             if (parts.Length != 2) continue;
             var key = parts[0].Trim();
             var value = parts[1].Trim();
-            var property = properties.FirstOrDefault(info => string.Equals(info!.Name, key, StringComparison.CurrentCultureIgnoreCase), null);
+            var property = properties.FirstOrDefault(info => string.Equals(info!.Name, key, StringComparison.CurrentCultureIgnoreCase));
             if (property == null) continue;
             if (property.PropertyType == typeof(bool))
             {

@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using Jellyfin.Plugin.Bangumi.OAuth;
 using MediaBrowser.Common.Net;
 using HttpRequestOptions = MediaBrowser.Common.Net.HttpRequestOptions;
+using JsonSerializerOptions = System.Text.Json.JsonSerializerOptions;
 
 namespace Jellyfin.Plugin.Bangumi;
 

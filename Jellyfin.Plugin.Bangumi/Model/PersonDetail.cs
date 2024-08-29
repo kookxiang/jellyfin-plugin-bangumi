@@ -10,7 +10,7 @@ public class PersonDetail : Person
     private static PluginConfiguration Configuration => Plugin.Instance!.Configuration;
 
     [JsonIgnore]
-    public string Summary => Configuration.ConvertLineBreaks ? SummaryRaw.ReplaceLineEndings(Constants.HtmlLineBreak) : SummaryRaw;
+    public string Summary => SummaryRaw;
 
     [JsonPropertyName("summary")]
     public string SummaryRaw { get; set; } = "";

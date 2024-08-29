@@ -38,7 +38,7 @@ public class Subject
     public string? ChineseNameRaw { get; set; }
 
     [JsonIgnore]
-    public string? Summary => Configuration.ConvertLineBreaks ? SummaryRaw?.ReplaceLineEndings(Constants.HtmlLineBreak).TrimStart() : SummaryRaw;
+    public string? Summary => SummaryRaw;
 
     [JsonPropertyName("summary")]
     public string? SummaryRaw { get; set; }
