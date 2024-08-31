@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Net;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 using Jellyfin.Plugin.Bangumi.Configuration;
 #if !EMBY
@@ -85,17 +86,24 @@ public class Subject
     }
 
     [JsonPropertyName("infobox")]
+    public JsonElement? JsonInfoBox
+    {
+        get => null;
+        set => InfoBox = InfoBox.ParseJson(value!.Value);
+    }
+
+    [JsonIgnore]
     public InfoBox? InfoBox { get; set; }
 
     [JsonIgnore]
-    public string? OfficialWebSite => InfoBox?.GetString("官方网站");
+    public string? OfficialWebSite => InfoBox?.Get("官方网站");
 
     [JsonIgnore]
     public DateTime? EndDate
     {
         get
         {
-            var dateStr = InfoBox?.GetString("播放结束");
+            var dateStr = InfoBox?.Get("播放结束");
             if (dateStr != null && DateTime.TryParseExact(dateStr, "yyyy年MM月dd日", CultureInfo.GetCultureInfo("zh-CN"), DateTimeStyles.None, out var date))
                 return date;
             return null;
