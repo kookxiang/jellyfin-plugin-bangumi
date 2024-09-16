@@ -15,19 +15,9 @@ using Microsoft.Extensions.Logging;
 
 namespace Jellyfin.Plugin.Bangumi.Providers;
 
-public class MusicSongProvider : IRemoteMetadataProvider<Audio, SongInfo>, IHasOrder
+public class MusicSongProvider(BangumiApi api, ILibraryManager libraryManager, ILogger<MusicSongProvider> log)
+    : IRemoteMetadataProvider<Audio, SongInfo>, IHasOrder
 {
-    private readonly BangumiApi _api;
-    private readonly ILibraryManager _libraryManager;
-    private readonly ILogger<MusicSongProvider> _log;
-
-    public MusicSongProvider(BangumiApi api, ILibraryManager libraryManager, ILogger<MusicSongProvider> log)
-    {
-        _api = api;
-        _libraryManager = libraryManager;
-        _log = log;
-    }
-
     private static PluginConfiguration Configuration => Plugin.Instance!.Configuration;
 
     public int Order => -5;
@@ -39,7 +29,7 @@ public class MusicSongProvider : IRemoteMetadataProvider<Audio, SongInfo>, IHasO
         token.ThrowIfCancellationRequested();
         var episode = await GetSong(info, token);
 
-        _log.LogInformation("metadata for {FilePath}: {EpisodeInfo}", Path.GetFileName(info.Path), episode);
+        log.LogInformation("metadata for {FilePath}: {EpisodeInfo}", Path.GetFileName(info.Path), episode);
 
         var result = new MetadataResult<Audio> { ResultLanguage = Constants.Language };
 
@@ -70,7 +60,7 @@ public class MusicSongProvider : IRemoteMetadataProvider<Audio, SongInfo>, IHasO
 
     public async Task<HttpResponseMessage> GetImageResponse(string url, CancellationToken token)
     {
-        return await _api.GetHttpClient().GetAsync(url, token).ConfigureAwait(false);
+        return await api.GetHttpClient().GetAsync(url, token).ConfigureAwait(false);
     }
 
     private async Task<Episode?> GetSong(ItemLookupInfo info, CancellationToken token)
@@ -79,7 +69,7 @@ public class MusicSongProvider : IRemoteMetadataProvider<Audio, SongInfo>, IHasO
         if (string.IsNullOrEmpty(fileName))
             return null;
 
-        var album = _libraryManager.FindByPath(info.Path, false).FindParent<MusicAlbum>();
+        var album = libraryManager.FindByPath(info.Path, false)?.FindParent<MusicAlbum>();
         if (album is null)
             return null;
 
@@ -90,7 +80,7 @@ public class MusicSongProvider : IRemoteMetadataProvider<Audio, SongInfo>, IHasO
 
         if (int.TryParse(info.ProviderIds?.GetValueOrDefault(Constants.ProviderName), out var songId))
         {
-            var song = await _api.GetEpisode(songId, token);
+            var song = await api.GetEpisode(songId, token);
             if (song == null)
                 goto NoBangumiId;
 
@@ -102,7 +92,7 @@ public class MusicSongProvider : IRemoteMetadataProvider<Audio, SongInfo>, IHasO
         }
 
         NoBangumiId:
-        var episodeListData = await _api.GetSubjectEpisodeList(albumId, null, songIndex, token);
+        var episodeListData = await api.GetSubjectEpisodeList(albumId, null, songIndex, token);
         if (episodeListData == null)
             return null;
         try

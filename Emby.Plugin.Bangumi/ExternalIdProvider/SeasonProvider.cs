@@ -7,19 +7,14 @@ using Jellyfin.Plugin.Bangumi.Configuration;
 using MediaBrowser.Common.Net;
 using MediaBrowser.Controller.Entities.TV;
 using MediaBrowser.Controller.Providers;
+using MediaBrowser.Model.Logging;
 using MediaBrowser.Model.Providers;
 
-namespace Jellyfin.Plugin.Bangumi.Providers;
+namespace Jellyfin.Plugin.Bangumi.ExternalIdProvider;
 
-public class SeasonProvider : IRemoteMetadataProvider<Season, SeasonInfo>, IHasOrder
+public class SeasonProvider(BangumiApi api, ILogger log)
+    : IRemoteMetadataProvider<Season, SeasonInfo>, IHasOrder
 {
-    private readonly BangumiApi _api;
-
-    public SeasonProvider(BangumiApi api)
-    {
-        _api = api;
-    }
-
     private static PluginConfiguration Configuration => Plugin.Instance!.Configuration;
 
     public int Order => -5;
@@ -32,11 +27,18 @@ public class SeasonProvider : IRemoteMetadataProvider<Season, SeasonInfo>, IHasO
         var result = new MetadataResult<Season> { ResultLanguage = Constants.Language };
 
         if (!int.TryParse(info.ProviderIds.GetOrDefault(Constants.ProviderName), out var subjectId))
+        {
             if (info.IndexNumber != 1 ||
                 !int.TryParse(info.SeriesProviderIds.GetOrDefault(Constants.ProviderName), out subjectId))
                 return result;
+            log.Info("Seacon GetMetadata from series id: {0}", subjectId);
+        }
+        else
+        {
+            log.Info("Seacon GetMetadata from builtin id: {0}", subjectId);
+        }
 
-        var subject = await _api.GetSubject(subjectId, token);
+        var subject = await api.GetSubject(subjectId, token);
         if (subject == null)
             return result;
 
@@ -47,7 +49,8 @@ public class SeasonProvider : IRemoteMetadataProvider<Season, SeasonInfo>, IHasO
         result.Item.CommunityRating = subject.Rating?.Score;
         if (Configuration.UseBangumiSeasonTitle)
         {
-            result.Item.Name = subject.GetName(Configuration);
+            result.Item.Name = subject.Name;
+            result.Item.SortName = subject.Name;
             result.Item.OriginalTitle = subject.OriginalName;
         }
 
@@ -66,8 +69,8 @@ public class SeasonProvider : IRemoteMetadataProvider<Season, SeasonInfo>, IHasO
         if (subject.IsNSFW)
             result.Item.OfficialRating = "X";
 
-        (await _api.GetSubjectPersonInfos(subject.Id, token)).ForEach(result.AddPerson);
-        (await _api.GetSubjectCharacters(subject.Id, token)).ForEach(result.AddPerson);
+        (await api.GetSubjectPersonInfos(subject.Id, token)).ForEach(result.AddPerson);
+        (await api.GetSubjectCharacters(subject.Id, token)).ForEach(result.AddPerson);
 
         return result;
     }
@@ -79,7 +82,7 @@ public class SeasonProvider : IRemoteMetadataProvider<Season, SeasonInfo>, IHasO
 
     public Task<HttpResponseInfo> GetImageResponse(string url, CancellationToken token)
     {
-        return _api.GetHttpClient().GetResponse(new HttpRequestOptions
+        return api.GetHttpClient().GetResponse(new HttpRequestOptions
         {
             Url = url,
             CancellationToken = token

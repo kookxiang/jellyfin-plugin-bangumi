@@ -1,10 +1,11 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Net;
 using System.Text.Json.Serialization;
 using Jellyfin.Plugin.Bangumi.Configuration;
 #if !EMBY
-using System;
 using Fastenshtein;
 #endif
 
@@ -12,7 +13,17 @@ namespace Jellyfin.Plugin.Bangumi.Model;
 
 public class Subject
 {
+    private static PluginConfiguration Configuration => Plugin.Instance!.Configuration;
+
     public int Id { get; set; }
+
+    [JsonIgnore]
+    public string? Name => Configuration.TranslationPreference switch
+    {
+        TranslationPreferenceType.Chinese => string.IsNullOrEmpty(ChineseName) ? OriginalName : ChineseName,
+        TranslationPreferenceType.Original => OriginalName,
+        _ => OriginalName
+    };
 
     [JsonIgnore]
     public string OriginalName => WebUtility.HtmlDecode(OriginalNameRaw);
@@ -26,7 +37,11 @@ public class Subject
     [JsonPropertyName("name_cn")]
     public string? ChineseNameRaw { get; set; }
 
-    public string? Summary { get; set; }
+    [JsonIgnore]
+    public string? Summary => Configuration.ConvertLineBreaks ? SummaryRaw?.ReplaceLineEndings(Constants.HtmlLineBreak).TrimStart() : SummaryRaw;
+
+    [JsonPropertyName("summary")]
+    public string? SummaryRaw { get; set; }
 
     [JsonPropertyName("date")]
     public string? Date { get; set; }
@@ -57,6 +72,8 @@ public class Subject
     [JsonPropertyName("nsfw")]
     public bool IsNSFW { get; set; }
 
+    public string? Platform { get; set; }
+
     [JsonIgnore]
     public string[] PopularTags
     {
@@ -67,14 +84,22 @@ public class Subject
         }
     }
 
-    public string GetName(PluginConfiguration? configuration = default)
+    [JsonPropertyName("infobox")]
+    public InfoBox? InfoBox { get; set; }
+
+    [JsonIgnore]
+    public string? OfficialWebSite => InfoBox?.GetString("官方网站");
+
+    [JsonIgnore]
+    public DateTime? EndDate
     {
-        return configuration?.TranslationPreference switch
+        get
         {
-            TranslationPreferenceType.Chinese => string.IsNullOrEmpty(ChineseName) ? OriginalName : ChineseName!,
-            TranslationPreferenceType.Original => OriginalName,
-            _ => OriginalName
-        };
+            var dateStr = InfoBox?.GetString("播放结束");
+            if (dateStr != null && DateTime.TryParseExact(dateStr, "yyyy年MM月dd日", CultureInfo.GetCultureInfo("zh-CN"), DateTimeStyles.None, out var date))
+                return date;
+            return null;
+        }
     }
 
     public static List<Subject> SortBySimilarity(IEnumerable<Subject> list, string keyword)

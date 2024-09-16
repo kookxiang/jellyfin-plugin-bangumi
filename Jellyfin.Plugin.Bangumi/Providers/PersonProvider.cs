@@ -9,15 +9,9 @@ using MediaBrowser.Model.Providers;
 
 namespace Jellyfin.Plugin.Bangumi.Providers;
 
-public class PersonProvider : IRemoteMetadataProvider<Person, PersonLookupInfo>, IHasOrder
+public class PersonProvider(BangumiApi api)
+    : IRemoteMetadataProvider<Person, PersonLookupInfo>, IHasOrder
 {
-    private readonly BangumiApi _api;
-
-    public PersonProvider(BangumiApi api)
-    {
-        _api = api;
-    }
-
     public int Order => -5;
 
     public string Name => Constants.ProviderName;
@@ -28,16 +22,19 @@ public class PersonProvider : IRemoteMetadataProvider<Person, PersonLookupInfo>,
         var result = new MetadataResult<Person> { ResultLanguage = Constants.Language };
         if (!int.TryParse(info.ProviderIds?.GetValueOrDefault(Constants.ProviderName), out var personId))
             return result;
-        var person = await _api.GetPerson(personId, token);
+        var person = await api.GetPerson(personId, token);
         if (person == null)
             return result;
         result.HasMetadata = true;
         result.Item = new Person
         {
-            Name = person.Name,
+            Name = person.TranslatedName,
+            OriginalTitle = person.Name,
             Overview = person.Summary,
             PremiereDate = person.Birthdate,
-            ProductionYear = person.BirthYear
+            ProductionYear = person.BirthYear,
+            ProductionLocations = [person.BirthPlace],
+            EndDate = person.DeathDate
         };
         result.Item.ProviderIds.Add(Constants.ProviderName, $"{person.Id}");
         return result;
@@ -51,7 +48,7 @@ public class PersonProvider : IRemoteMetadataProvider<Person, PersonLookupInfo>,
         if (!int.TryParse(searchInfo.ProviderIds.GetOrDefault(Constants.ProviderName), out var id))
             throw new NotImplementedException();
 
-        var person = await _api.GetPerson(id, token);
+        var person = await api.GetPerson(id, token);
         if (person == null)
             return results;
 
@@ -70,6 +67,6 @@ public class PersonProvider : IRemoteMetadataProvider<Person, PersonLookupInfo>,
 
     public async Task<HttpResponseMessage> GetImageResponse(string url, CancellationToken token)
     {
-        return await _api.GetHttpClient().GetAsync(url, token).ConfigureAwait(false);
+        return await api.GetHttpClient().GetAsync(url, token).ConfigureAwait(false);
     }
 }

@@ -12,15 +12,9 @@ using MediaBrowser.Model.Providers;
 
 namespace Jellyfin.Plugin.Bangumi.Providers;
 
-public class BookProvider : IRemoteMetadataProvider<Book, BookInfo>, IHasOrder
+public class BookProvider(BangumiApi api)
+    : IRemoteMetadataProvider<Book, BookInfo>, IHasOrder
 {
-    private readonly BangumiApi _api;
-
-    public BookProvider(BangumiApi api)
-    {
-        _api = api;
-    }
-
     private static PluginConfiguration Configuration => Plugin.Instance!.Configuration;
 
     public int Order => -5;
@@ -34,7 +28,7 @@ public class BookProvider : IRemoteMetadataProvider<Book, BookInfo>, IHasOrder
         if (!int.TryParse(info.ProviderIds.GetOrDefault(Constants.ProviderName), out var subjectId))
             return result;
 
-        var subject = await _api.GetSubject(subjectId, token);
+        var subject = await api.GetSubject(subjectId, token);
         if (subject == null)
             return result;
 
@@ -43,7 +37,7 @@ public class BookProvider : IRemoteMetadataProvider<Book, BookInfo>, IHasOrder
 
         result.Item.ProviderIds.Add(Constants.ProviderName, subject.Id.ToString());
         result.Item.CommunityRating = subject.Rating?.Score;
-        result.Item.Name = subject.GetName(Configuration);
+        result.Item.Name = subject.Name;
         result.Item.OriginalTitle = subject.OriginalName;
         result.Item.Overview = string.IsNullOrEmpty(subject.Summary) ? null : subject.Summary;
         result.Item.Tags = subject.PopularTags;
@@ -66,12 +60,12 @@ public class BookProvider : IRemoteMetadataProvider<Book, BookInfo>, IHasOrder
 
         if (int.TryParse(searchInfo.ProviderIds.GetOrDefault(Constants.ProviderName), out var id))
         {
-            var subject = await _api.GetSubject(id, token);
+            var subject = await api.GetSubject(id, token);
             if (subject == null)
                 return results;
             var result = new RemoteSearchResult
             {
-                Name = subject.GetName(Configuration),
+                Name = subject.Name,
                 SearchProviderName = subject.OriginalName,
                 ImageUrl = subject.DefaultImage,
                 Overview = subject.Summary
@@ -85,14 +79,14 @@ public class BookProvider : IRemoteMetadataProvider<Book, BookInfo>, IHasOrder
         }
         else if (!string.IsNullOrEmpty(searchInfo.Name))
         {
-            var series = await _api.SearchSubject(searchInfo.Name, SubjectType.Book, token);
+            var series = await api.SearchSubject(searchInfo.Name, SubjectType.Book, token);
             series = Subject.SortBySimilarity(series, searchInfo.Name);
             foreach (var item in series)
             {
                 var itemId = $"{item.Id}";
                 var result = new RemoteSearchResult
                 {
-                    Name = item.GetName(Configuration),
+                    Name = item.Name,
                     SearchProviderName = item.OriginalName,
                     ImageUrl = item.DefaultImage,
                     Overview = item.Summary
@@ -115,6 +109,6 @@ public class BookProvider : IRemoteMetadataProvider<Book, BookInfo>, IHasOrder
 
     public async Task<HttpResponseMessage> GetImageResponse(string url, CancellationToken token)
     {
-        return await _api.GetHttpClient().GetAsync(url, token);
+        return await api.GetHttpClient().GetAsync(url, token);
     }
 }

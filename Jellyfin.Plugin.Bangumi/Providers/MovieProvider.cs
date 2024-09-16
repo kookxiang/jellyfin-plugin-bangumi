@@ -14,17 +14,9 @@ using Microsoft.Extensions.Logging;
 
 namespace Jellyfin.Plugin.Bangumi.Providers;
 
-public class MovieProvider : IRemoteMetadataProvider<Movie, MovieInfo>, IHasOrder
+public class MovieProvider(BangumiApi api, ILogger<MovieProvider> logger)
+    : IRemoteMetadataProvider<Movie, MovieInfo>, IHasOrder
 {
-    private readonly BangumiApi _api;
-    private readonly ILogger<MovieProvider> _log;
-
-    public MovieProvider(BangumiApi api, ILogger<MovieProvider> logger)
-    {
-        _api = api;
-        _log = logger;
-    }
-
     private static PluginConfiguration Configuration => Plugin.Instance!.Configuration;
 
     public int Order => -5;
@@ -44,8 +36,8 @@ public class MovieProvider : IRemoteMetadataProvider<Movie, MovieInfo>, IHasOrde
         if (subjectId == 0)
         {
             var searchName = info.Name;
-            _log.LogInformation("Searching {Name} in bgm.tv", searchName);
-            var searchResult = await _api.SearchSubject(searchName, token);
+            logger.LogInformation("Searching {Name} in bgm.tv", searchName);
+            var searchResult = await api.SearchSubject(searchName, token);
             if (info.Year != null)
                 searchResult = searchResult.FindAll(x => x.ProductionYear == null || x.ProductionYear == info.Year.ToString());
             if (searchResult.Count > 0)
@@ -55,8 +47,8 @@ public class MovieProvider : IRemoteMetadataProvider<Movie, MovieInfo>, IHasOrde
         if (subjectId == 0 && info.OriginalTitle != null && !string.Equals(info.OriginalTitle, info.Name, StringComparison.Ordinal))
         {
             var searchName = info.OriginalTitle;
-            _log.LogInformation("Searching {Name} in bgm.tv", searchName);
-            var searchResult = await _api.SearchSubject(searchName, token);
+            logger.LogInformation("Searching {Name} in bgm.tv", searchName);
+            var searchResult = await api.SearchSubject(searchName, token);
             if (info.Year != null)
                 searchResult = searchResult.FindAll(x => x.ProductionYear == null || x.ProductionYear == info.Year.ToString());
             if (searchResult.Count > 0)
@@ -66,9 +58,9 @@ public class MovieProvider : IRemoteMetadataProvider<Movie, MovieInfo>, IHasOrde
         if (subjectId == 0 && Configuration.AlwaysGetTitleByAnitomySharp)
         {
             var searchName = Anitomy.ExtractAnimeTitle(baseName) ?? info.Name;
-            _log.LogInformation("Searching {Name} in bgm.tv", searchName);
+            logger.LogInformation("Searching {Name} in bgm.tv", searchName);
             // 不保证使用非原名或中文进行查询时返回正确结果
-            var searchResult = await _api.SearchSubject(searchName, token);
+            var searchResult = await api.SearchSubject(searchName, token);
             if (info.Year != null)
                 searchResult = searchResult.FindAll(x => x.ProductionYear == null || x.ProductionYear == info.Year.ToString());
             if (searchResult.Count > 0)
@@ -78,7 +70,7 @@ public class MovieProvider : IRemoteMetadataProvider<Movie, MovieInfo>, IHasOrde
         if (subjectId == 0)
             return result;
 
-        var subject = await _api.GetSubject(subjectId, token);
+        var subject = await api.GetSubject(subjectId, token);
         if (subject == null)
             return result;
 
@@ -87,10 +79,12 @@ public class MovieProvider : IRemoteMetadataProvider<Movie, MovieInfo>, IHasOrde
 
         result.Item.ProviderIds.Add(Constants.ProviderName, subject.Id.ToString());
         result.Item.CommunityRating = subject.Rating?.Score;
-        result.Item.Name = subject.GetName(Configuration);
+        result.Item.Name = subject.Name;
         result.Item.OriginalTitle = subject.OriginalName;
         result.Item.Overview = string.IsNullOrEmpty(subject.Summary) ? null : subject.Summary;
         result.Item.Tags = subject.PopularTags;
+        result.Item.HomePageUrl = subject.OfficialWebSite;
+        result.Item.EndDate = subject.EndDate;
 
         if (DateTime.TryParse(subject.AirDate, out var airDate))
             result.Item.PremiereDate = airDate;
@@ -100,8 +94,8 @@ public class MovieProvider : IRemoteMetadataProvider<Movie, MovieInfo>, IHasOrde
         if (subject.IsNSFW)
             result.Item.OfficialRating = "X";
 
-        (await _api.GetSubjectPersonInfos(subject.Id, token)).ForEach(result.AddPerson);
-        (await _api.GetSubjectCharacters(subject.Id, token)).ForEach(result.AddPerson);
+        (await api.GetSubjectPersonInfos(subject.Id, token)).ForEach(result.AddPerson);
+        (await api.GetSubjectCharacters(subject.Id, token)).ForEach(result.AddPerson);
 
         return result;
     }
@@ -114,12 +108,12 @@ public class MovieProvider : IRemoteMetadataProvider<Movie, MovieInfo>, IHasOrde
 
         if (int.TryParse(searchInfo.ProviderIds.GetOrDefault(Constants.ProviderName), out var id))
         {
-            var subject = await _api.GetSubject(id, token);
+            var subject = await api.GetSubject(id, token);
             if (subject == null)
                 return results;
             var result = new RemoteSearchResult
             {
-                Name = subject.GetName(Configuration),
+                Name = subject.Name,
                 SearchProviderName = subject.OriginalName,
                 ImageUrl = subject.DefaultImage,
                 Overview = subject.Summary
@@ -133,14 +127,14 @@ public class MovieProvider : IRemoteMetadataProvider<Movie, MovieInfo>, IHasOrde
         }
         else if (!string.IsNullOrEmpty(searchInfo.Name))
         {
-            var series = await _api.SearchSubject(searchInfo.Name, token);
+            var series = await api.SearchSubject(searchInfo.Name, token);
             series = Subject.SortBySimilarity(series, searchInfo.Name);
             foreach (var item in series)
             {
                 var itemId = $"{item.Id}";
                 var result = new RemoteSearchResult
                 {
-                    Name = item.GetName(Configuration),
+                    Name = item.Name,
                     SearchProviderName = item.OriginalName,
                     ImageUrl = item.DefaultImage,
                     Overview = item.Summary
@@ -162,6 +156,6 @@ public class MovieProvider : IRemoteMetadataProvider<Movie, MovieInfo>, IHasOrde
 
     public async Task<HttpResponseMessage> GetImageResponse(string url, CancellationToken token)
     {
-        return await _api.GetHttpClient().GetAsync(url, token).ConfigureAwait(false);
+        return await api.GetHttpClient().GetAsync(url, token).ConfigureAwait(false);
     }
 }

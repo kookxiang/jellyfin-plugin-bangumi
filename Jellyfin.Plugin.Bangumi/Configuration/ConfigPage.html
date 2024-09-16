@@ -81,7 +81,19 @@
 
         .emby-textarea{
             padding: .35em .25em;
-            width: 100%
+            width: 100%;
+        }
+        #bangumiConfigurationPage div[data-role="content"] {
+            overflow: inherit;
+        }
+
+        #bangumiConfigurationForm .submit-button-container {
+            position: sticky;
+            bottom: 0;
+            z-index: 5;
+            padding: 16px;
+            margin: 0 -16px -16px;
+            backdrop-filter: blur(16px);
         }
     </style>
     <div data-role="content">
@@ -146,6 +158,12 @@
                         <h2 class="sectionTitle">网络</h2>
                     </div>
                 </div>
+                <div class="inputContainer">
+                    <label class="inputLabel inputLabelUnfocused" for="BaseServerUrl">Bangumi API 地址</label>
+                    <input class="emby-input" id="BaseServerUrl" type="url"/>
+                    <div class="fieldDescription">官方 API 部署在海外，请确保 Jellyfin 上能够稳定访问或配置反代站点。
+                    </div>
+                </div>
                 <div class="selectContainer">
                     <label class="selectLabel" for="RequestTimeout">请求超时时间</label>
                     <select class="emby-select-withcolor emby-select" id="RequestTimeout" is="emby-select">
@@ -154,6 +172,20 @@
                         <option value="30000">30 秒</option>
                         <option value="60000">1 分钟</option>
                     </select>
+                    <div class="fieldDescription">只能缓解国内访问不稳定的情况，要确保国内能稳定访问请配置代理。</div>
+                </div>
+                <div class="selectContainer">
+                    <label class="selectLabel" for="SeasonGuessMaxSearchCount">季度搜索最大请求数</label>
+                    <select class="emby-select-withcolor emby-select" id="SeasonGuessMaxSearchCount" is="emby-select">
+                        <option value="1">1</option>
+                        <option value="2">2</option>
+                        <option value="5">5</option>
+                        <option value="10">10</option>
+                        <!--<option value="114514">无限制</option>-->
+                    </select>
+                    <div class="fieldDescription">
+                        本插件使用遍历搜索关联条目的方式匹配TV动画季度。大部分情况下只需一次搜索即可完成，但某些条目可能需要多次搜索才能匹配到下一季。默认最多搜索两次，如果某些季度匹配错误，您可以尝试增加最大搜索次数。
+                    </div>
                 </div>
                 <div class="verticalSection verticalSection">
                     <div class="sectionTitleContainer flex align-items-center">
@@ -168,36 +200,50 @@
                     </select>
                 </div>
                 <div class="selectContainer">
-                    <div class="checkboxContainer checkboxContainer-withDescription">
-                        <label class="emby-checkbox-label">
-                            <input id="UseBangumiSeasonTitle" is="emby-checkbox" type="checkbox"/>
-                            <span>使用 Bangumi 词条作为季名称</span>
-                        </label>
+                    <label class="selectLabel" for="PersonTranslationPreference">人物名称翻译</label>
+                    <select class="emby-select-withcolor emby-select" id="PersonTranslationPreference" is="emby-select">
+                        <option value="Original">优先使用日文</option>
+                        <option value="Chinese">优先使用中文</option>
+                    </select>
+                </div>
+                <div class="checkboxContainer checkboxContainer-withDescription">
+                    <label class="emby-checkbox-label">
+                        <input id="UseBangumiSeasonTitle" is="emby-checkbox" type="checkbox"/>
+                        <span>使用 Bangumi 词条作为季名称</span>
+                    </label>
+                    <div class="fieldDescription">会将默认的“第 * 季”替换为对应条目的标题，如 ***** ** 篇。</div>
+                </div>
+                <div class="checkboxContainer checkboxContainer-withDescription">
+                    <label class="emby-checkbox-label">
+                        <input id="AlwaysReplaceEpisodeNumber" is="emby-checkbox" type="checkbox"/>
+                        <span>始终根据文件名猜测集数</span>
+                    </label>
+                    <div class="fieldDescription">
+                        用于修正 Jellyfin 自动识别集号错误的情况，由插件重新按文件名判断并纠正。少数情况下插件可能识别错误。
                     </div>
                 </div>
-                <div class="selectContainer">
-                    <div class="checkboxContainer checkboxContainer-withDescription">
-                        <label class="emby-checkbox-label">
-                            <input id="AlwaysReplaceEpisodeNumber" is="emby-checkbox" type="checkbox"/>
-                            <span>始终根据文件名猜测集数</span>
-                        </label>
+                <div class="checkboxContainer checkboxContainer-withDescription">
+                    <label class="emby-checkbox-label">
+                        <input id="TrustExistedBangumiId" is="emby-checkbox" type="checkbox"/>
+                        <span>始终根据配置的 Bangumi ID 获取元数据</span>
+                    </label>
+                    <div class="fieldDescription">
+                        默认情况下会判断 ID 是否属当前的季度，当修改系列 / 季度后可自动更新下面的剧集信息；<br>
+                        启用后不再更新，直到剧集元数据中的 ID 被清除才会查询。
                     </div>
                 </div>
-                <div class="selectContainer">
-                    <div class="checkboxContainer checkboxContainer-withDescription">
-                        <label class="emby-checkbox-label">
-                            <input id="TrustExistedBangumiId" is="emby-checkbox" type="checkbox"/>
-                            <span>始终根据配置的 Bangumi ID 获取元数据</span>
-                        </label>
-                    </div>
+                <div class="checkboxContainer checkboxContainer-withDescription">
+                    <label class="emby-checkbox-label">
+                        <input id="ConvertLineBreaks" is="emby-checkbox" type="checkbox"/>
+                        <span>转换元数据信息中的换行符</span>
+                    </label>
                 </div>
-                <div class="selectContainer">
-                    <div class="checkboxContainer checkboxContainer-withDescription">
-                        <label class="emby-checkbox-label">
-                            <input id="UseTestingSearchApi" is="emby-checkbox" type="checkbox"/>
-                            <span>使用测试版 Bangumi 搜索接口</span>
-                        </label>
-                    </div>
+                <div class="checkboxContainer checkboxContainer-withDescription">
+                    <label class="emby-checkbox-label">
+                        <input id="UseTestingSearchApi" is="emby-checkbox" type="checkbox"/>
+                        <span>使用测试版 Bangumi 搜索接口</span>
+                    </label>
+                    <div class="fieldDescription">注：搜索结果不一定更准确。</div>
                 </div>
                 <div class="verticalSection verticalSection">
                     <div class="sectionTitleContainer flex align-items-center">
@@ -251,7 +297,7 @@
                     <label class="inputLabel inputLabelUnfocused" for="OpenaiModel">OpenAI Model:</label>
                     <input type="text" id="OpenaiModel" required="required" is="emby-input" class="emby-input">
                     <div class="fieldDescription">
-                        Example: gpt-3.5-turbo/gpt-4 参见 https://platform.openai.com/docs/models ，推荐使用 gpt-4-1106-preview
+                        Example: gpt-3.5-turbo/gpt-4 参见 https://platform.openai.com/docs/models ，推荐使用 gpt-4o
                     </div>
                 </div>
                 <div class="inputContainer customCssContainer">
@@ -269,8 +315,8 @@
                     </button>
                 </div>
                 <br>
-                <div>
-                    <button is="emby-button" type="submit" class="raised button-submit block emby-button">
+                <div class="submit-button-container">
+                    <button class="raised button-submit block emby-button" is="emby-button" type="submit">
                         <span>保存</span>
                     </button>
                 </div>
@@ -365,8 +411,10 @@
             container.addEventListener('viewshow', onLoad);
             container.addEventListener('viewhide', onUnload);
 
-            // container.querySelector('#bangumiConfigurationForm').addEventListener('change', saveConfiguration);
-            container.querySelector('#bangumiConfigurationForm').addEventListener('submit', saveConfiguration);
+            container.querySelector('#bangumiConfigurationForm').addEventListener('submit', function (e) {
+                e.preventDefault();
+                saveConfiguration();
+            });
 
             container.querySelector('#bangumi-oauth-btn').addEventListener('click', function (e) {
                 e.preventDefault();

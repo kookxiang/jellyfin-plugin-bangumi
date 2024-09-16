@@ -386,6 +386,21 @@ public class Episode
         episodeData = await _provider.GetMetadata(new EpisodeInfo
         {
             IndexNumber = 0,
+            Path = FakePath.CreateFile("Detective Conan/[SBSUB][CONAN][5][WEBRIP][1080P][HEVC_AAC][CHS_CHT_JP](951D8C84).mkv"),
+            SeriesProviderIds = new Dictionary<string, string>
+            {
+                {
+                    Constants.ProviderName, "899"
+                }
+            }
+        }, _token);
+        Assert.IsNotNull(episodeData, "episode data should not be null");
+        Assert.IsNotNull(episodeData.Item, "episode data should not be null");
+        Assert.AreEqual(5, episodeData.Item.IndexNumber, "should fix episode index automatically");
+
+        episodeData = await _provider.GetMetadata(new EpisodeInfo
+        {
+            IndexNumber = 0,
             Path = FakePath.CreateFile("りゅうおうのおしごと！/specials/[VCB-Studio] Ryuuou no Oshigoto! [NCED_EP02][Ma10p_1080p][x265_flac].mkv"),
             SeriesProviderIds = new Dictionary<string, string>
             {

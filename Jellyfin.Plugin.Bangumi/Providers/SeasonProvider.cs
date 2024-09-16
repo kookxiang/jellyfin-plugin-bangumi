@@ -8,21 +8,17 @@ using System.Threading.Tasks;
 using Jellyfin.Plugin.Bangumi.Configuration;
 using Jellyfin.Plugin.Bangumi.Model;
 using MediaBrowser.Controller.Entities.TV;
+using MediaBrowser.Controller.Library;
 using MediaBrowser.Controller.Providers;
 using MediaBrowser.Model.Entities;
 using MediaBrowser.Model.Providers;
+using Microsoft.Extensions.Logging;
 
 namespace Jellyfin.Plugin.Bangumi.Providers;
 
-public class SeasonProvider : IRemoteMetadataProvider<Season, SeasonInfo>, IHasOrder
+public class SeasonProvider(BangumiApi api, ILogger<EpisodeProvider> log, ILibraryManager libraryManager)
+    : IRemoteMetadataProvider<Season, SeasonInfo>, IHasOrder
 {
-    private readonly BangumiApi _api;
-
-    public SeasonProvider(BangumiApi api)
-    {
-        _api = api;
-    }
-
     private static PluginConfiguration Configuration => Plugin.Instance!.Configuration;
 
     public int Order => -5;
@@ -32,6 +28,11 @@ public class SeasonProvider : IRemoteMetadataProvider<Season, SeasonInfo>, IHasO
     public async Task<MetadataResult<Season>> GetMetadata(SeasonInfo info, CancellationToken token)
     {
         token.ThrowIfCancellationRequested();
+        Subject? subject = null;
+
+        if (string.IsNullOrEmpty(info.Path))
+            return new MetadataResult<Season>();
+
         var baseName = Path.GetFileName(info.Path);
         var result = new MetadataResult<Season>
         {
@@ -39,19 +40,47 @@ public class SeasonProvider : IRemoteMetadataProvider<Season, SeasonInfo>, IHasO
         };
         var localConfiguration = await LocalConfiguration.ForPath(info.Path);
 
-        var bangumiId = baseName.GetAttributeValue("bangumi");
-        if (!string.IsNullOrEmpty(bangumiId))
-            info.SetProviderId(Constants.ProviderName, bangumiId);
+        var seasonPath = Path.GetDirectoryName(info.Path);
 
-        int subjectId;
+        var subjectId = 0;
         if (localConfiguration.Id != 0)
+        {
             subjectId = localConfiguration.Id;
-        else if (!int.TryParse(info.ProviderIds.GetOrDefault(Constants.ProviderName), out subjectId))
-            if (info.IndexNumber != 1 ||
-                !int.TryParse(info.SeriesProviderIds.GetOrDefault(Constants.ProviderName), out subjectId))
-                return result;
+        }
+        else if (int.TryParse(baseName.GetAttributeValue("bangumi"), out var subjectIdFromAttribute))
+        {
+            subjectId = subjectIdFromAttribute;
+        }
+        else if (int.TryParse(info.ProviderIds.GetOrDefault(Constants.ProviderName), out var subjectIdFromInfo))
+        {
+            subjectId = subjectIdFromInfo;
+        }
+        else if (info.IndexNumber == 1 && int.TryParse(info.SeriesProviderIds.GetOrDefault(Constants.ProviderName), out var subjectIdFromParent))
+        {
+            subjectId = subjectIdFromParent;
+        }
+        else if (seasonPath is not null && libraryManager.FindByPath(seasonPath, true) is Series series)
+        {
+            var previousSeason = series.Children
+                // Search "Season 2" for "Season 1" and "Season 2 Part X"  
+                .Where(x => x.IndexNumber == info.IndexNumber - 1 || x.IndexNumber == info.IndexNumber)
+                .MaxBy(x => int.Parse(x.GetProviderId(Constants.ProviderName) ?? "0"));
+            if (int.TryParse(previousSeason?.GetProviderId(Constants.ProviderName), out var previousSeasonId) && previousSeasonId > 0)
+            {
+                log.LogInformation("Guessing season id from previous season #{ID}", previousSeasonId);
+                subject = await api.SearchNextSubject(previousSeasonId, token);
+                if (subject != null)
+                {
+                    log.LogInformation("Guessed result: {Name} (#{ID})", subject.Name, subject.Id);
+                    subjectId = subject.Id;
+                }
+            }
+        }
 
-        var subject = await _api.GetSubject(subjectId, token);
+        if (subjectId == 0)
+            return result;
+
+        subject ??= await api.GetSubject(subjectId, token);
         if (subject == null)
             return result;
 
@@ -62,7 +91,7 @@ public class SeasonProvider : IRemoteMetadataProvider<Season, SeasonInfo>, IHasO
         result.Item.CommunityRating = subject.Rating?.Score;
         if (Configuration.UseBangumiSeasonTitle)
         {
-            result.Item.Name = subject.GetName(Configuration);
+            result.Item.Name = subject.Name;
             result.Item.OriginalTitle = subject.OriginalName;
         }
 
@@ -78,11 +107,14 @@ public class SeasonProvider : IRemoteMetadataProvider<Season, SeasonInfo>, IHasO
         if (subject.ProductionYear?.Length == 4)
             result.Item.ProductionYear = int.Parse(subject.ProductionYear);
 
+        result.Item.HomePageUrl = subject.OfficialWebSite;
+        result.Item.EndDate = subject.EndDate;
+
         if (subject.IsNSFW)
             result.Item.OfficialRating = "X";
 
-        (await _api.GetSubjectPersonInfos(subject.Id, token)).ForEach(result.AddPerson);
-        (await _api.GetSubjectCharacters(subject.Id, token)).ForEach(result.AddPerson);
+        (await api.GetSubjectPersonInfos(subject.Id, token)).ForEach(result.AddPerson);
+        (await api.GetSubjectCharacters(subject.Id, token)).ForEach(result.AddPerson);
 
         return result;
     }
@@ -94,6 +126,6 @@ public class SeasonProvider : IRemoteMetadataProvider<Season, SeasonInfo>, IHasO
 
     public Task<HttpResponseMessage> GetImageResponse(string url, CancellationToken token)
     {
-        return _api.GetHttpClient().GetAsync(url, token);
+        return api.GetHttpClient().GetAsync(url, token);
     }
 }

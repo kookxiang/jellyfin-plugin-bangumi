@@ -28,7 +28,7 @@ public class MockedLibraryManager : ILibraryManager
         throw new NotImplementedException();
     }
 
-    public IEnumerable<BaseItem> ResolvePaths(IEnumerable<FileSystemMetadata> files, IDirectoryService directoryService, Folder parent, LibraryOptions libraryOptions, string collectionType = null)
+    public IEnumerable<BaseItem> ResolvePaths(IEnumerable<FileSystemMetadata> files, IDirectoryService directoryService, Folder parent, LibraryOptions libraryOptions, CollectionType? collectionType = null)
     {
         throw new NotImplementedException();
     }
@@ -103,6 +103,21 @@ public class MockedLibraryManager : ILibraryManager
         throw new NotImplementedException();
     }
 
+    public T GetItemById<T>(Guid id) where T : BaseItem
+    {
+        throw new NotImplementedException();
+    }
+
+    public T GetItemById<T>(Guid id, Guid userId) where T : BaseItem
+    {
+        throw new NotImplementedException();
+    }
+
+    public T GetItemById<T>(Guid id, User user) where T : BaseItem
+    {
+        throw new NotImplementedException();
+    }
+
     public Task<IEnumerable<Video>> GetIntros(BaseItem item, User user)
     {
         throw new NotImplementedException();
@@ -113,12 +128,12 @@ public class MockedLibraryManager : ILibraryManager
         throw new NotImplementedException();
     }
 
-    public IEnumerable<BaseItem> Sort(IEnumerable<BaseItem> items, User user, IEnumerable<string> sortBy, SortOrder sortOrder)
+    public IEnumerable<BaseItem> Sort(IEnumerable<BaseItem> items, User user, IEnumerable<ItemSortBy> sortBy, SortOrder sortOrder)
     {
         throw new NotImplementedException();
     }
 
-    public IEnumerable<BaseItem> Sort(IEnumerable<BaseItem> items, User user, IEnumerable<(string OrderBy, SortOrder SortOrder)> orderBy)
+    public IEnumerable<BaseItem> Sort(IEnumerable<BaseItem> items, User user, IEnumerable<(ItemSortBy OrderBy, SortOrder SortOrder)> orderBy)
     {
         throw new NotImplementedException();
     }
@@ -153,22 +168,22 @@ public class MockedLibraryManager : ILibraryManager
         throw new NotImplementedException();
     }
 
-    public string GetContentType(BaseItem item)
+    public CollectionType? GetContentType(BaseItem item)
     {
         throw new NotImplementedException();
     }
 
-    public string GetInheritedContentType(BaseItem item)
+    public CollectionType? GetInheritedContentType(BaseItem item)
     {
         throw new NotImplementedException();
     }
 
-    public string GetConfiguredContentType(BaseItem item)
+    public CollectionType? GetConfiguredContentType(BaseItem item)
     {
         throw new NotImplementedException();
     }
 
-    public string GetConfiguredContentType(string path)
+    public CollectionType? GetConfiguredContentType(string path)
     {
         throw new NotImplementedException();
     }
@@ -198,27 +213,27 @@ public class MockedLibraryManager : ILibraryManager
         throw new NotImplementedException();
     }
 
-    public UserView GetNamedView(User user, string name, Guid parentId, string viewType, string sortName)
+    public UserView GetNamedView(User user, string name, Guid parentId, CollectionType? viewType, string sortName)
     {
         throw new NotImplementedException();
     }
 
-    public UserView GetNamedView(User user, string name, string viewType, string sortName)
+    public UserView GetNamedView(User user, string name, CollectionType? viewType, string sortName)
     {
         throw new NotImplementedException();
     }
 
-    public UserView GetNamedView(string name, string viewType, string sortName)
+    public UserView GetNamedView(string name, CollectionType viewType, string sortName)
     {
         throw new NotImplementedException();
     }
 
-    public UserView GetNamedView(string name, Guid parentId, string viewType, string sortName, string uniqueId)
+    public UserView GetNamedView(string name, Guid parentId, CollectionType? viewType, string sortName, string uniqueId)
     {
         throw new NotImplementedException();
     }
 
-    public UserView GetShadowView(BaseItem parent, string viewType, string sortName)
+    public UserView GetShadowView(BaseItem parent, CollectionType? viewType, string sortName)
     {
         throw new NotImplementedException();
     }
@@ -253,7 +268,7 @@ public class MockedLibraryManager : ILibraryManager
         throw new NotImplementedException();
     }
 
-    public List<Folder> GetCollectionFolders(BaseItem item, List<Folder> allUserRootChildren)
+    public List<Folder> GetCollectionFolders(BaseItem item, IEnumerable<Folder> allUserRootChildren)
     {
         throw new NotImplementedException();
     }
@@ -308,7 +323,7 @@ public class MockedLibraryManager : ILibraryManager
         throw new NotImplementedException();
     }
 
-    public Task<ItemImageInfo> ConvertImageToLocal(BaseItem item, ItemImageInfo image, int imageIndex)
+    public Task<ItemImageInfo> ConvertImageToLocal(BaseItem item, ItemImageInfo image, int imageIndex, bool removeOnFailure = true)
     {
         throw new NotImplementedException();
     }
@@ -423,14 +438,14 @@ public class MockedLibraryManager : ILibraryManager
         throw new NotImplementedException();
     }
 
+    public void QueueLibraryScan()
+    {
+        throw new NotImplementedException();
+    }
+
     public AggregateFolder RootFolder { get; }
     public bool IsScanRunning { get; }
     public event EventHandler<ItemChangeEventArgs> ItemAdded;
     public event EventHandler<ItemChangeEventArgs> ItemUpdated;
     public event EventHandler<ItemChangeEventArgs> ItemRemoved;
-
-    public void QueueLibraryScan()
-    {
-        throw new NotImplementedException();
-    }
 }

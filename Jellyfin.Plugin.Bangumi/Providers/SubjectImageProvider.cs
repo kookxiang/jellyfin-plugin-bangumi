@@ -13,15 +13,9 @@ using MediaBrowser.Model.Providers;
 
 namespace Jellyfin.Plugin.Bangumi.Providers;
 
-public class SubjectImageProvider : IRemoteImageProvider, IHasOrder
+public class SubjectImageProvider(BangumiApi api)
+    : IRemoteImageProvider, IHasOrder
 {
-    private readonly BangumiApi _api;
-
-    public SubjectImageProvider(BangumiApi api)
-    {
-        _api = api;
-    }
-
     public int Order => -5;
     public string Name => Constants.ProviderName;
 
@@ -42,7 +36,7 @@ public class SubjectImageProvider : IRemoteImageProvider, IHasOrder
         if (!int.TryParse(item.GetProviderId(Constants.ProviderName), out var id))
             return Enumerable.Empty<RemoteImageInfo>();
 
-        var subject = await _api.GetSubject(id, token);
+        var subject = await api.GetSubject(id, token);
 
         if (subject != null && subject.DefaultImage != "")
             return new[]
@@ -60,6 +54,6 @@ public class SubjectImageProvider : IRemoteImageProvider, IHasOrder
 
     public async Task<HttpResponseMessage> GetImageResponse(string url, CancellationToken token)
     {
-        return await _api.GetHttpClient().GetAsync(url, token).ConfigureAwait(false);
+        return await api.GetHttpClient().GetAsync(url, token).ConfigureAwait(false);
     }
 }

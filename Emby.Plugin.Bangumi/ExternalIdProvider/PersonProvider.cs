@@ -7,17 +7,11 @@ using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Providers;
 using MediaBrowser.Model.Providers;
 
-namespace Jellyfin.Plugin.Bangumi.Providers;
+namespace Jellyfin.Plugin.Bangumi.ExternalIdProvider;
 
-public class PersonProvider : IRemoteMetadataProvider<Person, PersonLookupInfo>, IHasOrder
+public class PersonProvider(BangumiApi api)
+    : IRemoteMetadataProvider<Person, PersonLookupInfo>, IHasOrder
 {
-    private readonly BangumiApi _api;
-
-    public PersonProvider(BangumiApi api)
-    {
-        _api = api;
-    }
-
     public int Order => -5;
 
     public string Name => Constants.ProviderName;
@@ -28,7 +22,7 @@ public class PersonProvider : IRemoteMetadataProvider<Person, PersonLookupInfo>,
         var result = new MetadataResult<Person> { ResultLanguage = Constants.Language };
         if (!int.TryParse(info.ProviderIds?.GetValueOrDefault(Constants.ProviderName), out var personId))
             return result;
-        var person = await _api.GetPerson(personId, token);
+        var person = await api.GetPerson(personId, token);
         if (person == null)
             return result;
         result.HasMetadata = true;
@@ -50,7 +44,7 @@ public class PersonProvider : IRemoteMetadataProvider<Person, PersonLookupInfo>,
 
     public Task<HttpResponseInfo> GetImageResponse(string url, CancellationToken token)
     {
-        return _api.GetHttpClient().GetResponse(new HttpRequestOptions
+        return api.GetHttpClient().GetResponse(new HttpRequestOptions
         {
             Url = url,
             CancellationToken = token

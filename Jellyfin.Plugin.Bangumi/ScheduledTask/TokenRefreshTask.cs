@@ -1,32 +1,22 @@
-﻿using System;
+﻿#if EMBY
+using MediaBrowser.Model.Logging;
+#else
+using Microsoft.Extensions.Logging;
+using Jellyfin.Data.Entities;
+#endif
+using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
-using Jellyfin.Data.Entities;
 using Jellyfin.Plugin.Bangumi.OAuth;
-using MediaBrowser.Controller.Notifications;
 using MediaBrowser.Model.Activity;
-using MediaBrowser.Model.Notifications;
 using MediaBrowser.Model.Tasks;
-using Microsoft.Extensions.Logging;
 
 namespace Jellyfin.Plugin.Bangumi.ScheduledTask;
 
-public class TokenRefreshTask : IScheduledTask
+public class TokenRefreshTask(IActivityManager activity, BangumiApi api, OAuthStore store)
+    : IScheduledTask
 {
-    private readonly IActivityManager _activity;
-    private readonly BangumiApi _api;
-    private readonly INotificationManager _notification;
-    private readonly OAuthStore _store;
-
-    public TokenRefreshTask(IActivityManager activity, INotificationManager notification, BangumiApi api, OAuthStore store)
-    {
-        _activity = activity;
-        _notification = notification;
-        _api = api;
-        _store = store;
-    }
-
     public string Key => "OAuthTokenRefreshTask";
     public string Name => "OAuth 登录令牌刷新";
     public string Description => "OAuth 授权令牌到期前自动刷新";
@@ -46,45 +36,69 @@ public class TokenRefreshTask : IScheduledTask
         };
     }
 
+#if EMBY
+    public Task Execute(CancellationToken token, IProgress<double> progress)
+    {
+        var task = Task.Run(async () => await ExecuteAsync(progress, token));
+        task.Wait();
+        return Task.CompletedTask;
+    }
+#endif
+
     public async Task ExecuteAsync(IProgress<double> progress, CancellationToken token)
     {
-        var users = _store.GetUsers();
+        store.Load();
+        var users = store.GetUsers();
         var current = 0d;
         var total = users.Count;
         foreach (var (guid, user) in users)
         {
-            var userId = Guid.Parse(guid);
             token.ThrowIfCancellationRequested();
             progress.Report(current / total);
             current++;
             if (user.Expired)
                 continue;
 
-            var activity = new ActivityLog("Bangumi 授权", "Bangumi", userId);
+#if EMBY
+            var activityLogEntry = new ActivityLogEntry
+            {
+                Name = "Bangumi 授权",
+                Type = "Bangumi",
+            };
             try
             {
-                await user.Refresh(_api.GetHttpClient(), userId, token);
-                await user.GetProfile(_api, token);
-                activity.ShortOverview = $"用户 #{user.UserId} 授权刷新成功";
-                activity.LogSeverity = LogLevel.Information;
+                await user.Refresh(api.GetHttpClient(), token);
+                await user.GetProfile(api, token);
+                activityLogEntry.ShortOverview = $"用户 #{user.UserId} 授权刷新成功";
+                activityLogEntry.Severity = LogSeverity.Info;
             }
             catch (Exception e)
             {
-                activity.ShortOverview = $"用户 #{user.UserId} 授权刷新失败: {e.Message}";
-                activity.LogSeverity = LogLevel.Warning;
-                await _notification.SendNotification(new NotificationRequest
-                {
-                    Name = activity.ShortOverview,
-                    Description = e.StackTrace,
-                    Level = NotificationLevel.Warning,
-                    UserIds = new[] { Guid.Parse(guid) },
-                    Date = DateTime.Now
-                }, token);
+                activityLogEntry.ShortOverview = $"用户 #{user.UserId} 授权刷新失败: {e.Message}";
+                activityLogEntry.Severity = LogSeverity.Warn;
             }
 
-            await _activity.CreateAsync(activity);
+            activity.Create(activityLogEntry);
+#else
+            var userId = Guid.Parse(guid);
+            var activityLog = new ActivityLog("Bangumi 授权", "Bangumi", userId);
+            try
+            {
+                await user.Refresh(api.GetHttpClient(), token);
+                await user.GetProfile(api, token);
+                activityLog.ShortOverview = $"用户 #{user.UserId} 授权刷新成功";
+                activityLog.LogSeverity = LogLevel.Information;
+            }
+            catch (Exception e)
+            {
+                activityLog.ShortOverview = $"用户 #{user.UserId} 授权刷新失败: {e.Message}";
+                activityLog.LogSeverity = LogLevel.Warning;
+            }
+
+            await activity.CreateAsync(activityLog);
+#endif
         }
 
-        _store.Save();
+        store.Save();
     }
 }

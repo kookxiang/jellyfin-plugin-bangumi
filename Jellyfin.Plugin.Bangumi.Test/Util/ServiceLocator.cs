@@ -33,11 +33,12 @@ public class ServiceLocator
         serviceCollection.AddScoped<SeasonProvider>();
         serviceCollection.AddScoped<SeriesProvider>();
         serviceCollection.AddScoped<SubjectImageProvider>();
-        new PluginServiceRegistrator().RegisterServices(serviceCollection);
+        new PluginServiceRegistrator().RegisterServices(serviceCollection, null!);
         _provider = serviceCollection.BuildServiceProvider();
 
         var plugin = GetService<Bangumi.Plugin>();
         plugin.Configuration.TranslationPreference = TranslationPreferenceType.Original;
+        plugin.Configuration.SeasonGuessMaxSearchCount = 10;
     }
 
     public static T GetService<T>()

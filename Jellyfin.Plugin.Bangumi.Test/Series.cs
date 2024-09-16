@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Jellyfin.Data.Enums;
 using Jellyfin.Plugin.Bangumi.Providers;
 using Jellyfin.Plugin.Bangumi.Test.Util;
 using MediaBrowser.Controller.Providers;
@@ -191,9 +192,10 @@ public class Series
         Assert.AreEqual("2013-10-05", result.Item.AirTime, "should return correct air time info");
         Assert.AreEqual(DayOfWeek.Saturday, result.Item.AirDays?[0], "should return correct air day info");
         Assert.IsTrue(result.Item.CommunityRating is > 0 and <= 10, "should return rating info");
-        Assert.IsNotNull(result.People.Find(x => x.IsType(PersonType.Actor)), "should have at least one actor");
-        Assert.IsNotNull(result.People.Find(x => x.IsType(PersonType.Director)), "should have at least one director");
-        Assert.IsNotNull(result.People.Find(x => x.IsType(PersonType.Writer)), "should have at least one writer");
+        Assert.IsNotNull(result.Item.HomePageUrl, "should return official website link");
+        Assert.IsNotNull(result.People.Find(x => x.IsType(PersonKind.Actor)), "should have at least one actor");
+        Assert.IsNotNull(result.People.Find(x => x.IsType(PersonKind.Director)), "should have at least one director");
+        Assert.IsNotNull(result.People.Find(x => x.IsType(PersonKind.Writer)), "should have at least one writer");
         Assert.AreNotEqual("", result.People?.Find(x => x.Name.Equals("丸戸史明")).ImageUrl, "person should have image url");
         Assert.IsNotNull(result.Item.ProviderIds[Constants.ProviderName], "should have plugin provider id");
     }

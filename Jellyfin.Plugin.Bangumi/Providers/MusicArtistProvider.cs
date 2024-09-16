@@ -9,15 +9,9 @@ using MediaBrowser.Model.Providers;
 
 namespace Jellyfin.Plugin.Bangumi.Providers;
 
-public class MusicArtistProvider : IRemoteMetadataProvider<MusicArtist, ArtistInfo>, IHasOrder
+public class MusicArtistProvider(BangumiApi api)
+    : IRemoteMetadataProvider<MusicArtist, ArtistInfo>, IHasOrder
 {
-    private readonly BangumiApi _api;
-
-    public MusicArtistProvider(BangumiApi api)
-    {
-        _api = api;
-    }
-
     public int Order => -5;
 
     public string Name => Constants.ProviderName;
@@ -28,7 +22,7 @@ public class MusicArtistProvider : IRemoteMetadataProvider<MusicArtist, ArtistIn
         var result = new MetadataResult<MusicArtist> { ResultLanguage = Constants.Language };
         if (!int.TryParse(info.ProviderIds?.GetValueOrDefault(Constants.ProviderName), out var personId))
             return result;
-        var person = await _api.GetPerson(personId, token);
+        var person = await api.GetPerson(personId, token);
         if (person == null)
             return result;
         result.HasMetadata = true;
@@ -50,6 +44,6 @@ public class MusicArtistProvider : IRemoteMetadataProvider<MusicArtist, ArtistIn
 
     public async Task<HttpResponseMessage> GetImageResponse(string url, CancellationToken token)
     {
-        return await _api.GetHttpClient().GetAsync(url, token).ConfigureAwait(false);
+        return await api.GetHttpClient().GetAsync(url, token).ConfigureAwait(false);
     }
 }

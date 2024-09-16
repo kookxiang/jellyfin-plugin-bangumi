@@ -1,15 +1,15 @@
-using MediaBrowser.Controller.Entities.Movies;
+﻿using MediaBrowser.Controller.Entities.TV;
 using MediaBrowser.Controller.Providers;
 using MediaBrowser.Model.Entities;
 using MediaBrowser.Model.Providers;
 
-namespace Jellyfin.Plugin.Bangumi.Extension;
+namespace Jellyfin.Plugin.Bangumi.ExternalIdProvider;
 
-public class ExternalMovieId : IExternalId
+public class SeriesId : IExternalId
 {
     public bool Supports(IHasProviderIds item)
     {
-        return item is Movie;
+        return item is Series;
     }
 
     public string ProviderName => Constants.ProviderName;

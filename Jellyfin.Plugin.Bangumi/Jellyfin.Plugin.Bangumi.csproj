@@ -1,20 +1,19 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFramework>net6.0</TargetFramework>
+        <TargetFramework>net8.0</TargetFramework>
         <RootNamespace>Jellyfin.Plugin.Bangumi</RootNamespace>
-        <AssemblyVersion>1.0.0.0</AssemblyVersion>
-        <FileVersion>1.0.0.0</FileVersion>
+        <AssemblyVersion>1.6.2.0</AssemblyVersion>
+        <FileVersion>1.6.2.0</FileVersion>
         <Nullable>enable</Nullable>
-        <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
     </PropertyGroup>
 
     <ItemGroup>
         <PackageReference Include="AnitomySharp" Version="0.2.0"/>
         <PackageReference Include="Fastenshtein" Version="1.0.0.8"/>
-        <PackageReference Include="Jellyfin.Controller" IncludeAssets="compile" Version="10.8.12"/>
-        <PackageReference Include="Microsoft.AspNetCore.Authorization" IncludeAssets="compile" Version="6.0.12"/>
-        <PackageReference Include="OpenAI" Version="1.10.0" />
+        <PackageReference Include="Jellyfin.Controller" IncludeAssets="compile" Version="10.9.0-*"/>
+        <PackageReference Include="Newtonsoft.Json" IncludeAssets="compile" Version="13.0.3"/>
+        <PackageReference Include="OpenAI" Version="1.11.0" />
     </ItemGroup>
 
     <ItemGroup>
@@ -25,14 +24,4 @@
     <ItemGroup>
         <InternalsVisibleTo Include="Jellyfin.Plugin.Bangumi.Test"/>
     </ItemGroup>
-
-    <Target Name="Release" AfterTargets="Build" Condition="'$(Configuration)'=='Release'">
-        <ItemGroup>
-            <AssemblyDependencies Include="$(OutputPath)*.dll"/>
-        </ItemGroup>
-        <MakeDir Directories="$(OutputPath)zip"/>
-        <Copy SourceFiles="@(AssemblyDependencies)" DestinationFolder="$(OutputPath)\zip"/>
-        <ZipDirectory SourceDirectory="$(OutputPath)zip" DestinationFile="$(MSBuildProjectDirectory)\..\$(AssemblyName).zip" Overwrite="true"/>
-        <RemoveDir Directories="$(OutputPath)zip"/>
-    </Target>
 </Project>

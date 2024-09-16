@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Jellyfin.Plugin.Bangumi.Configuration;
 using Jellyfin.Plugin.Bangumi.Model;
 using MediaBrowser.Common.Net;
 using MediaBrowser.Controller.Providers;
@@ -11,18 +12,12 @@ using MediaBrowser.Model.Logging;
 using MediaBrowser.Model.Providers;
 using Episode = MediaBrowser.Controller.Entities.TV.Episode;
 
-namespace Jellyfin.Plugin.Bangumi.Providers;
+namespace Jellyfin.Plugin.Bangumi.ExternalIdProvider;
 
-public class EpisodeProvider : IRemoteMetadataProvider<Episode, EpisodeInfo>, IHasOrder
+public class EpisodeProvider(BangumiApi api, ILogger log)
+    : IRemoteMetadataProvider<Episode, EpisodeInfo>, IHasOrder
 {
-    private readonly BangumiApi _api;
-    private readonly ILogger _log;
-
-    public EpisodeProvider(BangumiApi api, ILogger log)
-    {
-        _api = api;
-        _log = log;
-    }
+    private static PluginConfiguration Configuration => Plugin.Instance!.Configuration;
 
     public int Order => -5;
     public string Name => Constants.ProviderName;
@@ -32,7 +27,7 @@ public class EpisodeProvider : IRemoteMetadataProvider<Episode, EpisodeInfo>, IH
         token.ThrowIfCancellationRequested();
         var episode = await GetEpisode(info, token);
 
-        _log.Info("metadata for {File}: {EpisodeInfo}", info.Name, episode);
+        log.Info("metadata for {0}: {1}", info.Name, episode);
 
         var result = new MetadataResult<Episode> { ResultLanguage = Constants.Language };
 
@@ -48,7 +43,7 @@ public class EpisodeProvider : IRemoteMetadataProvider<Episode, EpisodeInfo>, IH
         if (episode.AirDate.Length == 4)
             result.Item.ProductionYear = int.Parse(episode.AirDate);
 
-        result.Item.Name = episode.GetName(Plugin.Instance!.Configuration);
+        result.Item.Name = episode.Name;
         result.Item.OriginalTitle = episode.OriginalName;
         result.Item.IndexNumber = (int)episode.Order;
         result.Item.Overview = string.IsNullOrEmpty(episode.Description) ? null : episode.Description;
@@ -61,13 +56,13 @@ public class EpisodeProvider : IRemoteMetadataProvider<Episode, EpisodeInfo>, IH
         result.Item.ParentIndexNumber = 0;
 
         // use title and overview from special episode subject if episode data is empty
-        var series = await _api.GetSubject(episode.ParentId, token);
+        var series = await api.GetSubject(episode.ParentId, token);
         if (series == null)
             return result;
 
         // use title and overview from special episode subject if episode data is empty
         if (string.IsNullOrEmpty(result.Item.Name))
-            result.Item.Name = series.GetName(Plugin.Instance.Configuration);
+            result.Item.Name = series.Name;
         if (string.IsNullOrEmpty(result.Item.OriginalTitle))
             result.Item.OriginalTitle = series.OriginalName;
         if (string.IsNullOrEmpty(result.Item.Overview))
@@ -83,7 +78,7 @@ public class EpisodeProvider : IRemoteMetadataProvider<Episode, EpisodeInfo>, IH
 
     public Task<HttpResponseInfo> GetImageResponse(string url, CancellationToken token)
     {
-        return _api.GetHttpClient().GetResponse(new HttpRequestOptions
+        return api.GetHttpClient().GetResponse(new HttpRequestOptions
         {
             Url = url,
             CancellationToken = token
@@ -92,8 +87,9 @@ public class EpisodeProvider : IRemoteMetadataProvider<Episode, EpisodeInfo>, IH
 
     private async Task<Model.Episode?> GetEpisode(EpisodeInfo info, CancellationToken token)
     {
-        if (!int.TryParse(info.SeriesProviderIds.GetOrDefault(Constants.ProviderName), out var seriesId))
-            return null;
+        if (!int.TryParse(info.SeasonProviderIds.GetOrDefault(Constants.ProviderName), out var seasonId))
+            if (!int.TryParse(info.SeriesProviderIds.GetOrDefault(Constants.ProviderName), out seasonId))
+                return null;
 
         double? episodeIndex = info.IndexNumber;
 
@@ -102,16 +98,19 @@ public class EpisodeProvider : IRemoteMetadataProvider<Episode, EpisodeInfo>, IH
 
         if (int.TryParse(info.GetProviderId(Constants.ProviderName), out var episodeId))
         {
-            var episode = await _api.GetEpisode(episodeId, token);
+            var episode = await api.GetEpisode(episodeId, token);
             if (episode == null)
                 goto SkipBangumiId;
 
-            if (episode.ParentId == seriesId && Math.Abs(episode.Order - episodeIndex.Value) < 0.1)
+            if (Configuration.TrustExistedBangumiId)
+                return episode;
+
+            if (episode.ParentId == seasonId && Math.Abs(episode.Order - episodeIndex.Value) < 0.1)
                 return episode;
         }
 
         SkipBangumiId:
-        var episodeListData = await _api.GetSubjectEpisodeList(seriesId, null, episodeIndex.Value, token);
+        var episodeListData = await api.GetSubjectEpisodeList(seasonId, null, episodeIndex.Value, token);
         if (episodeListData == null)
             return null;
         try

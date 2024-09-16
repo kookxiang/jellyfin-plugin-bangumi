@@ -7,27 +7,18 @@ using System.Threading;
 using System.Threading.Tasks;
 using Jellyfin.Plugin.Bangumi.OAuth;
 using MediaBrowser.Common.Net;
+using Microsoft.Extensions.Logging;
 
 namespace Jellyfin.Plugin.Bangumi;
 
-public partial class BangumiApi
+public partial class BangumiApi(IHttpClientFactory httpClientFactory, OAuthStore store, ILogger<BangumiApi> logger)
 {
     private static readonly JsonSerializerOptions Options = new()
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase
     };
 
-    private readonly IHttpClientFactory _httpClientFactory;
-
-    private readonly Plugin _plugin;
-    private readonly OAuthStore _store;
-
-    public BangumiApi(IHttpClientFactory httpClientFactory, OAuthStore store)
-    {
-        _plugin = Plugin.Instance!;
-        _httpClientFactory = httpClientFactory;
-        _store = store;
-    }
+    private readonly Plugin _plugin = Plugin.Instance!;
 
     private Task<string> SendRequest(string url, string? accessToken, CancellationToken token)
     {
@@ -36,22 +27,12 @@ public partial class BangumiApi
 
     private async Task<string> SendRequest(HttpRequestMessage request, CancellationToken token)
     {
-        return await SendRequest(request, _store.GetAvailable()?.AccessToken, token);
-    }
-
-    private async Task<string> SendRequest(HttpRequestMessage request, string? accessToken, CancellationToken token)
-    {
-        var httpClient = GetHttpClient();
-        if (!string.IsNullOrEmpty(accessToken))
-            request.Headers.Authorization = AuthenticationHeaderValue.Parse("Bearer " + accessToken);
-        using var response = await httpClient.SendAsync(request, token);
-        if (!response.IsSuccessStatusCode) await ServerException.ThrowFrom(response);
-        return await response.Content.ReadAsStringAsync(token);
+        return await SendRequest(request, store.GetAvailable()?.AccessToken, token);
     }
 
     private async Task<T?> SendRequest<T>(string url, CancellationToken token)
     {
-        return await SendRequest<T>(url, _store.GetAvailable()?.AccessToken, token);
+        return await SendRequest<T>(url, store.GetAvailable()?.AccessToken, token);
     }
 
     private async Task<T?> SendRequest<T>(string url, string? accessToken, CancellationToken token)
@@ -62,7 +43,7 @@ public partial class BangumiApi
 
     public HttpClient GetHttpClient()
     {
-        var httpClient = _httpClientFactory.CreateClient(NamedClient.Default);
+        var httpClient = httpClientFactory.CreateClient(NamedClient.Default);
         httpClient.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("Jellyfin.Plugin.Bangumi", _plugin.Version.ToString()));
         httpClient.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("(https://github.com/kookxiang/jellyfin-plugin-bangumi)"));
         httpClient.Timeout = TimeSpan.FromMilliseconds(_plugin.Configuration.RequestTimeout);

@@ -11,17 +11,21 @@ public class OAuthStore
 {
     private readonly IApplicationPaths _applicationPaths;
 
-    private readonly Dictionary<string, OAuthUser> _users = new();
+    private Dictionary<string, OAuthUser> _users = new();
 
     public OAuthStore(IApplicationPaths applicationPaths)
     {
         _applicationPaths = applicationPaths;
-
-        if (File.Exists(StorePath))
-            _users = JsonSerializer.Deserialize<Dictionary<string, OAuthUser>>(File.ReadAllText(StorePath))!;
+        Load();
     }
 
     private string StorePath => Path.Join(_applicationPaths.PluginConfigurationsPath, "Jellyfin.Plugin.Bangumi.OAuth.dat");
+
+    public void Load()
+    {
+        if (File.Exists(StorePath))
+            _users = JsonSerializer.Deserialize<Dictionary<string, OAuthUser>>(File.ReadAllText(StorePath))!;
+    }
 
     public void Save()
     {

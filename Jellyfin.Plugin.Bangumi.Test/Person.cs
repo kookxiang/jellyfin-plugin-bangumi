@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Jellyfin.Plugin.Bangumi.Configuration;
 using Jellyfin.Plugin.Bangumi.Providers;
 using Jellyfin.Plugin.Bangumi.Test.Util;
 using MediaBrowser.Controller.Providers;
@@ -28,12 +29,26 @@ public class Person
     [TestMethod]
     public async Task GetById()
     {
+        Bangumi.Plugin.Instance!.Configuration.PersonTranslationPreference = TranslationPreferenceType.Chinese;
         var result = await _provider.GetMetadata(new PersonLookupInfo
         {
-            ProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "5847" } }
+            ProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "7307" } }
         }, _token);
         Assert.IsNotNull(result.Item, "person info should not be null");
-        Assert.AreEqual("茅野愛衣", result.Item.Name, "should return correct name");
+        Assert.AreEqual("上坂すみれ", result.Item.OriginalTitle, "should return correct name");
+        Assert.AreEqual("上坂堇", result.Item.Name, "should return translated name");
+        Assert.IsNotNull(result.Item.ProviderIds[Constants.ProviderName], "should have plugin provider id");
+    }
+
+    [TestMethod]
+    public async Task LineBreaksConversion()
+    {
+        var result = await _provider.GetMetadata(new PersonLookupInfo
+        {
+            ProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "389" } }
+        }, _token);
+        Assert.IsNotNull(result.Item, "person info should not be null");
+        Assert.IsTrue(result.Item.Overview.Contains("<br>"), "should convert line breaks to html tag");
         Assert.IsNotNull(result.Item.ProviderIds[Constants.ProviderName], "should have plugin provider id");
     }
 

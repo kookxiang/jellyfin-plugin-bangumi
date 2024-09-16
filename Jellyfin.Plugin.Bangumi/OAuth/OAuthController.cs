@@ -11,41 +11,31 @@ namespace Jellyfin.Plugin.Bangumi.OAuth;
 
 [ApiController]
 [Route("Plugins/Bangumi")]
-public class OAuthController : ControllerBase
+public class OAuthController(BangumiApi api, OAuthStore store, IAuthorizationContext authorizationContext, OpenAIApi openai)
+    : ControllerBase
 {
     protected internal const string ApplicationId = "bgm16185f43c213d11c9";
     protected internal const string ApplicationSecret = "1b28040afd28882aecf23dcdd86be9f7";
 
     private static string? _oAuthPath;
 
-    private readonly BangumiApi _api;
-    private readonly OpenAIApi _openai;
-    private readonly ISessionContext _sessionContext;
-    private readonly OAuthStore _store;
-
-    public OAuthController(BangumiApi api, OpenAIApi openai, OAuthStore store, ISessionContext sessionContext)
-    {
-        _api = api;
-        _openai = openai;
-        _store = store;
-        _sessionContext = sessionContext;
-    }
-
     [HttpGet("OAuthState")]
-    [Authorize("DefaultAuthorization")]
+    [Authorize]
     public async Task<Dictionary<string, object?>?> OAuthState()
     {
-        var user = await _sessionContext.GetUser(Request);
+        var authorizationInfo = await authorizationContext.GetAuthorizationInfo(Request);
+        var user = authorizationInfo.User;
         if (user == null)
             return null;
-        var info = _store.Get(user.Id);
+        store.Load();
+        var info = store.Get(user.Id);
         if (info == null)
             return null;
 
         if (string.IsNullOrEmpty(info.Avatar))
         {
-            await info.GetProfile(_api);
-            _store.Save();
+            await info.GetProfile(api);
+            store.Save();
         }
 
         return new Dictionary<string, object?>
@@ -60,30 +50,34 @@ public class OAuthController : ControllerBase
     }
 
     [HttpPost("RefreshOAuthToken")]
-    [Authorize("DefaultAuthorization")]
+    [Authorize]
     public async Task<ActionResult> RefreshOAuthToken()
     {
-        var user = await _sessionContext.GetUser(Request);
+        var authorizationInfo = await authorizationContext.GetAuthorizationInfo(Request);
+        var user = authorizationInfo.User;
         if (user == null)
             return BadRequest();
-        var info = _store.Get(user.Id);
+        store.Load();
+        var info = store.Get(user.Id);
         if (info == null)
             return BadRequest();
-        await info.Refresh(_api.GetHttpClient(), user.Id);
-        await info.GetProfile(_api);
-        _store.Save();
+        await info.Refresh(api.GetHttpClient());
+        await info.GetProfile(api);
+        store.Save();
         return Accepted();
     }
 
     [HttpDelete("OAuth")]
-    [Authorize("DefaultAuthorization")]
+    [Authorize]
     public async Task<ActionResult> DeAuth()
     {
-        var user = await _sessionContext.GetUser(Request);
+        var authorizationInfo = await authorizationContext.GetAuthorizationInfo(Request);
+        var user = authorizationInfo.User;
         if (user == null)
             return BadRequest();
-        _store.Delete(user.Id);
-        _store.Save();
+        store.Load();
+        store.Delete(user.Id);
+        store.Save();
         return Accepted();
     }
 
@@ -108,14 +102,15 @@ public class OAuthController : ControllerBase
             new KeyValuePair<string, string>("code", code),
             new KeyValuePair<string, string>("redirect_uri", $"{urlPrefix}?user={user}")
         });
-        var response = await _api.GetHttpClient().PostAsync("https://bgm.tv/oauth/access_token", formData);
+        var response = await api.GetHttpClient().PostAsync("https://bgm.tv/oauth/access_token", formData);
         var responseBody = await response.Content.ReadAsStringAsync();
         if (!response.IsSuccessStatusCode) return JsonSerializer.Deserialize<OAuthError>(responseBody);
         var result = JsonSerializer.Deserialize<OAuthUser>(responseBody)!;
         result.EffectiveTime = DateTime.Now;
-        await result.GetProfile(_api);
-        _store.Set(user, result);
-        _store.Save();
+        await result.GetProfile(api);
+        store.Load();
+        store.Set(user, result);
+        store.Save();
         return Content("<script>window.opener.postMessage('BANGUMI-OAUTH-COMPLETE'); window.close()</script>", "text/html");
     }
 
@@ -125,7 +120,7 @@ public class OAuthController : ControllerBase
     {
         try
         {
-            return Content(await _openai.SummarizeTitleFromFilename(filename, new()));
+            return Content(await openai.SummarizeTitleFromFilename(filename, new()));
         }
         catch (Exception e)
         {

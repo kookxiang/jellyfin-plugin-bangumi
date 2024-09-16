@@ -3,9 +3,9 @@ using MediaBrowser.Controller.Providers;
 using MediaBrowser.Model.Entities;
 using MediaBrowser.Model.Providers;
 
-namespace Jellyfin.Plugin.Bangumi.Extension;
+namespace Jellyfin.Plugin.Bangumi.ExternalIdProvider;
 
-public class ExternalPersonId : IExternalId
+public class PersonId : IExternalId
 {
     public bool Supports(IHasProviderIds item)
     {
