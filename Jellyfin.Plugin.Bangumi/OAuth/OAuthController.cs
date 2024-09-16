@@ -115,7 +115,7 @@ public class OAuthController(BangumiApi api, OAuthStore store, IAuthorizationCon
     }
 
     [HttpPost("OpenAITest")]
-    [Authorize("DefaultAuthorization")]
+    [Authorize]
     public async Task<ActionResult> OpenAITest([FromForm] string filename)
     {
         try

@@ -375,7 +375,6 @@
             }
 
             function saveConfiguration(e) {
-                if(e) e.preventDefault();
                 var config = Object.assign({}, configuration);
                 var elements = container.querySelectorAll('input,select');
                 for (var i = 0; i < elements.length; i++) {

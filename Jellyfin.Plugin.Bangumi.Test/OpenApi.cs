@@ -5,14 +5,37 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using OpenAI_API.Chat;
 
 namespace Jellyfin.Plugin.Bangumi.Test;
+using Jellyfin.Plugin.Bangumi.Test.Util;
 
 [TestClass]
 public class OpenApi
 {
+
+    private readonly Bangumi.Plugin _plugin = ServiceLocator.GetService<Bangumi.Plugin>();
+    private readonly OpenAIApi client = ServiceLocator.GetService<OpenAIApi>();
+    private bool tokenProvided = false;
+
+    public OpenApi()
+    {
+        var openaiToken = Environment.GetEnvironmentVariable("OPENAI_TOKEN");
+        var openaiEndpoint = Environment.GetEnvironmentVariable("OPENAI_ENDPOINT");
+        if (openaiToken != null) tokenProvided = true;
+        _plugin.Configuration.OpenaiToken = openaiToken;
+        if (openaiEndpoint != null) _plugin.Configuration.OpenaiEndpoint = openaiEndpoint;
+    }
+
+    [TestInitialize]
+    public void Initialize()
+    {
+        if (!tokenProvided)
+        {
+            Assert.Inconclusive("OPENAI_TOKEN is not provided, skipping test.");
+        }
+    }
+
     [TestMethod]
     public async Task GuessTitle()
     {
-        var client = new OpenAIApi();
         var chatClient = client.GetChatClient();
         var prompt = @"
 ファイル名にはいくつかの略語があります、この用語集を参照してください。

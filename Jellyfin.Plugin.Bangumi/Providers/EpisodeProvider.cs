@@ -21,20 +21,18 @@ public partial class EpisodeProvider(BangumiApi api, ILogger<EpisodeProvider> lo
     : IRemoteMetadataProvider<Episode, EpisodeInfo>, IHasOrder
 {
     private static readonly Regex[] NonEpisodeFileNameRegex =
-    {
-        new(@"[\[\(](CRC32_)?[0-9A-F]{8}[\]\)]", RegexOptions.IgnoreCase),
+    [
+        new(@"[\[\(][0-9A-F]{8}[\]\)]", RegexOptions.IgnoreCase),
         new(@"S\d{2,}", RegexOptions.IgnoreCase),
-        new(@"yuv[4|2|0]{3}p(10|8)?(le)?", RegexOptions.IgnoreCase),
-        new(@"(480|576|720|1080|1440|2160)(p|i)", RegexOptions.IgnoreCase),
+        new(@"yuv[4|2|0]{3}p(10|8)?", RegexOptions.IgnoreCase),
+        new(@"\d{3,4}p", RegexOptions.IgnoreCase),
         new(@"\d{3,4}x\d{3,4}", RegexOptions.IgnoreCase),
-        new(@"(Hi|Ma)?10p", RegexOptions.IgnoreCase),
+        new(@"(Hi)?10p", RegexOptions.IgnoreCase),
         new(@"(8|10)bit", RegexOptions.IgnoreCase),
-        new(@"(x|h)(264|265)", RegexOptions.IgnoreCase),
-        new(@"(BD(-BOX)?|BluRay|DVD(-BOX)?|HDTV)(Rip|\s)", RegexOptions.IgnoreCase),
-        new(@"(\dx?)?(hevc|aac|xvid|av1|flac(2.0)?|mp3|TrueHD|Atmos|DTS(-HDMA)?|ac3|alac|als)(x\d)?", RegexOptions.IgnoreCase),
-        new(@"[2|3|5|7]\.(0|1)(\.2)?ch", RegexOptions.IgnoreCase),
-        new(@"\d{2,3}fps", RegexOptions.IgnoreCase),
-    };
+        new Regex(@"(x|h)(264|265)", RegexOptions.IgnoreCase),
+        new Regex(@"\[\d{2}(0[1-9]|1[0-2])(0[1-9]|1[0-9]|2[0-9]|3[0-1])]"),
+        new Regex(@"(?<=[^P])V\d+")
+    ];
 
     private static readonly Regex[] EpisodeFileNameRegex =
     [
@@ -43,8 +41,8 @@ public partial class EpisodeProvider(BangumiApi api, ILogger<EpisodeProvider> lo
         new(@"EP?([\d\.]{2,})", RegexOptions.IgnoreCase),
         new(@"\[([\d\.]{2,})"),
         new(@"#([\d\.]{2,})"),
-        new(@"第(\d{1,})話"),
         new(@"(\d{2,})"),
+        new(@"\[([\d\.]+)\]")
     ];
 
     private static readonly Regex[] AllSpecialEpisodeFileNameRegex =
@@ -52,8 +50,7 @@ public partial class EpisodeProvider(BangumiApi api, ILogger<EpisodeProvider> lo
         SpecialEpisodeFileNameRegex(),
         PreviewEpisodeFileNameRegex(),
         OpeningEpisodeFileNameRegex(),
-        EndingEpisodeFileNameRegex(),
-        OtherEpisodeFileNameRegex(),
+        EndingEpisodeFileNameRegex()
     ];
 
     private static PluginConfiguration Configuration => Plugin.Instance!.Configuration;
@@ -140,20 +137,17 @@ public partial class EpisodeProvider(BangumiApi api, ILogger<EpisodeProvider> lo
         return api.GetHttpClient().GetAsync(url, token);
     }
 
-    [GeneratedRegex(@"(NC|ノンクレジット|Creditless )?OP([^a-zA-Z]|$)")]
+    [GeneratedRegex(@"(NC)?OP([^a-zA-Z]|$)")]
     private static partial Regex OpeningEpisodeFileNameRegex();
 
-    [GeneratedRegex(@"(NC|ノンクレジット|Creditless )?ED([^a-zA-Z]|$)")]
+    [GeneratedRegex(@"(NC)?ED([^a-zA-Z]|$)")]
     private static partial Regex EndingEpisodeFileNameRegex();
 
     [GeneratedRegex(@"(SPs?|Specials?|OVA|OAD)([^a-zA-Z]|$)")]
     private static partial Regex SpecialEpisodeFileNameRegex();
 
-    [GeneratedRegex(@"[^\w](PV|CM|Preview)([^a-zA-Z]|$)")]
+    [GeneratedRegex(@"[^\w]PV([^a-zA-Z]|$)")]
     private static partial Regex PreviewEpisodeFileNameRegex();
-
-    [GeneratedRegex(@"[^\w](Menu|IV|interview|Behind the Scene|次回予告|Logo|Making)([^a-zA-Z\s]|$)")]
-    private static partial Regex OtherEpisodeFileNameRegex();
 
     private static bool IsSpecial(string filePath, bool checkParent = true)
     {
@@ -169,7 +163,6 @@ public partial class EpisodeProvider(BangumiApi api, ILogger<EpisodeProvider> lo
         var fileName = Path.GetFileName(info.Path);
         if (string.IsNullOrEmpty(fileName))
             return null;
-
 
         var type = GuessEpisodeTypeFromFileName(fileName);
         if (type is null && IsSpecial(info.Path))
@@ -283,23 +276,6 @@ public partial class EpisodeProvider(BangumiApi api, ILogger<EpisodeProvider> lo
         }
     }
 
-    private static Model.Episode BuildEpisodeWithTitle(EpisodeType type, string title)
-    {
-        return new Model.Episode
-        {
-            Id = 0,
-            ParentId = 0,
-            Type = type,
-            OriginalNameRaw = title,
-            ChineseNameRaw = title,
-            Order = 0,
-            Disc = 0,
-            Index = 0,
-            AirDate = "",
-            DescriptionRaw = "",
-        };
-    }
-
     private static EpisodeType? GuessEpisodeTypeFromFileName(string fileName)
     {
         var tempName = fileName;
@@ -318,8 +294,6 @@ public partial class EpisodeProvider(BangumiApi api, ILogger<EpisodeProvider> lo
             return EpisodeType.Special;
         if (PreviewEpisodeFileNameRegex().IsMatch(tempName))
             return EpisodeType.Preview;
-        if (OtherEpisodeFileNameRegex().IsMatch(tempName))
-            return EpisodeType.Other;
         return null;
     }
 
@@ -385,5 +359,22 @@ public partial class EpisodeProvider(BangumiApi api, ILogger<EpisodeProvider> lo
 
         log.LogInformation("use exists episode number {Index}", episodeIndex);
         return episodeIndex;
+    }
+
+    private static Model.Episode BuildEpisodeWithTitle(EpisodeType type, string title)
+    {
+        return new Model.Episode
+        {
+            Id = 0,
+            ParentId = 0,
+            Type = type,
+            OriginalNameRaw = title,
+            ChineseNameRaw = title,
+            Order = 0,
+            Disc = 0,
+            Index = 0,
+            AirDate = "",
+            DescriptionRaw = "",
+        };
     }
 }
