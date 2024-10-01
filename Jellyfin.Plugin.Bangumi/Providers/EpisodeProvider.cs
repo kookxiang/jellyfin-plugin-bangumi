@@ -106,6 +106,9 @@ public partial class EpisodeProvider(BangumiApi api, ILogger<EpisodeProvider> lo
         result.Item.ParentIndexNumber = 0;
 
         // use title and overview from special episode subject if episode data is empty
+        if (episode.ParentId == 0) {
+            return result;
+        }
         var series = await api.GetSubject(episode.ParentId, token);
         if (series == null)
             return result;
