@@ -109,13 +109,11 @@ public partial class EpisodeProvider(BangumiApi api, ILogger<EpisodeProvider> lo
         if (series == null)
             return result;
 
-        // use title and overview from special episode subject if episode data is empty
+        // use title from special episode subject if episode data is empty
         if (string.IsNullOrEmpty(result.Item.Name))
             result.Item.Name = series.Name;
         if (string.IsNullOrEmpty(result.Item.OriginalTitle))
             result.Item.OriginalTitle = series.OriginalName;
-        if (string.IsNullOrEmpty(result.Item.Overview))
-            result.Item.Overview = series.Summary;
 
         var seasonNumber = parent is Season ? parent.IndexNumber : 1;
         if (!string.IsNullOrEmpty(episode.AirDate) && string.Compare(episode.AirDate, series.AirDate, StringComparison.Ordinal) < 0)

@@ -60,13 +60,11 @@ public class EpisodeProvider(BangumiApi api, ILogger log)
         if (series == null)
             return result;
 
-        // use title and overview from special episode subject if episode data is empty
+        // use title from special episode subject if episode data is empty
         if (string.IsNullOrEmpty(result.Item.Name))
             result.Item.Name = series.Name;
         if (string.IsNullOrEmpty(result.Item.OriginalTitle))
             result.Item.OriginalTitle = series.OriginalName;
-        if (string.IsNullOrEmpty(result.Item.Overview))
-            result.Item.Overview = series.Summary;
 
         return result;
     }
