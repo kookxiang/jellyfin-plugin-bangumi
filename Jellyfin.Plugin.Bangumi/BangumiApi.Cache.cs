@@ -24,7 +24,12 @@ public partial class BangumiApi
 
     private Task<string> SendRequestWithCache(HttpRequestMessage request, string? accessToken, CancellationToken token)
     {
-        if (request.Method != HttpMethod.Get || request.RequestUri == null) return SendRequestWithOutCache(request, accessToken, token);
+        if (request.RequestUri == null) return SendRequestWithOutCache(request, accessToken, token);
+        if (request.Method != HttpMethod.Get)
+        {
+            _cache.Remove(request.RequestUri.ToString());
+            return SendRequestWithOutCache(request, accessToken, token);
+        }
 
         return _cache.GetOrCreateAsync<string>(request.RequestUri.ToString(), async entry =>
         {

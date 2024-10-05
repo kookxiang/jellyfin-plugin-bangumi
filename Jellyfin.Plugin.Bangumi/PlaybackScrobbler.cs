@@ -24,7 +24,6 @@ public class PlaybackScrobbler : IHostedService
     // https://github.com/jellyfin/jellyfin/blob/master/Emby.Server.Implementations/Localization/Ratings/us.csv
     private const int RatingNSFW = 10;
 
-    private static readonly Dictionary<Guid, HashSet<string>> Store = new();
     private readonly BangumiApi _api;
     private readonly ILocalizationManager _localizationManager;
     private readonly ILogger<PlaybackScrobbler> _log;
@@ -32,16 +31,13 @@ public class PlaybackScrobbler : IHostedService
     private readonly OAuthStore _store;
     private readonly IUserDataManager _userDataManager;
 
-    public PlaybackScrobbler(IUserManager userManager, IUserDataManager userDataManager, ILocalizationManager localizationManager, OAuthStore store, BangumiApi api, ILogger<PlaybackScrobbler> log)
+    public PlaybackScrobbler(IUserDataManager userDataManager, ILocalizationManager localizationManager, OAuthStore store, BangumiApi api, ILogger<PlaybackScrobbler> log)
     {
         _userDataManager = userDataManager;
         _localizationManager = localizationManager;
         _store = store;
         _api = api;
         _log = log;
-
-        foreach (var userId in userManager.UsersIds)
-            GetPlaybackHistory(userId);
     }
 
     private static PluginConfiguration Configuration => Plugin.Instance!.Configuration;
@@ -63,20 +59,11 @@ public class PlaybackScrobbler : IHostedService
         switch (e.SaveReason)
         {
             case UserDataSaveReason.TogglePlayed when e.UserData.Played:
-                // delay 3 seconds to avoid conflict with playback finished event
-                Task.Delay(TimeSpan.FromSeconds(3))
-                    .ContinueWith(_ =>
-                    {
-                        GetPlaybackHistory(e.UserId).Add(e.UserData.Key);
-                        _log.LogInformation("mark {Name} (#{Id}) as played for user #{User}", e.Item.Name, e.Item.Id, e.UserId);
-                    }).ConfigureAwait(false);
                 if (Configuration.ReportManualStatusChangeToBangumi)
                     ReportPlaybackStatus(e.Item, e.UserId, true).ConfigureAwait(false);
                 break;
 
             case UserDataSaveReason.TogglePlayed when !e.UserData.Played:
-                GetPlaybackHistory(e.UserId).Remove(e.UserData.Key);
-                _log.LogInformation("mark {Name} (#{Id}) as new for user #{User}", e.Item.Name, e.Item.Id, e.UserId);
                 if (Configuration.ReportManualStatusChangeToBangumi)
                     ReportPlaybackStatus(e.Item, e.UserId, false).ConfigureAwait(false);
                 break;
@@ -84,7 +71,6 @@ public class PlaybackScrobbler : IHostedService
             case UserDataSaveReason.PlaybackFinished when e.UserData.Played:
                 if (Configuration.ReportPlaybackStatusToBangumi)
                     ReportPlaybackStatus(e.Item, e.UserId, true).ConfigureAwait(false);
-                e.Keys.ForEach(key => GetPlaybackHistory(e.UserId).Add(key));
                 break;
         }
     }
@@ -136,16 +122,6 @@ public class PlaybackScrobbler : IHostedService
             return;
         }
 
-        if (item.GetUserDataKeys().Intersect(GetPlaybackHistory(userId)).Any())
-        {
-            var episodeStatus = await _api.GetEpisodeStatus(user.AccessToken, episodeId, CancellationToken.None);
-            if (played && episodeStatus is { Type: EpisodeCollectionType.Watched })
-            {
-                _log.LogInformation("item {Name} (#{Id}) has been marked as watched before, ignored", item.Name, item.Id);
-                return;
-            }
-        }
-
         try
         {
             if (item is Book)
@@ -182,6 +158,14 @@ public class PlaybackScrobbler : IHostedService
                 if (ratingLevel != null && ratingLevel >= RatingNSFW && Configuration.SkipNSFWPlaybackReport)
                 {
                     _log.LogInformation("item #{Name} marked as NSFW, skipped", item.Name);
+                    return;
+                }
+
+                var episodeStatus = await _api.GetEpisodeStatus(user.AccessToken, episodeId, CancellationToken.None);
+                if (episodeStatus?.Type == EpisodeCollectionType.Watched)
+                {
+                    _log.LogInformation("item {Name} (#{Id}) has been marked as watched before, ignored", item.Name,
+                        item.Id);
                     return;
                 }
 
@@ -231,12 +215,5 @@ public class PlaybackScrobbler : IHostedService
                 }
             }
         }
-    }
-
-    private HashSet<string> GetPlaybackHistory(Guid userId)
-    {
-        if (!Store.TryGetValue(userId, out var history))
-            Store[userId] = history = _userDataManager.GetAllUserData(userId).Where(item => item.Played).Select(item => item.Key).ToHashSet();
-        return history;
     }
 }
