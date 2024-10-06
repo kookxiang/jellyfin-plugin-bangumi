@@ -49,8 +49,8 @@ public partial class BangumiApi
                 var jsonString = await SendRequest(request, token);
 #endif
                 var searchResult = JsonSerializer.Deserialize<SearchResult<Subject>>(jsonString, Options);
-                var list = searchResult?.Data ?? new List<Subject>();
-                return Subject.SortBySimilarity(list, keyword);
+                return searchResult?.Data ?? new List<Subject>();
+                
             }
             else
             {
