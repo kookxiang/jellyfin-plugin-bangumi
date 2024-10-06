@@ -149,7 +149,6 @@ public class SeriesProvider(BangumiApi api, ILogger<SeriesProvider> log)
         else if (!string.IsNullOrEmpty(searchInfo.Name))
         {
             var series = await api.SearchSubject(searchInfo.Name, token);
-            series = Subject.SortBySimilarity(series, searchInfo.Name);
             foreach (var item in series)
             {
                 var itemId = $"{item.Id}";
