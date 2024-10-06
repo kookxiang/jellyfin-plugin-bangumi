@@ -241,6 +241,13 @@
                     </label>
                     <div class="fieldDescription">注：搜索结果不一定更准确。</div>
                 </div>
+                <div class="checkboxContainer checkboxContainer-withDescription">
+                    <label class="emby-checkbox-label">
+                        <input id="SortByFuzzScore" is="emby-checkbox" type="checkbox" />
+                        <span>使用 FuzzyWuzzy 算法对匹配结果排序</span>
+                    </label>
+                    <div class="fieldDescription">排序时会加入条目别名，提高首个条目匹配率。测试接口未启用此算法</div>
+                </div>
                 <div class="verticalSection verticalSection">
                     <div class="sectionTitleContainer flex align-items-center">
                         <h2 class="sectionTitle">AnitomySharp</h2>
