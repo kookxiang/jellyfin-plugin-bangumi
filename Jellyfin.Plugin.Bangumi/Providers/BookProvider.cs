@@ -80,7 +80,6 @@ public class BookProvider(BangumiApi api)
         else if (!string.IsNullOrEmpty(searchInfo.Name))
         {
             var series = await api.SearchSubject(searchInfo.Name, SubjectType.Book, token);
-            series = Subject.SortBySimilarity(series, searchInfo.Name);
             foreach (var item in series)
             {
                 var itemId = $"{item.Id}";

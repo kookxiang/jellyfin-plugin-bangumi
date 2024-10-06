@@ -128,7 +128,6 @@ public class AlbumProvider(BangumiApi api, ILogger<AlbumProvider> log)
         else if (!string.IsNullOrEmpty(searchInfo.Name))
         {
             var series = await api.SearchSubject(searchInfo.Name, SubjectType.Music, token);
-            series = Subject.SortBySimilarity(series, searchInfo.Name);
             foreach (var item in series)
             {
                 var itemId = $"{item.Id}";

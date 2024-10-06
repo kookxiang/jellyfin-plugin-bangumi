@@ -101,7 +101,6 @@ public class MovieProvider(BangumiApi api, ILogger logger)
         else if (!string.IsNullOrEmpty(searchInfo.Name))
         {
             var series = await api.SearchSubject(searchInfo.Name, token);
-            series = Subject.SortBySimilarity(series, searchInfo.Name);
             foreach (var item in series)
             {
                 var itemId = $"{item.Id}";
