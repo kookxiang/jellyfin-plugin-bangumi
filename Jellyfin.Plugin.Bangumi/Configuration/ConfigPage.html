@@ -79,6 +79,10 @@
             line-height: inherit;
         }
 
+        .emby-textarea{
+            padding: .35em .25em;
+            width: 100%;
+        }
         #bangumiConfigurationPage div[data-role="content"] {
             overflow: inherit;
         }
@@ -262,6 +266,55 @@
                         </label>
                     </div>
                 </div>
+                <div class="verticalSection verticalSection">
+                    <div class="sectionTitleContainer flex align-items-center">
+                        <h2 class="sectionTitle">OpenAI</h2>
+                    </div>
+                </div>
+                <div class="selectContainer">
+                    <div class="checkboxContainer checkboxContainer-withDescription">
+                        <label class="emby-checkbox-label" for="UseOpenaiTitleFallback">
+                            <input id="UseOpenaiTitleFallback" is="emby-checkbox" type="checkbox"/>
+                            <span>使用 ChatGPT 服务猜测后备标题(Bangumi 中没有条目数据时)</span>
+                        </label>
+                    </div>
+                </div>
+                <div class="inputContainer">
+                    <label class="inputLabel inputLabelUnfocused" for="OpenaiToken">OpenAI API Key:</label>
+                    <input type="text" id="OpenaiToken" is="emby-input" class="emby-input">
+                    <div class="fieldDescription">
+                        Example: sk-abcdefg
+                    </div>
+                </div>
+                <div class="inputContainer">
+                    <label class="inputLabel inputLabelUnfocused" for="OpenaiEndpoint">OpenAI API Endpoint:</label>
+                    <input type="text" id="OpenaiEndpoint" required="required" is="emby-input" class="emby-input">
+                    <div class="fieldDescription">
+                        Example: https://api.openai.com
+                    </div>
+                </div>
+                <div class="inputContainer">
+                    <label class="inputLabel inputLabelUnfocused" for="OpenaiModel">OpenAI Model:</label>
+                    <input type="text" id="OpenaiModel" required="required" is="emby-input" class="emby-input">
+                    <div class="fieldDescription">
+                        Example: gpt-3.5-turbo/gpt-4 参见 https://platform.openai.com/docs/models ，推荐使用 gpt-4o
+                    </div>
+                </div>
+                <div class="inputContainer customCssContainer">
+                    <label class="textareaLabel textareaLabelUnfocused" for="OpenaiPrompt">OpenAI Prompt：</label>
+                    <textarea is="emby-textarea" id="OpenaiPrompt" class="textarea-mono emby-textarea" rows="6"></textarea>
+                    <div class="fieldDescription">猜测标题使用的 Prompt。</div>
+                </div>
+                <div style="display:flex;align-items:center">
+                    <div style="flex-grow:1">
+                        <label class="inputLabel inputLabelUnfocused" for="btnOpenAITestFilename">测试 OpenAI 连通性：</label>
+                        <input is="emby-input" id="btnOpenAITestFilename" autocomplete="off" class="emby-input" value="[Aria The Crepuscolo][SP05][Original Preview 60sec. Ver.][BDRIP][1080P][H264_FLAC].mkv">
+                    </div>
+                    <button type="button" is="paper-icon-button-light" id="btnOpenAITest" title="测试" class="emby-input-iconbutton paper-icon-button-light">
+                        <span class="material-icons play_arrow" aria-hidden="true"></span>
+                    </button>
+                </div>
+                <br>
                 <div class="submit-button-container">
                     <button class="raised button-submit block emby-button" is="emby-button" type="submit">
                         <span>保存</span>
@@ -321,11 +374,12 @@
                 });
             }
 
-            function saveConfiguration() {
+            function saveConfiguration(e) {
                 var config = Object.assign({}, configuration);
                 var elements = container.querySelectorAll('input,select');
                 for (var i = 0; i < elements.length; i++) {
                     var element = elements[i];
+                    if (element.id === 'btnOpenAITestFilename') continue;
                     if (element.type === 'checkbox') {
                         config[element.id] = element.checked;
                     } else {
@@ -391,6 +445,17 @@
                         container.querySelector('#bangumi-oauth-btn').style.display = '';
                         container.querySelector('#bangumi-oauth-refresh').style.display = 'none';
                     }));
+            });
+
+            container.querySelector('#btnOpenAITest').addEventListener('click', function (e) {
+                e.preventDefault();
+                const filename = container.querySelector('#btnOpenAITestFilename').value;
+                wrapLoading(ApiClient.fetch({
+                    url: '/Plugins/Bangumi/OpenAITest',
+                    type: 'POST',
+                    dataType: "text",
+                    data: {filename: filename}
+                }).then(function (text) {Dashboard.alert(text);}));
             });
         })();
     </script>

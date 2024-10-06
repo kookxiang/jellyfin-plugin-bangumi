@@ -11,7 +11,7 @@ namespace Jellyfin.Plugin.Bangumi.OAuth;
 
 [ApiController]
 [Route("Plugins/Bangumi")]
-public class OAuthController(BangumiApi api, OAuthStore store, IAuthorizationContext authorizationContext)
+public class OAuthController(BangumiApi api, OAuthStore store, IAuthorizationContext authorizationContext, OpenAIApi openai)
     : ControllerBase
 {
     protected internal const string ApplicationId = "bgm16185f43c213d11c9";
@@ -112,5 +112,19 @@ public class OAuthController(BangumiApi api, OAuthStore store, IAuthorizationCon
         store.Set(user, result);
         store.Save();
         return Content("<script>window.opener.postMessage('BANGUMI-OAUTH-COMPLETE'); window.close()</script>", "text/html");
+    }
+
+    [HttpPost("OpenAITest")]
+    [Authorize]
+    public async Task<ActionResult> OpenAITest([FromForm] string filename)
+    {
+        try
+        {
+            return Content(await openai.SummarizeTitleFromFilename(filename, new()));
+        }
+        catch (Exception e)
+        {
+            return Content("error: " + e.Message);
+        }
     }
 }

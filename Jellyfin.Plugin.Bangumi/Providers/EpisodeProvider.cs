@@ -17,7 +17,7 @@ using Episode = MediaBrowser.Controller.Entities.TV.Episode;
 
 namespace Jellyfin.Plugin.Bangumi.Providers;
 
-public partial class EpisodeProvider(BangumiApi api, ILogger<EpisodeProvider> log, ILibraryManager libraryManager)
+public partial class EpisodeProvider(BangumiApi api, ILogger<EpisodeProvider> log, ILibraryManager libraryManager, OpenAIApi openai)
     : IRemoteMetadataProvider<Episode, EpisodeInfo>, IHasOrder
 {
     private static readonly Regex[] NonEpisodeFileNameRegex =
@@ -73,7 +73,8 @@ public partial class EpisodeProvider(BangumiApi api, ILogger<EpisodeProvider> lo
 
         result.Item = new Episode();
         result.HasMetadata = true;
-        result.Item.ProviderIds.Add(Constants.ProviderName, $"{episode.Id}");
+        if (episode.Id != 0)
+            result.Item.ProviderIds.Add(Constants.ProviderName, $"{episode.Id}");
 
         if (DateTime.TryParse(episode.AirDate, out var airDate))
             result.Item.PremiereDate = airDate;
@@ -105,6 +106,9 @@ public partial class EpisodeProvider(BangumiApi api, ILogger<EpisodeProvider> lo
         result.Item.ParentIndexNumber = 0;
 
         // use title and overview from special episode subject if episode data is empty
+        if (episode.ParentId == 0) {
+            return result;
+        }
         var series = await api.GetSubject(episode.ParentId, token);
         if (series == null)
             return result;
@@ -161,7 +165,9 @@ public partial class EpisodeProvider(BangumiApi api, ILogger<EpisodeProvider> lo
         if (string.IsNullOrEmpty(fileName))
             return null;
 
-        var type = IsSpecial(info.Path) ? EpisodeType.Special : GuessEpisodeTypeFromFileName(fileName);
+        var type = GuessEpisodeTypeFromFileName(fileName);
+        if (type is null && IsSpecial(info.Path))
+            type = EpisodeType.Special;
         var seriesId = localConfiguration.Id;
 
         var parent = libraryManager.FindByPath(Path.GetDirectoryName(info.Path)!, true);
@@ -250,15 +256,20 @@ public partial class EpisodeProvider(BangumiApi api, ILogger<EpisodeProvider> lo
         try
         {
             var episode = episodeListData.OrderBy(x => x.Type).FirstOrDefault(x => x.Order.Equals(episodeIndex));
-            if (episode != null || type is null or EpisodeType.Normal)
-            {
-                log.LogInformation("found matching episode {index} with type {type}", episodeIndex, type);
-                return episode;
+            if (episode == null && type is EpisodeType.Special) {
+                log.LogWarning("cannot find episode {index} with type {type}, searching all types", episodeIndex, type);
+                type = null;
+                goto SkipBangumiId;
             }
-
-            log.LogWarning("cannot find episode {index} with type {type}, searching all types", episodeIndex, type);
-            type = null;
-            goto SkipBangumiId;
+            if (episode != null)
+                return episode;
+            if (Configuration.UseOpenaiTitleFallback)
+            {
+                var title = await openai.SummarizeTitleFromFilename(fileName, token);
+                if (!string.IsNullOrEmpty(title))
+                    return BuildEpisodeWithTitle((EpisodeType)(type is null ? EpisodeType.Other : type), title);
+            }
+            return null;
         }
         catch (InvalidOperationException)
         {
@@ -350,5 +361,22 @@ public partial class EpisodeProvider(BangumiApi api, ILogger<EpisodeProvider> lo
 
         log.LogInformation("use exists episode number {Index}", episodeIndex);
         return episodeIndex;
+    }
+
+    private static Model.Episode BuildEpisodeWithTitle(EpisodeType type, string title)
+    {
+        return new Model.Episode
+        {
+            Id = 0,
+            ParentId = 0,
+            Type = type,
+            OriginalNameRaw = title,
+            ChineseNameRaw = title,
+            Order = 0,
+            Disc = 0,
+            Index = 0,
+            AirDate = "",
+            DescriptionRaw = "",
+        };
     }
 }

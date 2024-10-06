@@ -11,6 +11,7 @@ public class PluginServiceRegistrator : IPluginServiceRegistrator
     {
         serviceCollection.AddSingleton<BangumiApi>();
         serviceCollection.AddSingleton<OAuthStore>();
+        serviceCollection.AddSingleton<OpenAIApi>();
 
         serviceCollection.AddHostedService<PlaybackScrobbler>();
     }
