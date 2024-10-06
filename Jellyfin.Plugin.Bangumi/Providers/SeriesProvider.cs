@@ -70,7 +70,8 @@ public class SeriesProvider(BangumiApi api, ILogger<SeriesProvider> log)
 
         if (subjectId == 0 && Configuration.AlwaysGetTitleByAnitomySharp)
         {
-            var searchName = Anitomy.ExtractAnimeTitle(baseName) ?? info.Name;
+            var anitomy = new Anitomy(baseName);
+            var searchName = anitomy.ExtractAnimeTitle() ?? info.Name;
             log.LogInformation("Searching {Name} in bgm.tv", searchName);
             // 不保证使用非原名或中文进行查询时返回正确结果
             var searchResult = await api.SearchSubject(searchName, token);

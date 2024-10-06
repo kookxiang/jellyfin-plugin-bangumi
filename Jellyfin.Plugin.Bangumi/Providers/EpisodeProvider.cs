@@ -295,7 +295,8 @@ public partial class EpisodeProvider(BangumiApi api, ILogger<EpisodeProvider> lo
 
         if (Configuration.AlwaysGetEpisodeByAnitomySharp)
         {
-            var anitomyIndex = Anitomy.ExtractEpisodeNumber(fileName);
+            var anitomy = new Anitomy(fileName);
+            var anitomyIndex = anitomy.ExtractEpisodeNumber();
             if (!string.IsNullOrEmpty(anitomyIndex))
             {
                 log.LogInformation("used episode number {index} from anitomy", anitomyIndex);
