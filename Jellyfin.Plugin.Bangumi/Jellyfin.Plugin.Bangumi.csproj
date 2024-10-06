@@ -9,8 +9,9 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="AnitomySharp" />
+        <PackageReference Include="AnitomySharp.NET6" />
         <PackageReference Include="Fastenshtein" />
+        <PackageReference Include="FuzzySharp" />
         <PackageReference Include="Jellyfin.Controller" IncludeAssets="compile" />
         <PackageReference Include="Newtonsoft.Json" IncludeAssets="compile" />
     </ItemGroup>

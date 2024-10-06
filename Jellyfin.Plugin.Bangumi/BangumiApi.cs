@@ -59,6 +59,15 @@ public partial class BangumiApi
                     url += $"&type={(int)type}";
                 var searchResult = await SendRequest<SearchResult<Subject>>(url, token);
                 var list = searchResult?.List ?? new List<Subject>();
+
+                if (Plugin.Instance!.Configuration.SortByFuzzScore && list.Count > 2)
+                {
+                    // 仅使用前 5 个条目
+                    var tasks = list.Take(5).Select(subject => GetSubject(subject.Id, token));
+                    var subjectWithInfobox = await Task.WhenAll(tasks);
+
+                    return Subject.SortByFuzzScore(subjectWithInfobox.Where(s => s != null).Cast<Subject>().ToList(), keyword);
+                }
                 return Subject.SortBySimilarity(list, keyword);
             }
         }

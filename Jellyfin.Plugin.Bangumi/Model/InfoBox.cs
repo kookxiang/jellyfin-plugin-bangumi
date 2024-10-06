@@ -18,6 +18,27 @@ public class InfoBox : List<InfoBoxItem>
             return null;
         }
     }
+
+    public string[]? GetAliasStrings(string key)
+    {
+        try
+        {
+            var element = this.FirstOrDefault(x => x.Key == key);
+
+            if (element?.Value.ValueKind == JsonValueKind.Array)
+            {
+                return element.Value.EnumerateArray()
+                .Select(x => x.GetProperty("v").GetString()!)
+                .Where(x => !string.IsNullOrWhiteSpace(x))
+                .ToArray();
+            }
+            return null;
+        }
+        catch
+        {
+            return null;
+        }
+    }
 }
 
 public class InfoBoxItem

@@ -37,4 +37,6 @@ public class PluginConfiguration : BasePluginConfiguration
     public bool UseTestingSearchApi { get; set; }
 
     public int SeasonGuessMaxSearchCount { get; set; } = 2;
+
+    public bool SortByFuzzScore { get; set; } = false;
 }
