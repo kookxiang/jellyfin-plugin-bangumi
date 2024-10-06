@@ -184,10 +184,12 @@ public partial class BangumiApi
 
     public async Task<List<PersonInfo>> GetSubjectCharacters(int id, CancellationToken token)
     {
-        var result = new List<PersonInfo>();
         var characters = await SendRequest<List<RelatedCharacter>>($"{BaseUrl}/v0/subjects/{id}/characters", token);
-        characters?.ForEach(character => result.AddRange(character.ToPersonInfos()));
-        return result;
+
+        return characters?
+        .OrderBy(c => c.Relation == "主角" ? 0 : c.Relation == "配角" ? 1 : c.Relation == "客串" ? 2 : 3)
+        .SelectMany(character => character.ToPersonInfos())
+        .ToList() ?? new List<PersonInfo>();
     }
 
     public async Task<List<RelatedPerson>?> GetSubjectPersons(int id, CancellationToken token)
