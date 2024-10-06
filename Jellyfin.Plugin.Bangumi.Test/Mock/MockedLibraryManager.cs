@@ -83,6 +83,11 @@ public class MockedLibraryManager : ILibraryManager
         throw new NotImplementedException();
     }
 
+    public Task ValidateTopLibraryFolders(CancellationToken cancellationToken, bool removeRoot = false)
+    {
+        throw new NotImplementedException();
+    }
+
     public Task UpdateImagesAsync(BaseItem item, bool forceUpdate = false)
     {
         throw new NotImplementedException();

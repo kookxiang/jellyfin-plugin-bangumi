@@ -9,18 +9,18 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="AnitomySharp" Version="0.2.0"/>
-        <PackageReference Include="Fastenshtein" Version="1.0.0.8"/>
-        <PackageReference Include="Jellyfin.Controller" IncludeAssets="compile" Version="10.9.0-*"/>
-        <PackageReference Include="Newtonsoft.Json" IncludeAssets="compile" Version="13.0.3"/>
+        <PackageReference Include="AnitomySharp" />
+        <PackageReference Include="Fastenshtein" />
+        <PackageReference Include="Jellyfin.Controller" IncludeAssets="compile" />
+        <PackageReference Include="Newtonsoft.Json" IncludeAssets="compile" />
     </ItemGroup>
 
     <ItemGroup>
-        <None Remove="Configuration\configPage.html"/>
-        <EmbeddedResource Include="Configuration\ConfigPage.html"/>
+        <None Remove="Configuration\configPage.html" />
+        <EmbeddedResource Include="Configuration\ConfigPage.html" />
     </ItemGroup>
 
     <ItemGroup>
-        <InternalsVisibleTo Include="Jellyfin.Plugin.Bangumi.Test"/>
+        <InternalsVisibleTo Include="Jellyfin.Plugin.Bangumi.Test" />
     </ItemGroup>
 </Project>

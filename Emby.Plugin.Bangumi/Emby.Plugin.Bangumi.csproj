@@ -10,8 +10,8 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="MediaBrowser.Server.Core" Version="4.9.0.12-beta" />
-        <PackageReference Include="System.IO.Pipelines" IncludeAssets="compile" Version="6.0.0" />
+        <PackageReference Include="MediaBrowser.Server.Core" />
+        <PackageReference Include="System.IO.Pipelines" IncludeAssets="compile" />
     </ItemGroup>
 
     <ItemGroup>
@@ -41,8 +41,4 @@
         <EmbeddedResource Include="Configuration\ConfigPage.html" />
         <EmbeddedResource Include="Configuration\ConfigPage.js" />
     </ItemGroup>
-
-    <Target Name="Release" AfterTargets="Build" Condition="'$(Configuration)'=='Release'">
-        <Copy SourceFiles="$(OutputPath)$(AssemblyName).dll" DestinationFolder="$(MSBuildProjectDirectory)/.." />
-    </Target>
 </Project>
