@@ -38,7 +38,7 @@ public class Subject
     public string? ChineseNameRaw { get; set; }
 
     [JsonIgnore]
-    public string? Summary => Configuration.ConvertLineBreaks ? SummaryRaw?.ReplaceLineEndings(Constants.HtmlLineBreak).TrimStart() : SummaryRaw;
+    public string? Summary => SummaryRaw?.ToMarkdown();
 
     [JsonPropertyName("summary")]
     public string? SummaryRaw { get; set; }
@@ -96,7 +96,8 @@ public class Subject
         get
         {
             var dateStr = InfoBox?.GetString("播放结束");
-            if (dateStr != null && DateTime.TryParseExact(dateStr, "yyyy年MM月dd日", CultureInfo.GetCultureInfo("zh-CN"), DateTimeStyles.None, out var date))
+            if (dateStr != null && DateTime.TryParseExact(dateStr, "yyyy年MM月dd日", CultureInfo.GetCultureInfo("zh-CN"),
+                    DateTimeStyles.None, out var date))
                 return date;
             return null;
         }

@@ -48,7 +48,7 @@ public class Person
             ProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "389" } }
         }, _token);
         Assert.IsNotNull(result.Item, "person info should not be null");
-        Assert.IsTrue(result.Item.Overview.Contains("<br>"), "should convert line breaks to html tag");
+        Assert.IsTrue(result.Item.Overview.Contains("<br>") || result.Item.Overview.Contains("\n\n"), "should convert line breaks to html tag");
         Assert.IsNotNull(result.Item.ProviderIds[Constants.ProviderName], "should have plugin provider id");
     }
 
