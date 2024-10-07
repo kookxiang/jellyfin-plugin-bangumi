@@ -33,6 +33,9 @@
         <Compile Include="..\Jellyfin.Plugin.Bangumi\ScheduledTask\*.cs">
             <Link>ScheduledTask\*.cs</Link>
         </Compile>
+        <Compile Include="..\Jellyfin.Plugin.Bangumi\Utils\*.cs">
+            <Link>Utils\*.cs</Link>
+        </Compile>
     </ItemGroup>
 
     <ItemGroup>

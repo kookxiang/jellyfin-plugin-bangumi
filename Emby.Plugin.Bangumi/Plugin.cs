@@ -5,6 +5,7 @@ using MediaBrowser.Common.Configuration;
 using MediaBrowser.Common.Plugins;
 using MediaBrowser.Model.Plugins;
 using MediaBrowser.Model.Serialization;
+using MediaBrowser.Model.Logging;
 
 namespace Jellyfin.Plugin.Bangumi;
 
@@ -12,10 +13,16 @@ public class Plugin : BasePlugin<PluginConfiguration>, IHasWebPages
 {
     public static Plugin? Instance;
 
-    public Plugin(IApplicationPaths applicationPaths, IXmlSerializer xmlSerializer) : base(applicationPaths, xmlSerializer)
+    public Plugin(IApplicationPaths applicationPaths, IXmlSerializer xmlSerializer, ILogManager logger) : base(applicationPaths, xmlSerializer)
     {
         Instance = this;
+
+        if (logger != null)
+        {
+            Log = logger.GetLogger(this.Name);
+        }
     }
+    public static ILogger Log { get; set; }
 
     public override string Name => Constants.PluginName;
 
