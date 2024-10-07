@@ -62,11 +62,13 @@ public partial class BangumiApi
 
                 if (Plugin.Instance!.Configuration.SortByFuzzScore && list.Count > 2)
                 {
-                    // 仅使用前 5 个条目
-                    var tasks = list.Take(5).Select(subject => GetSubject(subject.Id, token));
+                    // 仅使用前 5 个条目获取别名并排序
+                    var num = 5;
+                    var tasks = list.Take(num).Select(subject => GetSubject(subject.Id, token));
                     var subjectWithInfobox = await Task.WhenAll(tasks);
 
-                    return Subject.SortByFuzzScore(subjectWithInfobox.Where(s => s != null).Cast<Subject>().ToList(), keyword);
+                    var sortedSubjects = Subject.SortByFuzzScore(subjectWithInfobox.Where(s => s != null).Cast<Subject>().ToList(), keyword);
+                    return sortedSubjects.Concat(list.Skip(num)).ToList();
                 }
                 return Subject.SortBySimilarity(list, keyword);
             }
