@@ -17,7 +17,7 @@ using Episode = MediaBrowser.Controller.Entities.TV.Episode;
 
 namespace Jellyfin.Plugin.Bangumi.Providers;
 
-public partial class EpisodeProvider(BangumiApi api, ILogger<EpisodeProvider> log, ILibraryManager libraryManager)
+public partial class EpisodeProvider(BangumiApi api, ILogger<EpisodeProvider> log, ILibraryManager libraryManager, IMediaSourceManager mediaSourceManager)
     : IRemoteMetadataProvider<Episode, EpisodeInfo>, IHasOrder
 {
     private static readonly Regex[] NonEpisodeFileNameRegex =
@@ -61,6 +61,14 @@ public partial class EpisodeProvider(BangumiApi api, ILogger<EpisodeProvider> lo
     public async Task<MetadataResult<Episode>> GetMetadata(EpisodeInfo info, CancellationToken token)
     {
         token.ThrowIfCancellationRequested();
+
+        var mediaSourceInfos = mediaSourceManager.GetStaticMediaSources(libraryManager.FindByPath(info.Path, false), false);
+        if (mediaSourceInfos is not null)
+        {
+            log.LogInformation("视频时长（分钟）: " + TimeSpan.FromTicks(mediaSourceInfos[0].RunTimeTicks ?? 0).Minutes);
+            log.LogInformation("文件大小（MB）: " + (mediaSourceInfos[0].Size ?? 0) / (1024 * 1024));
+        }
+
         var localConfiguration = await LocalConfiguration.ForPath(info.Path);
         var episode = await GetEpisode(info, localConfiguration, token);
 

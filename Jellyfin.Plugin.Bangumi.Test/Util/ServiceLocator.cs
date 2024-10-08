@@ -24,6 +24,7 @@ public class ServiceLocator
         serviceCollection.AddSingleton<IXmlSerializer, MockedXmlSerializer>();
         serviceCollection.AddSingleton<IApplicationPaths, MockedApplicationPaths>();
         serviceCollection.AddSingleton<ILibraryManager, MockedLibraryManager>();
+        serviceCollection.AddSingleton<IMediaSourceManager, MockedMediaSourceManager>();
         serviceCollection.AddScoped<Bangumi.Plugin>();
         serviceCollection.AddScoped<BookProvider>();
         serviceCollection.AddScoped<EpisodeProvider>();
