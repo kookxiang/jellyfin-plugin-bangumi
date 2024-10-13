@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using MediaBrowser.Controller.Entities;
@@ -52,7 +51,11 @@ public class RatingRefreshTask(ILibraryManager library, BangumiApi api)
         foreach (var id in idList)
         {
             // report refresh progress
-            progress.Report(count++ / idList.Count());
+#if EMBY
+            progress.Report(count++ / idList.Length);
+#else
+            progress.Report(count++ / idList.Count);
+#endif
 
             // check whether current task was canceled
             token.ThrowIfCancellationRequested();

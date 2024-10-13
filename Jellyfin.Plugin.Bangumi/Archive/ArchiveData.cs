@@ -15,10 +15,16 @@ public class ArchiveData(IApplicationPaths paths, ILogger<ArchiveData> log)
     public List<IArchiveStore> Stores =>
     [
         Character,
+        Subject,
+        Episode,
         Person
     ];
 
     public ArchiveStore<Character> Character => new(BasePath, "character.jsonlines");
+
+    public ArchiveStore<Subject> Subject => new(BasePath, "subject.jsonlines");
+
+    public ArchiveStore<Episode> Episode => new(BasePath, "episode.jsonlines");
 
     public ArchiveStore<Person> Person => new(BasePath, "person.jsonlines");
 }

@@ -3,13 +3,14 @@ using System.Collections.Generic;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
+using Jellyfin.Plugin.Bangumi.Archive;
 using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Providers;
 using MediaBrowser.Model.Providers;
 
 namespace Jellyfin.Plugin.Bangumi.Providers;
 
-public class PersonProvider(BangumiApi api)
+public class PersonProvider(BangumiApi api, ArchiveData archive)
     : IRemoteMetadataProvider<Person, PersonLookupInfo>, IHasOrder
 {
     public int Order => -5;
@@ -22,9 +23,18 @@ public class PersonProvider(BangumiApi api)
         var result = new MetadataResult<Person> { ResultLanguage = Constants.Language };
         if (!int.TryParse(info.ProviderIds?.GetValueOrDefault(Constants.ProviderName), out var personId))
             return result;
-        var person = await api.GetPerson(personId, token);
+
+        // search person in archive
+        var archivedPerson = await archive.Person.FindById(personId);
+        var person = archivedPerson?.ToPersonDetail();
+
+        // fallback to online api
+        person ??= await api.GetPerson(personId, token);
+
+        // return if person still not found
         if (person == null)
             return result;
+
         result.HasMetadata = true;
         result.Item = new Person
         {

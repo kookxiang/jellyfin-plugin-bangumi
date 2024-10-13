@@ -6,6 +6,7 @@ using System.Net.Http;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
+using Jellyfin.Plugin.Bangumi.Archive;
 using Jellyfin.Plugin.Bangumi.Configuration;
 using Jellyfin.Plugin.Bangumi.Model;
 using MediaBrowser.Controller.Entities.TV;
@@ -17,7 +18,7 @@ using Episode = MediaBrowser.Controller.Entities.TV.Episode;
 
 namespace Jellyfin.Plugin.Bangumi.Providers;
 
-public partial class EpisodeProvider(BangumiApi api, ILogger<EpisodeProvider> log, ILibraryManager libraryManager)
+public partial class EpisodeProvider(BangumiApi api, ArchiveData archive, ILogger<EpisodeProvider> log, ILibraryManager libraryManager)
     : IRemoteMetadataProvider<Episode, EpisodeInfo>, IHasOrder
 {
     private static readonly Regex[] NonEpisodeFileNameRegex =
@@ -204,7 +205,15 @@ public partial class EpisodeProvider(BangumiApi api, ILogger<EpisodeProvider> lo
         if (int.TryParse(info.ProviderIds?.GetValueOrDefault(Constants.ProviderName), out var episodeId))
         {
             log.LogInformation("fetching episode info using saved id: {EpisodeId}", episodeId);
-            var episode = await api.GetEpisode(episodeId, token);
+
+            // search episode in archive
+            var archivedEpisode = await archive.Episode.FindById(episodeId);
+            var episode = archivedEpisode?.ToEpisode();
+
+            // fallback to online api
+            episode ??= await api.GetEpisode(episodeId, token);
+
+            // return if episode still not found
             if (episode == null)
                 goto SkipBangumiId;
 

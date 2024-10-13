@@ -30,6 +30,7 @@ public partial class ArchiveStore<T>(string basePath, string fileName) : IArchiv
     private string IndexFilePath => Path.ChangeExtension(FilePath, ".idx");
 
     public string BasePath { get; private set; } = basePath;
+
     public string FilePath => Path.Combine(BasePath, FileName);
 
     public string FileName { get; private set; } = fileName;
@@ -88,7 +89,7 @@ public partial class ArchiveStore<T>(string basePath, string fileName) : IArchiv
 
     public async Task Move(string newBasePath, string newFileName)
     {
-        var store = new ArchiveStore<T>(newBasePath, newFileName);
+        var store = (ArchiveStore<T>)Fork(newBasePath, newFileName);
         await Task.Run(() =>
         {
             if (File.Exists(FilePath))
