@@ -29,11 +29,21 @@ public class InfoBox : Dictionary<string, string>
                 foreach (var subItem in value.EnumerateArray())
                 {
                     if (subItem.ValueKind != JsonValueKind.Object) continue;
-                    if (!subItem.TryGetProperty("k", out var subKey))
-                        continue;
+
                     if (!subItem.TryGetProperty("v", out var subValue))
                         continue;
-                    infobox.Add((key.GetString() ?? "") + "/" + (subKey.GetString() ?? ""), subValue.GetString() ?? "");
+
+                    if (!subItem.TryGetProperty("k", out var subKey))
+                    {
+                        if (infobox.ContainsKey(key.GetString()!))
+                            infobox[key.GetString()!] += "\n" + subValue.GetString()!;
+                        else
+                            infobox.Add(key.GetString()!, subValue.GetString()!);
+                    }
+                    else
+                    {
+                        infobox.Add((key.GetString() ?? "") + "/" + (subKey.GetString() ?? ""), subValue.GetString() ?? "");
+                    }
                 }
         }
 
