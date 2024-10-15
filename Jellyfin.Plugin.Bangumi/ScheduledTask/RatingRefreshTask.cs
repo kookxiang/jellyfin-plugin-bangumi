@@ -7,11 +7,16 @@ using MediaBrowser.Controller.Library;
 using MediaBrowser.Model.Tasks;
 #if !EMBY
 using Jellyfin.Data.Enums;
+using Jellyfin.Plugin.Bangumi.Archive;
 #endif
 
 namespace Jellyfin.Plugin.Bangumi.ScheduledTask;
 
+#if EMBY
 public class RatingRefreshTask(ILibraryManager library, BangumiApi api)
+#else
+public class RatingRefreshTask(ILibraryManager library, ArchiveData archive)
+#endif
     : IScheduledTask
 {
     public string Key => "RatingRefreshTask";
@@ -80,7 +85,12 @@ public class RatingRefreshTask(ILibraryManager library, BangumiApi api)
             await Task.Delay(TimeSpan.FromSeconds(1), token);
 
             // get latest rating from bangumi
+#if EMBY
             var subject = await api.GetSubject(int.Parse(bangumiId!), token);
+#else
+            var archiveSubject = await archive.Subject.FindById(int.Parse(bangumiId!));
+            var subject = archiveSubject?.ToSubject();
+#endif
             var score = subject?.Rating?.Score;
             if (score == null) continue;
 
