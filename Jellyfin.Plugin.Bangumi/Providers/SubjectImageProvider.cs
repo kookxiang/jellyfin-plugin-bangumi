@@ -36,20 +36,20 @@ public class SubjectImageProvider(BangumiApi api)
         if (!int.TryParse(item.GetProviderId(Constants.ProviderName), out var id))
             return Enumerable.Empty<RemoteImageInfo>();
 
-        var subject = await api.GetSubject(id, token);
+        var imageUrl = await api.GetSubjectImage(id, token);
 
-        if (subject != null && subject.DefaultImage != "")
-            return new[]
-            {
+        if (imageUrl != null)
+            return
+            [
                 new RemoteImageInfo
                 {
                     ProviderName = Constants.PluginName,
                     Type = ImageType.Primary,
-                    Url = subject.DefaultImage
+                    Url = imageUrl
                 }
-            };
+            ];
 
-        return Enumerable.Empty<RemoteImageInfo>();
+        return [];
     }
 
     public async Task<HttpResponseMessage> GetImageResponse(string url, CancellationToken token)

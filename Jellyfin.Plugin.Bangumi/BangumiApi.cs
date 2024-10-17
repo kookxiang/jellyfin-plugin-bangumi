@@ -9,7 +9,6 @@ using System.Threading.Tasks;
 using Jellyfin.Plugin.Bangumi.Model;
 using MediaBrowser.Controller.Entities;
 #if EMBY
-using HttpRequestOptions = MediaBrowser.Common.Net.HttpRequestOptions;
 #endif
 
 namespace Jellyfin.Plugin.Bangumi;
@@ -35,30 +34,17 @@ public partial class BangumiApi
             {
                 var searchParams = new SearchParams { Keyword = keyword };
                 if (type != null)
-                    searchParams.Filter.Type = new[] { type.Value };
-#if EMBY
-                var options = new HttpRequestOptions
-                {
-                    Url = $"{BaseUrl}/v0/search/subjects",
-                    RequestHttpContent = new JsonContent(searchParams)
-                };
-                var jsonString = await SendRequest("POST", options);
-#else
-                var request = new HttpRequestMessage(HttpMethod.Post, $"{BaseUrl}/v0/search/subjects");
-                request.Content = new JsonContent(searchParams);
-                var jsonString = await SendRequest(request, token);
-#endif
-                var searchResult = JsonSerializer.Deserialize<SearchResult<Subject>>(jsonString, Options);
-                return searchResult?.Data ?? new List<Subject>();
-                
+                    searchParams.Filter.Type = [type.Value];
+                var searchResult = await Post<SearchResult<Subject>>($"{BaseUrl}/v0/search/subjects", new JsonContent(searchParams), token);
+                return searchResult?.Data ?? [];
             }
             else
             {
                 var url = $"{BaseUrl}/search/subject/{Uri.EscapeDataString(keyword)}?responseGroup=large";
                 if (type != null)
                     url += $"&type={(int)type}";
-                var searchResult = await SendRequest<SearchResult<Subject>>(url, token);
-                var list = searchResult?.List ?? new List<Subject>();
+                var searchResult = await Get<SearchResult<Subject>>(url, token);
+                var list = searchResult?.List ?? [];
 
                 if (Plugin.Instance!.Configuration.SortByFuzzScore && list.Count > 2)
                 {
@@ -70,19 +56,31 @@ public partial class BangumiApi
                     var sortedSubjects = Subject.SortByFuzzScore(subjectWithInfobox.Where(s => s != null).Cast<Subject>().ToList(), keyword);
                     return sortedSubjects.Concat(list.Skip(num)).ToList();
                 }
+
                 return Subject.SortBySimilarity(list, keyword);
             }
         }
         catch (JsonException)
         {
             // 404 Not Found Anime
-            return new List<Subject>();
+            return [];
         }
     }
 
     public async Task<Subject?> GetSubject(int id, CancellationToken token)
     {
-        return await SendRequest<Subject>($"{BaseUrl}/v0/subjects/{id}", token);
+        return await Get<Subject>($"{BaseUrl}/v0/subjects/{id}", token);
+    }
+
+    public Task<string?> GetSubjectImage(int id, CancellationToken token)
+    {
+        return GetSubjectImage(id, "large", token);
+    }
+
+    public async Task<string?> GetSubjectImage(int id, string type, CancellationToken token)
+    {
+        var imageUrl = await FollowRedirection($"{BaseUrl}/v0/subjects/{id}/image?type={type}", token);
+        return imageUrl == "https://lain.bgm.tv/img/no_icon_subject.png" ? null : imageUrl;
     }
 
     public async Task<List<Episode>?> GetSubjectEpisodeList(int id, EpisodeType? type, double episodeNumber, CancellationToken token)
@@ -146,12 +144,12 @@ public partial class BangumiApi
             url += $"&type={(int)type}";
         if (offset > 0)
             url += $"&offset={offset}";
-        return await SendRequest<DataList<Episode>>(url, token);
+        return await Get<DataList<Episode>>(url, token);
     }
 
     public async Task<List<RelatedSubject>?> GetSubjectRelations(int id, CancellationToken token)
     {
-        return await SendRequest<List<RelatedSubject>>($"{BaseUrl}/v0/subjects/{id}/subjects", token);
+        return await Get<List<RelatedSubject>>($"{BaseUrl}/v0/subjects/{id}/subjects", token);
     }
 
     public async Task<Subject?> SearchNextSubject(int id, CancellationToken token)
@@ -195,17 +193,17 @@ public partial class BangumiApi
 
     public async Task<List<PersonInfo>> GetSubjectCharacters(int id, CancellationToken token)
     {
-        var characters = await SendRequest<List<RelatedCharacter>>($"{BaseUrl}/v0/subjects/{id}/characters", token);
+        var characters = await Get<List<RelatedCharacter>>($"{BaseUrl}/v0/subjects/{id}/characters", token);
 
         return characters?
-        .OrderBy(c => c.Relation == "主角" ? 0 : c.Relation == "配角" ? 1 : c.Relation == "客串" ? 2 : 3)
-        .SelectMany(character => character.ToPersonInfos())
-        .ToList() ?? new List<PersonInfo>();
+            .OrderBy(c => c.Relation == "主角" ? 0 : c.Relation == "配角" ? 1 : c.Relation == "客串" ? 2 : 3)
+            .SelectMany(character => character.ToPersonInfos())
+            .ToList() ?? new List<PersonInfo>();
     }
 
     public async Task<List<RelatedPerson>?> GetSubjectPersons(int id, CancellationToken token)
     {
-        return await SendRequest<List<RelatedPerson>>($"{BaseUrl}/v0/subjects/{id}/persons", token);
+        return await Get<List<RelatedPerson>>($"{BaseUrl}/v0/subjects/{id}/persons", token);
     }
 
     public async Task<List<PersonInfo>> GetSubjectPersonInfos(int id, CancellationToken token)
@@ -219,11 +217,11 @@ public partial class BangumiApi
 
     public async Task<Episode?> GetEpisode(int id, CancellationToken token)
     {
-        return await SendRequest<Episode>($"{BaseUrl}/v0/episodes/{id}", token);
+        return await Get<Episode>($"{BaseUrl}/v0/episodes/{id}", token);
     }
 
     public async Task<PersonDetail?> GetPerson(int id, CancellationToken token)
     {
-        return await SendRequest<PersonDetail>($"{BaseUrl}/v0/persons/{id}", token);
+        return await Get<PersonDetail>($"{BaseUrl}/v0/persons/{id}", token);
     }
 }
