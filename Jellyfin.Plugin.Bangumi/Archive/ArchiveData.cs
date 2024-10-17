@@ -2,11 +2,10 @@ using System.Collections.Generic;
 using System.IO;
 using Jellyfin.Plugin.Bangumi.Archive.Data;
 using MediaBrowser.Common.Configuration;
-using Microsoft.Extensions.Logging;
 
 namespace Jellyfin.Plugin.Bangumi.Archive;
 
-public class ArchiveData(IApplicationPaths paths, ILogger<ArchiveData> log)
+public class ArchiveData(IApplicationPaths paths)
 {
     public readonly string BasePath = Path.Join(paths.DataPath, "bangumi", "archive");
 
