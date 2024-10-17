@@ -62,7 +62,7 @@ public class OAuthController(BangumiApi api, OAuthStore store, ILogger log, ISes
 
     private static string? _oAuthPath;
 
-    public IRequest Request { get; set; }
+    public IRequest Request { get; set; } = null!;
 
     public async Task<object?> Get(OAuthState oAuthState)
     {
