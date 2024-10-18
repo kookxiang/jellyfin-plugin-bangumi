@@ -8,6 +8,7 @@ using System.Text.Json.Serialization;
 using Jellyfin.Plugin.Bangumi.Configuration;
 #if !EMBY
 using FuzzySharp;
+using Levenshtein = Fastenshtein.Levenshtein;
 #endif
 
 namespace Jellyfin.Plugin.Bangumi.Model;
