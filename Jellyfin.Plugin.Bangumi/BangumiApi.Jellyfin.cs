@@ -14,11 +14,6 @@ namespace Jellyfin.Plugin.Bangumi;
 
 public partial class BangumiApi(IHttpClientFactory httpClientFactory, OAuthStore store, ILogger<BangumiApi> logger)
 {
-    private static readonly JsonSerializerOptions Options = new()
-    {
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase
-    };
-
     private readonly Plugin _plugin = Plugin.Instance!;
 
     private Task<string> Get(string url, string? accessToken, CancellationToken token)
@@ -34,7 +29,7 @@ public partial class BangumiApi(IHttpClientFactory httpClientFactory, OAuthStore
     private async Task<T?> Get<T>(string url, string? accessToken, CancellationToken token)
     {
         var jsonString = await Get(url, accessToken, token);
-        return JsonSerializer.Deserialize<T>(jsonString, Options);
+        return JsonSerializer.Deserialize<T>(jsonString, Constants.JsonSerializerOptions);
     }
 
     private async Task<string> Post(string url, HttpContent content, string? accessToken, CancellationToken token)
@@ -52,7 +47,7 @@ public partial class BangumiApi(IHttpClientFactory httpClientFactory, OAuthStore
     private async Task<T?> Post<T>(string url, HttpContent content, string? accessToken, CancellationToken token)
     {
         var jsonString = await Post(url, content, accessToken, token);
-        return JsonSerializer.Deserialize<T>(jsonString, Options);
+        return JsonSerializer.Deserialize<T>(jsonString, Constants.JsonSerializerOptions);
     }
 
     private async Task<string?> FollowRedirection(string url, CancellationToken token)
@@ -88,7 +83,7 @@ public partial class BangumiApi(IHttpClientFactory httpClientFactory, OAuthStore
 
     public class JsonContent : StringContent
     {
-        public JsonContent(object obj) : base(JsonSerializer.Serialize(obj, Options), Encoding.UTF8, "application/json")
+        public JsonContent(object obj) : base(JsonSerializer.Serialize(obj, Constants.JsonSerializerOptions), Encoding.UTF8, "application/json")
         {
             Headers.ContentType!.CharSet = null;
         }

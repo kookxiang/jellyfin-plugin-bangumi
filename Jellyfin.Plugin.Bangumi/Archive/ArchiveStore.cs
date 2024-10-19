@@ -139,7 +139,7 @@ public partial class ArchiveStore<T>(string basePath, string fileName) : IArchiv
         using var textReader = new StreamReader(FilePath);
         textReader.BaseStream.Seek(offset, SeekOrigin.Begin);
         var line = await textReader.ReadLineAsync();
-        return line == null ? null : JsonSerializer.Deserialize<T>(line);
+        return line == null ? null : JsonSerializer.Deserialize<T>(line, Constants.JsonSerializerOptions);
     }
 
     [GeneratedRegex("\"id\":\\s*(\\d+)")]
