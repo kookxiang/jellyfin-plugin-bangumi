@@ -236,8 +236,22 @@ public partial class EpisodeProvider(BangumiApi api, ArchiveData archive, ILogge
         }
 
         SkipBangumiId:
-        log.LogInformation("searching episode in series episode list");
-        var episodeListData = await api.GetSubjectEpisodeList(seriesId, type, episodeIndex.Value, token);
+        List<Model.Episode>? episodeListData = null;
+        if (await archive.SubjectEpisode.Ready())
+        {
+            log.LogInformation("load subject {SubjectID} episode list from archive", seriesId);
+            episodeListData = (await archive.SubjectEpisode.GetEpisodes(seriesId))
+                .Where(x => x.Type == type || type == null)
+                .Select(x => x.ToEpisode())
+                .ToList();
+        }
+
+        if (episodeListData == null)
+        {
+            log.LogInformation("searching episode in series episode list");
+            episodeListData ??= await api.GetSubjectEpisodeList(seriesId, type, episodeIndex.Value, token);
+        }
+
         if (episodeListData == null)
         {
             log.LogWarning("search failed: no episode found in episode");

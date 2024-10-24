@@ -106,6 +106,8 @@ public class ArchiveDownloadTask(BangumiApi api, ArchiveData archive, ILogger<Ar
             progress.Report(65D + 30D * ++completed / archive.Stores.Count);
         }
 
+        await archive.SubjectEpisode.GenerateIndex(token);
+
         log.LogInformation("update completed. cleaning up temp files");
         Directory.Delete(archive.TempPath, true);
     }
@@ -116,7 +118,7 @@ public class ArchiveDownloadTask(BangumiApi api, ArchiveData archive, ILogger<Ar
         using var response = await httpClient.GetAsync(ArchiveReleaseUrl, token);
         response.EnsureSuccessStatusCode();
         var jsonString = await response.Content.ReadAsStringAsync(token);
-        return JsonSerializer.Deserialize<ArchiveReleaseMeta>(jsonString)!;
+        return JsonSerializer.Deserialize<ArchiveReleaseMeta>(jsonString, Constants.JsonSerializerOptions)!;
     }
 
     public class ArchiveReleaseMeta

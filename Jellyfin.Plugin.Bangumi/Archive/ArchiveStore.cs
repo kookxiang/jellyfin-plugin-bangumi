@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -104,6 +105,23 @@ public partial class ArchiveStore<T>(string basePath, string fileName) : IArchiv
     public IArchiveStore Fork(string newBasePath, string newFileName)
     {
         return new ArchiveStore<T>(newBasePath, newFileName);
+    }
+
+    public IEnumerable<T> Enumerate()
+    {
+        if (!Exists())
+            yield break;
+
+        using var reader = new StreamReader(FilePath, Encoding.UTF8);
+        while (!reader.EndOfStream)
+        {
+            var line = reader.ReadLine();
+            if (line == null)
+                continue;
+            if (!LineIdRegex().IsMatch(line))
+                continue;
+            yield return JsonSerializer.Deserialize<T>(line, Constants.JsonSerializerOptions)!;
+        }
     }
 
     public async Task<T?> FindById(int id)
