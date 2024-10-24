@@ -2,8 +2,8 @@ name: 'Jellyfin Plugin'
 
 on:
   push:
-    branches:
-      - master
+    branches-ignore:
+      - release
 
 permissions:
   contents: read
