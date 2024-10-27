@@ -15,7 +15,7 @@ namespace Jellyfin.Plugin.Bangumi.ScheduledTask;
 #if EMBY
 public class RatingRefreshTask(ILibraryManager library, BangumiApi api)
 #else
-public class RatingRefreshTask(ILibraryManager library, ArchiveData archive)
+public class RatingRefreshTask(ILibraryManager library, BangumiApi api, ArchiveData archive)
 #endif
     : IScheduledTask
 {
@@ -26,17 +26,8 @@ public class RatingRefreshTask(ILibraryManager library, ArchiveData archive)
 
     public IEnumerable<TaskTriggerInfo> GetDefaultTriggers()
     {
-        return Array.Empty<TaskTriggerInfo>();
+        return [];
     }
-
-#if EMBY
-    public Task Execute(CancellationToken token, IProgress<double> progress)
-    {
-        var task = Task.Run(async () => await ExecuteAsync(progress, token));
-        task.Wait();
-        return Task.CompletedTask;
-    }
-#endif
 
     public async Task ExecuteAsync(IProgress<double> progress, CancellationToken token)
     {
@@ -90,6 +81,7 @@ public class RatingRefreshTask(ILibraryManager library, ArchiveData archive)
 #else
             var archiveSubject = await archive.Subject.FindById(int.Parse(bangumiId!));
             var subject = archiveSubject?.ToSubject();
+            subject ??= await api.GetSubject(int.Parse(bangumiId!), token);
 #endif
             var score = subject?.Rating?.Score;
             if (score == null) continue;
@@ -105,5 +97,12 @@ public class RatingRefreshTask(ILibraryManager library, ArchiveData archive)
             await library.UpdateItemAsync(item, item.GetParent(), ItemUpdateType.MetadataDownload, token);
 #endif
         }
+    }
+
+    public Task Execute(CancellationToken token, IProgress<double> progress)
+    {
+        var task = Task.Run(async () => await ExecuteAsync(progress, token));
+        task.Wait();
+        return Task.CompletedTask;
     }
 }

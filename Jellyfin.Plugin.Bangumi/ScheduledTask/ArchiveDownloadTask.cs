@@ -13,7 +13,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Jellyfin.Plugin.Bangumi.ScheduledTask;
 
-public class ArchiveDownloadTask(BangumiApi api, ArchiveData archive, ILogger<ArchiveDownloadTask> log) : IScheduledTask
+public class ArchiveDownloadTask(BangumiApi api, ArchiveData archive, ITaskManager taskManager, ILogger<ArchiveDownloadTask> log) : IScheduledTask
 {
     private const string ArchiveReleaseUrl = "https://raw.githubusercontent.com/bangumi/Archive/master/aux/latest.json";
     private const int StreamCopyBufferSize = 16 * 1024;
@@ -110,6 +110,8 @@ public class ArchiveDownloadTask(BangumiApi api, ArchiveData archive, ILogger<Ar
 
         log.LogInformation("update completed. cleaning up temp files");
         Directory.Delete(archive.TempPath, true);
+
+        if (Plugin.Instance?.Configuration.RefreshRatingWhenArchiveUpdate == true) taskManager.Execute<RatingRefreshTask>();
     }
 
     private async Task<ArchiveReleaseMeta> GetLatestArchiveMeta(CancellationToken token)
