@@ -1,14 +1,13 @@
 ﻿using System;
-using System.IO;
 using System.Collections.Generic;
-using System.Net;
 using System.Net.Http;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Threading;
 using System.Threading.Tasks;
-
 #if EMBY
+using System.IO;
+using System.Net;
 using MediaBrowser.Common.Net;
 using HttpRequestOptions = MediaBrowser.Common.Net.HttpRequestOptions;
 #endif
@@ -42,7 +41,7 @@ public partial class OAuthUser
 #if EMBY
         IHttpClient httpClient,
 #else
-        HttpClient httpClient, 
+        HttpClient httpClient,
 #endif
         CancellationToken cancellationToken = default)
     {
@@ -72,11 +71,11 @@ public partial class OAuthUser
 #endif
         if (isFailed)
         {
-            var error = JsonSerializer.Deserialize<OAuthError>(responseBody)!;
+            var error = JsonSerializer.Deserialize<OAuthError>(responseBody, Constants.JsonSerializerOptions)!;
             throw new Exception(error.ErrorDescription);
         }
 
-        var newUser = JsonSerializer.Deserialize<OAuthUser>(responseBody)!;
+        var newUser = JsonSerializer.Deserialize<OAuthUser>(responseBody, Constants.JsonSerializerOptions)!;
         AccessToken = newUser.AccessToken;
         RefreshToken = newUser.RefreshToken;
         ExpireTime = newUser.ExpireTime;

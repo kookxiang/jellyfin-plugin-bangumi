@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using MediaBrowser.Controller.Entities;
@@ -8,11 +7,16 @@ using MediaBrowser.Controller.Library;
 using MediaBrowser.Model.Tasks;
 #if !EMBY
 using Jellyfin.Data.Enums;
+using Jellyfin.Plugin.Bangumi.Archive;
 #endif
 
 namespace Jellyfin.Plugin.Bangumi.ScheduledTask;
 
+#if EMBY
 public class RatingRefreshTask(ILibraryManager library, BangumiApi api)
+#else
+public class RatingRefreshTask(ILibraryManager library, BangumiApi api, ArchiveData archive)
+#endif
     : IScheduledTask
 {
     public string Key => "RatingRefreshTask";
@@ -22,17 +26,8 @@ public class RatingRefreshTask(ILibraryManager library, BangumiApi api)
 
     public IEnumerable<TaskTriggerInfo> GetDefaultTriggers()
     {
-        return Array.Empty<TaskTriggerInfo>();
+        return [];
     }
-
-#if EMBY
-    public Task Execute(CancellationToken token, IProgress<double> progress)
-    {
-        var task = Task.Run(async () => await ExecuteAsync(progress, token));
-        task.Wait();
-        return Task.CompletedTask;
-    }
-#endif
 
     public async Task ExecuteAsync(IProgress<double> progress, CancellationToken token)
     {
@@ -52,7 +47,11 @@ public class RatingRefreshTask(ILibraryManager library, BangumiApi api)
         foreach (var id in idList)
         {
             // report refresh progress
-            progress.Report(count++ / idList.Count());
+#if EMBY
+            progress.Report(count++ / idList.Length);
+#else
+            progress.Report(count++ / idList.Count);
+#endif
 
             // check whether current task was canceled
             token.ThrowIfCancellationRequested();
@@ -77,7 +76,13 @@ public class RatingRefreshTask(ILibraryManager library, BangumiApi api)
             await Task.Delay(TimeSpan.FromSeconds(1), token);
 
             // get latest rating from bangumi
+#if EMBY
             var subject = await api.GetSubject(int.Parse(bangumiId!), token);
+#else
+            var archiveSubject = await archive.Subject.FindById(int.Parse(bangumiId!));
+            var subject = archiveSubject?.ToSubject();
+            subject ??= await api.GetSubject(int.Parse(bangumiId!), token);
+#endif
             var score = subject?.Rating?.Score;
             if (score == null) continue;
 
@@ -92,5 +97,12 @@ public class RatingRefreshTask(ILibraryManager library, BangumiApi api)
             await library.UpdateItemAsync(item, item.GetParent(), ItemUpdateType.MetadataDownload, token);
 #endif
         }
+    }
+
+    public Task Execute(CancellationToken token, IProgress<double> progress)
+    {
+        var task = Task.Run(async () => await ExecuteAsync(progress, token));
+        task.Wait();
+        return Task.CompletedTask;
     }
 }

@@ -91,11 +91,28 @@
             margin: 0 -16px -16px;
             backdrop-filter: blur(16px);
         }
+
+        #bangumiConfigurationForm * ~ .verticalSection {
+            margin-top: 48px;
+        }
+
+        #bangumiConfigurationForm .sectionTitleContainer + .fieldDescription {
+            margin-top: 0;
+            margin-bottom: 16px;
+        }
+
+        #bangumi-archive-container {
+            margin-bottom: 24px;
+        }
+
+        #bangumi-archive-container:not(.has-archive-data) .archive-data-required {
+            display: none;
+        }
     </style>
     <div data-role="content">
         <div class="content-primary">
             <form id="bangumiConfigurationForm">
-                <div class="verticalSection verticalSection">
+                <div class="verticalSection">
                     <div class="sectionTitleContainer flex align-items-center">
                         <h2 class="sectionTitle">账号授权</h2>
                     </div>
@@ -149,7 +166,54 @@
                         </label>
                     </div>
                 </div>
-                <div class="verticalSection verticalSection">
+                <div class="verticalSection">
+                    <div class="sectionTitleContainer flex align-items-center">
+                        <h2 class="sectionTitle">离线数据库 (Beta)</h2>
+                        <a class="raised button-alt headerHelpButton emby-button" id="archive-update-schedule-link" is="emby-linkbutton" style="display: none">
+                            更新设置
+                        </a>
+                    </div>
+                    <div class="fieldDescription">
+                        离线数据库默认每周更新一次，当存在离线数据库时，插件会优先查询离线数据库的数据。<br>
+                        如果需要禁用离线数据库，请关闭计划任务并清理本地文件。
+                    </div>
+                </div>
+                <div class="paperList" id="bangumi-archive-container">
+                    <div class="listItem listItem-border">
+                        <div class="listItemBody two-line">
+                            <div class="listItemBodyText secondary" style="margin:0">目录</div>
+                            <div class="listItemBodyText" id="archive-folder">-</div>
+                        </div>
+                    </div>
+                    <div class="listItem listItem-border archive-data-required">
+                        <div class="listItemBody two-line">
+                            <div class="listItemBodyText secondary" style="margin:0">大小</div>
+                            <div class="listItemBodyText" id="archive-size">0</div>
+                        </div>
+                        <button id="delete-archive-data" is="paper-icon-button-light" title="删除离线数据库" type="button">
+                            <span aria-hidden="true" class="material-icons delete"></span>
+                        </button>
+                    </div>
+                    <div class="listItem listItem-border archive-data-required">
+                        <div class="listItemBody two-line">
+                            <div class="listItemBodyText secondary" style="margin:0">上次更新时间</div>
+                            <div class="listItemBodyText" id="archive-update-time">-</div>
+                        </div>
+                        <button id="config-archive-update-task" is="paper-icon-button-light" title="计划任务设置" type="button">
+                            <span aria-hidden="true" class="material-icons settings"></span>
+                        </button>
+                    </div>
+                </div>
+                <div class="checkboxContainer checkboxContainer-withDescription">
+                    <label class="emby-checkbox-label">
+                        <input id="RefreshRatingWhenArchiveUpdate" is="emby-checkbox" type="checkbox"/>
+                        <span>当离线数据库更新时更新番剧评分</span>
+                    </label>
+                    <div class="fieldDescription">
+                        离线数据库更新后自动更新所有已关联 Bangumi 词条项目的评分（注意可能覆盖其他元数据插件的评分）。
+                    </div>
+                </div>
+                <div class="verticalSection">
                     <div class="sectionTitleContainer flex align-items-center">
                         <h2 class="sectionTitle">网络</h2>
                     </div>
@@ -183,7 +247,7 @@
                         本插件使用遍历搜索关联条目的方式匹配TV动画季度。大部分情况下只需一次搜索即可完成，但某些条目可能需要多次搜索才能匹配到下一季。默认最多搜索两次，如果某些季度匹配错误，您可以尝试增加最大搜索次数。
                     </div>
                 </div>
-                <div class="verticalSection verticalSection">
+                <div class="verticalSection">
                     <div class="sectionTitleContainer flex align-items-center">
                         <h2 class="sectionTitle">元数据</h2>
                     </div>
@@ -237,12 +301,12 @@
                 </div>
                 <div class="checkboxContainer checkboxContainer-withDescription">
                     <label class="emby-checkbox-label">
-                        <input id="SortByFuzzScore" is="emby-checkbox" type="checkbox" />
+                        <input id="SortByFuzzScore" is="emby-checkbox" type="checkbox"/>
                         <span>使用 FuzzyWuzzy 算法对匹配结果排序</span>
                     </label>
                     <div class="fieldDescription">排序时会加入条目别名，提高首个条目匹配率。测试接口未启用此算法</div>
                 </div>
-                <div class="verticalSection verticalSection">
+                <div class="verticalSection">
                     <div class="sectionTitleContainer flex align-items-center">
                         <h2 class="sectionTitle">AnitomySharp</h2>
                     </div>
@@ -282,6 +346,53 @@
                 if (e.data === 'BANGUMI-OAUTH-COMPLETE') {
                     wrapLoading(loadOAuthState());
                 }
+            }
+
+            function loadArchiveState() {
+                return ApiClient.getJSON(ApiClient.getUrl('/Plugins/Bangumi/Archive/Status')).then(function (data) {
+                    // size
+                    var size = data.size || 0;
+
+                    if (size > 0) {
+                        container.querySelector('#bangumi-archive-container').classList.add('has-archive-data');
+
+                        var units = ['B', 'KB', 'MB', 'GB', 'TB'];
+                        var index = Math.floor(Math.log2(size) / 10);
+                        container.querySelector('#archive-size').textContent = (size / Math.pow(1024, index)).toFixed(2) + ' ' + units[index];
+                    } else {
+                        container.querySelector('#bangumi-archive-container').classList.remove('has-archive-data');
+                        container.querySelector('#archive-folder').textContent = '(不存在)';
+                        return;
+                    }
+
+                    // path
+                    container.querySelector('#archive-folder').textContent = data.path;
+
+                    // update time
+                    container.querySelector('#archive-update-time').textContent = data.time ?
+                        new Intl.DateTimeFormat('zh-Hans', {
+                            dateStyle: 'long',
+                            timeStyle: 'long'
+                        }).format(new Date(data.time)) : '-';
+
+                    window.ApiClient.getScheduledTasks().then(function (tasks) {
+                        var task = tasks.find(function (task) {
+                            return task.Key === "ArchiveDataDownloadTask" && task.Category === "Bangumi";
+                        });
+                        if (!task) return;
+                        var link = container.querySelector('#archive-update-schedule-link');
+                        link.style.display = '';
+                        link.addEventListener('click', function () {
+                            Dashboard.navigate('/dashboard/tasks/edit?id=' + task.Id);
+                        });
+
+                        var button = container.querySelector('#config-archive-update-task');
+                        button.style.display = '';
+                        button.addEventListener('click', function () {
+                            Dashboard.navigate('/dashboard/tasks/edit?id=' + task.Id);
+                        });
+                    });
+                });
             }
 
             function loadOAuthState() {
@@ -341,6 +452,7 @@
                 window.addEventListener("message", windowMessageHandler);
                 wrapLoading(Promise.all([
                     loadConfiguration(),
+                    loadArchiveState(),
                     loadOAuthState(),
                 ]));
             }
@@ -392,6 +504,20 @@
                         container.querySelector('#bangumi-oauth-btn').style.display = '';
                         container.querySelector('#bangumi-oauth-refresh').style.display = 'none';
                     }));
+            });
+
+            container.querySelector('#delete-archive-data').addEventListener('click', function (e) {
+                e.preventDefault();
+                Dashboard.confirm('确定要清空离线数据库吗？', '警告', function (confirmed) {
+                    if (!confirmed) return;
+                    Dashboard.showLoadingMsg();
+                    wrapLoading(ApiClient.fetch({url: '/Plugins/Bangumi/Archive/Store', type: 'DELETE'})
+                        .then(function () {
+                            loadArchiveState();
+                            Dashboard.alert('离线数据库已清空');
+                        })
+                    );
+                })
             });
         })();
     </script>
