@@ -210,6 +210,11 @@ public partial class EpisodeProvider(BangumiApi api, ArchiveData archive, ILogge
             var archivedEpisode = await archive.Episode.FindById(episodeId);
             var episode = archivedEpisode?.ToEpisode();
 
+            // fetch episode from online api if episode was aired recently
+            if (episode != null && DateTime.TryParse(episode.AirDate, out var airDate))
+                if (airDate > DateTime.Now.Subtract(TimeSpan.FromDays(7)))
+                    episode = null;
+
             // fallback to online api
             episode ??= await api.GetEpisode(episodeId, token);
 
