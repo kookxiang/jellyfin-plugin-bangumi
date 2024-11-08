@@ -265,11 +265,15 @@ public partial class EpisodeProvider(BangumiApi api, ArchiveData archive, ILogge
         }
 
         if (type is null or EpisodeType.Normal)
+        {
+            var maxEpisodeNumber = episodeListData.Count > 0 ? episodeListData.Max(x => x.Order) : double.PositiveInfinity;
             episodeIndex = GuessEpisodeNumber(
                 episodeIndex + localConfiguration.Offset,
                 fileName,
-                episodeListData.Max(x => x.Order) + localConfiguration.Offset
+                maxEpisodeNumber + localConfiguration.Offset
             ) - localConfiguration.Offset;
+        }
+
         try
         {
             var episode = episodeListData.OrderBy(x => x.Type).FirstOrDefault(x => x.Order.Equals(episodeIndex));
