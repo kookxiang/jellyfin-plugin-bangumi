@@ -3,11 +3,12 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Net;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 using Jellyfin.Plugin.Bangumi.Configuration;
 #if !EMBY
 using FuzzySharp;
-using Fastenshtein;
+using Levenshtein = Fastenshtein.Levenshtein;
 #endif
 
 namespace Jellyfin.Plugin.Bangumi.Model;
@@ -86,22 +87,28 @@ public class Subject
     }
 
     [JsonPropertyName("infobox")]
+    public JsonElement? JsonInfoBox
+    {
+        get => null;
+        set => InfoBox = InfoBox.ParseJson(value!.Value);
+    }
+
+    [JsonIgnore]
     public InfoBox? InfoBox { get; set; }
 
     [JsonIgnore]
-    public string? OfficialWebSite => InfoBox?.GetString("官方网站");
+    public string? OfficialWebSite => InfoBox?.Get("官方网站");
 
     [JsonIgnore]
-    public string[]? Alias => InfoBox?.GetAliasStrings("别名");
+    public string[]? Alias => InfoBox?.GetList("别名");
 
     [JsonIgnore]
     public DateTime? EndDate
     {
         get
         {
-            var dateStr = InfoBox?.GetString("播放结束");
-            if (dateStr != null && DateTime.TryParseExact(dateStr, "yyyy年MM月dd日", CultureInfo.GetCultureInfo("zh-CN"),
-                    DateTimeStyles.None, out var date))
+            var dateStr = InfoBox?.Get("播放结束");
+            if (dateStr != null && DateTime.TryParseExact(dateStr, "yyyy年MM月dd日", CultureInfo.GetCultureInfo("zh-CN"), DateTimeStyles.None, out var date))
                 return date;
             return null;
         }
@@ -112,11 +119,11 @@ public class Subject
 #if EMBY
         return list
 #else
-        var instance = new Fastenshtein.Levenshtein(keyword);
+        var instance = new Levenshtein(keyword);
         return list
             .OrderBy(subject =>
                 Math.Min(
-                    instance.DistanceFrom(subject.ChineseName),
+                    instance.DistanceFrom(subject.ChineseName ?? subject.OriginalName),
                     instance.DistanceFrom(subject.OriginalName)
                 )
             )
@@ -127,25 +134,25 @@ public class Subject
     public static List<Subject> SortByFuzzScore(IEnumerable<Subject> list, string keyword)
     {
 #if EMBY
-    return list.ToList();  
+        return list.ToList();
 #else
         keyword = keyword.ToLower();
 
         var score = list.Select(subject =>
-        {
-            var chineseNameScore = subject.ChineseName != null
-                ? Fuzz.Ratio(subject.ChineseName.ToLower(), keyword)
-                : 0;
-            var originalNameScore = Fuzz.Ratio(subject.OriginalName.ToLower(), keyword);
-            var aliasScore = subject.Alias?.Select(alias => Fuzz.Ratio(alias.ToLower(), keyword)) ?? Enumerable.Empty<int>();
+            {
+                var chineseNameScore = subject.ChineseName != null
+                    ? Fuzz.Ratio(subject.ChineseName.ToLower(), keyword)
+                    : 0;
+                var originalNameScore = Fuzz.Ratio(subject.OriginalName.ToLower(), keyword);
+                var aliasScore = subject.Alias?.Select(alias => Fuzz.Ratio(alias.ToLower(), keyword)) ?? Enumerable.Empty<int>();
 
-            var maxScore = Math.Max(chineseNameScore, Math.Max(originalNameScore, aliasScore.DefaultIfEmpty(int.MinValue).Max()));
+                var maxScore = Math.Max(chineseNameScore, Math.Max(originalNameScore, aliasScore.DefaultIfEmpty(int.MinValue).Max()));
 
-            return new { Subject = subject, Score = maxScore };
-        })
-        .OrderByDescending(pair => pair.Score)
-        .Select(pair => pair.Subject)
-        .ToList();
+                return new { Subject = subject, Score = maxScore };
+            })
+            .OrderByDescending(pair => pair.Score)
+            .Select(pair => pair.Subject)
+            .ToList();
 
         return score;
 #endif

@@ -62,7 +62,7 @@ public class OAuthController(BangumiApi api, OAuthStore store, ILogger log, ISes
 
     private static string? _oAuthPath;
 
-    public IRequest Request { get; set; }
+    public IRequest Request { get; set; } = null!;
 
     public async Task<object?> Get(OAuthState oAuthState)
     {
@@ -164,7 +164,7 @@ public class OAuthController(BangumiApi api, OAuthStore store, ILogger log, ISes
                 return;
             }
 
-            var result = JsonSerializer.Deserialize<OAuthUser>(responseBody)!;
+            var result = JsonSerializer.Deserialize<OAuthUser>(responseBody, Constants.JsonSerializerOptions)!;
             result.EffectiveTime = DateTime.Now;
             await result.GetProfile(api);
             log.Info($"UserName: {result.NickName}, ProfileUrl: {result.ProfileUrl}");

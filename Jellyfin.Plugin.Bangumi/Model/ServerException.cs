@@ -19,7 +19,7 @@ public class ServerException : Exception
         try
         {
             content = await response.Content.ReadAsStringAsync();
-            var result = JsonSerializer.Deserialize<Response>(content);
+            var result = JsonSerializer.Deserialize<Response>(content, Constants.JsonSerializerOptions);
             if (result?.Title != null)
                 exception = new ServerException($"{result.Title}: {result.Error?.Message ?? result.Description}");
         }

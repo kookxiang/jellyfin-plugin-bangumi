@@ -24,7 +24,10 @@ public class OAuthStore
     public void Load()
     {
         if (File.Exists(StorePath))
-            _users = JsonSerializer.Deserialize<Dictionary<string, OAuthUser>>(File.ReadAllText(StorePath))!;
+            _users = JsonSerializer.Deserialize<Dictionary<string, OAuthUser>>(
+                File.ReadAllText(StorePath),
+                Constants.JsonSerializerOptions
+            )!;
     }
 
     public void Save()

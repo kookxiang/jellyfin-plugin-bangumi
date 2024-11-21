@@ -11,11 +11,6 @@ public partial class BangumiApi
 {
     private class ServerException : Exception
     {
-        private static readonly JsonSerializerOptions Options = new()
-        {
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase
-        };
-
         public readonly HttpStatusCode StatusCode;
 
         private ServerException(HttpStatusCode status, string message) : base(message)
@@ -31,7 +26,7 @@ public partial class BangumiApi
             {
                 using var stream = new StreamReader(response.Content);
                 content = await stream.ReadToEndAsync();
-                var result = JsonSerializer.Deserialize<Response>(content, Options);
+                var result = JsonSerializer.Deserialize<Response>(content, Constants.JsonSerializerOptions);
                 if (result?.Title != null)
                     exception = new ServerException(response.StatusCode, $"{result.Title}: {result.Description}");
             }

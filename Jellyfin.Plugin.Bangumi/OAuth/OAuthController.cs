@@ -104,8 +104,8 @@ public class OAuthController(BangumiApi api, OAuthStore store, IAuthorizationCon
         });
         var response = await api.GetHttpClient().PostAsync("https://bgm.tv/oauth/access_token", formData);
         var responseBody = await response.Content.ReadAsStringAsync();
-        if (!response.IsSuccessStatusCode) return JsonSerializer.Deserialize<OAuthError>(responseBody);
-        var result = JsonSerializer.Deserialize<OAuthUser>(responseBody)!;
+        if (!response.IsSuccessStatusCode) return JsonSerializer.Deserialize<OAuthError>(responseBody, Constants.JsonSerializerOptions);
+        var result = JsonSerializer.Deserialize<OAuthUser>(responseBody, Constants.JsonSerializerOptions)!;
         result.EffectiveTime = DateTime.Now;
         await result.GetProfile(api);
         store.Load();
