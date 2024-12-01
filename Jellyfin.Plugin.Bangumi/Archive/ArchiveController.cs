@@ -19,6 +19,9 @@ public class OAuthController(ArchiveData archive)
         DateTime? lastModifyTime = null;
 
         var directory = new DirectoryInfo(archive.BasePath);
+        if (!directory.Exists)
+            return [];
+
         foreach (var info in directory.GetFileSystemInfos("*", SearchOption.AllDirectories))
         {
             if (lastModifyTime == null)

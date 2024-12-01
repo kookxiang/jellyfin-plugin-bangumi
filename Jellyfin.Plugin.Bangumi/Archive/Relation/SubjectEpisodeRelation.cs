@@ -85,6 +85,10 @@ public class SubjectEpisodeRelation(ArchiveData archive)
 
         writer.Flush();
         await outStream.FlushAsync();
+        outStream.Close();
+
+        if (File.Exists(FilePath))
+            File.Move(FilePath, Path.Join(archive.TempPath, Path.GetRandomFileName()), true);
         File.Move(tempFilePath, FilePath, true);
     }
 }
