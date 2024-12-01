@@ -97,7 +97,7 @@ public class ArchiveDownloadTask(BangumiApi api, ArchiveData archive, ITaskManag
 
     private async Task<ArchiveReleaseMeta> GetLatestArchiveMeta(CancellationToken token)
     {
-        return (await api.Get<ArchiveReleaseMeta>(ArchiveReleaseUrl, token))!;
+        return (await api.Get<ArchiveReleaseMeta>(ArchiveReleaseUrl, null, token))!;
     }
 
     public class ArchiveReleaseMeta
