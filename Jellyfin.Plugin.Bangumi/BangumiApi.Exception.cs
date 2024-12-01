@@ -19,11 +19,13 @@ public partial class BangumiApi
 
         public static async Task ThrowFrom(HttpResponseMessage response)
         {
-            var content = "<empty>";
-            var exception = new Exception($"unknown response from bangumi server: {content}");
+            var requestUri = response.RequestMessage?.RequestUri;
+            var statusCode = (int)response.StatusCode;
+            var exception = new Exception($"unknown response from {requestUri}: {response.ReasonPhrase}");
             try
             {
-                content = await response.Content.ReadAsStringAsync();
+                var content = await response.Content.ReadAsStringAsync();
+                exception = new Exception($"unknown response from {requestUri} {statusCode}: {content}");
                 var result = JsonSerializer.Deserialize<Response>(content, Constants.JsonSerializerOptions);
                 if (result?.Title != null)
                     exception = new ServerException(response.StatusCode, $"{result.Title}: {result.Description}");
