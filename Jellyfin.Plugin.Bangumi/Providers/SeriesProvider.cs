@@ -4,7 +4,6 @@ using System.IO;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
-using Jellyfin.Plugin.Bangumi.Archive;
 using Jellyfin.Plugin.Bangumi.Configuration;
 using Jellyfin.Plugin.Bangumi.Model;
 using MediaBrowser.Controller.Entities.TV;
@@ -14,7 +13,7 @@ using MediaBrowser.Model.Providers;
 
 namespace Jellyfin.Plugin.Bangumi.Providers;
 
-public class SeriesProvider(BangumiApi api, ArchiveData archive, Logger<SeriesProvider> log)
+public class SeriesProvider(BangumiApi api, Logger<SeriesProvider> log)
     : IRemoteMetadataProvider<Series, SeriesInfo>, IHasOrder
 {
     private static PluginConfiguration Configuration => Plugin.Instance!.Configuration;
@@ -85,12 +84,7 @@ public class SeriesProvider(BangumiApi api, ArchiveData archive, Logger<SeriesPr
         if (subjectId == 0)
             return result;
 
-        // search subject in archive
-        var archivedSubject = await archive.Subject.FindById(subjectId);
-        var subject = archivedSubject?.ToSubject();
-
-        // fallback to online api
-        subject ??= await api.GetSubject(subjectId, token);
+        var subject = await api.GetSubject(subjectId, token);
 
         // return if subject still not found
         if (subject == null)

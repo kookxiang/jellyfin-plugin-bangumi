@@ -38,10 +38,10 @@ public class RelatedPerson
 
     public List<PersonCareer>? Career { get; set; }
 
-    public Dictionary<string, string> Images { get; set; } = new();
+    public Dictionary<string, string?> Images { get; set; } = new();
 
     [JsonIgnore]
-    public string? DefaultImage => Images?["large"];
+    public string? DefaultImage => Images.GetValueOrDefault("large", null);
 
     public string? Relation { get; set; }
 

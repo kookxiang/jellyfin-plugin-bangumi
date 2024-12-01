@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using System.Linq;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
@@ -33,23 +32,22 @@ public class PersonImageProvider(BangumiApi api)
         token.ThrowIfCancellationRequested();
 
         if (!int.TryParse(item.GetProviderId(Constants.ProviderName), out var id))
+            return [];
 
-            return Enumerable.Empty<RemoteImageInfo>();
+        var imageUrl = await api.GetPersonImage(id, token);
 
-        var person = await api.GetPerson(id, token);
-
-        if (person != null && person.DefaultImage != "")
+        if (imageUrl != null)
             return new List<RemoteImageInfo>
             {
                 new()
                 {
                     ProviderName = Constants.PluginName,
                     Type = ImageType.Primary,
-                    Url = person.DefaultImage
+                    Url = imageUrl
                 }
             };
 
-        return Enumerable.Empty<RemoteImageInfo>();
+        return [];
     }
 
     public async Task<HttpResponseMessage> GetImageResponse(string url, CancellationToken token)

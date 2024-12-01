@@ -7,12 +7,13 @@ using System.Text;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
+using Jellyfin.Plugin.Bangumi.Archive;
 using Jellyfin.Plugin.Bangumi.OAuth;
 using MediaBrowser.Common.Net;
 
 namespace Jellyfin.Plugin.Bangumi;
 
-public partial class BangumiApi(IHttpClientFactory httpClientFactory, OAuthStore store, Logger<BangumiApi> logger)
+public partial class BangumiApi(IHttpClientFactory httpClientFactory, ArchiveData archive, OAuthStore store, Logger<BangumiApi> logger)
 {
     private readonly Plugin _plugin = Plugin.Instance!;
 

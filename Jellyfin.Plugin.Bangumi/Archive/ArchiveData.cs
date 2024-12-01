@@ -28,5 +28,9 @@ public class ArchiveData(IApplicationPaths paths)
 
     public ArchiveStore<Person> Person => new(BasePath, "person.jsonlines");
 
-    public SubjectEpisodeRelation SubjectEpisode => new(this);
+    public SubjectRelations SubjectRelations => new(this);
+
+    public SubjectEpisodeRelation SubjectEpisodeRelation => new(this);
+
+    public SubjectPersonRelation SubjectPersonRelation => new(this);
 }

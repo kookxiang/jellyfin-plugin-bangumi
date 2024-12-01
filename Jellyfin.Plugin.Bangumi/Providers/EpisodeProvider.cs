@@ -6,7 +6,6 @@ using System.Net.Http;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
-using Jellyfin.Plugin.Bangumi.Archive;
 using Jellyfin.Plugin.Bangumi.Configuration;
 using Jellyfin.Plugin.Bangumi.Model;
 using MediaBrowser.Controller.Entities.TV;
@@ -17,7 +16,7 @@ using Episode = MediaBrowser.Controller.Entities.TV.Episode;
 
 namespace Jellyfin.Plugin.Bangumi.Providers;
 
-public partial class EpisodeProvider(BangumiApi api, ArchiveData archive, Logger<EpisodeProvider> log, ILibraryManager libraryManager)
+public partial class EpisodeProvider(BangumiApi api, Logger<EpisodeProvider> log, ILibraryManager libraryManager)
     : IRemoteMetadataProvider<Episode, EpisodeInfo>, IHasOrder
 {
     private static readonly Regex[] NonEpisodeFileNameRegex =
@@ -205,17 +204,7 @@ public partial class EpisodeProvider(BangumiApi api, ArchiveData archive, Logger
         {
             log.Info("fetching episode info using saved id: {EpisodeId}", episodeId);
 
-            // search episode in archive
-            var archivedEpisode = await archive.Episode.FindById(episodeId);
-            var episode = archivedEpisode?.ToEpisode();
-
-            // fetch episode from online api if episode was aired recently
-            if (episode != null && DateTime.TryParse(episode.AirDate, out var airDate))
-                if (airDate > DateTime.Now.Subtract(TimeSpan.FromDays(7)))
-                    episode = null;
-
-            // fallback to online api
-            episode ??= await api.GetEpisode(episodeId, token);
+            var episode = await api.GetEpisode(episodeId, token);
 
             // return if episode still not found
             if (episode == null)
@@ -240,21 +229,8 @@ public partial class EpisodeProvider(BangumiApi api, ArchiveData archive, Logger
         }
 
         SkipBangumiId:
-        List<Model.Episode>? episodeListData = null;
-        if (await archive.SubjectEpisode.Ready())
-        {
-            log.Info("load subject {SubjectID} episode list from archive", seriesId);
-            episodeListData = (await archive.SubjectEpisode.GetEpisodes(seriesId))
-                .Where(x => x.Type == type || type == null)
-                .Select(x => x.ToEpisode())
-                .ToList();
-        }
-
-        if (episodeListData == null)
-        {
-            log.Info("searching episode in series episode list");
-            episodeListData ??= await api.GetSubjectEpisodeList(seriesId, type, episodeIndex.Value, token);
-        }
+        log.Info("searching episode in series episode list");
+        var episodeListData = await api.GetSubjectEpisodeList(seriesId, type, episodeIndex.Value, token);
 
         if (episodeListData == null)
         {
