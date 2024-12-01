@@ -13,9 +13,9 @@ using Jellyfin.Plugin.Bangumi.Archive;
 namespace Jellyfin.Plugin.Bangumi.ScheduledTask;
 
 #if EMBY
-public class RatingRefreshTask(ILibraryManager library, BangumiApi api)
+public class RatingRefreshTask(Logger<RatingRefreshTask> log, ILibraryManager library, BangumiApi api)
 #else
-public class RatingRefreshTask(ILibraryManager library, BangumiApi api, ArchiveData archive)
+public class RatingRefreshTask(Logger<RatingRefreshTask> log, ILibraryManager library, BangumiApi api, ArchiveData archive)
 #endif
     : IScheduledTask
 {
@@ -44,13 +44,18 @@ public class RatingRefreshTask(ILibraryManager library, BangumiApi api, ArchiveD
         })!;
 
         var count = 0d;
+        var waitTime = TimeSpan.FromSeconds(1);
+#if !EMBY
+        if (archive.Subject.Exists())
+            waitTime = TimeSpan.FromSeconds(0.1);
+#endif
         foreach (var id in idList)
         {
             // report refresh progress
 #if EMBY
-            progress.Report(count++ / idList.Length);
+            progress.Report(100D * count++ / idList.Length);
 #else
-            progress.Report(count++ / idList.Count);
+            progress.Report(100D * count++ / idList.Count);
 #endif
 
             // check whether current task was canceled
@@ -73,29 +78,32 @@ public class RatingRefreshTask(ILibraryManager library, BangumiApi api, ArchiveD
             if (!item.ProviderIds.TryGetValue(Constants.ProviderName, out var bangumiId)) continue;
 
             // limit request speed
-            await Task.Delay(TimeSpan.FromSeconds(1), token);
+            await Task.Delay(waitTime, token);
 
-            // get latest rating from bangumi
+            try
+            {
+                log.Info("refreshing raiting for {Name} (#{ID})", item.Name, bangumiId!);
+
+                // get latest rating from bangumi
+                var subject = await api.GetSubject(int.Parse(bangumiId!), token);
+                var score = subject?.Rating?.Score;
+                if (score == null) continue;
+
+                // skip saving item if it's rating is already up to date
+                if (item.CommunityRating != null && Math.Abs((float)(item.CommunityRating! - score)) < 0.1) continue;
+
+                // save item
+                item.CommunityRating = score;
 #if EMBY
-            var subject = await api.GetSubject(int.Parse(bangumiId!), token);
+                library.UpdateItem(item, item.GetParent(), ItemUpdateType.MetadataDownload);
 #else
-            var archiveSubject = await archive.Subject.FindById(int.Parse(bangumiId!));
-            var subject = archiveSubject?.ToSubject();
-            subject ??= await api.GetSubject(int.Parse(bangumiId!), token);
+                await library.UpdateItemAsync(item, item.GetParent(), ItemUpdateType.MetadataDownload, token);
 #endif
-            var score = subject?.Rating?.Score;
-            if (score == null) continue;
-
-            // skip saving item if it's rating is already up to date
-            if (item.CommunityRating != null && Math.Abs((float)(item.CommunityRating! - score)) < 0.1) continue;
-
-            // save item
-            item.CommunityRating = score;
-#if EMBY
-            library.UpdateItem(item, item.GetParent(), ItemUpdateType.MetadataDownload);
-#else
-            await library.UpdateItemAsync(item, item.GetParent(), ItemUpdateType.MetadataDownload, token);
-#endif
+            }
+            catch (Exception e)
+            {
+                log.Error("failed to refresh rating score: {Exception}", e);
+            }
         }
     }
 

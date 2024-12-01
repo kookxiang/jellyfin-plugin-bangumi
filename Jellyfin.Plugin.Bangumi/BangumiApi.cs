@@ -70,6 +70,7 @@ public partial class BangumiApi
 
     public async Task<Subject?> GetSubject(int id, CancellationToken token)
     {
+        if (id <= 0) return null;
 #if !EMBY
         var subject = await archive.Subject.FindById(id);
         if (subject != null)
@@ -91,6 +92,7 @@ public partial class BangumiApi
 
     public async Task<List<Episode>?> GetSubjectEpisodeList(int id, EpisodeType? type, double episodeNumber, CancellationToken token)
     {
+        if (id <= 0) return null;
 #if !EMBY
         var episodeList = (await archive.SubjectEpisodeRelation.GetEpisodes(id))
             .Where(x => x.Type == type || type == null)
@@ -153,6 +155,7 @@ public partial class BangumiApi
 
     public async Task<DataList<Episode>?> GetSubjectEpisodeListWithOffset(int id, EpisodeType? type, double offset, CancellationToken token)
     {
+        if (id <= 0) return null;
         var url = $"{BaseUrl}/v0/episodes?subject_id={id}&limit={PageSize}";
         if (type != null)
             url += $"&type={(int)type}";
@@ -163,6 +166,7 @@ public partial class BangumiApi
 
     public async Task<List<RelatedSubject>?> GetSubjectRelations(int id, CancellationToken token)
     {
+        if (id <= 0) return null;
 #if !EMBY
         var relations = await archive.SubjectRelations.Get(id);
         if (relations.Count > 0)
@@ -173,11 +177,14 @@ public partial class BangumiApi
 
     public async Task<Subject?> SearchNextSubject(int id, CancellationToken token)
     {
+        if (id <= 0) return null;
+
         bool SeriesSequelUnqualified(Subject subject)
         {
-            return subject?.Platform == SubjectPlatform.Movie || subject?.Platform == SubjectPlatform.OVA
-                                                              || subject?.PopularTags.Contains("OVA") == true
-                                                              || subject?.PopularTags.Contains("剧场版") == true;
+            return subject.Platform == SubjectPlatform.Movie
+                   || subject.Platform == SubjectPlatform.OVA
+                   || subject.PopularTags.Contains("OVA")
+                   || subject.PopularTags.Contains("剧场版");
         }
 
         var requestCount = 0;
@@ -212,6 +219,8 @@ public partial class BangumiApi
 
     public async Task<List<PersonInfo>> GetSubjectCharacters(int id, CancellationToken token)
     {
+        if (id <= 0) return [];
+
         var characters = await Get<List<RelatedCharacter>>($"{BaseUrl}/v0/subjects/{id}/characters", token);
 
         return characters?
@@ -228,6 +237,7 @@ public partial class BangumiApi
 
     public async Task<List<RelatedPerson>?> GetSubjectPersons(int id, CancellationToken token)
     {
+        if (id <= 0) return null;
 #if !EMBY
         var relatedPerson = await archive.SubjectPersonRelation.Get(id);
         if (relatedPerson.Count > 0)
@@ -238,6 +248,7 @@ public partial class BangumiApi
 
     public async Task<List<PersonInfo>> GetSubjectPersonInfos(int id, CancellationToken token)
     {
+        if (id <= 0) return [];
         var result = new List<PersonInfo>();
         var persons = await GetSubjectPersons(id, token);
         if (persons?.Count > 0)
@@ -247,6 +258,7 @@ public partial class BangumiApi
 
     public async Task<Episode?> GetEpisode(int id, CancellationToken token)
     {
+        if (id <= 0) return null;
 #if !EMBY
         var episode = await archive.Episode.FindById(id);
         if (episode != null && DateTime.TryParse(episode.AirDate, out var airDate))
@@ -258,6 +270,7 @@ public partial class BangumiApi
 
     public async Task<PersonDetail?> GetPerson(int id, CancellationToken token)
     {
+        if (id <= 0) return null;
 #if !EMBY
         var person = await archive.Person.FindById(id);
         if (person != null)
