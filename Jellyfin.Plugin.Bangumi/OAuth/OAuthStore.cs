@@ -47,7 +47,8 @@ public class OAuthStore
 
     public OAuthUser? Get(string userId)
     {
-        return _users.ContainsKey(userId) ? _users[userId] : null;
+        var user = _users.GetValueOrDefault(userId);
+        return user?.Expired == true ? null : user;
     }
 
     public OAuthUser? Get(Guid guid)
