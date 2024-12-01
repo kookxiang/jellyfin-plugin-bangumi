@@ -13,11 +13,10 @@ using MediaBrowser.Controller.Library;
 using MediaBrowser.Controller.Providers;
 using MediaBrowser.Model.Entities;
 using MediaBrowser.Model.Providers;
-using Microsoft.Extensions.Logging;
 
 namespace Jellyfin.Plugin.Bangumi.Providers;
 
-public class SeasonProvider(BangumiApi api, ArchiveData archive, ILogger<EpisodeProvider> log, ILibraryManager libraryManager)
+public class SeasonProvider(BangumiApi api, ArchiveData archive, Logger<EpisodeProvider> log, ILibraryManager libraryManager)
     : IRemoteMetadataProvider<Season, SeasonInfo>, IHasOrder
 {
     private static PluginConfiguration Configuration => Plugin.Instance!.Configuration;
@@ -56,7 +55,8 @@ public class SeasonProvider(BangumiApi api, ArchiveData archive, ILogger<Episode
         {
             subjectId = subjectIdFromInfo;
         }
-        else if (info.IndexNumber == 1 && int.TryParse(info.SeriesProviderIds.GetOrDefault(Constants.ProviderName), out var subjectIdFromParent))
+        else if (info.IndexNumber == 1 &&
+                 int.TryParse(info.SeriesProviderIds.GetOrDefault(Constants.ProviderName), out var subjectIdFromParent))
         {
             subjectId = subjectIdFromParent;
         }
@@ -68,11 +68,11 @@ public class SeasonProvider(BangumiApi api, ArchiveData archive, ILogger<Episode
                 .MaxBy(x => int.Parse(x.GetProviderId(Constants.ProviderName) ?? "0"));
             if (int.TryParse(previousSeason?.GetProviderId(Constants.ProviderName), out var previousSeasonId) && previousSeasonId > 0)
             {
-                log.LogInformation("Guessing season id from previous season #{ID}", previousSeasonId);
+                log.Info("Guessing season id from previous season #{ID}", previousSeasonId);
                 subject = await api.SearchNextSubject(previousSeasonId, token);
                 if (subject != null)
                 {
-                    log.LogInformation("Guessed result: {Name} (#{ID})", subject.Name, subject.Id);
+                    log.Info("Guessed result: {Name} (#{ID})", subject.Name, subject.Id);
                     subjectId = subject.Id;
                 }
             }

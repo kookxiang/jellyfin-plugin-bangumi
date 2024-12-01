@@ -4,7 +4,6 @@ using System.Net.Http.Headers;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Caching.Memory;
-using Microsoft.Extensions.Logging;
 
 namespace Jellyfin.Plugin.Bangumi;
 
@@ -28,7 +27,7 @@ public partial class BangumiApi
 
         return _cache.GetOrCreateAsync<string>(request.RequestUri.ToString(), async entry =>
         {
-            logger.LogInformation("request api without cache: {url}", request.RequestUri);
+            logger.Info("request api without cache: {url}", request.RequestUri);
             var response = await SendWithOutCache(request, accessToken, CancellationToken.None);
             entry.Size = response.Length;
             entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromDays(7);

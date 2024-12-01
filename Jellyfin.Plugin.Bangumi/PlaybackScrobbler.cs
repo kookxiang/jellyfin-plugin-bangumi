@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -13,7 +12,6 @@ using MediaBrowser.Controller.Library;
 using MediaBrowser.Model.Entities;
 using MediaBrowser.Model.Globalization;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 using CollectionType = Jellyfin.Plugin.Bangumi.Model.CollectionType;
 
 namespace Jellyfin.Plugin.Bangumi;
@@ -26,12 +24,13 @@ public class PlaybackScrobbler : IHostedService
 
     private readonly BangumiApi _api;
     private readonly ILocalizationManager _localizationManager;
-    private readonly ILogger<PlaybackScrobbler> _log;
+    private readonly Logger<PlaybackScrobbler> _log;
 
     private readonly OAuthStore _store;
     private readonly IUserDataManager _userDataManager;
 
-    public PlaybackScrobbler(IUserDataManager userDataManager, ILocalizationManager localizationManager, OAuthStore store, BangumiApi api, ILogger<PlaybackScrobbler> log)
+    public PlaybackScrobbler(IUserDataManager userDataManager, ILocalizationManager localizationManager, OAuthStore store, BangumiApi api,
+        Logger<PlaybackScrobbler> log)
     {
         _userDataManager = userDataManager;
         _localizationManager = localizationManager;
@@ -80,22 +79,22 @@ public class PlaybackScrobbler : IHostedService
         var localConfiguration = await LocalConfiguration.ForPath(item.Path);
         if (!int.TryParse(item.GetProviderId(Constants.ProviderName), out var episodeId))
         {
-            _log.LogInformation("item {Name} (#{Id}) doesn't have bangumi id, ignored", item.Name, item.Id);
+            _log.Info("item {Name} (#{Id}) doesn't have bangumi id, ignored", item.Name, item.Id);
             return;
         }
 
         if (!int.TryParse(item.GetParent()?.GetProviderId(Constants.ProviderName), out var subjectId))
-            _log.LogWarning("parent of item {Name} (#{Id}) doesn't have bangumi subject id", item.Name, item.Id);
+            _log.Warn("parent of item {Name} (#{Id}) doesn't have bangumi subject id", item.Name, item.Id);
 
         if (!localConfiguration.Report)
         {
-            _log.LogInformation("playback report is disabled via local configuration");
+            _log.Info("playback report is disabled via local configuration");
             return;
         }
 
         if (item is Audio)
         {
-            _log.LogInformation("audio playback report is not supported by bgm.tv, ignored");
+            _log.Info("audio playback report is not supported by bgm.tv, ignored");
             return;
         }
 
@@ -112,13 +111,13 @@ public class PlaybackScrobbler : IHostedService
         var user = _store.Get(userId);
         if (user == null)
         {
-            _log.LogInformation("access token for user #{User} not found, ignored", userId);
+            _log.Info("access token for user #{User} not found, ignored", userId);
             return;
         }
 
         if (user.Expired)
         {
-            _log.LogInformation("access token for user #{User} expired, ignored", userId);
+            _log.Info("access token for user #{User} expired, ignored", userId);
             return;
         }
 
@@ -126,8 +125,9 @@ public class PlaybackScrobbler : IHostedService
         {
             if (item is Book)
             {
-                _log.LogInformation("report subject #{Subject} status {Status} to bangumi", episodeId, CollectionType.Watched);
-                await _api.UpdateCollectionStatus(user.AccessToken, episodeId, played ? CollectionType.Watched : CollectionType.Watching, CancellationToken.None);
+                _log.Info("report subject #{Subject} status {Status} to bangumi", episodeId, CollectionType.Watched);
+                await _api.UpdateCollectionStatus(user.AccessToken, episodeId, played ? CollectionType.Watched : CollectionType.Watching,
+                    CancellationToken.None);
             }
             else
             {
@@ -157,37 +157,40 @@ public class PlaybackScrobbler : IHostedService
 
                 if (ratingLevel != null && ratingLevel >= RatingNSFW && Configuration.SkipNSFWPlaybackReport)
                 {
-                    _log.LogInformation("item #{Name} marked as NSFW, skipped", item.Name);
+                    _log.Info("item #{Name} marked as NSFW, skipped", item.Name);
                     return;
                 }
 
                 var episodeStatus = await _api.GetEpisodeStatus(user.AccessToken, episodeId, CancellationToken.None);
                 if (episodeStatus?.Type == EpisodeCollectionType.Watched)
                 {
-                    _log.LogInformation("item {Name} (#{Id}) has been marked as watched before, ignored", item.Name,
+                    _log.Info("item {Name} (#{Id}) has been marked as watched before, ignored", item.Name,
                         item.Id);
                     return;
                 }
 
-                _log.LogInformation("report episode #{Episode} status {Status} to bangumi", episodeId, played ? EpisodeCollectionType.Watched : EpisodeCollectionType.Default);
-                await _api.UpdateEpisodeStatus(user.AccessToken, subjectId, episodeId, played ? EpisodeCollectionType.Watched : EpisodeCollectionType.Default, CancellationToken.None);
+                _log.Info("report episode #{Episode} status {Status} to bangumi", episodeId,
+                    played ? EpisodeCollectionType.Watched : EpisodeCollectionType.Default);
+                await _api.UpdateEpisodeStatus(user.AccessToken, subjectId, episodeId,
+                    played ? EpisodeCollectionType.Watched : EpisodeCollectionType.Default, CancellationToken.None);
             }
 
-            _log.LogInformation("report completed");
+            _log.Info("report completed");
         }
         catch (Exception e)
         {
             if (played && e.Message == "Bad Request: you need to add subject to your collection first")
             {
-                _log.LogInformation("report subject #{Subject} status {Status} to bangumi", subjectId, CollectionType.Watching);
+                _log.Info("report subject #{Subject} status {Status} to bangumi", subjectId, CollectionType.Watching);
                 await _api.UpdateCollectionStatus(user.AccessToken, subjectId, CollectionType.Watching, CancellationToken.None);
 
-                _log.LogInformation("report episode #{Episode} status {Status} to bangumi", episodeId, EpisodeCollectionType.Watched);
-                await _api.UpdateEpisodeStatus(user.AccessToken, subjectId, episodeId, played ? EpisodeCollectionType.Watched : EpisodeCollectionType.Default, CancellationToken.None);
+                _log.Info("report episode #{Episode} status {Status} to bangumi", episodeId, EpisodeCollectionType.Watched);
+                await _api.UpdateEpisodeStatus(user.AccessToken, subjectId, episodeId,
+                    played ? EpisodeCollectionType.Watched : EpisodeCollectionType.Default, CancellationToken.None);
             }
             else
             {
-                _log.LogError(e, "report playback status failed");
+                _log.Error("report playback status failed: {Error}", e);
             }
         }
 
@@ -199,7 +202,8 @@ public class PlaybackScrobbler : IHostedService
             if (episode is { Type: EpisodeType.Normal })
             {
                 // check each episode status
-                var epList = await _api.GetEpisodeCollectionInfo(user.AccessToken, subjectId, (int)EpisodeType.Normal, CancellationToken.None);
+                var epList = await _api.GetEpisodeCollectionInfo(user.AccessToken, subjectId, (int)EpisodeType.Normal,
+                    CancellationToken.None);
                 if (epList is { Total: > 0 })
                 {
                     var subjectPlayed = true;
@@ -209,7 +213,7 @@ public class PlaybackScrobbler : IHostedService
                     });
                     if (subjectPlayed)
                     {
-                        _log.LogInformation("report subject #{Subject} status {Status} to bangumi", subjectId, CollectionType.Watched);
+                        _log.Info("report subject #{Subject} status {Status} to bangumi", subjectId, CollectionType.Watched);
                         await _api.UpdateCollectionStatus(user.AccessToken, subjectId, CollectionType.Watched, CancellationToken.None);
                     }
                 }

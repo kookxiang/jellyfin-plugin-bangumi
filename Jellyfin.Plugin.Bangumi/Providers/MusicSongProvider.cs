@@ -11,11 +11,10 @@ using MediaBrowser.Controller.Entities.Audio;
 using MediaBrowser.Controller.Library;
 using MediaBrowser.Controller.Providers;
 using MediaBrowser.Model.Providers;
-using Microsoft.Extensions.Logging;
 
 namespace Jellyfin.Plugin.Bangumi.Providers;
 
-public class MusicSongProvider(BangumiApi api, ILibraryManager libraryManager, ILogger<MusicSongProvider> log)
+public class MusicSongProvider(BangumiApi api, ILibraryManager libraryManager, Logger<MusicSongProvider> log)
     : IRemoteMetadataProvider<Audio, SongInfo>, IHasOrder
 {
     private static PluginConfiguration Configuration => Plugin.Instance!.Configuration;
@@ -29,7 +28,7 @@ public class MusicSongProvider(BangumiApi api, ILibraryManager libraryManager, I
         token.ThrowIfCancellationRequested();
         var episode = await GetSong(info, token);
 
-        log.LogInformation("metadata for {FilePath}: {EpisodeInfo}", Path.GetFileName(info.Path), episode);
+        log.Info("metadata for {FilePath}: {EpisodeInfo}", Path.GetFileName(info.Path), episode);
 
         var result = new MetadataResult<Audio> { ResultLanguage = Constants.Language };
 

@@ -5,16 +5,14 @@ using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using Jellyfin.Plugin.Bangumi.Configuration;
-using Jellyfin.Plugin.Bangumi.Model;
 using MediaBrowser.Controller.Entities.Movies;
 using MediaBrowser.Controller.Providers;
 using MediaBrowser.Model.Entities;
 using MediaBrowser.Model.Providers;
-using Microsoft.Extensions.Logging;
 
 namespace Jellyfin.Plugin.Bangumi.Providers;
 
-public class MovieProvider(BangumiApi api, ILogger<MovieProvider> logger)
+public class MovieProvider(BangumiApi api, Logger<MovieProvider> log)
     : IRemoteMetadataProvider<Movie, MovieInfo>, IHasOrder
 {
     private static PluginConfiguration Configuration => Plugin.Instance!.Configuration;
@@ -36,7 +34,7 @@ public class MovieProvider(BangumiApi api, ILogger<MovieProvider> logger)
         if (subjectId == 0)
         {
             var searchName = info.Name;
-            logger.LogInformation("Searching {Name} in bgm.tv", searchName);
+            log.Info("Searching {Name} in bgm.tv", searchName);
             var searchResult = await api.SearchSubject(searchName, token);
             if (info.Year != null)
                 searchResult = searchResult.FindAll(x => x.ProductionYear == null || x.ProductionYear == info.Year.ToString());
@@ -47,7 +45,7 @@ public class MovieProvider(BangumiApi api, ILogger<MovieProvider> logger)
         if (subjectId == 0 && info.OriginalTitle != null && !string.Equals(info.OriginalTitle, info.Name, StringComparison.Ordinal))
         {
             var searchName = info.OriginalTitle;
-            logger.LogInformation("Searching {Name} in bgm.tv", searchName);
+            log.Info("Searching {Name} in bgm.tv", searchName);
             var searchResult = await api.SearchSubject(searchName, token);
             if (info.Year != null)
                 searchResult = searchResult.FindAll(x => x.ProductionYear == null || x.ProductionYear == info.Year.ToString());
@@ -59,7 +57,7 @@ public class MovieProvider(BangumiApi api, ILogger<MovieProvider> logger)
         {
             var anitomy = new Anitomy(baseName);
             var searchName = anitomy.ExtractAnimeTitle() ?? info.Name;
-            logger.LogInformation("Searching {Name} in bgm.tv", searchName);
+            log.Info("Searching {Name} in bgm.tv", searchName);
             // 不保证使用非原名或中文进行查询时返回正确结果
             var searchResult = await api.SearchSubject(searchName, token);
             if (info.Year != null)
