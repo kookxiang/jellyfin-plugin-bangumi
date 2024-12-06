@@ -55,6 +55,8 @@ public partial class BangumiApi(IHttpClientFactory httpClientFactory, ArchiveDat
     {
         var httpClient = GetHttpClient(new HttpClientHandler { AllowAutoRedirect = false });
         var request = new HttpRequestMessage(HttpMethod.Get, url);
+        if (store.GetAvailable() != null) request.Headers.Authorization = AuthenticationHeaderValue.Parse("Bearer " + store.GetAvailable()?.AccessToken);
+
         using var response = await httpClient.SendAsync(request, token);
         return response.StatusCode is HttpStatusCode.MovedPermanently or HttpStatusCode.Redirect
             ? response.Headers.Location?.ToString()
