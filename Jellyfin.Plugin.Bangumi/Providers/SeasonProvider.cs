@@ -98,7 +98,7 @@ public class SeasonProvider(BangumiApi api, Logger<EpisodeProvider> log, ILibrar
         }
 
         result.Item.Overview = string.IsNullOrEmpty(subject.Summary) ? null : subject.Summary;
-        result.Item.Tags = subject.PopularTags;
+        result.Item.Tags = subject.Tags;
 
         if (DateTime.TryParse(subject.AirDate, out var airDate))
         {

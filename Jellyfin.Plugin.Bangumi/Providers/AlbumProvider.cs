@@ -82,7 +82,7 @@ public class AlbumProvider(BangumiApi api, Logger<AlbumProvider> log)
         result.Item.Name = subject.Name;
         result.Item.OriginalTitle = subject.OriginalName;
         result.Item.Overview = string.IsNullOrEmpty(subject.Summary) ? null : subject.Summary;
-        result.Item.Tags = subject.PopularTags;
+        result.Item.Tags = subject.Tags;
 
         if (DateTime.TryParse(subject.AirDate, out var airDate))
         {

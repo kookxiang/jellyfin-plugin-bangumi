@@ -65,7 +65,7 @@ public class Subject
                 Score = Score,
                 Total = ScoreDetails.Sum(item => item.Value)
             },
-            Tags = Tags,
+            AllTags = Tags,
             IsNSFW = IsNSFW,
             Platform = Platform switch
             {

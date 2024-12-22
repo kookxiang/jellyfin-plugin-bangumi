@@ -98,7 +98,7 @@ public class SeriesProvider(BangumiApi api, Logger<SeriesProvider> log)
         result.Item.Name = subject.Name;
         result.Item.OriginalTitle = subject.OriginalName;
         result.Item.Overview = string.IsNullOrEmpty(subject.Summary) ? null : subject.Summary;
-        result.Item.Tags = subject.PopularTags;
+        result.Item.Tags = subject.Tags;
         result.Item.HomePageUrl = subject.OfficialWebSite;
         result.Item.EndDate = subject.EndDate;
 

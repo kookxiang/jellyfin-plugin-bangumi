@@ -19,6 +19,8 @@ public class Subject
 
     public int Id { get; set; }
 
+    public SubjectType Type { get; set; }
+
     [JsonIgnore]
     public string? Name => Configuration.TranslationPreference switch
     {
@@ -69,7 +71,7 @@ public class Subject
     public Rating? Rating { get; set; }
 
     [JsonPropertyName("tags")]
-    public List<Tag> Tags { get; set; } = new();
+    public List<Tag> AllTags { get; set; } = new();
 
     [JsonPropertyName("nsfw")]
     public bool IsNSFW { get; set; }
@@ -77,12 +79,12 @@ public class Subject
     public string? Platform { get; set; }
 
     [JsonIgnore]
-    public string[] PopularTags
+    public string[] Tags
     {
         get
         {
-            var baseline = Tags.Sum(tag => tag.Count) / 25;
-            return Tags.Where(tag => tag.Count >= baseline).Select(tag => tag.Name).ToArray();
+            var baseline = AllTags.Sum(tag => tag.Count) / 100;
+            return AllTags.Where(tag => tag.Count >= baseline).Select(tag => tag.Name).Intersect(Tag.GetCommonTagList(Type)).ToArray();
         }
     }
 

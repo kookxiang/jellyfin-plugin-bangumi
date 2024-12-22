@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Jellyfin.Plugin.Bangumi.Configuration;
-using Jellyfin.Plugin.Bangumi.Model;
 using MediaBrowser.Common.Net;
 using MediaBrowser.Controller.Entities.TV;
 using MediaBrowser.Controller.Providers;
@@ -55,7 +54,7 @@ public class SeriesProvider(BangumiApi api, ILogger log)
         result.Item.Name = subject.Name;
         result.Item.OriginalTitle = subject.OriginalName;
         result.Item.Overview = string.IsNullOrEmpty(subject.Summary) ? null : subject.Summary;
-        result.Item.Tags = subject.PopularTags;
+        result.Item.Tags = subject.Tags;
 
         if (DateTime.TryParse(subject.AirDate, out var airDate))
         {
