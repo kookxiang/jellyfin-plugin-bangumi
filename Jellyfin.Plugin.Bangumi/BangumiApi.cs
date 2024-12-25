@@ -183,8 +183,8 @@ public partial class BangumiApi
         {
             return subject.Platform == SubjectPlatform.Movie
                    || subject.Platform == SubjectPlatform.OVA
-                   || subject.Tags.Contains("OVA")
-                   || subject.Tags.Contains("剧场版");
+                   || subject.GenreTags.Contains("OVA")
+                   || subject.GenreTags.Contains("剧场版");
         }
 
         var requestCount = 0;

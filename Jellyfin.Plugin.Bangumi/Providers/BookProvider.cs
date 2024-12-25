@@ -40,7 +40,8 @@ public class BookProvider(BangumiApi api)
         result.Item.Name = subject.Name;
         result.Item.OriginalTitle = subject.OriginalName;
         result.Item.Overview = string.IsNullOrEmpty(subject.Summary) ? null : subject.Summary;
-        result.Item.Tags = subject.Tags;
+        result.Item.Tags = subject.PopularTags;
+        result.Item.Genres = subject.GenreTags;
 
         if (DateTime.TryParse(subject.AirDate, out var airDate))
         {

@@ -56,7 +56,8 @@ public class MovieProvider(BangumiApi api, ILogger logger)
         result.Item.Name = subject.Name;
         result.Item.OriginalTitle = subject.OriginalName;
         result.Item.Overview = string.IsNullOrEmpty(subject.Summary) ? null : subject.Summary;
-        result.Item.Tags = subject.Tags;
+        result.Item.SetTags(subject.PopularTags);
+        result.Item.SetGenres(subject.GenreTags);
 
         if (DateTime.TryParse(subject.AirDate, out var airDate))
             result.Item.PremiereDate = airDate;

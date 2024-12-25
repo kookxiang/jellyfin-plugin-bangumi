@@ -28,7 +28,7 @@ public class SeriesProvider(BangumiApi api, Logger<SeriesProvider> log)
         var baseName = Path.GetFileName(info.Path);
         var result = new MetadataResult<Series>
         {
-            ResultLanguage = Constants.Language
+            ResultLanguage = info.MetadataLanguage ?? Constants.Language
         };
         var localConfiguration = await LocalConfiguration.ForPath(info.Path);
 
@@ -98,7 +98,8 @@ public class SeriesProvider(BangumiApi api, Logger<SeriesProvider> log)
         result.Item.Name = subject.Name;
         result.Item.OriginalTitle = subject.OriginalName;
         result.Item.Overview = string.IsNullOrEmpty(subject.Summary) ? null : subject.Summary;
-        result.Item.Tags = subject.Tags;
+        result.Item.Tags = subject.PopularTags;
+        result.Item.Genres = subject.GenreTags;
         result.Item.HomePageUrl = subject.OfficialWebSite;
         result.Item.EndDate = subject.EndDate;
 

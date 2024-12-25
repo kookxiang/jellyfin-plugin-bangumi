@@ -79,14 +79,19 @@ public class Subject
     public string? Platform { get; set; }
 
     [JsonIgnore]
-    public string[] Tags
-    {
-        get
-        {
-            var baseline = AllTags.Sum(tag => tag.Count) / 100;
-            return AllTags.Where(tag => tag.Count >= baseline).Select(tag => tag.Name).Intersect(Tag.GetCommonTagList(Type)).ToArray();
-        }
-    }
+    public string[] PopularTags => AllTags
+        .OrderByDescending(tag => tag.Count)
+        .Select(tag => tag.Name)
+        .Take(Math.Max(8, AllTags.Count / 25))
+        .ToArray();
+
+    [JsonIgnore]
+    public string[] GenreTags => AllTags
+        .Where(tag => Tag.GetCommonTagList(Type).Contains(tag.Name))
+        .OrderByDescending(tag => tag.Count)
+        .Select(tag => tag.Name)
+        .Take(4)
+        .ToArray();
 
     [JsonPropertyName("infobox")]
     public JsonElement? JsonInfoBox
