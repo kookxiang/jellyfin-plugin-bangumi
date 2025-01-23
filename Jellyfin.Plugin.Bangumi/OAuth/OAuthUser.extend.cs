@@ -22,7 +22,7 @@ public partial class OAuthUser
 
     public string? ProfileUrl { get; set; }
 
-    public DateTime EffectiveTime { get; set; } = DateTime.Now;
+    public DateTime? EffectiveTime { get; set; }
 
     [JsonIgnore]
     public bool Expired => ExpireTime < DateTime.Now;
