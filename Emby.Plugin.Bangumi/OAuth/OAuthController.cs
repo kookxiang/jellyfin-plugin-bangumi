@@ -138,14 +138,13 @@ public class OAuthController(BangumiApi api, OAuthStore store, ILogger log, ISes
             return;
         }
 
-        var formData = new FormUrlEncodedContent(new[]
-        {
+        var formData = new FormUrlEncodedContent([
             new KeyValuePair<string, string>("grant_type", "authorization_code"),
             new KeyValuePair<string, string>("client_id", ApplicationId),
             new KeyValuePair<string, string>("client_secret", ApplicationSecret),
             new KeyValuePair<string, string>("code", oAuth.code),
             new KeyValuePair<string, string>("redirect_uri", $"{urlPrefix}?user={oAuth.user}")
-        });
+        ]);
         var options = new HttpRequestOptions
         {
             Url = "https://bgm.tv/oauth/access_token",

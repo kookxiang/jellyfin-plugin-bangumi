@@ -29,16 +29,27 @@ public class RatingRefreshTask(Logger<RatingRefreshTask> log, ILibraryManager li
         return [];
     }
 
-    public async Task ExecuteAsync(IProgress<double> progress, CancellationToken token)
+#if EMBY
+    public Task Execute(CancellationToken cancellationToken, IProgress<double> progress)
+    {
+        return ExecuteAsync(progress, cancellationToken);
+    }
+#endif
+
+    public async Task ExecuteAsync(IProgress<double> progress, CancellationToken cancellationToken)
     {
         var idList = library.GetItemIds(new InternalItemsQuery
         {
             IncludeItemTypes = new[]
             {
 #if EMBY
-                "Movie", "Season", "Series"
+                "Movie",
+                "Season",
+                "Series"
 #else
-                BaseItemKind.Movie, BaseItemKind.Season, BaseItemKind.Series
+                BaseItemKind.Movie,
+                BaseItemKind.Season,
+                BaseItemKind.Series
 #endif
             }
         })!;
@@ -59,13 +70,13 @@ public class RatingRefreshTask(Logger<RatingRefreshTask> log, ILibraryManager li
 #endif
 
             // check whether current task was canceled
-            token.ThrowIfCancellationRequested();
+            cancellationToken.ThrowIfCancellationRequested();
 
             // obtain library item
             var item = library.GetItemById(id);
             if (item == null) continue;
 
-            // skip item if it was refreshed recently 
+            // skip item if it was refreshed recently
 #if EMBY
             var dateLastRefreshed = item.DateLastRefreshed.DateTime;
 #else
@@ -78,14 +89,14 @@ public class RatingRefreshTask(Logger<RatingRefreshTask> log, ILibraryManager li
             if (!item.ProviderIds.TryGetValue(Constants.ProviderName, out var bangumiId)) continue;
 
             // limit request speed
-            await Task.Delay(waitTime, token);
+            await Task.Delay(waitTime, cancellationToken);
 
             try
             {
                 log.Info("refreshing raiting for {Name} (#{ID})", item.Name, bangumiId!);
 
                 // get latest rating from bangumi
-                var subject = await api.GetSubject(int.Parse(bangumiId!), token);
+                var subject = await api.GetSubject(int.Parse(bangumiId!), cancellationToken);
                 var score = subject?.Rating?.Score;
                 if (score == null) continue;
 
@@ -97,7 +108,7 @@ public class RatingRefreshTask(Logger<RatingRefreshTask> log, ILibraryManager li
 #if EMBY
                 library.UpdateItem(item, item.GetParent(), ItemUpdateType.MetadataDownload);
 #else
-                await library.UpdateItemAsync(item, item.GetParent(), ItemUpdateType.MetadataDownload, token);
+                await library.UpdateItemAsync(item, item.GetParent(), ItemUpdateType.MetadataDownload, cancellationToken);
 #endif
             }
             catch (Exception e)
@@ -105,12 +116,5 @@ public class RatingRefreshTask(Logger<RatingRefreshTask> log, ILibraryManager li
                 log.Error("failed to refresh rating score: {Exception}", e);
             }
         }
-    }
-
-    public Task Execute(CancellationToken token, IProgress<double> progress)
-    {
-        var task = Task.Run(async () => await ExecuteAsync(progress, token));
-        task.Wait();
-        return Task.CompletedTask;
     }
 }

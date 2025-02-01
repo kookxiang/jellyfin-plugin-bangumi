@@ -44,13 +44,16 @@ public class SubjectPersonRelation(ArchiveData archive)
         return _mapping.Count > 0;
     }
 
-    public async Task<List<Model.RelatedPerson>> Get(int subjectId)
+    public async Task<IEnumerable<Model.RelatedPerson>> Get(int subjectId)
     {
         await Load();
         if (!_mapping.TryGetValue(subjectId, out var rawList)) return [];
 
         var relatedPersons = new List<Model.RelatedPerson>();
-        foreach (var relatedPerson in rawList) relatedPersons.Add(await relatedPerson.ToRelatedPerson(archive));
+        foreach (var relatedPerson in rawList)
+        {
+            relatedPersons.Add(await relatedPerson.ToRelatedPerson(archive));
+        }
 
         return relatedPersons;
     }

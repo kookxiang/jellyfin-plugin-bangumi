@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using MediaBrowser.Common.Net;
@@ -13,8 +12,7 @@ using MediaBrowser.Model.Providers;
 
 namespace Jellyfin.Plugin.Bangumi.ExternalIdProvider;
 
-public class SubjectImageProvider(BangumiApi api)
-    : IRemoteImageProvider, IHasOrder
+public class SubjectImageProvider(BangumiApi api) : IRemoteImageProvider, IHasOrder
 {
     public int Order => -5;
     public string Name => Constants.ProviderName;
@@ -26,38 +24,38 @@ public class SubjectImageProvider(BangumiApi api)
 
     public IEnumerable<ImageType> GetSupportedImages(BaseItem item)
     {
-        return new[] { ImageType.Primary };
+        return [ImageType.Primary];
     }
 
-    public async Task<IEnumerable<RemoteImageInfo>> GetImages(BaseItem item, LibraryOptions libraryOptions, CancellationToken token)
+    public async Task<IEnumerable<RemoteImageInfo>> GetImages(BaseItem item, LibraryOptions libraryOptions, CancellationToken cancellationToken)
     {
-        token.ThrowIfCancellationRequested();
+        cancellationToken.ThrowIfCancellationRequested();
 
         if (!int.TryParse(item.GetProviderId(Constants.ProviderName), out var id))
-            return Enumerable.Empty<RemoteImageInfo>();
+            return [];
 
-        var subject = await api.GetSubject(id, token);
+        var subject = await api.GetSubject(id, cancellationToken);
 
-        if (subject != null && subject.DefaultImage != "")
-            return new[]
-            {
+        if (subject != null && !string.IsNullOrEmpty(subject.DefaultImage))
+            return
+            [
                 new RemoteImageInfo
                 {
                     ProviderName = Constants.ProviderName,
                     Type = ImageType.Primary,
                     Url = subject.DefaultImage
                 }
-            };
+            ];
 
-        return Enumerable.Empty<RemoteImageInfo>();
+        return [];
     }
 
-    public Task<HttpResponseInfo> GetImageResponse(string url, CancellationToken token)
+    public Task<HttpResponseInfo> GetImageResponse(string url, CancellationToken cancellationToken)
     {
         return api.GetHttpClient().GetResponse(new HttpRequestOptions
         {
             Url = url,
-            CancellationToken = token
+            CancellationToken = cancellationToken
         });
     }
 }

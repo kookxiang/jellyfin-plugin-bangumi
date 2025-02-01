@@ -9,10 +9,7 @@ public class Extensions
     [TestMethod]
     public void DictionaryGetOrDefault()
     {
-        Dictionary<string, string> dictionary = new()
-        {
-            ["existed"] = "value"
-        };
+        Dictionary<string, string> dictionary = new() { ["existed"] = "value" };
 
         Assert.AreEqual("value", dictionary.GetOrDefault("existed"));
         Assert.AreEqual(null, dictionary.GetOrDefault("not-existed"));

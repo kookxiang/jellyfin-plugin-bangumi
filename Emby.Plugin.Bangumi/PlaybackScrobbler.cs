@@ -40,7 +40,7 @@ public class PlaybackScrobbler : IServerEntryPoint
         _store = store;
         _api = api;
 
-        foreach (var userId in userManager.GetUsers(new UserQuery { }).Items)
+        foreach (var userId in userManager.GetUsers(new UserQuery()).Items)
         {
             GetPlaybackHistory(userId.InternalId);
         }
@@ -50,7 +50,7 @@ public class PlaybackScrobbler : IServerEntryPoint
 
     public void Dispose()
     {
-        _userDataManager.UserDataSaved -= OnUserDataSaved;
+        Dispose(true);
         GC.SuppressFinalize(this);
     }
 
@@ -59,17 +59,31 @@ public class PlaybackScrobbler : IServerEntryPoint
         _userDataManager.UserDataSaved += OnUserDataSaved;
     }
 
+    protected virtual void Dispose(bool disposing)
+    {
+        if (disposing)
+            _userDataManager.UserDataSaved -= OnUserDataSaved;
+    }
+
+    ~PlaybackScrobbler()
+    {
+        Dispose(false);
+    }
+
     private void OnUserDataSaved(object? sender, UserDataSaveEventArgs e)
     {
         switch (e.SaveReason)
         {
             case UserDataSaveReason.TogglePlayed when e.UserData.Played:
-                Task.Delay(TimeSpan.FromSeconds(3))
-                    .ContinueWith(_ =>
+                Task.Factory.StartNew(async () =>
                     {
+                        await Task.Delay(TimeSpan.FromSeconds(3));
                         GetPlaybackHistory(e.User.InternalId).Add(e.UserData.Key);
                         _log.Info($"mark {e.Item.Name} (#{e.Item.Id}) as played for user #{e.User.InternalId}");
-                    }).ConfigureAwait(false);
+                    },
+                    CancellationToken.None,
+                    TaskCreationOptions.None,
+                    TaskScheduler.Default).Unwrap();
                 if (Configuration.ReportManualStatusChangeToBangumi)
                     ReportPlaybackStatus(e.Item, e.User, true).ConfigureAwait(false);
                 break;
@@ -119,7 +133,7 @@ public class PlaybackScrobbler : IServerEntryPoint
             // emby will store the subject id as the sole provider id, and there is no episode id
             subjectId = episodeId;
             var episodeList = await _api.GetSubjectEpisodeListWithOffset(subjectId, EpisodeType.Normal, 0, CancellationToken.None);
-            if (episodeList?.Data.Count > 0)
+            if (episodeList?.Data.Any() ?? false)
                 episodeId = episodeList.Data.First().Id;
         }
 
@@ -169,7 +183,7 @@ public class PlaybackScrobbler : IServerEntryPoint
                     {
                         if (parent.OfficialRating == null) continue;
 
-                        if (int.TryParse(parent.OfficialRating, out int digitalRating))
+                        if (int.TryParse(parent.OfficialRating, out var digitalRating))
                         {
                             // Brazil rating has digital rating level, up to 18 is not NSFW
                             ratingLevel = digitalRating >= 18 ? RatingNSFW : 0;
@@ -227,12 +241,7 @@ public class PlaybackScrobbler : IServerEntryPoint
                 var epList = await _api.GetEpisodeCollectionInfo(_user.AccessToken, subjectId, (int)EpisodeType.Normal, CancellationToken.None);
                 if (epList is { Total: > 0 })
                 {
-                    var subjectPlayed = true;
-                    epList.Data.ForEach(ep =>
-                    {
-                        if (ep.Type != EpisodeCollectionType.Watched) subjectPlayed = false;
-                    });
-                    if (subjectPlayed)
+                    if (epList.Data.All(ep => ep.Type == EpisodeCollectionType.Watched))
                     {
                         _log.Info($"report subject #{subjectId} status {CollectionType.Watched} to bangumi");
                         await _api.UpdateCollectionStatus(_user.AccessToken, subjectId, CollectionType.Watched, CancellationToken.None);

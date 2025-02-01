@@ -35,7 +35,7 @@ public class SubjectEpisodeRelation(ArchiveData archive)
         return _mapping.Count > 0;
     }
 
-    public async Task<List<Episode>> GetEpisodes(int subjectId)
+    public async Task<IEnumerable<Episode>> GetEpisodes(int subjectId)
     {
         await Load();
         if (!_mapping.TryGetValue(subjectId, out var idList)) return [];
@@ -64,7 +64,10 @@ public class SubjectEpisodeRelation(ArchiveData archive)
             var episodeCount = reader.ReadUInt16();
             var episodeIdList = new List<int>(episodeCount);
             for (var i = 0; i < episodeCount; i++)
+            {
                 episodeIdList.Add(reader.ReadInt32());
+            }
+
             _mapping[subjectId] = episodeIdList;
         }
     }
@@ -80,7 +83,9 @@ public class SubjectEpisodeRelation(ArchiveData archive)
             writer.Write(subjectId);
             writer.Write((ushort)episodeIdList.Count);
             foreach (var episodeId in episodeIdList)
+            {
                 writer.Write(episodeId);
+            }
         }
 
         writer.Flush();

@@ -29,30 +29,21 @@ public class Movie
     [TestMethod]
     public async Task GetByName()
     {
-        var result = await _provider.GetMetadata(new MovieInfo
-        {
-            Name = "STEINS;GATE 負荷領域のデジャヴ"
-        }, _token);
+        var result = await _provider.GetMetadata(new MovieInfo { Name = "STEINS;GATE 負荷領域のデジャヴ" }, _token);
         AssertMovie(result);
     }
 
     [TestMethod]
     public async Task GetById()
     {
-        var result = await _provider.GetMetadata(new MovieInfo
-        {
-            ProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "23119" } }
-        }, _token);
+        var result = await _provider.GetMetadata(new MovieInfo { ProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "23119" } } }, _token);
         AssertMovie(result);
     }
 
     [TestMethod]
     public async Task SearchByName()
     {
-        var searchResults = await _provider.GetSearchResults(new MovieInfo
-        {
-            Name = "STEINS;GATE 負荷領域のデジャヴ"
-        }, _token);
+        var searchResults = await _provider.GetSearchResults(new MovieInfo { Name = "STEINS;GATE 負荷領域のデジャヴ" }, _token);
         Assert.IsTrue(searchResults.Any(x => x.ProviderIds[Constants.ProviderName].Equals("23119")), "should have correct search result");
     }
 
@@ -61,10 +52,11 @@ public class Movie
     {
         _plugin.Configuration.AlwaysGetTitleByAnitomySharp = true;
         var result = await _provider.GetMetadata(new MovieInfo
-        {
-            Name = "[Zagzad] Memories (BDRip 1764x972 1800x976 1788x932 HEVC-10bit THD)",
-            Path = FakePath.Create("[Zagzad] Memories (BDRip 1764x972 1800x976 1788x932 HEVC-10bit THD)")
-        }, _token);
+            {
+                Name = "[Zagzad] Memories (BDRip 1764x972 1800x976 1788x932 HEVC-10bit THD)",
+                Path = FakePath.Create("[Zagzad] Memories (BDRip 1764x972 1800x976 1788x932 HEVC-10bit THD)")
+            },
+            _token);
         _plugin.Configuration.AlwaysGetTitleByAnitomySharp = false;
         Assert.AreEqual("MEMORIES", result.Item.Name, "should return correct series name");
     }
@@ -72,10 +64,7 @@ public class Movie
     [TestMethod]
     public async Task SearchById()
     {
-        var searchResults = await _provider.GetSearchResults(new MovieInfo
-        {
-            ProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "23119" } }
-        }, _token);
+        var searchResults = await _provider.GetSearchResults(new MovieInfo { ProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "23119" } } }, _token);
         Assert.IsTrue(searchResults.Any(x => x.ProviderIds[Constants.ProviderName].Equals("23119")), "should have correct search result");
     }
 

@@ -17,20 +17,8 @@ public class User
     public string NickName { get; set; } = "";
 
     [JsonPropertyName("avatar")]
-    public AvatarMap Avatar { get; set; } = new();
+    public UserAvatarMap UserAvatar { get; set; } = new();
 
     [JsonPropertyName("sign")]
     public string Signature { get; set; } = "";
-
-    public class AvatarMap
-    {
-        [JsonPropertyName("large")]
-        public string Large { get; set; } = "";
-
-        [JsonPropertyName("medium")]
-        public string Medium { get; set; } = "";
-
-        [JsonPropertyName("small")]
-        public string Small { get; set; } = "";
-    }
 }

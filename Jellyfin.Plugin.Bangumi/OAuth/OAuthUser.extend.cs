@@ -32,7 +32,7 @@ public partial class OAuthUser
         var user = await api.GetAccountInfo(AccessToken, cancellationToken);
         if (user == null)
             return;
-        Avatar = user.Avatar.Large;
+        Avatar = user.UserAvatar.Large;
         NickName = user.NickName;
         ProfileUrl = user.URL;
     }
@@ -45,13 +45,12 @@ public partial class OAuthUser
 #endif
         CancellationToken cancellationToken = default)
     {
-        var formData = new FormUrlEncodedContent(new[]
-        {
+        var formData = new FormUrlEncodedContent([
             new KeyValuePair<string, string>("grant_type", "refresh_token"),
             new KeyValuePair<string, string>("client_id", OAuthController.ApplicationId),
             new KeyValuePair<string, string>("client_secret", OAuthController.ApplicationSecret),
             new KeyValuePair<string, string>("refresh_token", RefreshToken)
-        }!);
+        ]!);
 
 #if EMBY
         var options = new HttpRequestOptions
@@ -63,7 +62,7 @@ public partial class OAuthUser
         var response = await httpClient.SendAsync(options, "POST");
         var isFailed = response.StatusCode >= HttpStatusCode.MovedPermanently;
         var stream = new StreamReader(response.Content);
-        var responseBody = await stream.ReadToEndAsync();
+        var responseBody = await stream.ReadToEndAsync(cancellationToken);
 #else
         var response = await httpClient.PostAsync("https://bgm.tv/oauth/access_token", formData, cancellationToken);
         var isFailed = !response.IsSuccessStatusCode;
@@ -72,7 +71,7 @@ public partial class OAuthUser
         if (isFailed)
         {
             var error = JsonSerializer.Deserialize<OAuthError>(responseBody, Constants.JsonSerializerOptions)!;
-            throw new Exception(error.ErrorDescription);
+            throw new HttpIOException(HttpRequestError.InvalidResponse, error.ErrorDescription);
         }
 
         var newUser = JsonSerializer.Deserialize<OAuthUser>(responseBody, Constants.JsonSerializerOptions)!;

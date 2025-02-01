@@ -23,10 +23,10 @@ public class MusicSongProvider(BangumiApi api, ILibraryManager libraryManager, L
 
     public string Name => Constants.ProviderName;
 
-    public async Task<MetadataResult<Audio>> GetMetadata(SongInfo info, CancellationToken token)
+    public async Task<MetadataResult<Audio>> GetMetadata(SongInfo info, CancellationToken cancellationToken)
     {
-        token.ThrowIfCancellationRequested();
-        var episode = await GetSong(info, token);
+        cancellationToken.ThrowIfCancellationRequested();
+        var episode = await GetSong(info, cancellationToken);
 
         log.Info("metadata for {FilePath}: {EpisodeInfo}", Path.GetFileName(info.Path), episode);
 
@@ -52,14 +52,14 @@ public class MusicSongProvider(BangumiApi api, ILibraryManager libraryManager, L
         return result;
     }
 
-    public Task<IEnumerable<RemoteSearchResult>> GetSearchResults(SongInfo searchInfo, CancellationToken token)
+    public Task<IEnumerable<RemoteSearchResult>> GetSearchResults(SongInfo searchInfo, CancellationToken cancellationToken)
     {
         throw new NotImplementedException();
     }
 
-    public async Task<HttpResponseMessage> GetImageResponse(string url, CancellationToken token)
+    public async Task<HttpResponseMessage> GetImageResponse(string url, CancellationToken cancellationToken)
     {
-        return await api.GetHttpClient().GetAsync(url, token).ConfigureAwait(false);
+        return await api.GetHttpClient().GetAsync(url, cancellationToken).ConfigureAwait(false);
     }
 
     private async Task<Episode?> GetSong(ItemLookupInfo info, CancellationToken token)

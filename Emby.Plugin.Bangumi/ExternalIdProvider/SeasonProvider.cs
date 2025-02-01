@@ -21,9 +21,9 @@ public class SeasonProvider(BangumiApi api, ILogger log)
 
     public string Name => Constants.ProviderName;
 
-    public async Task<MetadataResult<Season>> GetMetadata(SeasonInfo info, CancellationToken token)
+    public async Task<MetadataResult<Season>> GetMetadata(SeasonInfo info, CancellationToken cancellationToken)
     {
-        token.ThrowIfCancellationRequested();
+        cancellationToken.ThrowIfCancellationRequested();
         var result = new MetadataResult<Season> { ResultLanguage = Constants.Language };
 
         if (!int.TryParse(info.ProviderIds.GetOrDefault(Constants.ProviderName), out var subjectId))
@@ -38,7 +38,7 @@ public class SeasonProvider(BangumiApi api, ILogger log)
             log.Info("Seacon GetMetadata from builtin id: {0}", subjectId);
         }
 
-        var subject = await api.GetSubject(subjectId, token);
+        var subject = await api.GetSubject(subjectId, cancellationToken);
         if (subject == null)
             return result;
 
@@ -70,23 +70,23 @@ public class SeasonProvider(BangumiApi api, ILogger log)
         if (subject.IsNSFW)
             result.Item.OfficialRating = "X";
 
-        (await api.GetSubjectPersonInfos(subject.Id, token)).ForEach(result.AddPerson);
-        (await api.GetSubjectCharacters(subject.Id, token)).ForEach(result.AddPerson);
+        (await api.GetSubjectPersonInfos(subject.Id, cancellationToken)).ToList().ForEach(result.AddPerson);
+        (await api.GetSubjectCharacters(subject.Id, cancellationToken)).ToList().ForEach(result.AddPerson);
 
         return result;
     }
 
-    public Task<IEnumerable<RemoteSearchResult>> GetSearchResults(SeasonInfo info, CancellationToken token)
+    public Task<IEnumerable<RemoteSearchResult>> GetSearchResults(SeasonInfo info, CancellationToken cancellationToken)
     {
         return Task.FromResult(Enumerable.Empty<RemoteSearchResult>());
     }
 
-    public Task<HttpResponseInfo> GetImageResponse(string url, CancellationToken token)
+    public Task<HttpResponseInfo> GetImageResponse(string url, CancellationToken cancellationToken)
     {
         return api.GetHttpClient().GetResponse(new HttpRequestOptions
         {
             Url = url,
-            CancellationToken = token
+            CancellationToken = cancellationToken
         });
     }
 }

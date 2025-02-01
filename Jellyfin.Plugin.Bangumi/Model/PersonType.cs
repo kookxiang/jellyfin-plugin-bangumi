@@ -2,6 +2,8 @@
 
 public enum PersonType
 {
+    Unknown,
+
     /// <summary>
     ///     个人
     /// </summary>

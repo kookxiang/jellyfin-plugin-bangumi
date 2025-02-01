@@ -1,45 +1,35 @@
 ﻿using System;
 using System.IO;
-using System.Net;
 using System.Text.Json;
 using System.Threading.Tasks;
 using MediaBrowser.Common.Net;
+using MediaBrowser.Model.Net;
 
 namespace Jellyfin.Plugin.Bangumi;
 
 public partial class BangumiApi
 {
-    private class ServerException : Exception
+    private static async Task HandleHttpException(HttpResponseInfo response)
     {
-        public readonly HttpStatusCode StatusCode;
-
-        private ServerException(HttpStatusCode status, string message) : base(message)
+        var content = "<empty>";
+        var exception = new HttpException($"unknown response from bangumi server: {content}");
+        try
         {
-            StatusCode = status;
+            using var stream = new StreamReader(response.Content);
+            content = await stream.ReadToEndAsync();
+            var result = JsonSerializer.Deserialize<Response>(content, Constants.JsonSerializerOptions);
+            if (result?.Title != null)
+                exception = new HttpException($"{result.Title}: {result.Description}");
+        }
+        catch (Exception)
+        {
+            // ignored
         }
 
-        public static async Task ThrowFrom(HttpResponseInfo response)
-        {
-            var content = "<empty>";
-            var exception = new Exception($"unknown response from bangumi server: {content}");
-            try
-            {
-                using var stream = new StreamReader(response.Content);
-                content = await stream.ReadToEndAsync();
-                var result = JsonSerializer.Deserialize<Response>(content, Constants.JsonSerializerOptions);
-                if (result?.Title != null)
-                    exception = new ServerException(response.StatusCode, $"{result.Title}: {result.Description}");
-            }
-            catch (Exception)
-            {
-                // ignored
-            }
-
-            throw exception;
-        }
+        throw exception;
     }
 
-    private class Response
+    private sealed class Response
     {
         public string Title { get; set; } = "";
 

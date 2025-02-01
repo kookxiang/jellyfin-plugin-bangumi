@@ -94,14 +94,13 @@ public class OAuthController(BangumiApi api, OAuthStore store, IAuthorizationCon
     public async Task<object?> OAuthCallback([FromQuery(Name = "code")] string code, [FromQuery(Name = "user")] string user)
     {
         var urlPrefix = _oAuthPath ?? $"{Request.Scheme}://{Request.Host}{Request.PathBase}{Request.Path}";
-        var formData = new FormUrlEncodedContent(new[]
-        {
+        var formData = new FormUrlEncodedContent([
             new KeyValuePair<string, string>("grant_type", "authorization_code"),
             new KeyValuePair<string, string>("client_id", ApplicationId),
             new KeyValuePair<string, string>("client_secret", ApplicationSecret),
             new KeyValuePair<string, string>("code", code),
             new KeyValuePair<string, string>("redirect_uri", $"{urlPrefix}?user={user}")
-        });
+        ]);
         var response = await api.GetHttpClient().PostAsync("https://bgm.tv/oauth/access_token", formData);
         var responseBody = await response.Content.ReadAsStringAsync();
         if (!response.IsSuccessStatusCode) return JsonSerializer.Deserialize<OAuthError>(responseBody, Constants.JsonSerializerOptions);

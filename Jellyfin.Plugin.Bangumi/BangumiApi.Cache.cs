@@ -9,10 +9,9 @@ namespace Jellyfin.Plugin.Bangumi;
 
 public partial class BangumiApi
 {
-    private readonly MemoryCache _cache = new(new MemoryCacheOptions
+    private static readonly MemoryCache _cache = new(new MemoryCacheOptions
     {
         ExpirationScanFrequency = TimeSpan.FromMinutes(1),
-
         SizeLimit = 256 * 1024 * 1024
     });
 
@@ -27,15 +26,17 @@ public partial class BangumiApi
             return SendWithOutCache(request, accessToken, token);
         }
 
-        return _cache.GetOrCreateAsync<string>(request.RequestUri.ToString(), async entry =>
-        {
-            logger.Info("request api without cache: {url}", request.RequestUri);
-            var response = await SendWithOutCache(request, accessToken, CancellationToken.None);
-            entry.Size = response.Length;
-            entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromDays(7);
-            entry.SlidingExpiration = TimeSpan.FromHours(6);
-            return response;
-        })!;
+        return _cache.GetOrCreateAsync<string>(
+            request.RequestUri.ToString(),
+            async entry =>
+            {
+                logger.Info("request api without cache: {url}", request.RequestUri);
+                var response = await SendWithOutCache(request, accessToken, CancellationToken.None);
+                entry.Size = response.Length;
+                entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromDays(7);
+                entry.SlidingExpiration = TimeSpan.FromHours(6);
+                return response;
+            })!;
     }
 
     private async Task<string> SendWithOutCache(HttpRequestMessage request, string? accessToken, CancellationToken token)
@@ -44,7 +45,7 @@ public partial class BangumiApi
         if (!string.IsNullOrEmpty(accessToken))
             request.Headers.Authorization = AuthenticationHeaderValue.Parse("Bearer " + accessToken);
         using var response = await httpClient.SendAsync(request, token);
-        if (!response.IsSuccessStatusCode) await ServerException.ThrowFrom(response);
+        if (!response.IsSuccessStatusCode) await HandleHttpException(response);
         return await response.Content.ReadAsStringAsync(token);
     }
 }

@@ -5,7 +5,7 @@ using AnitomySharp;
 namespace Jellyfin.Plugin.Bangumi;
 
 /// <summary>
-/// The Anitomy class contains methods for extracting various elements from a string path using the AnitomySharp library.
+///     The Anitomy class contains methods for extracting various elements from a string path using the AnitomySharp library.
 /// </summary>
 public class Anitomy
 {
@@ -17,6 +17,7 @@ public class Anitomy
     {
         _elements = AnitomySharp.AnitomySharp.Parse(path);
     }
+
     // The constructor takes a file path and option as input and calls the AnitomySharp.Parse method to parse the file and store the result in the _elements variable
     // default: Options(string AllowedDelimiters = " _.+,|　", bool ParseEpisodeNumber = true, bool ParseEpisodeTitle = true, bool ParseFileExtension = true, bool ParseReleaseGroup = true)
     public Anitomy(string path, Options options)
@@ -25,13 +26,13 @@ public class Anitomy
     }
 
     // This method returns a List of Element objects from the _elements variable
-    public List<Element> GetElements()
+    public IEnumerable<Element> GetElements()
     {
-        return new List<Element>(_elements);
+        return _elements;
     }
 
     /// <summary>
-    /// Extracts the ElementAnimeSeason.
+    ///     Extracts the ElementAnimeSeason.
     /// </summary>
     /// <returns>The extracted ElementAnimeSeason, or null if not found.</returns>
     public string? ExtractAnimeSeason()
@@ -40,7 +41,7 @@ public class Anitomy
     }
 
     /// <summary>
-    /// Extracts the ElementAnimeSeasonPrefix.
+    ///     Extracts the ElementAnimeSeasonPrefix.
     /// </summary>
     /// <returns>The extracted ElementAnimeSeasonPrefix, or null if not found.</returns>
     public string? ExtractAnimeSeasonPrefix()
@@ -49,15 +50,16 @@ public class Anitomy
     }
 
     /// <summary>
-    /// Extracts the ElementAnimeTitle.
+    ///     Extracts the ElementAnimeTitle.
     /// </summary>
     /// <returns>The extracted ElementAnimeTitle, or null if not found.</returns>
     public string? ExtractAnimeTitle()
     {
         return _elements.FirstOrDefault(p => p.Category == Element.ElementCategory.ElementAnimeTitle)?.Value;
     }
+
     /// <summary>
-    /// Extracts the ElementAnimeType.
+    ///     Extracts the ElementAnimeType.
     /// </summary>
     /// <returns>The extracted ElementAnimeType, or null if not found.</returns>
     public string[]? ExtractAnimeType()
@@ -66,7 +68,7 @@ public class Anitomy
     }
 
     /// <summary>
-    /// Extracts the ElementAnimeYear.
+    ///     Extracts the ElementAnimeYear.
     /// </summary>
     /// <returns>The extracted ElementAnimeYear, or null if not found.</returns>
     public string? ExtractAnimeYear()
@@ -75,7 +77,7 @@ public class Anitomy
     }
 
     /// <summary>
-    /// Extracts the ElementAudioTerm.
+    ///     Extracts the ElementAudioTerm.
     /// </summary>
     /// <returns>The extracted ElementAudioTerm, or null if not found.</returns>
     public string? ExtractAudioTerm()
@@ -84,7 +86,7 @@ public class Anitomy
     }
 
     /// <summary>
-    /// Extracts the ElementDeviceCompatibility.
+    ///     Extracts the ElementDeviceCompatibility.
     /// </summary>
     /// <returns>The extracted ElementDeviceCompatibility, or null if not found.</returns>
     public string? ExtractDeviceCompatibility()
@@ -93,7 +95,7 @@ public class Anitomy
     }
 
     /// <summary>
-    /// Extracts the ElementEpisodeNumber.
+    ///     Extracts the ElementEpisodeNumber.
     /// </summary>
     /// <returns>The extracted ElementEpisodeNumber, or null if not found.</returns>
     public string? ExtractEpisodeNumber()
@@ -102,7 +104,7 @@ public class Anitomy
     }
 
     /// <summary>
-    /// Extracts the ElementEpisodeNumberAlt.
+    ///     Extracts the ElementEpisodeNumberAlt.
     /// </summary>
     /// <returns>The extracted ElementEpisodeNumberAlt, or null if not found.</returns>
     public string? ExtractEpisodeNumberAlt()
@@ -111,7 +113,7 @@ public class Anitomy
     }
 
     /// <summary>
-    /// Extracts the ElementEpisodePrefix.
+    ///     Extracts the ElementEpisodePrefix.
     /// </summary>
     /// <returns>The extracted ElementEpisodePrefix, or null if not found.</returns>
     public string? ExtractEpisodePrefix()
@@ -120,7 +122,7 @@ public class Anitomy
     }
 
     /// <summary>
-    /// Extracts the ElementEpisodeTitle.
+    ///     Extracts the ElementEpisodeTitle.
     /// </summary>
     /// <returns>The extracted ElementEpisodeTitle, or null if not found.</returns>
     public string? ExtractEpisodeTitle()
@@ -129,7 +131,7 @@ public class Anitomy
     }
 
     /// <summary>
-    /// Extracts the ElementFileChecksum.
+    ///     Extracts the ElementFileChecksum.
     /// </summary>
     /// <returns>The extracted ElementFileChecksum, or null if not found.</returns>
     public string? ExtractFileChecksum()
@@ -138,7 +140,7 @@ public class Anitomy
     }
 
     /// <summary>
-    /// Extracts the ElementFileExtension.
+    ///     Extracts the ElementFileExtension.
     /// </summary>
     /// <returns>The extracted ElementFileExtension, or null if not found.</returns>
     public string? ExtractFileExtension()
@@ -147,7 +149,7 @@ public class Anitomy
     }
 
     /// <summary>
-    /// Extracts the ElementFileName.
+    ///     Extracts the ElementFileName.
     /// </summary>
     /// <returns>The extracted ElementFileName, or null if not found.</returns>
     public string? ExtractFileName()
@@ -156,7 +158,7 @@ public class Anitomy
     }
 
     /// <summary>
-    /// Extracts the ElementLanguage.
+    ///     Extracts the ElementLanguage.
     /// </summary>
     /// <returns>The extracted ElementLanguage, or null if not found.</returns>
     public string? ExtractLanguage()
@@ -165,7 +167,7 @@ public class Anitomy
     }
 
     /// <summary>
-    /// Extracts the ElementOther.
+    ///     Extracts the ElementOther.
     /// </summary>
     /// <returns>The extracted ElementOther, or null if not found.</returns>
     public string? ExtractOther()
@@ -174,7 +176,7 @@ public class Anitomy
     }
 
     /// <summary>
-    /// Extracts the ElementReleaseGroup.
+    ///     Extracts the ElementReleaseGroup.
     /// </summary>
     /// <returns>The extracted ElementReleaseGroup, or null if not found.</returns>
     public string? ExtractReleaseGroup()
@@ -183,7 +185,7 @@ public class Anitomy
     }
 
     /// <summary>
-    /// Extracts the ElementReleaseInformation.
+    ///     Extracts the ElementReleaseInformation.
     /// </summary>
     /// <returns>The extracted ElementReleaseInformation, or null if not found.</returns>
     public string? ExtractReleaseInformation()
@@ -192,7 +194,7 @@ public class Anitomy
     }
 
     /// <summary>
-    /// Extracts the ElementReleaseVersion.
+    ///     Extracts the ElementReleaseVersion.
     /// </summary>
     /// <returns>The extracted ElementReleaseVersion, or null if not found.</returns>
     public string? ExtractReleaseVersion()
@@ -201,7 +203,7 @@ public class Anitomy
     }
 
     /// <summary>
-    /// Extracts the ElementSource.
+    ///     Extracts the ElementSource.
     /// </summary>
     /// <returns>The extracted ElementSource, or null if not found.</returns>
     public string? ExtractSource()
@@ -210,7 +212,7 @@ public class Anitomy
     }
 
     /// <summary>
-    /// Extracts the ElementSubtitles.
+    ///     Extracts the ElementSubtitles.
     /// </summary>
     /// <returns>The extracted ElementSubtitles, or null if not found.</returns>
     public string? ExtractSubtitles()
@@ -219,7 +221,7 @@ public class Anitomy
     }
 
     /// <summary>
-    /// Extracts the ElementUnknown.
+    ///     Extracts the ElementUnknown.
     /// </summary>
     /// <returns>The extracted ElementUnknown, or null if not found.</returns>
     public string? ExtractUnknown()
@@ -228,7 +230,7 @@ public class Anitomy
     }
 
     /// <summary>
-    /// Extracts the ElementVideoResolution.
+    ///     Extracts the ElementVideoResolution.
     /// </summary>
     /// <returns>The extracted ElementVideoResolution, or null if not found.</returns>
     public string? ExtractVideoResolution()
@@ -237,7 +239,7 @@ public class Anitomy
     }
 
     /// <summary>
-    /// Extracts the ElementVideoTerm.
+    ///     Extracts the ElementVideoTerm.
     /// </summary>
     /// <returns>The extracted ElementVideoTerm, or null if not found.</returns>
     public string? ExtractVideoTerm()
@@ -246,7 +248,7 @@ public class Anitomy
     }
 
     /// <summary>
-    /// Extracts the ElementVolumeNumber.
+    ///     Extracts the ElementVolumeNumber.
     /// </summary>
     /// <returns>The extracted ElementVolumeNumber, or null if not found.</returns>
     public string? ExtractVolumeNumber()
@@ -255,13 +257,11 @@ public class Anitomy
     }
 
     /// <summary>
-    /// Extracts the ElementVolumePrefix.
+    ///     Extracts the ElementVolumePrefix.
     /// </summary>
     /// <returns>The extracted ElementVolumePrefix, or null if not found.</returns>
     public string? ExtractVolumePrefix()
     {
         return _elements.FirstOrDefault(p => p.Category == Element.ElementCategory.ElementVolumePrefix)?.Value;
     }
-
-
 }

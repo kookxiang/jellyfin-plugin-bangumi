@@ -40,8 +40,20 @@ public class LocalConfiguration
             if (property == null) continue;
             if (property.PropertyType == typeof(bool))
             {
-                var trueValue = new[] { "on", "yes", "true", "1" };
-                var falseValue = new[] { "off", "no", "false", "0" };
+                var trueValue = new[]
+                {
+                    "on",
+                    "yes",
+                    "true",
+                    "1"
+                };
+                var falseValue = new[]
+                {
+                    "off",
+                    "no",
+                    "false",
+                    "0"
+                };
                 if (trueValue.Contains(value, StringComparer.CurrentCultureIgnoreCase))
                     property.SetValue(this, true);
                 else if (falseValue.Contains(value, StringComparer.CurrentCultureIgnoreCase))

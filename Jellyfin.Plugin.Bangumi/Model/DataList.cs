@@ -10,5 +10,5 @@ public class DataList<T>
 
     public int Offset { get; set; }
 
-    public List<T> Data { get; set; } = new();
+    public IEnumerable<T> Data { get; set; } = [];
 }

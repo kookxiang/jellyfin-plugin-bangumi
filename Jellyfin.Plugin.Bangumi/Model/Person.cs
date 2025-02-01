@@ -11,7 +11,7 @@ public class Person
 
     public PersonType Type { get; set; }
 
-    public List<PersonCareer>? Career { get; set; }
+    public IEnumerable<PersonCareer>? Career { get; set; }
 
     public Dictionary<string, string>? Images { get; set; }
 

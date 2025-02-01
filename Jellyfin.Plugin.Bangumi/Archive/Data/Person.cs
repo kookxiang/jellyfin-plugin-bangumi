@@ -18,7 +18,7 @@ public class Person
     public PersonType Type { get; set; }
 
     [JsonPropertyName("career")]
-    public List<PersonCareer> Career { get; set; } = [];
+    public IEnumerable<PersonCareer> Career { get; set; } = [];
 
     [JsonPropertyName("infobox")]
     public string RawInfoBox { get; set; } = "";

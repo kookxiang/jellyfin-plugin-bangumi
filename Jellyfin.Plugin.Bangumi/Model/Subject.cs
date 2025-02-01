@@ -71,7 +71,7 @@ public class Subject
     public Rating? Rating { get; set; }
 
     [JsonPropertyName("tags")]
-    public List<Tag> AllTags { get; set; } = new();
+    public IEnumerable<Tag> AllTags { get; set; } = [];
 
     [JsonPropertyName("nsfw")]
     public bool IsNSFW { get; set; }
@@ -79,19 +79,17 @@ public class Subject
     public string? Platform { get; set; }
 
     [JsonIgnore]
-    public string[] PopularTags => AllTags
+    public IEnumerable<string> PopularTags => AllTags
         .OrderByDescending(tag => tag.Count)
         .Select(tag => tag.Name)
-        .Take(Math.Max(8, AllTags.Count / 25))
-        .ToArray();
+        .Take(Math.Max(8, AllTags.Count() / 25));
 
     [JsonIgnore]
-    public string[] GenreTags => AllTags
+    public IEnumerable<string> GenreTags => AllTags
         .Where(tag => Tag.GetCommonTagList(Type).Contains(tag.Name))
         .OrderByDescending(tag => tag.Count)
         .Select(tag => tag.Name)
-        .Take(4)
-        .ToArray();
+        .Take(4);
 
     [JsonPropertyName("infobox")]
     public JsonElement? JsonInfoBox
@@ -107,7 +105,7 @@ public class Subject
     public string? OfficialWebSite => InfoBox?.Get("官方网站");
 
     [JsonIgnore]
-    public string[]? Alias => InfoBox?.GetList("别名");
+    public IEnumerable<string>? Alias => InfoBox?.GetList("别名");
 
     [JsonIgnore]
     public DateTime? EndDate
@@ -121,10 +119,10 @@ public class Subject
         }
     }
 
-    public static List<Subject> SortBySimilarity(IEnumerable<Subject> list, string keyword)
+    public static IEnumerable<Subject> SortBySimilarity(IEnumerable<Subject> list, string keyword)
     {
 #if EMBY
-        return list
+        return list;
 #else
         var instance = new Levenshtein(keyword);
         return list
@@ -133,15 +131,14 @@ public class Subject
                     instance.DistanceFrom(subject.ChineseName ?? subject.OriginalName),
                     instance.DistanceFrom(subject.OriginalName)
                 )
-            )
+            );
 #endif
-            .ToList();
     }
 
-    public static List<Subject> SortByFuzzScore(IEnumerable<Subject> list, string keyword)
+    public static IEnumerable<Subject> SortByFuzzScore(IEnumerable<Subject> list, string keyword)
     {
 #if EMBY
-        return list.ToList();
+        return list;
 #else
         keyword = keyword.ToLower();
 
@@ -151,15 +148,18 @@ public class Subject
                     ? Fuzz.Ratio(subject.ChineseName.ToLower(), keyword)
                     : 0;
                 var originalNameScore = Fuzz.Ratio(subject.OriginalName.ToLower(), keyword);
-                var aliasScore = subject.Alias?.Select(alias => Fuzz.Ratio(alias.ToLower(), keyword)) ?? Enumerable.Empty<int>();
+                var aliasScore = subject.Alias?.Select(alias => Fuzz.Ratio(alias.ToLower(), keyword)) ?? [];
 
                 var maxScore = Math.Max(chineseNameScore, Math.Max(originalNameScore, aliasScore.DefaultIfEmpty(int.MinValue).Max()));
 
-                return new { Subject = subject, Score = maxScore };
+                return new
+                {
+                    Subject = subject,
+                    Score = maxScore
+                };
             })
             .OrderByDescending(pair => pair.Score)
-            .Select(pair => pair.Subject)
-            .ToList();
+            .Select(pair => pair.Subject);
 
         return score;
 #endif

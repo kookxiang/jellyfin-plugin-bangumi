@@ -16,13 +16,13 @@ public class MusicArtistProvider(BangumiApi api)
 
     public string Name => Constants.ProviderName;
 
-    public async Task<MetadataResult<MusicArtist>> GetMetadata(ArtistInfo info, CancellationToken token)
+    public async Task<MetadataResult<MusicArtist>> GetMetadata(ArtistInfo info, CancellationToken cancellationToken)
     {
-        token.ThrowIfCancellationRequested();
+        cancellationToken.ThrowIfCancellationRequested();
         var result = new MetadataResult<MusicArtist> { ResultLanguage = Constants.Language };
         if (!int.TryParse(info.ProviderIds?.GetValueOrDefault(Constants.ProviderName), out var personId))
             return result;
-        var person = await api.GetPerson(personId, token);
+        var person = await api.GetPerson(personId, cancellationToken);
         if (person == null)
             return result;
         result.HasMetadata = true;
@@ -37,13 +37,13 @@ public class MusicArtistProvider(BangumiApi api)
         return result;
     }
 
-    public Task<IEnumerable<RemoteSearchResult>> GetSearchResults(ArtistInfo searchInfo, CancellationToken token)
+    public Task<IEnumerable<RemoteSearchResult>> GetSearchResults(ArtistInfo searchInfo, CancellationToken cancellationToken)
     {
         throw new NotImplementedException();
     }
 
-    public async Task<HttpResponseMessage> GetImageResponse(string url, CancellationToken token)
+    public async Task<HttpResponseMessage> GetImageResponse(string url, CancellationToken cancellationToken)
     {
-        return await api.GetHttpClient().GetAsync(url, token).ConfigureAwait(false);
+        return await api.GetHttpClient().GetAsync(url, cancellationToken).ConfigureAwait(false);
     }
 }

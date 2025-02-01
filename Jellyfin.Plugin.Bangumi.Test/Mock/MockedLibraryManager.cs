@@ -23,7 +23,7 @@ namespace Jellyfin.Plugin.Bangumi.Test.Mock;
 
 public class MockedLibraryManager : ILibraryManager
 {
-    public BaseItem ResolvePath(FileSystemMetadata fileInfo, Folder parent = null, IDirectoryService directoryService = null)
+    public BaseItem? ResolvePath(FileSystemMetadata fileInfo, Folder? parent = null, IDirectoryService? directoryService = null)
     {
         throw new NotImplementedException();
     }
@@ -33,12 +33,12 @@ public class MockedLibraryManager : ILibraryManager
         throw new NotImplementedException();
     }
 
-    public MediaBrowser.Controller.Entities.Person GetPerson(string name)
+    public MediaBrowser.Controller.Entities.Person? GetPerson(string name)
     {
         throw new NotImplementedException();
     }
 
-    public BaseItem FindByPath(string path, bool? isFolder)
+    public BaseItem? FindByPath(string path, bool? isFolder)
     {
         return null;
     }
@@ -83,11 +83,6 @@ public class MockedLibraryManager : ILibraryManager
         throw new NotImplementedException();
     }
 
-    public Task ValidateTopLibraryFolders(CancellationToken cancellationToken, bool removeRoot = false)
-    {
-        throw new NotImplementedException();
-    }
-
     public Task UpdateImagesAsync(BaseItem item, bool forceUpdate = false)
     {
         throw new NotImplementedException();
@@ -103,22 +98,22 @@ public class MockedLibraryManager : ILibraryManager
         throw new NotImplementedException();
     }
 
-    public BaseItem GetItemById(Guid id)
+    public BaseItem? GetItemById(Guid id)
     {
         throw new NotImplementedException();
     }
 
-    public T GetItemById<T>(Guid id) where T : BaseItem
+    public T? GetItemById<T>(Guid id) where T : BaseItem
     {
         throw new NotImplementedException();
     }
 
-    public T GetItemById<T>(Guid id, Guid userId) where T : BaseItem
+    public T? GetItemById<T>(Guid id, Guid userId) where T : BaseItem
     {
         throw new NotImplementedException();
     }
 
-    public T GetItemById<T>(Guid id, User user) where T : BaseItem
+    public T? GetItemById<T>(Guid id, User? user) where T : BaseItem
     {
         throw new NotImplementedException();
     }
@@ -133,12 +128,12 @@ public class MockedLibraryManager : ILibraryManager
         throw new NotImplementedException();
     }
 
-    public IEnumerable<BaseItem> Sort(IEnumerable<BaseItem> items, User user, IEnumerable<ItemSortBy> sortBy, SortOrder sortOrder)
+    public IEnumerable<BaseItem> Sort(IEnumerable<BaseItem> items, User? user, IEnumerable<ItemSortBy> sortBy, SortOrder sortOrder)
     {
         throw new NotImplementedException();
     }
 
-    public IEnumerable<BaseItem> Sort(IEnumerable<BaseItem> items, User user, IEnumerable<(ItemSortBy OrderBy, SortOrder SortOrder)> orderBy)
+    public IEnumerable<BaseItem> Sort(IEnumerable<BaseItem> items, User? user, IEnumerable<(ItemSortBy OrderBy, SortOrder SortOrder)> orderBy)
     {
         throw new NotImplementedException();
     }
@@ -148,12 +143,12 @@ public class MockedLibraryManager : ILibraryManager
         throw new NotImplementedException();
     }
 
-    public void CreateItem(BaseItem item, BaseItem parent)
+    public void CreateItem(BaseItem item, BaseItem? parent)
     {
         throw new NotImplementedException();
     }
 
-    public void CreateItems(IReadOnlyList<BaseItem> items, BaseItem parent, CancellationToken cancellationToken)
+    public void CreateItems(IReadOnlyList<BaseItem> items, BaseItem? parent, CancellationToken cancellationToken)
     {
         throw new NotImplementedException();
     }
@@ -323,7 +318,7 @@ public class MockedLibraryManager : ILibraryManager
         throw new NotImplementedException();
     }
 
-    public string GetPathAfterNetworkSubstitution(string path, BaseItem ownerItem = null)
+    public string GetPathAfterNetworkSubstitution(string path, BaseItem? ownerItem = null)
     {
         throw new NotImplementedException();
     }
@@ -448,9 +443,9 @@ public class MockedLibraryManager : ILibraryManager
         throw new NotImplementedException();
     }
 
-    public AggregateFolder RootFolder { get; }
+    public AggregateFolder RootFolder { get; } = new();
     public bool IsScanRunning { get; }
-    public event EventHandler<ItemChangeEventArgs> ItemAdded;
-    public event EventHandler<ItemChangeEventArgs> ItemUpdated;
-    public event EventHandler<ItemChangeEventArgs> ItemRemoved;
+    public event EventHandler<ItemChangeEventArgs>? ItemAdded;
+    public event EventHandler<ItemChangeEventArgs>? ItemUpdated;
+    public event EventHandler<ItemChangeEventArgs>? ItemRemoved;
 }

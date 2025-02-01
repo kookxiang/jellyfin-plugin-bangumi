@@ -14,18 +14,17 @@ using Episode = MediaBrowser.Controller.Entities.TV.Episode;
 
 namespace Jellyfin.Plugin.Bangumi.ExternalIdProvider;
 
-public class EpisodeProvider(BangumiApi api, ILogger log)
-    : IRemoteMetadataProvider<Episode, EpisodeInfo>, IHasOrder
+public class EpisodeProvider(BangumiApi api, ILogger log) : IRemoteMetadataProvider<Episode, EpisodeInfo>, IHasOrder
 {
     private static PluginConfiguration Configuration => Plugin.Instance!.Configuration;
 
     public int Order => -5;
     public string Name => Constants.ProviderName;
 
-    public async Task<MetadataResult<Episode>> GetMetadata(EpisodeInfo info, CancellationToken token)
+    public async Task<MetadataResult<Episode>> GetMetadata(EpisodeInfo info, CancellationToken cancellationToken)
     {
-        token.ThrowIfCancellationRequested();
-        var episode = await GetEpisode(info, token);
+        cancellationToken.ThrowIfCancellationRequested();
+        var episode = await GetEpisode(info, cancellationToken);
 
         log.Info("metadata for {0}: {1}", info.Name, episode);
 
@@ -56,7 +55,7 @@ public class EpisodeProvider(BangumiApi api, ILogger log)
         result.Item.ParentIndexNumber = 0;
 
         // use title and overview from special episode subject if episode data is empty
-        var series = await api.GetSubject(episode.ParentId, token);
+        var series = await api.GetSubject(episode.ParentId, cancellationToken);
         if (series == null)
             return result;
 
@@ -69,32 +68,32 @@ public class EpisodeProvider(BangumiApi api, ILogger log)
         return result;
     }
 
-    public Task<IEnumerable<RemoteSearchResult>> GetSearchResults(EpisodeInfo searchInfo, CancellationToken token)
+    public Task<IEnumerable<RemoteSearchResult>> GetSearchResults(EpisodeInfo searchInfo, CancellationToken cancellationToken)
     {
         throw new NotImplementedException();
     }
 
-    public Task<HttpResponseInfo> GetImageResponse(string url, CancellationToken token)
+    public Task<HttpResponseInfo> GetImageResponse(string url, CancellationToken cancellationToken)
     {
         return api.GetHttpClient().GetResponse(new HttpRequestOptions
         {
             Url = url,
-            CancellationToken = token
+            CancellationToken = cancellationToken
         });
     }
 
-    private async Task<Model.Episode?> GetEpisode(EpisodeInfo info, CancellationToken token)
+    private async Task<Model.Episode?> GetEpisode(EpisodeInfo searchInfo, CancellationToken token)
     {
-        if (!int.TryParse(info.SeasonProviderIds.GetOrDefault(Constants.ProviderName), out var seasonId))
-            if (!int.TryParse(info.SeriesProviderIds.GetOrDefault(Constants.ProviderName), out seasonId))
+        if (!int.TryParse(searchInfo.SeasonProviderIds.GetOrDefault(Constants.ProviderName), out var seasonId))
+            if (!int.TryParse(searchInfo.SeriesProviderIds.GetOrDefault(Constants.ProviderName), out seasonId))
                 return null;
 
-        double? episodeIndex = info.IndexNumber;
+        double? episodeIndex = searchInfo.IndexNumber;
 
         if (episodeIndex is null)
             return null;
 
-        if (int.TryParse(info.GetProviderId(Constants.ProviderName), out var episodeId))
+        if (int.TryParse(searchInfo.GetProviderId(Constants.ProviderName), out var episodeId))
         {
             var episode = await api.GetEpisode(episodeId, token);
             if (episode == null)

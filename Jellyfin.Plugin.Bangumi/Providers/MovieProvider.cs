@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
@@ -21,9 +22,9 @@ public class MovieProvider(BangumiApi api, Logger<MovieProvider> log)
 
     public string Name => Constants.ProviderName;
 
-    public async Task<MetadataResult<Movie>> GetMetadata(MovieInfo info, CancellationToken token)
+    public async Task<MetadataResult<Movie>> GetMetadata(MovieInfo info, CancellationToken cancellationToken)
     {
-        token.ThrowIfCancellationRequested();
+        cancellationToken.ThrowIfCancellationRequested();
         var baseName = Path.GetFileName(info.Path);
         var result = new MetadataResult<Movie> { ResultLanguage = Constants.Language };
 
@@ -35,22 +36,22 @@ public class MovieProvider(BangumiApi api, Logger<MovieProvider> log)
         {
             var searchName = info.Name;
             log.Info("Searching {Name} in bgm.tv", searchName);
-            var searchResult = await api.SearchSubject(searchName, token);
+            var searchResult = await api.SearchSubject(searchName, cancellationToken);
             if (info.Year != null)
-                searchResult = searchResult.FindAll(x => x.ProductionYear == null || x.ProductionYear == info.Year.ToString());
-            if (searchResult.Count > 0)
-                subjectId = searchResult[0].Id;
+                searchResult = searchResult.Where(x => x.ProductionYear == null || x.ProductionYear == info.Year.ToString());
+            if (searchResult.Any())
+                subjectId = searchResult.First().Id;
         }
 
         if (subjectId == 0 && info.OriginalTitle != null && !string.Equals(info.OriginalTitle, info.Name, StringComparison.Ordinal))
         {
             var searchName = info.OriginalTitle;
             log.Info("Searching {Name} in bgm.tv", searchName);
-            var searchResult = await api.SearchSubject(searchName, token);
+            var searchResult = await api.SearchSubject(searchName, cancellationToken);
             if (info.Year != null)
-                searchResult = searchResult.FindAll(x => x.ProductionYear == null || x.ProductionYear == info.Year.ToString());
-            if (searchResult.Count > 0)
-                subjectId = searchResult[0].Id;
+                searchResult = searchResult.Where(x => x.ProductionYear == null || x.ProductionYear == info.Year.ToString());
+            if (searchResult.Any())
+                subjectId = searchResult.First().Id;
         }
 
         if (subjectId == 0 && Configuration.AlwaysGetTitleByAnitomySharp)
@@ -59,17 +60,17 @@ public class MovieProvider(BangumiApi api, Logger<MovieProvider> log)
             var searchName = anitomy.ExtractAnimeTitle() ?? info.Name;
             log.Info("Searching {Name} in bgm.tv", searchName);
             // 不保证使用非原名或中文进行查询时返回正确结果
-            var searchResult = await api.SearchSubject(searchName, token);
+            var searchResult = await api.SearchSubject(searchName, cancellationToken);
             if (info.Year != null)
-                searchResult = searchResult.FindAll(x => x.ProductionYear == null || x.ProductionYear == info.Year.ToString());
-            if (searchResult.Count > 0)
-                subjectId = searchResult[0].Id;
+                searchResult = searchResult.Where(x => x.ProductionYear == null || x.ProductionYear == info.Year.ToString());
+            if (searchResult.Any())
+                subjectId = searchResult.First().Id;
         }
 
         if (subjectId == 0)
             return result;
 
-        var subject = await api.GetSubject(subjectId, token);
+        var subject = await api.GetSubject(subjectId, cancellationToken);
         if (subject == null)
             return result;
 
@@ -81,8 +82,8 @@ public class MovieProvider(BangumiApi api, Logger<MovieProvider> log)
         result.Item.Name = subject.Name;
         result.Item.OriginalTitle = subject.OriginalName;
         result.Item.Overview = string.IsNullOrEmpty(subject.Summary) ? null : subject.Summary;
-        result.Item.Tags = subject.PopularTags;
-        result.Item.Genres = subject.GenreTags;
+        result.Item.Tags = subject.PopularTags.ToArray();
+        result.Item.Genres = subject.GenreTags.ToArray();
         result.Item.HomePageUrl = subject.OfficialWebSite;
         result.Item.EndDate = subject.EndDate;
 
@@ -94,21 +95,20 @@ public class MovieProvider(BangumiApi api, Logger<MovieProvider> log)
         if (subject.IsNSFW)
             result.Item.OfficialRating = "X";
 
-        (await api.GetSubjectPersonInfos(subject.Id, token)).ForEach(result.AddPerson);
-        (await api.GetSubjectCharacters(subject.Id, token)).ForEach(result.AddPerson);
+        (await api.GetSubjectPersonInfos(subject.Id, cancellationToken)).ToList().ForEach(result.AddPerson);
+        (await api.GetSubjectCharacters(subject.Id, cancellationToken)).ToList().ForEach(result.AddPerson);
 
         return result;
     }
 
-    public async Task<IEnumerable<RemoteSearchResult>> GetSearchResults(MovieInfo searchInfo,
-        CancellationToken token)
+    public async Task<IEnumerable<RemoteSearchResult>> GetSearchResults(MovieInfo searchInfo, CancellationToken cancellationToken)
     {
-        token.ThrowIfCancellationRequested();
+        cancellationToken.ThrowIfCancellationRequested();
         var results = new List<RemoteSearchResult>();
 
         if (int.TryParse(searchInfo.ProviderIds.GetOrDefault(Constants.ProviderName), out var id))
         {
-            var subject = await api.GetSubject(id, token);
+            var subject = await api.GetSubject(id, cancellationToken);
             if (subject == null)
                 return results;
             var result = new RemoteSearchResult
@@ -127,7 +127,7 @@ public class MovieProvider(BangumiApi api, Logger<MovieProvider> log)
         }
         else if (!string.IsNullOrEmpty(searchInfo.Name))
         {
-            var series = await api.SearchSubject(searchInfo.Name, token);
+            var series = await api.SearchSubject(searchInfo.Name, cancellationToken);
             foreach (var item in series)
             {
                 var itemId = $"{item.Id}";
@@ -153,8 +153,8 @@ public class MovieProvider(BangumiApi api, Logger<MovieProvider> log)
         return results;
     }
 
-    public async Task<HttpResponseMessage> GetImageResponse(string url, CancellationToken token)
+    public async Task<HttpResponseMessage> GetImageResponse(string url, CancellationToken cancellationToken)
     {
-        return await api.GetHttpClient().GetAsync(url, token).ConfigureAwait(false);
+        return await api.GetHttpClient().GetAsync(url, cancellationToken).ConfigureAwait(false);
     }
 }

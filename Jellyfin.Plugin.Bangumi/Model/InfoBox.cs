@@ -59,7 +59,7 @@ public class InfoBox : Dictionary<string, string>
             throw new FormatException("text not begin with defined pattern");
         while ((line = reader.ReadLine()) != EndPattern)
         {
-            if (line?.StartsWith("|") != true)
+            if (line?.StartsWith('|') != true)
                 continue;
             var parts = line.Split('=', 2);
             if (parts.Length != 2)
@@ -68,7 +68,7 @@ public class InfoBox : Dictionary<string, string>
             if (parts[1] == "{")
                 while ((line = reader.ReadLine()) != "}" && line != null)
                 {
-                    if (!line.StartsWith("[") || !line.EndsWith("]"))
+                    if (!line.StartsWith('[') || !line.EndsWith(']'))
                         continue;
                     line = line.Substring(1, line.Length - 2);
                     var subParts = line.Split('|', 2);
@@ -91,7 +91,7 @@ public class InfoBox : Dictionary<string, string>
         return TryGetValue(key, out var value) ? value : null;
     }
 
-    public string[]? GetList(string key)
+    public IEnumerable<string>? GetList(string key)
     {
         return TryGetValue(key, out var value) ? value.Split("\n") : null;
     }

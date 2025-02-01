@@ -112,13 +112,12 @@ public partial class BangumiApi(IHttpClientFactory httpClientFactory, ArchiveDat
         httpClient.Timeout = TimeSpan.FromMilliseconds(_plugin.Configuration.RequestTimeout);
         return httpClient;
     }
+}
 
-    public class JsonContent : StringContent
+public class JsonContent : StringContent
+{
+    public JsonContent(object obj) : base(JsonSerializer.Serialize(obj, Constants.JsonSerializerOptions), Encoding.UTF8, "application/json")
     {
-        public JsonContent(object obj) : base(JsonSerializer.Serialize(obj, Constants.JsonSerializerOptions), Encoding.UTF8,
-            "application/json")
-        {
-            Headers.ContentType!.CharSet = null;
-        }
+        Headers.ContentType!.CharSet = null;
     }
 }

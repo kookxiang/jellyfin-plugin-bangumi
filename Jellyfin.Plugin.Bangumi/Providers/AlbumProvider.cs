@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
@@ -22,9 +23,9 @@ public class AlbumProvider(BangumiApi api, Logger<AlbumProvider> log)
 
     public string Name => Constants.ProviderName;
 
-    public async Task<MetadataResult<MusicAlbum>> GetMetadata(AlbumInfo info, CancellationToken token)
+    public async Task<MetadataResult<MusicAlbum>> GetMetadata(AlbumInfo info, CancellationToken cancellationToken)
     {
-        token.ThrowIfCancellationRequested();
+        cancellationToken.ThrowIfCancellationRequested();
         var baseName = Path.GetFileName(info.Path);
         var result = new MetadataResult<MusicAlbum> { ResultLanguage = Constants.Language };
 
@@ -36,22 +37,22 @@ public class AlbumProvider(BangumiApi api, Logger<AlbumProvider> log)
         {
             var searchName = info.Name;
             log.Info("Searching {Name} in bgm.tv", searchName);
-            var searchResult = await api.SearchSubject(searchName, SubjectType.Music, token);
+            var searchResult = await api.SearchSubject(searchName, SubjectType.Music, cancellationToken);
             if (info.Year != null)
-                searchResult = searchResult.FindAll(x => x.ProductionYear == null || x.ProductionYear == info.Year.ToString());
-            if (searchResult.Count > 0)
-                subjectId = searchResult[0].Id;
+                searchResult = searchResult.Where(x => x.ProductionYear == null || x.ProductionYear == info.Year?.ToString());
+            if (searchResult.Any())
+                subjectId = searchResult.First().Id;
         }
 
         if (subjectId == 0 && info.OriginalTitle != null && !string.Equals(info.OriginalTitle, info.Name, StringComparison.Ordinal))
         {
             var searchName = info.OriginalTitle;
             log.Info("Searching {Name} in bgm.tv", searchName);
-            var searchResult = await api.SearchSubject(searchName, SubjectType.Music, token);
+            var searchResult = await api.SearchSubject(searchName, SubjectType.Music, cancellationToken);
             if (info.Year != null)
-                searchResult = searchResult.FindAll(x => x.ProductionYear == null || x.ProductionYear == info.Year.ToString());
-            if (searchResult.Count > 0)
-                subjectId = searchResult[0].Id;
+                searchResult = searchResult.Where(x => x.ProductionYear == null || x.ProductionYear == info.Year?.ToString());
+            if (searchResult.Any())
+                subjectId = searchResult.First().Id;
         }
 
         if (subjectId == 0 && Configuration.AlwaysGetTitleByAnitomySharp)
@@ -60,17 +61,17 @@ public class AlbumProvider(BangumiApi api, Logger<AlbumProvider> log)
             var searchName = anitomy.ExtractAnimeTitle() ?? info.Name;
             log.Info("Searching {Name} in bgm.tv", searchName);
             // 不保证使用非原名或中文进行查询时返回正确结果
-            var searchResult = await api.SearchSubject(searchName, SubjectType.Music, token);
+            var searchResult = await api.SearchSubject(searchName, SubjectType.Music, cancellationToken);
             if (info.Year != null)
-                searchResult = searchResult.FindAll(x => x.ProductionYear == null || x.ProductionYear == info.Year.ToString());
-            if (searchResult.Count > 0)
-                subjectId = searchResult[0].Id;
+                searchResult = searchResult.Where(x => x.ProductionYear == null || x.ProductionYear == info.Year?.ToString());
+            if (searchResult.Any())
+                subjectId = searchResult.First().Id;
         }
 
         if (subjectId == 0)
             return result;
 
-        var subject = await api.GetSubject(subjectId, token);
+        var subject = await api.GetSubject(subjectId, cancellationToken);
         if (subject == null)
             return result;
 
@@ -82,8 +83,8 @@ public class AlbumProvider(BangumiApi api, Logger<AlbumProvider> log)
         result.Item.Name = subject.Name;
         result.Item.OriginalTitle = subject.OriginalName;
         result.Item.Overview = string.IsNullOrEmpty(subject.Summary) ? null : subject.Summary;
-        result.Item.Tags = subject.PopularTags;
-        result.Item.Genres = subject.GenreTags;
+        result.Item.Tags = subject.PopularTags.ToArray();
+        result.Item.Genres = subject.GenreTags.ToArray();
 
         if (DateTime.TryParse(subject.AirDate, out var airDate))
         {
@@ -94,21 +95,20 @@ public class AlbumProvider(BangumiApi api, Logger<AlbumProvider> log)
         if (subject.ProductionYear?.Length == 4)
             result.Item.ProductionYear = int.Parse(subject.ProductionYear);
 
-        var persons = await api.GetSubjectPersons(subject.Id, token);
-        result.Item.AlbumArtists = persons?.FindAll(person => person.Type == 3)?.ConvertAll(person => person.Name);
+        var persons = await api.GetSubjectPersons(subject.Id, cancellationToken);
+        result.Item.AlbumArtists = persons?.Where(person => person.Type == 3).Select(person => person.Name).ToList();
 
         return result;
     }
 
-    public async Task<IEnumerable<RemoteSearchResult>> GetSearchResults(AlbumInfo searchInfo,
-        CancellationToken token)
+    public async Task<IEnumerable<RemoteSearchResult>> GetSearchResults(AlbumInfo searchInfo, CancellationToken cancellationToken)
     {
-        token.ThrowIfCancellationRequested();
+        cancellationToken.ThrowIfCancellationRequested();
         var results = new List<RemoteSearchResult>();
 
         if (int.TryParse(searchInfo.ProviderIds.GetOrDefault(Constants.ProviderName), out var id))
         {
-            var subject = await api.GetSubject(id, token);
+            var subject = await api.GetSubject(id, cancellationToken);
             if (subject == null)
                 return results;
             var result = new RemoteSearchResult
@@ -127,7 +127,7 @@ public class AlbumProvider(BangumiApi api, Logger<AlbumProvider> log)
         }
         else if (!string.IsNullOrEmpty(searchInfo.Name))
         {
-            var series = await api.SearchSubject(searchInfo.Name, SubjectType.Music, token);
+            var series = await api.SearchSubject(searchInfo.Name, SubjectType.Music, cancellationToken);
             foreach (var item in series)
             {
                 var itemId = $"{item.Id}";
@@ -153,8 +153,8 @@ public class AlbumProvider(BangumiApi api, Logger<AlbumProvider> log)
         return results;
     }
 
-    public async Task<HttpResponseMessage> GetImageResponse(string url, CancellationToken token)
+    public async Task<HttpResponseMessage> GetImageResponse(string url, CancellationToken cancellationToken)
     {
-        return await api.GetHttpClient().GetAsync(url, token).ConfigureAwait(false);
+        return await api.GetHttpClient().GetAsync(url, cancellationToken).ConfigureAwait(false);
     }
 }

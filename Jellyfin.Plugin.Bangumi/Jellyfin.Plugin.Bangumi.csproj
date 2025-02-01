@@ -1,27 +1,24 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-    <PropertyGroup>
-        <TargetFramework>net8.0</TargetFramework>
-        <RootNamespace>Jellyfin.Plugin.Bangumi</RootNamespace>
-        <AssemblyVersion>1.7.0.0</AssemblyVersion>
-        <FileVersion>1.7.0.0</FileVersion>
-        <Nullable>enable</Nullable>
-    </PropertyGroup>
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <RootNamespace>Jellyfin.Plugin.Bangumi</RootNamespace>
+  </PropertyGroup>
 
-    <ItemGroup>
-        <PackageReference Include="AnitomySharp.NET6" />
-        <PackageReference Include="Fastenshtein" />
-        <PackageReference Include="FuzzySharp" />
-        <PackageReference Include="Jellyfin.Controller" IncludeAssets="compile" />
-        <PackageReference Include="Newtonsoft.Json" IncludeAssets="compile" />
-    </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="AnitomySharp.NET6"/>
+    <PackageReference Include="Fastenshtein"/>
+    <PackageReference Include="FuzzySharp"/>
+    <PackageReference Include="Jellyfin.Controller" IncludeAssets="compile"/>
+    <PackageReference Include="Newtonsoft.Json" IncludeAssets="compile"/>
+  </ItemGroup>
 
-    <ItemGroup>
-        <None Remove="Configuration\configPage.html" />
-        <EmbeddedResource Include="Configuration\ConfigPage.html" />
-    </ItemGroup>
+  <ItemGroup>
+    <None Remove="Configuration\configPage.html"/>
+    <EmbeddedResource Include="Configuration\ConfigPage.html"/>
+  </ItemGroup>
 
-    <ItemGroup>
-        <InternalsVisibleTo Include="Jellyfin.Plugin.Bangumi.Test" />
-    </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="Jellyfin.Plugin.Bangumi.Test"/>
+  </ItemGroup>
 </Project>

@@ -16,14 +16,14 @@ public class PersonProvider(BangumiApi api)
 
     public string Name => Constants.ProviderName;
 
-    public async Task<MetadataResult<Person>> GetMetadata(PersonLookupInfo info, CancellationToken token)
+    public async Task<MetadataResult<Person>> GetMetadata(PersonLookupInfo info, CancellationToken cancellationToken)
     {
-        token.ThrowIfCancellationRequested();
+        cancellationToken.ThrowIfCancellationRequested();
         var result = new MetadataResult<Person> { ResultLanguage = Constants.Language };
         if (!int.TryParse(info.ProviderIds?.GetValueOrDefault(Constants.ProviderName), out var personId))
             return result;
 
-        var person = await api.GetPerson(personId, token);
+        var person = await api.GetPerson(personId, cancellationToken);
 
         // return if person still not found
         if (person == null)
@@ -44,15 +44,15 @@ public class PersonProvider(BangumiApi api)
         return result;
     }
 
-    public async Task<IEnumerable<RemoteSearchResult>> GetSearchResults(PersonLookupInfo searchInfo, CancellationToken token)
+    public async Task<IEnumerable<RemoteSearchResult>> GetSearchResults(PersonLookupInfo searchInfo, CancellationToken cancellationToken)
     {
-        token.ThrowIfCancellationRequested();
+        cancellationToken.ThrowIfCancellationRequested();
         var results = new List<RemoteSearchResult>();
 
         if (!int.TryParse(searchInfo.ProviderIds.GetOrDefault(Constants.ProviderName), out var id))
             throw new NotImplementedException();
 
-        var person = await api.GetPerson(id, token);
+        var person = await api.GetPerson(id, cancellationToken);
         if (person == null)
             return results;
 
@@ -69,8 +69,8 @@ public class PersonProvider(BangumiApi api)
         return results;
     }
 
-    public async Task<HttpResponseMessage> GetImageResponse(string url, CancellationToken token)
+    public async Task<HttpResponseMessage> GetImageResponse(string url, CancellationToken cancellationToken)
     {
-        return await api.GetHttpClient().GetAsync(url, token).ConfigureAwait(false);
+        return await api.GetHttpClient().GetAsync(url, cancellationToken).ConfigureAwait(false);
     }
 }

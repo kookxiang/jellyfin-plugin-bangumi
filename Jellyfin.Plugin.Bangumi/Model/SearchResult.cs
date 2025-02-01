@@ -2,7 +2,7 @@ using System.Collections.Generic;
 
 namespace Jellyfin.Plugin.Bangumi.Model;
 
-internal class SearchResult<T>
+public class SearchResult<T>
 {
     public int Total { get; set; }
 
@@ -11,7 +11,7 @@ internal class SearchResult<T>
     public int Limit { get; set; }
 
     // FIXME: workaround for old search api
-    public List<T>? List { get; set; }
+    public IEnumerable<T>? List { get; set; }
 
-    public List<T>? Data { get; set; }
+    public IEnumerable<T>? Data { get; set; }
 }

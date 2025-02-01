@@ -10,7 +10,7 @@ namespace Jellyfin.Plugin.Bangumi;
 
 public class Plugin : BasePlugin<PluginConfiguration>, IHasWebPages
 {
-    public static Plugin? Instance;
+    internal static Plugin? Instance;
 
     public Plugin(IApplicationPaths applicationPaths, IXmlSerializer xmlSerializer) : base(applicationPaths, xmlSerializer)
     {
@@ -23,8 +23,8 @@ public class Plugin : BasePlugin<PluginConfiguration>, IHasWebPages
 
     public IEnumerable<PluginPageInfo> GetPages()
     {
-        return new[]
-        {
+        return
+        [
             new PluginPageInfo
             {
                 Name = Constants.ProviderName,
@@ -39,6 +39,6 @@ public class Plugin : BasePlugin<PluginConfiguration>, IHasWebPages
                 Name = "BangumiJS",
                 EmbeddedResourcePath = $"{GetType().Namespace}.Configuration.ConfigPage.js"
             }
-        };
+        ];
     }
 }

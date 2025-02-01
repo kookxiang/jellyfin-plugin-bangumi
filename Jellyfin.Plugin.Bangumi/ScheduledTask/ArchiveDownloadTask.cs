@@ -33,19 +33,19 @@ public class ArchiveDownloadTask(BangumiApi api, ArchiveData archive, ITaskManag
         ];
     }
 
-    public async Task ExecuteAsync(IProgress<double> progress, CancellationToken token)
+    public async Task ExecuteAsync(IProgress<double> progress, CancellationToken cancellationToken)
     {
         Directory.CreateDirectory(archive.BasePath);
         Directory.CreateDirectory(archive.TempPath);
 
-        var archiveMeta = await GetLatestArchiveMeta(token);
+        var archiveMeta = await GetLatestArchiveMeta(cancellationToken);
 
         progress.Report(5);
         log.Info("download bangumi archive data from {Url}", archiveMeta.DownloadUrl);
 
         var downloadingProgress = new Progress<double>();
         downloadingProgress.ProgressChanged += (sender, args) => progress.Report(5D + 55D * args);
-        using var memoryStream = await api.FetchStream(archiveMeta.DownloadUrl, downloadingProgress, token);
+        using var memoryStream = await api.FetchStream(archiveMeta.DownloadUrl, downloadingProgress, cancellationToken);
         log.Info("download complete, total size: {Size}", memoryStream.Length);
         progress.Report(60);
 
@@ -63,31 +63,31 @@ public class ArchiveDownloadTask(BangumiApi api, ArchiveData archive, ITaskManag
             var entry = zipStream.GetEntry(fileName);
             if (entry == null)
                 throw new FileNotFoundException($"{fileName} not found in archive file");
-            progress.Report(65D + 30D * (completed + 0.2D) / archive.Stores.Count);
+            progress.Report(65D + (30D * (completed + 0.2D) / archive.Stores.Count));
 
             await using (var writeStream = File.OpenWrite(newStore.FilePath))
             {
                 await using var readStream = entry.Open();
-                await readStream.CopyToAsync(writeStream, token);
-                await writeStream.FlushAsync(token);
+                await readStream.CopyToAsync(writeStream, cancellationToken);
+                await writeStream.FlushAsync(cancellationToken);
             }
 
-            progress.Report(65D + 30D * (completed + 0.5D) / archive.Stores.Count);
+            progress.Report(65D + (30D * (completed + 0.5D) / archive.Stores.Count));
 
             log.Info("generating index for {TempName}", $"temp/{newFileName}");
-            await newStore.GenerateIndex(token);
-            progress.Report(65D + 30D * (completed + 0.8D) / archive.Stores.Count);
+            await newStore.GenerateIndex(cancellationToken);
+            progress.Report(65D + (30D * (completed + 0.8D) / archive.Stores.Count));
 
             log.Info("replacing {FileName} and index files with {TempName}", fileName, $"temp/{newFileName}");
             await oldStore.Move(archive.TempPath, Path.GetRandomFileName());
             await newStore.Move(archive.BasePath, fileName);
 
-            progress.Report(65D + 30D * ++completed / archive.Stores.Count);
+            progress.Report(65D + (30D * ++completed / archive.Stores.Count));
         }
 
-        await archive.SubjectRelations.GenerateIndex(zipStream, token);
-        await archive.SubjectEpisodeRelation.GenerateIndex(token);
-        await archive.SubjectPersonRelation.GenerateIndex(zipStream, token);
+        await archive.SubjectRelations.GenerateIndex(zipStream, cancellationToken);
+        await archive.SubjectEpisodeRelation.GenerateIndex(cancellationToken);
+        await archive.SubjectPersonRelation.GenerateIndex(zipStream, cancellationToken);
 
         log.Info("update completed. cleaning up temp files");
         Directory.Delete(archive.TempPath, true);
@@ -100,7 +100,7 @@ public class ArchiveDownloadTask(BangumiApi api, ArchiveData archive, ITaskManag
         return (await api.Get<ArchiveReleaseMeta>(ArchiveReleaseUrl, null, token))!;
     }
 
-    public class ArchiveReleaseMeta
+    internal class ArchiveReleaseMeta
     {
         [JsonPropertyName("id")]
         public int Id { get; set; }

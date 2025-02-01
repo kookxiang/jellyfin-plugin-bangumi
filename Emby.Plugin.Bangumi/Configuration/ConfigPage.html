@@ -1,7 +1,4 @@
-﻿<div is="emby-scroller" class="view flex flex-direction-column scrollFrameY flex-grow" data-horizontal="false"
-    data-forcescrollbar="true" data-centerfocus="true" data-bindheader="true" data-title="Bangumi"
-    data-require="emby-select,emby-input,emby-checkbox,emby-button,material-icons" data-controller="__plugin/BangumiJS"
-    id="bangumiConfigurationPage">
+﻿<div class="view flex flex-direction-column scrollFrameY flex-grow" data-bindheader="true" data-centerfocus="true" data-controller="__plugin/BangumiJS" data-forcescrollbar="true" data-horizontal="false" data-require="emby-select,emby-input,emby-checkbox,emby-button,material-icons" data-title="Bangumi" id="bangumiConfigurationPage" is="emby-scroller">
     <div
         class="scrollSlider flex-grow flex-direction-column padded-left padded-left-page padded-right padded-top-page padded-bottom-page">
 
@@ -96,22 +93,20 @@
                         </div>
                     </div>
                     <div class="bangumi-oauth-status"></div>
-                    <button class="raised emby-button" id="bangumi-oauth-refresh" is="emby-button" style="display: none"
-                        type="button">
+                    <button class="raised emby-button" id="bangumi-oauth-refresh" is="emby-button" style="display: none" type="button">
                         <span>延长授权时间</span>
                     </button>
                     <button class="raised emby-button" id="bangumi-oauth-btn" is="emby-button" type="button">
                         <span>授权登录 Bangumi</span>
                     </button>
-                    <button class="raised emby-button" id="bangumi-oauth-delete" is="emby-button" style="display: none"
-                        type="button">
+                    <button class="raised emby-button" id="bangumi-oauth-delete" is="emby-button" style="display: none" type="button">
                         <span>取消授权</span>
                     </button>
                 </div>
                 <div class="selectContainer">
                     <div class="checkboxContainer checkboxContainer-withDescription">
                         <label class="emby-checkbox-label">
-                            <input id="ReportPlaybackStatusToBangumi" is="emby-checkbox" type="checkbox" />
+                            <input id="ReportPlaybackStatusToBangumi" is="emby-checkbox" type="checkbox"/>
                             <span>同步播放进度到 Bangumi</span>
                         </label>
                     </div>
@@ -119,7 +114,7 @@
                 <div class="selectContainer">
                     <div class="checkboxContainer checkboxContainer-withDescription">
                         <label class="emby-checkbox-label">
-                            <input id="ReportManualStatusChangeToBangumi" is="emby-checkbox" type="checkbox" />
+                            <input id="ReportManualStatusChangeToBangumi" is="emby-checkbox" type="checkbox"/>
                             <span>同步手动更新后的播放状态到 Bangumi</span>
                         </label>
                     </div>
@@ -127,7 +122,7 @@
                 <div class="selectContainer">
                     <div class="checkboxContainer checkboxContainer-withDescription">
                         <label class="emby-checkbox-label">
-                            <input id="SkipNSFWPlaybackReport" is="emby-checkbox" type="checkbox" />
+                            <input id="SkipNSFWPlaybackReport" is="emby-checkbox" type="checkbox"/>
                             <span>忽略被标记为 NSFW 的内容</span>
                         </label>
                     </div>
@@ -138,7 +133,7 @@
                     </div>
                 </div>
                 <div class="selectContainer">
-                    <select is="emby-select" id="RequestTimeout" label="请求超时时间">
+                    <select id="RequestTimeout" is="emby-select" label="请求超时时间">
                         <option value="5000">5 秒</option>
                         <option value="10000">10 秒</option>
                         <option value="30000">30 秒</option>
@@ -151,7 +146,7 @@
                     </div>
                 </div>
                 <div class="selectContainer">
-                    <select is="emby-select" id="TranslationPreference" label="标题翻译">
+                    <select id="TranslationPreference" is="emby-select" label="标题翻译">
                         <option value="Original">优先使用日文</option>
                         <option value="Chinese">优先使用中文翻译</option>
                     </select>
@@ -159,7 +154,7 @@
                 <div class="selectContainer">
                     <div class="checkboxContainer checkboxContainer-withDescription">
                         <label class="emby-checkbox-label">
-                            <input id="UseBangumiSeasonTitle" is="emby-checkbox" type="checkbox" />
+                            <input id="UseBangumiSeasonTitle" is="emby-checkbox" type="checkbox"/>
                             <span>使用 Bangumi 词条作为季名称</span>
                         </label>
                     </div>
@@ -175,7 +170,7 @@
                 <div class="selectContainer">
                     <div class="checkboxContainer checkboxContainer-withDescription">
                         <label class="emby-checkbox-label">
-                            <input id="TrustExistedBangumiId" is="emby-checkbox" type="checkbox" />
+                            <input id="TrustExistedBangumiId" is="emby-checkbox" type="checkbox"/>
                             <span>始终根据配置的 Bangumi ID 获取元数据</span>
                         </label>
                     </div>

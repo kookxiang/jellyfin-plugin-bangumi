@@ -31,11 +31,12 @@ public class Book
     public async Task GetById()
     {
         var result = await _provider.GetMetadata(new BookInfo
-        {
-            Name = "Sword Art Online",
-            Path = FakePath.Create("Sword Art Online/01.epub"),
-            ProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "8071" } }
-        }, _token);
+            {
+                Name = "Sword Art Online",
+                Path = FakePath.Create("Sword Art Online/01.epub"),
+                ProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "8071" } }
+            },
+            _token);
 
         Assert.IsNotNull(result.Item, "book data should not be null");
         Assert.AreEqual("ソードアート・オンライン (1) アインクラッド", result.Item.Name, "should return correct name");
@@ -50,10 +51,11 @@ public class Book
     public async Task SearchByName()
     {
         var searchResults = await _provider.GetSearchResults(new BookInfo
-        {
-            Name = "ソードアート・オンライン 1",
-            Path = FakePath.Create("Sword Art Online/01.epub")
-        }, _token);
+            {
+                Name = "ソードアート・オンライン 1",
+                Path = FakePath.Create("Sword Art Online/01.epub")
+            },
+            _token);
         Assert.IsTrue(searchResults.Any(x => x.ProviderIds[Constants.ProviderName].Equals("8071")), "should have correct search result");
     }
 }

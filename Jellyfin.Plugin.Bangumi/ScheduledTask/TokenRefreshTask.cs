@@ -25,27 +25,25 @@ public class TokenRefreshTask(IActivityManager activity, BangumiApi api, OAuthSt
 
     public IEnumerable<TaskTriggerInfo> GetDefaultTriggers()
     {
-        return new[]
-        {
+        return
+        [
             new TaskTriggerInfo
             {
                 Type = TaskTriggerInfo.TriggerInterval,
                 IntervalTicks = TimeSpan.FromDays(1).Ticks,
                 MaxRuntimeTicks = TimeSpan.FromMinutes(10).Ticks
             }
-        };
+        ];
     }
 
 #if EMBY
-    public Task Execute(CancellationToken token, IProgress<double> progress)
+    public Task Execute(CancellationToken cancellationToken, IProgress<double> progress)
     {
-        var task = Task.Run(async () => await ExecuteAsync(progress, token));
-        task.Wait();
-        return Task.CompletedTask;
+        return ExecuteAsync(progress, cancellationToken);
     }
 #endif
 
-    public async Task ExecuteAsync(IProgress<double> progress, CancellationToken token)
+    public async Task ExecuteAsync(IProgress<double> progress, CancellationToken cancellationToken)
     {
         store.Load();
         var users = store.GetUsers();
@@ -53,7 +51,7 @@ public class TokenRefreshTask(IActivityManager activity, BangumiApi api, OAuthSt
         var total = users.Count;
         foreach (var (guid, user) in users)
         {
-            token.ThrowIfCancellationRequested();
+            cancellationToken.ThrowIfCancellationRequested();
             progress.Report(current / total);
             current++;
             if (user.Expired)
@@ -63,12 +61,12 @@ public class TokenRefreshTask(IActivityManager activity, BangumiApi api, OAuthSt
             var activityLogEntry = new ActivityLogEntry
             {
                 Name = "Bangumi 授权",
-                Type = "Bangumi",
+                Type = "Bangumi"
             };
             try
             {
-                await user.Refresh(api.GetHttpClient(), token);
-                await user.GetProfile(api, token);
+                await user.Refresh(api.GetHttpClient(), cancellationToken);
+                await user.GetProfile(api, cancellationToken);
                 activityLogEntry.ShortOverview = $"用户 #{user.UserId} 授权刷新成功";
                 activityLogEntry.Severity = LogSeverity.Info;
             }
@@ -84,8 +82,8 @@ public class TokenRefreshTask(IActivityManager activity, BangumiApi api, OAuthSt
             var activityLog = new ActivityLog("Bangumi 授权", "Bangumi", userId);
             try
             {
-                await user.Refresh(api.GetHttpClient(), token);
-                await user.GetProfile(api, token);
+                await user.Refresh(api.GetHttpClient(), cancellationToken);
+                await user.GetProfile(api, cancellationToken);
                 activityLog.ShortOverview = $"用户 #{user.UserId} 授权刷新成功";
                 activityLog.LogSeverity = LogLevel.Information;
             }

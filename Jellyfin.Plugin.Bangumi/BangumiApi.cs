@@ -25,12 +25,12 @@ public partial class BangumiApi
             ? "https://api.bgm.tv"
             : Plugin.Instance!.Configuration.BaseServerUrl.TrimEnd('/');
 
-    public Task<List<Subject>> SearchSubject(string keyword, CancellationToken token)
+    public Task<IEnumerable<Subject>> SearchSubject(string keyword, CancellationToken token)
     {
         return SearchSubject(keyword, SubjectType.Anime, token);
     }
 
-    public async Task<List<Subject>> SearchSubject(string keyword, SubjectType? type, CancellationToken token)
+    public async Task<IEnumerable<Subject>> SearchSubject(string keyword, SubjectType? type, CancellationToken token)
     {
         try
         {
@@ -50,7 +50,7 @@ public partial class BangumiApi
                 var searchResult = await Get<SearchResult<Subject>>(url, token);
                 var list = searchResult?.List ?? [];
 
-                if (Plugin.Instance!.Configuration.SortByFuzzScore && list.Count > 2)
+                if (Plugin.Instance.Configuration.SortByFuzzScore && list.Count() > 2)
                 {
                     // 仅使用前 5 个条目获取别名并排序
                     var num = 5;
@@ -94,15 +94,14 @@ public partial class BangumiApi
         return imageUrl == "https://lain.bgm.tv/img/no_icon_subject.png" ? null : imageUrl;
     }
 
-    public async Task<List<Episode>?> GetSubjectEpisodeList(int id, EpisodeType? type, double episodeNumber, CancellationToken token)
+    public async Task<IEnumerable<Episode>?> GetSubjectEpisodeList(int id, EpisodeType? type, double episodeNumber, CancellationToken token)
     {
         if (id <= 0) return null;
 #if !EMBY
         var episodeList = (await archive.SubjectEpisodeRelation.GetEpisodes(id))
             .Where(x => x.Type == type || type == null)
-            .Select(x => x.ToEpisode())
-            .ToList();
-        if (episodeList.Count > 0) return episodeList;
+            .Select(x => x.ToEpisode());
+        if (episodeList.Any()) return episodeList;
 #endif
 
         var result = await GetSubjectEpisodeListWithOffset(id, type, 0, token);
@@ -142,11 +141,11 @@ public partial class BangumiApi
             throw;
         }
 
-        if (result.Data.Exists(x => (int)x.Order == (int)episodeNumber))
+        if (result.Data.Any(x => (int)x.Order == (int)episodeNumber))
             return result.Data;
 
-        var filteredEpisodeList = result.Data.Where(x => x.Type == (type ?? EpisodeType.Normal)).ToList();
-        if (filteredEpisodeList.Count == 0)
+        var filteredEpisodeList = result.Data.Where(x => x.Type == (type ?? EpisodeType.Normal));
+        if (!filteredEpisodeList.Any())
             filteredEpisodeList = result.Data;
 
         if (filteredEpisodeList.Min(x => x.Order) > episodeNumber)
@@ -168,15 +167,15 @@ public partial class BangumiApi
         return await Get<DataList<Episode>>(url, token);
     }
 
-    public async Task<List<RelatedSubject>?> GetSubjectRelations(int id, CancellationToken token)
+    public async Task<IEnumerable<RelatedSubject>?> GetSubjectRelations(int id, CancellationToken token)
     {
         if (id <= 0) return null;
 #if !EMBY
         var relations = await archive.SubjectRelations.Get(id);
-        if (relations.Count > 0)
+        if (relations.Any())
             return relations;
 #endif
-        return await Get<List<RelatedSubject>>($"{BaseUrl}/v0/subjects/{id}/subjects", token);
+        return await Get<IEnumerable<RelatedSubject>>($"{BaseUrl}/v0/subjects/{id}/subjects", token);
     }
 
     public async Task<Subject?> SearchNextSubject(int id, CancellationToken token)
@@ -193,10 +192,10 @@ public partial class BangumiApi
 
         var requestCount = 0;
         //What would happen in Emby if I use `_plugin`?
-        int maxRequestCount = Plugin.Instance?.Configuration?.SeasonGuessMaxSearchCount ?? 2;
+        var maxRequestCount = Plugin.Instance?.Configuration?.SeasonGuessMaxSearchCount ?? 2;
         var relatedSubjects = await GetSubjectRelations(id, token);
         var subjectsQueue = new Queue<RelatedSubject>(relatedSubjects?.Where(item => item.Relation == SubjectRelation.Sequel) ?? []);
-        while (subjectsQueue.Any() && requestCount < maxRequestCount)
+        while (subjectsQueue.Count > 0 && requestCount < maxRequestCount)
         {
             var relatedSubject = subjectsQueue.Dequeue();
             var subjectCandidate = await GetSubject(relatedSubject.Id, token);
@@ -221,11 +220,11 @@ public partial class BangumiApi
         return null;
     }
 
-    public async Task<List<PersonInfo>> GetSubjectCharacters(int id, CancellationToken token)
+    public async Task<IEnumerable<PersonInfo>> GetSubjectCharacters(int id, CancellationToken token)
     {
         if (id <= 0) return [];
 
-        var characters = await Get<List<RelatedCharacter>>($"{BaseUrl}/v0/subjects/{id}/characters", token);
+        var characters = await Get<IEnumerable<RelatedCharacter>>($"{BaseUrl}/v0/subjects/{id}/characters", token);
 
         return characters?
             .OrderBy(c => c.Relation switch
@@ -235,29 +234,25 @@ public partial class BangumiApi
                 "客串" => 2,
                 _ => 3
             })
-            .SelectMany(character => character.ToPersonInfos())
-            .ToList() ?? [];
+            .SelectMany(character => character.ToPersonInfos()) ?? [];
     }
 
-    public async Task<List<RelatedPerson>?> GetSubjectPersons(int id, CancellationToken token)
+    public async Task<IEnumerable<RelatedPerson>?> GetSubjectPersons(int id, CancellationToken token)
     {
         if (id <= 0) return null;
 #if !EMBY
         var relatedPerson = await archive.SubjectPersonRelation.Get(id);
-        if (relatedPerson.Count > 0)
+        if (relatedPerson.Any())
             return relatedPerson;
 #endif
-        return await Get<List<RelatedPerson>>($"{BaseUrl}/v0/subjects/{id}/persons", token);
+        return await Get<IEnumerable<RelatedPerson>>($"{BaseUrl}/v0/subjects/{id}/persons", token);
     }
 
-    public async Task<List<PersonInfo>> GetSubjectPersonInfos(int id, CancellationToken token)
+    public async Task<IEnumerable<PersonInfo>> GetSubjectPersonInfos(int id, CancellationToken token)
     {
         if (id <= 0) return [];
-        var result = new List<PersonInfo>();
         var persons = await GetSubjectPersons(id, token);
-        if (persons?.Count > 0)
-            result.AddRange(persons.Select(person => person.ToPersonInfo()).Where(info => info != null)!);
-        return result;
+        return persons?.Select(person => person.ToPersonInfo()).Where(info => info != null) as IEnumerable<PersonInfo> ?? [];
     }
 
     public async Task<Episode?> GetEpisode(int id, CancellationToken token)
@@ -306,7 +301,7 @@ public partial class BangumiApi
 
     public async Task UpdateCollectionStatus(string accessToken, int subjectId, CollectionType type, CancellationToken token)
     {
-        await Post($"{BaseUrl}/v0/users/-/collections/{subjectId}", new JsonContent(new Collection { Type = type }), accessToken, token);
+        await Post($"{BaseUrl}/v0/users/-/collections/{subjectId}", new JsonContent(new CollectionStatus { Type = type }), accessToken, token);
     }
 
     public async Task<EpisodeCollectionInfo?> GetEpisodeStatus(string accessToken, int episodeId, CancellationToken token)
@@ -320,23 +315,14 @@ public partial class BangumiApi
         var options = new HttpRequestOptions
         {
             Url = $"{BaseUrl}/v0/users/-/collections/-/episodes/{episodeId}",
-            RequestHttpContent = new JsonContent(new EpisodeCollectionInfo
-            {
-                Type = status
-            }),
-            RequestHeaders =
-            {
-                { "Authorization", "Bearer " + accessToken }
-            },
+            RequestHttpContent = new JsonContent(new EpisodeCollectionInfo { Type = status }),
+            RequestHeaders = { { "Authorization", "Bearer " + accessToken } },
             ThrowOnErrorResponse = false
         };
         await Send("PUT", options, token);
 #else
         var request = new HttpRequestMessage(HttpMethod.Put, $"{BaseUrl}/v0/users/-/collections/-/episodes/{episodeId}");
-        request.Content = new JsonContent(new EpisodeCollectionInfo
-        {
-            Type = status
-        });
+        request.Content = new JsonContent(new EpisodeCollectionInfo { Type = status });
         await Send(request, accessToken, token);
 #endif
     }

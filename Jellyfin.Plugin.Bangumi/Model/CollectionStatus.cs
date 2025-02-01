@@ -2,7 +2,7 @@ using System.Collections.Generic;
 
 namespace Jellyfin.Plugin.Bangumi.Model;
 
-public class Collection
+public class CollectionStatus
 {
     public CollectionType? Type { get; set; }
 

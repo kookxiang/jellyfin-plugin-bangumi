@@ -24,17 +24,17 @@ public class PersonImageProvider(BangumiApi api)
 
     public IEnumerable<ImageType> GetSupportedImages(BaseItem item)
     {
-        return new[] { ImageType.Primary };
+        return [ImageType.Primary];
     }
 
-    public async Task<IEnumerable<RemoteImageInfo>> GetImages(BaseItem item, CancellationToken token)
+    public async Task<IEnumerable<RemoteImageInfo>> GetImages(BaseItem item, CancellationToken cancellationToken)
     {
-        token.ThrowIfCancellationRequested();
+        cancellationToken.ThrowIfCancellationRequested();
 
         if (!int.TryParse(item.GetProviderId(Constants.ProviderName), out var id))
             return [];
 
-        var imageUrl = await api.GetPersonImage(id, token);
+        var imageUrl = await api.GetPersonImage(id, cancellationToken);
 
         if (imageUrl != null)
             return new List<RemoteImageInfo>
@@ -50,8 +50,8 @@ public class PersonImageProvider(BangumiApi api)
         return [];
     }
 
-    public async Task<HttpResponseMessage> GetImageResponse(string url, CancellationToken token)
+    public async Task<HttpResponseMessage> GetImageResponse(string url, CancellationToken cancellationToken)
     {
-        return await api.GetHttpClient().GetAsync(url, token).ConfigureAwait(false);
+        return await api.GetHttpClient().GetAsync(url, cancellationToken).ConfigureAwait(false);
     }
 }

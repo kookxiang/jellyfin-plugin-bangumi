@@ -2,7 +2,6 @@ using MediaBrowser.Controller.Entities.Movies;
 using MediaBrowser.Controller.Providers;
 using MediaBrowser.Model.Entities;
 
-
 namespace Jellyfin.Plugin.Bangumi.Extension;
 
 public class ExternalMovieId : IExternalId

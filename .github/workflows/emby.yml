@@ -16,7 +16,7 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
       - name: Patch version
-        run: sed -i "/FileVersion/s/.0</.$GITHUB_RUN_NUMBER</" **/*.csproj
+        run: sed -i "/Version/s/.0</.$GITHUB_RUN_NUMBER</" Directory.Build.props
       - name: Setup .NET 8.x
         uses: actions/setup-dotnet@v4
         with:

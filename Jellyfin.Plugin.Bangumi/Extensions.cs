@@ -20,10 +20,12 @@ public static class StringExtensions
         var content = input.ReplaceLineEndings(MarkdownForcedLineBreak);
 
         while (content.Contains(MarkdownForcedLineBreak + MarkdownForcedLineBreak + MarkdownForcedLineBreak))
+        {
             content = content.Replace(
                 MarkdownForcedLineBreak + MarkdownForcedLineBreak + MarkdownForcedLineBreak,
                 MarkdownForcedLineBreak + MarkdownForcedLineBreak
             );
+        }
 
         content = content.Replace(MarkdownForcedLineBreak + MarkdownForcedLineBreak, "\n\n");
 
@@ -61,9 +63,7 @@ public static class PathExtensions
         while (attributeIndex > -1 && attributeIndex < maxIndex)
         {
             var attributeEnd = attributeIndex + attribute.Length;
-            if (attributeIndex > 0
-                && str[attributeIndex - 1] == '['
-                && (str[attributeEnd] == '=' || str[attributeEnd] == '-'))
+            if (attributeIndex > 0 && str[attributeIndex - 1] == '[' && (str[attributeEnd] == '=' || str[attributeEnd] == '-'))
             {
                 var closingIndex = str[attributeEnd..].IndexOf(']');
                 // Must be at least 1 character before the closing bracket.

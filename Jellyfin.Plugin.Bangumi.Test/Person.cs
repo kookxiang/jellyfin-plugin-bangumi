@@ -30,10 +30,7 @@ public class Person
     public async Task GetById()
     {
         Bangumi.Plugin.Instance!.Configuration.PersonTranslationPreference = TranslationPreferenceType.Chinese;
-        var result = await _provider.GetMetadata(new PersonLookupInfo
-        {
-            ProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "7307" } }
-        }, _token);
+        var result = await _provider.GetMetadata(new PersonLookupInfo { ProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "7307" } } }, _token);
         Assert.IsNotNull(result.Item, "person info should not be null");
         Assert.AreEqual("上坂すみれ", result.Item.OriginalTitle, "should return correct name");
         Assert.AreEqual("上坂堇", result.Item.Name, "should return translated name");
@@ -43,10 +40,7 @@ public class Person
     [TestMethod]
     public async Task LineBreaksConversion()
     {
-        var result = await _provider.GetMetadata(new PersonLookupInfo
-        {
-            ProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "389" } }
-        }, _token);
+        var result = await _provider.GetMetadata(new PersonLookupInfo { ProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "389" } } }, _token);
         Assert.IsNotNull(result.Item, "person info should not be null");
         Assert.IsTrue(result.Item.Overview.Contains("<br>") || result.Item.Overview.Contains("\n\n"), "should convert line breaks to html tag");
         Assert.IsNotNull(result.Item.ProviderIds[Constants.ProviderName], "should have plugin provider id");
@@ -60,10 +54,7 @@ public class Person
         Assert.AreEqual(Constants.PluginName, _imageProvider.Name, "should have provider name");
         Assert.IsTrue(_imageProvider.Supports(person), "should support person image");
         Assert.AreEqual(ImageType.Primary, _imageProvider.GetSupportedImages(person).First(), "should support primary image");
-        var imgList = await _imageProvider.GetImages(new MediaBrowser.Controller.Entities.TV.Episode
-        {
-            ProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "5847" } }
-        }, _token);
+        var imgList = await _imageProvider.GetImages(new MediaBrowser.Controller.Entities.TV.Episode { ProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "5847" } } }, _token);
         Assert.IsTrue(imgList.Any(), "should return at least one image");
     }
 }

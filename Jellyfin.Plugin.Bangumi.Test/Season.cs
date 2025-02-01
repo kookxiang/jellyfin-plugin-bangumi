@@ -30,10 +30,11 @@ public class Season
     public async Task WithSeasonFolder()
     {
         var result = await _provider.GetMetadata(new SeasonInfo
-        {
-            Path = FakePath.Create("White Album 2/Season 1"),
-            ProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "69496" } }
-        }, _token);
+            {
+                Path = FakePath.Create("White Album 2/Season 1"),
+                ProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "69496" } }
+            },
+            _token);
         Assert.IsTrue(result.HasMetadata, "should return metadata when folder name contains season");
     }
 
@@ -42,10 +43,10 @@ public class Season
     {
         var subject = await _api.SearchNextSubject(135275, _token);
         Assert.AreEqual(174043, subject?.Id, "can guess next season by subject id");
-        
+
         subject = await _api.SearchNextSubject(152091, _token);
         Assert.AreEqual(283643, subject?.Id, "Can guess next TV season with BFS");
-        
+
         subject = await _api.SearchNextSubject(174043, _token);
         Assert.AreNotEqual(220631, subject?.Id, "should skip movie");
         Assert.AreEqual(342667, subject?.Id, "can guess next season by subject id");
@@ -64,10 +65,7 @@ public class Season
         Assert.AreEqual(Constants.PluginName, _imageProvider.Name, "should have provider name");
         Assert.IsTrue(_imageProvider.Supports(season), "should support series image");
         Assert.AreEqual(ImageType.Primary, _imageProvider.GetSupportedImages(season).First(), "should support primary image");
-        var imgList = await _imageProvider.GetImages(new MediaBrowser.Controller.Entities.TV.Season
-        {
-            ProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "69496" } }
-        }, _token);
+        var imgList = await _imageProvider.GetImages(new MediaBrowser.Controller.Entities.TV.Season { ProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "69496" } } }, _token);
         Assert.IsTrue(imgList.Any(), "should return at least one image");
     }
 }

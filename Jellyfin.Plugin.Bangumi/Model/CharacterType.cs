@@ -2,6 +2,8 @@
 
 public enum CharacterType
 {
+    None,
+
     /// 角色
     Person = 1,
 

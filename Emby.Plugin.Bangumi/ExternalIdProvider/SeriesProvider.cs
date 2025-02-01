@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Jellyfin.Plugin.Bangumi.Configuration;
@@ -21,9 +22,9 @@ public class SeriesProvider(BangumiApi api, ILogger log)
 
     public string Name => Constants.ProviderName;
 
-    public async Task<MetadataResult<Series>> GetMetadata(SeriesInfo info, CancellationToken token)
+    public async Task<MetadataResult<Series>> GetMetadata(SeriesInfo info, CancellationToken cancellationToken)
     {
-        token.ThrowIfCancellationRequested();
+        cancellationToken.ThrowIfCancellationRequested();
         var result = new MetadataResult<Series> { ResultLanguage = Constants.Language };
 
         _ = int.TryParse(info.GetProviderId(Constants.ProviderName), out var subjectId);
@@ -32,17 +33,17 @@ public class SeriesProvider(BangumiApi api, ILogger log)
         {
             var searchName = info.Name;
             log.Info("Searching {0} in bgm.tv", searchName);
-            var searchResult = await api.SearchSubject(searchName, token);
+            var searchResult = await api.SearchSubject(searchName, cancellationToken);
             if (info.Year != null)
-                searchResult = searchResult.FindAll(x => x.ProductionYear == null || x.ProductionYear == info.Year.ToString());
-            if (searchResult.Count > 0)
-                subjectId = searchResult[0].Id;
+                searchResult = searchResult.Where(x => x.ProductionYear == null || x.ProductionYear == info.Year.ToString());
+            if (searchResult.Any())
+                subjectId = searchResult.First().Id;
         }
 
         if (subjectId == 0)
             return result;
 
-        var subject = await api.GetSubject(subjectId, token);
+        var subject = await api.GetSubject(subjectId, cancellationToken);
         if (subject == null)
             return result;
 
@@ -60,7 +61,7 @@ public class SeriesProvider(BangumiApi api, ILogger log)
         if (DateTime.TryParse(subject.AirDate, out var airDate))
         {
             result.Item.AirTime = subject.AirDate;
-            result.Item.AirDays = new[] { airDate.DayOfWeek };
+            result.Item.AirDays = [airDate.DayOfWeek];
             result.Item.PremiereDate = airDate;
             result.Item.ProductionYear = airDate.Year;
         }
@@ -71,21 +72,20 @@ public class SeriesProvider(BangumiApi api, ILogger log)
         if (subject.IsNSFW)
             result.Item.OfficialRating = "X";
 
-        (await api.GetSubjectPersonInfos(subject.Id, token)).ForEach(result.AddPerson);
-        (await api.GetSubjectCharacters(subject.Id, token)).ForEach(result.AddPerson);
+        (await api.GetSubjectPersonInfos(subject.Id, cancellationToken)).ToList().ForEach(result.AddPerson);
+        (await api.GetSubjectCharacters(subject.Id, cancellationToken)).ToList().ForEach(result.AddPerson);
 
         return result;
     }
 
-    public async Task<IEnumerable<RemoteSearchResult>> GetSearchResults(SeriesInfo searchInfo,
-        CancellationToken token)
+    public async Task<IEnumerable<RemoteSearchResult>> GetSearchResults(SeriesInfo searchInfo, CancellationToken cancellationToken)
     {
-        token.ThrowIfCancellationRequested();
+        cancellationToken.ThrowIfCancellationRequested();
         var results = new List<RemoteSearchResult>();
 
         if (int.TryParse(searchInfo.GetProviderId(Constants.ProviderName), out var id))
         {
-            var subject = await api.GetSubject(id, token);
+            var subject = await api.GetSubject(id, cancellationToken);
             if (subject == null)
                 return results;
             var result = new RemoteSearchResult
@@ -104,7 +104,7 @@ public class SeriesProvider(BangumiApi api, ILogger log)
         }
         else if (!string.IsNullOrEmpty(searchInfo.Name))
         {
-            var series = await api.SearchSubject(searchInfo.Name, token);
+            var series = await api.SearchSubject(searchInfo.Name, cancellationToken);
             foreach (var item in series)
             {
                 var itemId = $"{item.Id}";
@@ -130,12 +130,12 @@ public class SeriesProvider(BangumiApi api, ILogger log)
         return results;
     }
 
-    public Task<HttpResponseInfo> GetImageResponse(string url, CancellationToken token)
+    public Task<HttpResponseInfo> GetImageResponse(string url, CancellationToken cancellationToken)
     {
         return api.GetHttpClient().GetResponse(new HttpRequestOptions
         {
             Url = url,
-            CancellationToken = token
+            CancellationToken = cancellationToken
         });
     }
 }

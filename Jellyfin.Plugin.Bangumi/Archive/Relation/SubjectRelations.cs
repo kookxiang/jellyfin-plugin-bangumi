@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
+using System.Linq;
 using System.Text;
 using System.Text.Json;
 using System.Threading;
@@ -44,13 +45,16 @@ public class SubjectRelations(ArchiveData archive)
         return _mapping.Count > 0;
     }
 
-    public async Task<List<Model.RelatedSubject>> Get(int subjectId)
+    public async Task<IEnumerable<Model.RelatedSubject>> Get(int subjectId)
     {
         await Load();
         if (!_mapping.TryGetValue(subjectId, out var rawList)) return [];
 
         var relatedSubjects = new List<Model.RelatedSubject>();
-        foreach (var relatedSubject in rawList) relatedSubjects.Add(await relatedSubject.ToRelatedSubject(archive));
+        foreach (var relatedSubject in rawList)
+        {
+            relatedSubjects.Add(await relatedSubject.ToRelatedSubject(archive));
+        }
 
         return relatedSubjects;
     }

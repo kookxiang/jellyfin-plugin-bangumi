@@ -19,10 +19,12 @@ public static class StringExtensions
         var content = input.ReplaceLineEndings(MarkdownForcedLineBreak);
 
         while (content.Contains(MarkdownForcedLineBreak + MarkdownForcedLineBreak + MarkdownForcedLineBreak))
+        {
             content = content.Replace(
                 MarkdownForcedLineBreak + MarkdownForcedLineBreak + MarkdownForcedLineBreak,
                 MarkdownForcedLineBreak + MarkdownForcedLineBreak
             );
+        }
 
         content = content.Replace(MarkdownForcedLineBreak + MarkdownForcedLineBreak, "\n\n");
 

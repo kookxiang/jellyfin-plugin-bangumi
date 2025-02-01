@@ -24,19 +24,16 @@ public class SeasonProvider(BangumiApi api, Logger<EpisodeProvider> log, ILibrar
 
     public string Name => Constants.ProviderName;
 
-    public async Task<MetadataResult<Season>> GetMetadata(SeasonInfo info, CancellationToken token)
+    public async Task<MetadataResult<Season>> GetMetadata(SeasonInfo info, CancellationToken cancellationToken)
     {
-        token.ThrowIfCancellationRequested();
+        cancellationToken.ThrowIfCancellationRequested();
         Subject? subject = null;
 
         if (string.IsNullOrEmpty(info.Path))
             return new MetadataResult<Season>();
 
         var baseName = Path.GetFileName(info.Path);
-        var result = new MetadataResult<Season>
-        {
-            ResultLanguage = Constants.Language
-        };
+        var result = new MetadataResult<Season> { ResultLanguage = Constants.Language };
         var localConfiguration = await LocalConfiguration.ForPath(info.Path);
 
         var seasonPath = Path.GetDirectoryName(info.Path);
@@ -62,13 +59,13 @@ public class SeasonProvider(BangumiApi api, Logger<EpisodeProvider> log, ILibrar
         else if (seasonPath is not null && libraryManager.FindByPath(seasonPath, true) is Series series)
         {
             var previousSeason = series.Children
-                // Search "Season 2" for "Season 1" and "Season 2 Part X"  
+                // Search "Season 2" for "Season 1" and "Season 2 Part X"
                 .Where(x => x.IndexNumber == info.IndexNumber - 1 || x.IndexNumber == info.IndexNumber)
                 .MaxBy(x => int.Parse(x.GetProviderId(Constants.ProviderName) ?? "0"));
             if (int.TryParse(previousSeason?.GetProviderId(Constants.ProviderName), out var previousSeasonId) && previousSeasonId > 0)
             {
                 log.Info("Guessing season id from previous season #{ID}", previousSeasonId);
-                subject = await api.SearchNextSubject(previousSeasonId, token);
+                subject = await api.SearchNextSubject(previousSeasonId, cancellationToken);
                 if (subject != null)
                 {
                     log.Info("Guessed result: {Name} (#{ID})", subject.Name, subject.Id);
@@ -80,7 +77,7 @@ public class SeasonProvider(BangumiApi api, Logger<EpisodeProvider> log, ILibrar
         if (subjectId <= 0)
             return result;
 
-        subject ??= await api.GetSubject(subjectId, token);
+        subject ??= await api.GetSubject(subjectId, cancellationToken);
 
         // return if subject still not found
         if (subject == null)
@@ -98,8 +95,8 @@ public class SeasonProvider(BangumiApi api, Logger<EpisodeProvider> log, ILibrar
         }
 
         result.Item.Overview = string.IsNullOrEmpty(subject.Summary) ? null : subject.Summary;
-        result.Item.Tags = subject.PopularTags;
-        result.Item.Genres = subject.GenreTags;
+        result.Item.Tags = subject.PopularTags.ToArray();
+        result.Item.Genres = subject.GenreTags.ToArray();
 
         if (DateTime.TryParse(subject.AirDate, out var airDate))
         {
@@ -116,19 +113,19 @@ public class SeasonProvider(BangumiApi api, Logger<EpisodeProvider> log, ILibrar
         if (subject.IsNSFW)
             result.Item.OfficialRating = "X";
 
-        (await api.GetSubjectPersonInfos(subject.Id, token)).ForEach(result.AddPerson);
-        (await api.GetSubjectCharacters(subject.Id, token)).ForEach(result.AddPerson);
+        (await api.GetSubjectPersonInfos(subject.Id, cancellationToken)).ToList().ForEach(result.AddPerson);
+        (await api.GetSubjectCharacters(subject.Id, cancellationToken)).ToList().ForEach(result.AddPerson);
 
         return result;
     }
 
-    public Task<IEnumerable<RemoteSearchResult>> GetSearchResults(SeasonInfo info, CancellationToken token)
+    public Task<IEnumerable<RemoteSearchResult>> GetSearchResults(SeasonInfo searchInfo, CancellationToken cancellationToken)
     {
         return Task.FromResult(Enumerable.Empty<RemoteSearchResult>());
     }
 
-    public Task<HttpResponseMessage> GetImageResponse(string url, CancellationToken token)
+    public Task<HttpResponseMessage> GetImageResponse(string url, CancellationToken cancellationToken)
     {
-        return api.GetHttpClient().GetAsync(url, token);
+        return api.GetHttpClient().GetAsync(url, cancellationToken);
     }
 }

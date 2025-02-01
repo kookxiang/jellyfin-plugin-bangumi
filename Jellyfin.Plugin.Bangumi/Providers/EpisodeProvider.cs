@@ -19,7 +19,7 @@ namespace Jellyfin.Plugin.Bangumi.Providers;
 public partial class EpisodeProvider(BangumiApi api, Logger<EpisodeProvider> log, ILibraryManager libraryManager)
     : IRemoteMetadataProvider<Episode, EpisodeInfo>, IHasOrder
 {
-    private static readonly Regex[] NonEpisodeFileNameRegex =
+    private static readonly Regex[] _nonEpisodeFileNameRegex =
     [
         new(@"[\[\(][0-9A-F]{8}[\]\)]", RegexOptions.IgnoreCase),
         new(@"S\d{2,}", RegexOptions.IgnoreCase),
@@ -28,12 +28,12 @@ public partial class EpisodeProvider(BangumiApi api, Logger<EpisodeProvider> log
         new(@"\d{3,4}x\d{3,4}", RegexOptions.IgnoreCase),
         new(@"(Hi)?10p", RegexOptions.IgnoreCase),
         new(@"(8|10)bit", RegexOptions.IgnoreCase),
-        new Regex(@"(x|h)(264|265)", RegexOptions.IgnoreCase),
-        new Regex(@"\[\d{2}(0[1-9]|1[0-2])(0[1-9]|1[0-9]|2[0-9]|3[0-1])]"),
-        new Regex(@"(?<=[^P])V\d+")
+        new(@"(x|h)(264|265)", RegexOptions.IgnoreCase),
+        new(@"\[\d{2}(0[1-9]|1[0-2])(0[1-9]|1[0-9]|2[0-9]|3[0-1])]"),
+        new(@"(?<=[^P])V\d+")
     ];
 
-    private static readonly Regex[] EpisodeFileNameRegex =
+    private static readonly Regex[] _episodeFileNameRegex =
     [
         new(@"\[([\d\.]{2,})\]"),
         new(@"- ?([\d\.]{2,})"),
@@ -44,7 +44,7 @@ public partial class EpisodeProvider(BangumiApi api, Logger<EpisodeProvider> log
         new(@"\[([\d\.]+)\]")
     ];
 
-    private static readonly Regex[] AllSpecialEpisodeFileNameRegex =
+    private static readonly Regex[] _allSpecialEpisodeFileNameRegex =
     [
         SpecialEpisodeFileNameRegex(),
         PreviewEpisodeFileNameRegex(),
@@ -57,11 +57,11 @@ public partial class EpisodeProvider(BangumiApi api, Logger<EpisodeProvider> log
     public int Order => -5;
     public string Name => Constants.ProviderName;
 
-    public async Task<MetadataResult<Episode>> GetMetadata(EpisodeInfo info, CancellationToken token)
+    public async Task<MetadataResult<Episode>> GetMetadata(EpisodeInfo info, CancellationToken cancellationToken)
     {
-        token.ThrowIfCancellationRequested();
+        cancellationToken.ThrowIfCancellationRequested();
         var localConfiguration = await LocalConfiguration.ForPath(info.Path);
-        var episode = await GetEpisode(info, localConfiguration, token);
+        var episode = await GetEpisode(info, localConfiguration, cancellationToken);
 
         log.Info("metadata for {FilePath}: {EpisodeInfo}", Path.GetFileName(info.Path), episode);
 
@@ -104,7 +104,7 @@ public partial class EpisodeProvider(BangumiApi api, Logger<EpisodeProvider> log
         result.Item.ParentIndexNumber = 0;
 
         // use title and overview from special episode subject if episode data is empty
-        var series = await api.GetSubject(episode.ParentId, token);
+        var series = await api.GetSubject(episode.ParentId, cancellationToken);
         if (series == null)
             return result;
 
@@ -123,14 +123,14 @@ public partial class EpisodeProvider(BangumiApi api, Logger<EpisodeProvider> log
         return result;
     }
 
-    public Task<IEnumerable<RemoteSearchResult>> GetSearchResults(EpisodeInfo searchInfo, CancellationToken token)
+    public Task<IEnumerable<RemoteSearchResult>> GetSearchResults(EpisodeInfo searchInfo, CancellationToken cancellationToken)
     {
         throw new NotImplementedException();
     }
 
-    public Task<HttpResponseMessage> GetImageResponse(string url, CancellationToken token)
+    public Task<HttpResponseMessage> GetImageResponse(string url, CancellationToken cancellationToken)
     {
-        return api.GetHttpClient().GetAsync(url, token);
+        return api.GetHttpClient().GetAsync(url, cancellationToken);
     }
 
     [GeneratedRegex(@"(NC)?OP([^a-zA-Z]|$)")]
@@ -216,7 +216,7 @@ public partial class EpisodeProvider(BangumiApi api, Logger<EpisodeProvider> log
                 return episode;
             }
 
-            if (episode.Type != EpisodeType.Normal || AllSpecialEpisodeFileNameRegex.Any(x => x.IsMatch(info.Path)))
+            if (episode.Type != EpisodeType.Normal || _allSpecialEpisodeFileNameRegex.Any(x => x.IsMatch(info.Path)))
             {
                 log.Info("current episode is special episode, skip further checks");
                 return episode;
@@ -238,7 +238,7 @@ public partial class EpisodeProvider(BangumiApi api, Logger<EpisodeProvider> log
             return null;
         }
 
-        if (episodeListData.Count == 1 && type is null or EpisodeType.Normal)
+        if (episodeListData.Count() == 1 && type is null or EpisodeType.Normal)
         {
             log.Info("only one episode found");
             return episodeListData.First();
@@ -246,7 +246,7 @@ public partial class EpisodeProvider(BangumiApi api, Logger<EpisodeProvider> log
 
         if (type is null or EpisodeType.Normal)
         {
-            var maxEpisodeNumber = episodeListData.Count > 0 ? episodeListData.Max(x => x.Order) : double.PositiveInfinity;
+            var maxEpisodeNumber = episodeListData.Any() ? episodeListData.Max(x => x.Order) : double.PositiveInfinity;
             episodeIndex = GuessEpisodeNumber(
                 episodeIndex + localConfiguration.Offset,
                 fileName,
@@ -276,7 +276,7 @@ public partial class EpisodeProvider(BangumiApi api, Logger<EpisodeProvider> log
     private static EpisodeType? GuessEpisodeTypeFromFileName(string fileName)
     {
         var tempName = fileName;
-        foreach (var regex in NonEpisodeFileNameRegex)
+        foreach (var regex in _nonEpisodeFileNameRegex)
         {
             if (!regex.IsMatch(tempName))
                 continue;
@@ -311,14 +311,14 @@ public partial class EpisodeProvider(BangumiApi api, Logger<EpisodeProvider> log
             }
         }
 
-        foreach (var regex in NonEpisodeFileNameRegex)
+        foreach (var regex in _nonEpisodeFileNameRegex)
         {
             if (!regex.IsMatch(tempName))
                 continue;
             tempName = regex.Replace(tempName, "");
         }
 
-        foreach (var regex in EpisodeFileNameRegex)
+        foreach (var regex in _episodeFileNameRegex)
         {
             if (!regex.IsMatch(tempName))
                 continue;
@@ -343,15 +343,13 @@ public partial class EpisodeProvider(BangumiApi api, Logger<EpisodeProvider> log
 
         if (episodeIndex > max)
         {
-            log.Warn("{FileName} has incorrect episode index {Index} (max {Max}), set to {NewIndex}",
-                fileName, episodeIndex, max, episodeIndexFromFilename);
+            log.Warn("{FileName} has incorrect episode index {Index} (max {Max}), set to {NewIndex}", fileName, episodeIndex, max, episodeIndexFromFilename);
             return episodeIndexFromFilename;
         }
 
         if (episodeIndexFromFilename > 0 && episodeIndex <= 0)
         {
-            log.Warn("{FileName} may has incorrect episode index {Index}, should be {NewIndex}",
-                fileName, episodeIndex, episodeIndexFromFilename);
+            log.Warn("{FileName} may has incorrect episode index {Index}, should be {NewIndex}", fileName, episodeIndex, episodeIndexFromFilename);
             return episodeIndexFromFilename;
         }
 

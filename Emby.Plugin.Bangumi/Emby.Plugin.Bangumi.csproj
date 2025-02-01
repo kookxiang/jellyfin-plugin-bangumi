@@ -1,41 +1,38 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
-    <PropertyGroup>
-        <TargetFramework>net8.0</TargetFramework>
-        <RootNamespace>Jellyfin.Plugin.Bangumi</RootNamespace>
-        <AssemblyVersion>1.6.0.0</AssemblyVersion>
-        <FileVersion>1.6.0.0</FileVersion>
-        <Nullable>enable</Nullable>
-        <DefineConstants>EMBY</DefineConstants>
-    </PropertyGroup>
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <RootNamespace>Jellyfin.Plugin.Bangumi</RootNamespace>
+    <DefineConstants>EMBY</DefineConstants>
+  </PropertyGroup>
 
-    <ItemGroup>
-        <PackageReference Include="MediaBrowser.Server.Core" />
-        <PackageReference Include="System.IO.Pipelines" IncludeAssets="compile" />
-    </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="MediaBrowser.Server.Core"/>
+    <PackageReference Include="System.IO.Pipelines" IncludeAssets="compile"/>
+  </ItemGroup>
 
-    <ItemGroup>
-        <Compile Include="..\Jellyfin.Plugin.Bangumi\BangumiApi.cs">
-            <Link>BangumiApi.cs</Link>
-        </Compile>
-        <Compile Include="..\Jellyfin.Plugin.Bangumi\Configuration\PluginConfiguration.cs">
-            <Link>Configuration\PluginConfiguration.cs</Link>
-        </Compile>
-        <Compile Include="..\Jellyfin.Plugin.Bangumi\Model\*.cs">
-            <Link>Model\*.cs</Link>
-        </Compile>
-        <Compile Include="..\Jellyfin.Plugin.Bangumi\OAuth\*.cs" Exclude="..\Jellyfin.Plugin.Bangumi\OAuth\OAuthController.cs">
-            <Link>OAuth\*.cs</Link>
-        </Compile>
-        <Compile Include="..\Jellyfin.Plugin.Bangumi\ScheduledTask\*.cs" Exclude="..\Jellyfin.Plugin.Bangumi\ScheduledTask\ArchiveDownloadTask.cs">
-            <Link>ScheduledTask\*.cs</Link>
-        </Compile>
-    </ItemGroup>
+  <ItemGroup>
+    <Compile Include="..\Jellyfin.Plugin.Bangumi\BangumiApi.cs">
+      <Link>BangumiApi.cs</Link>
+    </Compile>
+    <Compile Include="..\Jellyfin.Plugin.Bangumi\Configuration\PluginConfiguration.cs">
+      <Link>Configuration\PluginConfiguration.cs</Link>
+    </Compile>
+    <Compile Include="..\Jellyfin.Plugin.Bangumi\Model\*.cs">
+      <Link>Model\*.cs</Link>
+    </Compile>
+    <Compile Include="..\Jellyfin.Plugin.Bangumi\OAuth\*.cs" Exclude="..\Jellyfin.Plugin.Bangumi\OAuth\OAuthController.cs">
+      <Link>OAuth\*.cs</Link>
+    </Compile>
+    <Compile Include="..\Jellyfin.Plugin.Bangumi\ScheduledTask\*.cs" Exclude="..\Jellyfin.Plugin.Bangumi\ScheduledTask\ArchiveDownloadTask.cs">
+      <Link>ScheduledTask\*.cs</Link>
+    </Compile>
+  </ItemGroup>
 
-    <ItemGroup>
-        <None Remove="Configuration\ConfigPage.html" />
-        <None Remove="Configuration\ConfigPage.js" />
-        <EmbeddedResource Include="Configuration\ConfigPage.html" />
-        <EmbeddedResource Include="Configuration\ConfigPage.js" />
-    </ItemGroup>
+  <ItemGroup>
+    <None Remove="Configuration\ConfigPage.html"/>
+    <None Remove="Configuration\ConfigPage.js"/>
+    <EmbeddedResource Include="Configuration\ConfigPage.html"/>
+    <EmbeddedResource Include="Configuration\ConfigPage.js"/>
+  </ItemGroup>
 </Project>

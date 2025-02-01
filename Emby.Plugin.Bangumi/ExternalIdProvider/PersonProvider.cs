@@ -16,13 +16,13 @@ public class PersonProvider(BangumiApi api)
 
     public string Name => Constants.ProviderName;
 
-    public async Task<MetadataResult<Person>> GetMetadata(PersonLookupInfo info, CancellationToken token)
+    public async Task<MetadataResult<Person>> GetMetadata(PersonLookupInfo info, CancellationToken cancellationToken)
     {
-        token.ThrowIfCancellationRequested();
+        cancellationToken.ThrowIfCancellationRequested();
         var result = new MetadataResult<Person> { ResultLanguage = Constants.Language };
         if (!int.TryParse(info.ProviderIds?.GetValueOrDefault(Constants.ProviderName), out var personId))
             return result;
-        var person = await api.GetPerson(personId, token);
+        var person = await api.GetPerson(personId, cancellationToken);
         if (person == null)
             return result;
         result.HasMetadata = true;
@@ -37,17 +37,17 @@ public class PersonProvider(BangumiApi api)
         return result;
     }
 
-    public Task<IEnumerable<RemoteSearchResult>> GetSearchResults(PersonLookupInfo searchInfo, CancellationToken token)
+    public Task<IEnumerable<RemoteSearchResult>> GetSearchResults(PersonLookupInfo searchInfo, CancellationToken cancellationToken)
     {
         throw new NotImplementedException();
     }
 
-    public Task<HttpResponseInfo> GetImageResponse(string url, CancellationToken token)
+    public Task<HttpResponseInfo> GetImageResponse(string url, CancellationToken cancellationToken)
     {
         return api.GetHttpClient().GetResponse(new HttpRequestOptions
         {
             Url = url,
-            CancellationToken = token
+            CancellationToken = cancellationToken
         });
     }
 }

@@ -27,7 +27,7 @@ public partial class BangumiApi(IHttpClient httpClient, OAuthStore store)
         options.TimeoutMs = Plugin.Configuration.RequestTimeout;
         options.ThrowOnErrorResponse = false;
         using var response = await httpClient.SendAsync(options, method);
-        if (response.StatusCode >= HttpStatusCode.MovedPermanently) await ServerException.ThrowFrom(response);
+        if (response.StatusCode >= HttpStatusCode.MovedPermanently) await HandleHttpException(response);
         using var stream = new StreamReader(response.Content);
         return await stream.ReadToEndAsync(token);
     }
@@ -49,18 +49,16 @@ public partial class BangumiApi(IHttpClient httpClient, OAuthStore store)
     public async Task<string> Post(string url, HttpContent content, string? accessToken, CancellationToken token)
     {
         using var response = await httpClient.SendAsync(new HttpRequestOptions
-        {
-            Url = url,
-            RequestHttpContent = content,
-            RequestHeaders =
             {
-                { "Authorization", "Bearer " + accessToken }
+                Url = url,
+                RequestHttpContent = content,
+                RequestHeaders = { { "Authorization", "Bearer " + accessToken } },
+                UserAgent = $"Jellyfin.Plugin.Bangumi/{Plugin.Version} (https://github.com/kookxiang/jellyfin-plugin-bangumi)",
+                TimeoutMs = Plugin.Configuration.RequestTimeout,
+                ThrowOnErrorResponse = false
             },
-            UserAgent = $"Jellyfin.Plugin.Bangumi/{Plugin.Version} (https://github.com/kookxiang/jellyfin-plugin-bangumi)",
-            TimeoutMs = Plugin.Configuration.RequestTimeout,
-            ThrowOnErrorResponse = false
-        }, "POST");
-        if (response.StatusCode >= HttpStatusCode.MovedPermanently) await ServerException.ThrowFrom(response);
+            "POST");
+        if (response.StatusCode >= HttpStatusCode.MovedPermanently) await HandleHttpException(response);
         using var stream = new StreamReader(response.Content);
         return await stream.ReadToEndAsync(token);
     }
@@ -94,13 +92,12 @@ public partial class BangumiApi(IHttpClient httpClient, OAuthStore store)
             ? response.Headers.GetValueOrDefault("Location")
             : null;
     }
+}
 
-    public class JsonContent : StringContent
+public class JsonContent : StringContent
+{
+    public JsonContent(object obj) : base(JsonSerializer.Serialize(obj, Constants.JsonSerializerOptions), Encoding.UTF8, "application/json")
     {
-        public JsonContent(object obj) : base(JsonSerializer.Serialize(obj, Constants.JsonSerializerOptions), Encoding.UTF8,
-            "application/json")
-        {
-            Headers.ContentType!.CharSet = null;
-        }
+        Headers.ContentType!.CharSet = null;
     }
 }

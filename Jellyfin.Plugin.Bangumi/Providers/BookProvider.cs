@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
@@ -21,14 +22,14 @@ public class BookProvider(BangumiApi api)
 
     public string Name => Constants.ProviderName;
 
-    public async Task<MetadataResult<Book>> GetMetadata(BookInfo info, CancellationToken token)
+    public async Task<MetadataResult<Book>> GetMetadata(BookInfo info, CancellationToken cancellationToken)
     {
         var result = new MetadataResult<Book> { ResultLanguage = Constants.Language };
 
         if (!int.TryParse(info.ProviderIds.GetOrDefault(Constants.ProviderName), out var subjectId))
             return result;
 
-        var subject = await api.GetSubject(subjectId, token);
+        var subject = await api.GetSubject(subjectId, cancellationToken);
         if (subject == null)
             return result;
 
@@ -40,8 +41,8 @@ public class BookProvider(BangumiApi api)
         result.Item.Name = subject.Name;
         result.Item.OriginalTitle = subject.OriginalName;
         result.Item.Overview = string.IsNullOrEmpty(subject.Summary) ? null : subject.Summary;
-        result.Item.Tags = subject.PopularTags;
-        result.Item.Genres = subject.GenreTags;
+        result.Item.Tags = subject.PopularTags.ToArray();
+        result.Item.Genres = subject.GenreTags.ToArray();
 
         if (DateTime.TryParse(subject.AirDate, out var airDate))
         {
@@ -55,13 +56,13 @@ public class BookProvider(BangumiApi api)
         return result;
     }
 
-    public async Task<IEnumerable<RemoteSearchResult>> GetSearchResults(BookInfo searchInfo, CancellationToken token)
+    public async Task<IEnumerable<RemoteSearchResult>> GetSearchResults(BookInfo searchInfo, CancellationToken cancellationToken)
     {
         var results = new List<RemoteSearchResult>();
 
         if (int.TryParse(searchInfo.ProviderIds.GetOrDefault(Constants.ProviderName), out var id))
         {
-            var subject = await api.GetSubject(id, token);
+            var subject = await api.GetSubject(id, cancellationToken);
             if (subject == null)
                 return results;
             var result = new RemoteSearchResult
@@ -80,7 +81,7 @@ public class BookProvider(BangumiApi api)
         }
         else if (!string.IsNullOrEmpty(searchInfo.Name))
         {
-            var series = await api.SearchSubject(searchInfo.Name, SubjectType.Book, token);
+            var series = await api.SearchSubject(searchInfo.Name, SubjectType.Book, cancellationToken);
             foreach (var item in series)
             {
                 var itemId = $"{item.Id}";
@@ -107,8 +108,8 @@ public class BookProvider(BangumiApi api)
         return results;
     }
 
-    public async Task<HttpResponseMessage> GetImageResponse(string url, CancellationToken token)
+    public async Task<HttpResponseMessage> GetImageResponse(string url, CancellationToken cancellationToken)
     {
-        return await api.GetHttpClient().GetAsync(url, token);
+        return await api.GetHttpClient().GetAsync(url, cancellationToken);
     }
 }

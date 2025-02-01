@@ -32,7 +32,7 @@ public class Subject
     public int Platform { get; set; }
 
     [JsonPropertyName("tags")]
-    public List<Tag> Tags { get; set; } = [];
+    public IEnumerable<Tag> Tags { get; set; } = [];
 
     [JsonPropertyName("score")]
     public float Score { get; set; }

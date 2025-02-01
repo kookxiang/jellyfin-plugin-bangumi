@@ -8,11 +8,11 @@ namespace Jellyfin.Plugin.Bangumi.Archive;
 
 public class ArchiveData(IApplicationPaths paths)
 {
-    public readonly string BasePath = Path.Join(paths.DataPath, "bangumi", "archive");
+    internal readonly string BasePath = Path.Join(paths.DataPath, "bangumi", "archive");
 
-    public readonly string TempPath = Path.Join(paths.DataPath, "bangumi", "archive", "temp");
+    internal readonly string TempPath = Path.Join(paths.DataPath, "bangumi", "archive", "temp");
 
-    public List<IArchiveStore> Stores =>
+    public ICollection<IArchiveStore> Stores =>
     [
         Character,
         Subject,

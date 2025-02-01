@@ -23,6 +23,7 @@ public partial class OAuthUser
     [JsonPropertyName("expires_in")]
     public int ExpireIn
     {
+        get => (int)ExpireTime.Subtract(DateTime.Now).TotalSeconds;
         set => ExpireTime = DateTime.Now.AddSeconds(value);
     }
 }

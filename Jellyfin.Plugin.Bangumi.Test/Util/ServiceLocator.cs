@@ -13,7 +13,7 @@ namespace Jellyfin.Plugin.Bangumi.Test.Util;
 [TestClass]
 public class ServiceLocator
 {
-    private static ServiceProvider _provider;
+    private static ServiceProvider _provider = null!;
 
     [AssemblyInitialize]
     public static void Init(TestContext context)
@@ -43,6 +43,6 @@ public class ServiceLocator
 
     public static T GetService<T>()
     {
-        return _provider.GetService<T>();
+        return _provider.GetService<T>()!;
     }
 }

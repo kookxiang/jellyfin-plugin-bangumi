@@ -1,4 +1,3 @@
-
 using System.Collections.Generic;
 using System.Text.Json.Serialization;
 using MediaBrowser.Controller.Entities;
@@ -36,7 +35,7 @@ public class RelatedPerson
 
     public string Name { get; set; } = "";
 
-    public List<PersonCareer>? Career { get; set; }
+    public IEnumerable<PersonCareer>? Career { get; set; }
 
     public Dictionary<string, string?> Images { get; set; } = new();
 
