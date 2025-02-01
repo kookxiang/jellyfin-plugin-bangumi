@@ -76,7 +76,7 @@ public class SeasonProvider(BangumiApi api, ILogger log)
         return result;
     }
 
-    public Task<IEnumerable<RemoteSearchResult>> GetSearchResults(SeasonInfo info, CancellationToken cancellationToken)
+    public Task<IEnumerable<RemoteSearchResult>> GetSearchResults(SeasonInfo searchInfo, CancellationToken cancellationToken)
     {
         return Task.FromResult(Enumerable.Empty<RemoteSearchResult>());
     }
