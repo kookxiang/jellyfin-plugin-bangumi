@@ -50,7 +50,7 @@ public partial class BangumiApi
                 var searchResult = await Get<SearchResult<Subject>>(url, token);
                 var list = searchResult?.List ?? [];
 
-                if (Plugin.Instance!.Configuration.SortByFuzzScore && list.Count > 2)
+                if (Plugin.Instance!.Configuration.SortByFuzzScore && list.Count > 1)
                 {
                     // 仅使用前 5 个条目获取别名并排序
                     var num = 5;
@@ -168,7 +168,7 @@ public partial class BangumiApi
         return await Get<DataList<Episode>>(url, token);
     }
 
-    public async Task<List<RelatedSubject>?> GetSubjectRelations(int id, CancellationToken token)
+    public async Task<List<RelatedSubject>?> GetRelatedSubjects(int id, CancellationToken token)
     {
         if (id <= 0) return null;
 #if !EMBY
@@ -194,7 +194,7 @@ public partial class BangumiApi
         var requestCount = 0;
         //What would happen in Emby if I use `_plugin`?
         int maxRequestCount = Plugin.Instance?.Configuration?.SeasonGuessMaxSearchCount ?? 2;
-        var relatedSubjects = await GetSubjectRelations(id, token);
+        var relatedSubjects = await GetRelatedSubjects(id, token);
         var subjectsQueue = new Queue<RelatedSubject>(relatedSubjects?.Where(item => item.Relation == SubjectRelation.Sequel) ?? []);
         while (subjectsQueue.Any() && requestCount < maxRequestCount)
         {
@@ -203,7 +203,7 @@ public partial class BangumiApi
             requestCount++;
             if (subjectCandidate != null && SeriesSequelUnqualified(subjectCandidate))
             {
-                var nextRelatedSubjects = await GetSubjectRelations(subjectCandidate.Id, token);
+                var nextRelatedSubjects = await GetRelatedSubjects(subjectCandidate.Id, token);
                 foreach (var nextRelatedSubject in nextRelatedSubjects?.Where(item => item.Relation == SubjectRelation.Sequel) ?? [])
                 {
                     subjectsQueue.Enqueue(nextRelatedSubject);
@@ -219,6 +219,56 @@ public partial class BangumiApi
 
         Console.WriteLine($"BangumiApi: Season guess of id #{id} failed with {requestCount} searches");
         return null;
+    }
+
+    /// <summary>
+    /// 获取此条目的所有关联条目
+    /// </summary>
+    /// <param name="seriesId"></param>
+    /// <param name="token"></param>
+    /// <returns></returns>
+    public async Task<List<int>> GetAllSeriesSubjectIds(int seriesId, CancellationToken token)
+    {
+        HashSet<int> allSubjectIds = new HashSet<int>();
+        var queue = new Queue<int>();
+        queue.Enqueue(seriesId);
+
+        int requestCount = 0;
+        int maxRequestCount = 1024; // 最多请求数
+
+
+        while (queue.Count > 0 && requestCount < maxRequestCount)
+        {
+            var currentSeriesId = queue.Dequeue();
+            if (!allSubjectIds.Contains(currentSeriesId))
+            {
+                // 将 id 添加进集合
+                allSubjectIds.Add(currentSeriesId);
+
+                // 获取关联条目
+                var results = await GetRelatedSubjects(currentSeriesId, token);
+                if (results is null)
+                    continue;
+
+                // 遍历条目，判断关系
+                foreach (var result in results)
+                {
+                    if (result.Relation == SubjectRelation.Sequel || result.Relation == SubjectRelation.Prequel) // 衍生、主线故事
+                    {
+                        // 加入队列
+                        queue.Enqueue(result.Id);
+                    }
+                    else if (result.Relation == SubjectRelation.Extra || result.Relation == "总集篇")
+                    {
+                        // 无更多关联条目，直接添加进列表
+                        allSubjectIds.Add(result.Id);
+                    }
+                }
+                requestCount++;
+            }
+            
+        }
+        return allSubjectIds.ToList();
     }
 
     public async Task<List<PersonInfo>> GetSubjectCharacters(int id, CancellationToken token)
