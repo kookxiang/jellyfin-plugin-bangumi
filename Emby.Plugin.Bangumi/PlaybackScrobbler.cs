@@ -1,22 +1,22 @@
 using System;
-using System.Threading.Tasks;
-using MediaBrowser.Controller.Entities;
 using System.Collections.Generic;
-using MediaBrowser.Controller.Entities.Audio;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using Jellyfin.Plugin.Bangumi.Configuration;
+using Jellyfin.Plugin.Bangumi.Model;
+using Jellyfin.Plugin.Bangumi.OAuth;
+using MediaBrowser.Controller.Entities;
+using MediaBrowser.Controller.Entities.Audio;
 using MediaBrowser.Controller.Entities.Movies;
 using MediaBrowser.Controller.Library;
 using MediaBrowser.Controller.Plugins;
 using MediaBrowser.Model.Entities;
 using MediaBrowser.Model.Globalization;
-using Jellyfin.Plugin.Bangumi.Model;
-using System.Threading;
-using MediaBrowser.Model.Querying;
 using MediaBrowser.Model.Logging;
-using Jellyfin.Plugin.Bangumi.OAuth;
-using System.Linq;
+using MediaBrowser.Model.Querying;
 using CollectionType = Jellyfin.Plugin.Bangumi.Model.CollectionType;
-using MediaBrowser.Model.Net;
+using User = MediaBrowser.Controller.Entities.User;
 
 namespace Jellyfin.Plugin.Bangumi;
 
@@ -25,13 +25,12 @@ public class PlaybackScrobbler : IServerEntryPoint
     // https://github.com/jellyfin/jellyfin/blob/master/Emby.Server.Implementations/Localization/Ratings/jp.csv
     // https://github.com/jellyfin/jellyfin/blob/master/Emby.Server.Implementations/Localization/Ratings/us.csv
     private const int RatingNSFW = 10;
-    private readonly ILocalizationManager _localizationManager;
-    private readonly ILogger _log;
     private static readonly Dictionary<long, HashSet<string>> Store = new();
     private readonly BangumiApi _api;
+    private readonly ILocalizationManager _localizationManager;
+    private readonly ILogger _log;
     private readonly OAuthStore _store;
     private readonly IUserDataManager _userDataManager;
-    private static PluginConfiguration Configuration => Plugin.Instance!.Configuration;
 
     public PlaybackScrobbler(IUserManager userManager, IUserDataManager userDataManager, ILocalizationManager localizationManager, OAuthStore store, BangumiApi api, ILogger log)
     {
@@ -46,6 +45,8 @@ public class PlaybackScrobbler : IServerEntryPoint
             GetPlaybackHistory(userId.InternalId);
         }
     }
+
+    private static PluginConfiguration Configuration => Plugin.Instance!.Configuration;
 
     public void Dispose()
     {
@@ -89,7 +90,7 @@ public class PlaybackScrobbler : IServerEntryPoint
     }
 
 
-    private async Task ReportPlaybackStatus(BaseItem item, MediaBrowser.Controller.Entities.User user, bool played)
+    private async Task ReportPlaybackStatus(BaseItem item, User user, bool played)
     {
         var localConfiguration = await LocalConfiguration.ForPath(item.Path);
         if (!int.TryParse(item.GetProviderId(Constants.ProviderName), out var episodeId))
@@ -184,9 +185,10 @@ public class PlaybackScrobbler : IServerEntryPoint
                     _log.Info($"item #{item.Name} has rating {ratingLevel} marked as NSFW, skipped");
                     return;
                 }
+
                 var status = played ? CollectionType.Watched : CollectionType.Watching;
                 _log.Info($"report episode #{episodeId} status {status} to bangumi");
-                await _api.UpdateEpisodeStatus(_user.AccessToken, subjectId, episodeId, played ? EpisodeCollectionType.Watched : EpisodeCollectionType.Default, CancellationToken.None);
+                await _api.UpdateEpisodeStatus(_user.AccessToken, episodeId, played ? EpisodeCollectionType.Watched : EpisodeCollectionType.Default, CancellationToken.None);
             }
 
             _log.Info("report completed");
@@ -201,7 +203,7 @@ public class PlaybackScrobbler : IServerEntryPoint
                     await _api.UpdateCollectionStatus(_user.AccessToken, subjectId, CollectionType.Watching, CancellationToken.None);
 
                     _log.Info($"report episode #{episodeId} status {EpisodeCollectionType.Watched} to bangumi");
-                    await _api.UpdateEpisodeStatus(_user.AccessToken, subjectId, episodeId, played ? EpisodeCollectionType.Watched : EpisodeCollectionType.Default, CancellationToken.None);
+                    await _api.UpdateEpisodeStatus(_user.AccessToken, episodeId, played ? EpisodeCollectionType.Watched : EpisodeCollectionType.Default, CancellationToken.None);
                 }
                 catch (Exception e2)
                 {

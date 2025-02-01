@@ -134,7 +134,7 @@ public class PlaybackScrobbler(IUserDataManager userDataManager, OAuthStore stor
 
                 log.Info("report episode #{Episode} status {Status} to bangumi", episodeId,
                     played ? EpisodeCollectionType.Watched : EpisodeCollectionType.Default);
-                await api.UpdateEpisodeStatus(user.AccessToken, subjectId, episodeId,
+                await api.UpdateEpisodeStatus(user.AccessToken, episodeId,
                     played ? EpisodeCollectionType.Watched : EpisodeCollectionType.Default, CancellationToken.None);
             }
 
@@ -148,7 +148,7 @@ public class PlaybackScrobbler(IUserDataManager userDataManager, OAuthStore stor
                 await api.UpdateCollectionStatus(user.AccessToken, subjectId, CollectionType.Watching, CancellationToken.None);
 
                 log.Info("report episode #{Episode} status {Status} to bangumi", episodeId, EpisodeCollectionType.Watched);
-                await api.UpdateEpisodeStatus(user.AccessToken, subjectId, episodeId,
+                await api.UpdateEpisodeStatus(user.AccessToken, episodeId,
                     played ? EpisodeCollectionType.Watched : EpisodeCollectionType.Default, CancellationToken.None);
             }
             else

@@ -16,9 +16,11 @@ public partial class BangumiApi
         SizeLimit = 256 * 1024 * 1024
     });
 
-    private Task<string> Send(HttpRequestMessage request, string? accessToken, CancellationToken token)
+    private Task<string> Send(HttpRequestMessage request, string? accessToken, CancellationToken token, bool useCache = true)
     {
-        if (request.RequestUri == null) return SendWithOutCache(request, accessToken, token);
+        if (!useCache || request.RequestUri == null)
+            return SendWithOutCache(request, accessToken, token);
+
         if (request.Method != HttpMethod.Get)
         {
             _cache.Remove(request.RequestUri.ToString());

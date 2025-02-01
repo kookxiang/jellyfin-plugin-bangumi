@@ -15,9 +15,6 @@
     </ItemGroup>
 
     <ItemGroup>
-        <Compile Include="..\Jellyfin.Plugin.Bangumi\BangumiApi.Auth.cs">
-            <Link>BangumiApi.Auth.cs</Link>
-        </Compile>
         <Compile Include="..\Jellyfin.Plugin.Bangumi\BangumiApi.cs">
             <Link>BangumiApi.cs</Link>
         </Compile>

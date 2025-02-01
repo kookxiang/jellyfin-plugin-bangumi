@@ -17,19 +17,19 @@ public partial class BangumiApi(IHttpClientFactory httpClientFactory, ArchiveDat
 {
     private readonly Plugin _plugin = Plugin.Instance!;
 
-    public Task<string> Get(string url, string? accessToken, CancellationToken token)
+    public Task<string> Get(string url, string? accessToken, CancellationToken token, bool useCache = true)
     {
-        return Send(new HttpRequestMessage(HttpMethod.Get, url), accessToken, token);
+        return Send(new HttpRequestMessage(HttpMethod.Get, url), accessToken, token, useCache);
     }
 
-    public async Task<T?> Get<T>(string url, CancellationToken token)
+    public async Task<T?> Get<T>(string url, CancellationToken token, bool useCache = true)
     {
-        return await Get<T>(url, store.GetAvailable()?.AccessToken, token);
+        return await Get<T>(url, store.GetAvailable()?.AccessToken, token, useCache);
     }
 
-    public async Task<T?> Get<T>(string url, string? accessToken, CancellationToken token)
+    public async Task<T?> Get<T>(string url, string? accessToken, CancellationToken token, bool useCache = true)
     {
-        var jsonString = await Get(url, accessToken, token);
+        var jsonString = await Get(url, accessToken, token, useCache);
         return JsonSerializer.Deserialize<T>(jsonString, Constants.JsonSerializerOptions);
     }
 
