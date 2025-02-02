@@ -6,7 +6,7 @@ on:
       - release
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   build:
@@ -27,8 +27,16 @@ jobs:
         run: dotnet test --configuration Release Jellyfin.Plugin.Bangumi.Test
       - name: .NET Publish
         run: dotnet publish --configuration Release --output publish Jellyfin.Plugin.Bangumi
-      - name: Upload Artifact
-        uses: actions/upload-artifact@v4
+      - name: .NET Publish (Emby)
+        run: dotnet publish --configuration Release --output publish Emby.Plugin.Bangumi
+      - name: Upload to Release
+        uses: crowbarmaster/GH-Automatic-Releases@v1.6.0
         with:
-          name: Jellyfin.Plugin.Bangumi
-          path: publish/*.dll
+          repo_token: "${{ github.token }}"
+          automatic_release_tag: ci
+          prerelease: true
+          title: 持续集成
+          body: 最新的代码打包后会自动上传到这里
+          files: |
+            publish/Emby.Plugin.Bangumi.dll
+            publish/Jellyfin.Plugin.Bangumi.dll
