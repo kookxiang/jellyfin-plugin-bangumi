@@ -112,7 +112,7 @@ jobs:
             version = $env:VERSION
           }) + $Repository[0].versions
           Copy-Item -Path Jellyfin.Plugin.Bangumi.zip -Destination Release/$($env:VERSION).zip -Recurse
-          ConvertTo-Json $Repository -Compress | Out-File Release/repository.json -Encoding UTF8NoBOM -NoNewline
+          ConvertTo-Json @($Repository[0]) -Compress -Depth 5 | Out-File Release/repository.json -Encoding UTF8NoBOM -NoNewline
       - name: Generate GitHub Pages Artifact
         uses: actions/upload-artifact@v4
         with:
