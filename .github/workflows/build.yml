@@ -10,13 +10,20 @@ permissions:
 
 jobs:
   build:
-    name: Build Plugin
+    name: Build and Test Plugin
     runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.meta.outputs.tag }}.${{ steps.meta.outputs.distance }}
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
+      - name: Resolve MetaData
+        id: meta
+        uses: proudust/gh-describe@v2
+        with:
+          exclude: ci
       - name: Patch version
-        run: sed -i "/Version/s/.0</.$GITHUB_RUN_NUMBER</" Directory.Build.props
+        run: sed -i "/Version/s/>.*</>${{ steps.meta.outputs.tag }}.${{ steps.meta.outputs.distance }}</" Directory.Build.props
       - name: Setup .NET 8.x
         uses: actions/setup-dotnet@v4
         with:
@@ -27,11 +34,17 @@ jobs:
         run: dotnet test --configuration Release Jellyfin.Plugin.Bangumi.Test
       - name: .NET Publish
         run: dotnet publish --configuration Release --output publish Jellyfin.Plugin.Bangumi
-      - name: .NET Publish (Emby)
-        run: dotnet publish --configuration Release --output publish Emby.Plugin.Bangumi
       - uses: actions/upload-artifact@v4
         with:
-          name: plugins
+          name: jellyfin-plugin
+          path: publish/*.dll
+      - name: .NET Publish (Emby)
+        run: |
+          rm -rf publish
+          dotnet publish --configuration Release --output publish Emby.Plugin.Bangumi
+      - uses: actions/upload-artifact@v4
+        with:
+          name: emby-plugin
           path: publish/*.dll
   release:
     name: Upload to GitHub Release
@@ -40,10 +53,33 @@ jobs:
     steps:
       - uses: actions/download-artifact@v4
         with:
-          name: plugins
-          path: .
+          name: jellyfin-plugin
+          path: jellyfin
+      - uses: actions/download-artifact@v4
+        with:
+          name: emby-plugin
+          path: emby
+      - name: Generate Jellyfin Plugin Metadata
+        shell: pwsh
+        run: |
+          @{
+              category = "Metadata"
+              changelog = ""
+              description = "Jellyfin bgm.tv 数据源插件，用于拉取中文番剧信息及图片。"
+              guid = "41b59f1b-a6cf-474a-b416-785379cbd856"
+              name = "Bangumi"
+              overview = "bgm.tv metadata provider for Jellyfin"
+              owner = "kookxiang"
+              targetAbi = "10.9.0.0"
+              timestamp = Get-Date -AsUTC -Format s
+              version = "${{ needs.build.outputs.version }}"
+          } | ConvertTo-Json -Compress | Out-File "jellyfin/meta.json" -Encoding UTF8 -NoNewline
       - name: Pack Jellyfin Plugin
-        run: zip -9j Jellyfin.Plugin.Bangumi.zip Jellyfin.Plugin.Bangumi.dll AnitomySharp.dll Fastenshtein.dll FuzzySharp.dll
+        run: zip -9j Jellyfin.Plugin.Bangumi.zip jellyfin/*.dll jellyfin/meta.json
+      - name: Copy DLLs
+        run: |
+          cp jellyfin/Jellyfin.Plugin.Bangumi.dll .
+          cp emby/Emby.Plugin.Bangumi.dll .
       - name: Upload to Release
         uses: svenstaro/upload-release-action@v2
         with:
