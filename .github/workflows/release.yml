@@ -95,12 +95,9 @@ jobs:
         run: |
           $Repository = Invoke-WebRequest https://jellyfin-plugin-bangumi.kookxiang.dev/repository.json | % Content | ConvertFrom-Json
           New-Item -ItemType Directory -Force -Path Release
+          $Repository[0].versions = $Repository[0].versions | Where-Object { $_.version -ne $env:VERSION }
           foreach ($Version in $Repository[0].versions) {
-            if ($Version.version -eq $env:VERSION) {
-              $Repository[0].versions.Remove($Version);
-            } else {
-              Invoke-WebRequest -Uri $Version.sourceUrl -OutFile "Release/$($Version.version).zip"
-            }
+            Invoke-WebRequest -Uri $Version.sourceUrl -OutFile "Release/$($Version.version).zip"
             $Version.sourceUrl = "https://kookxiang.github.io/jellyfin-plugin-bangumi/$($env:VERSION).zip"
           }
           $Repository[0].versions = @(@{
