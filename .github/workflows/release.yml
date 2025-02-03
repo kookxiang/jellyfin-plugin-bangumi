@@ -2,10 +2,16 @@ name: Jellyfin Plugin Release
 
 on:
   release:
+    types:
+      - created
+      - edited
+      - released
 
 permissions:
   contents: write
   deployments: write
+  id-token: write
+  pages: write
 
 jobs:
   build:
@@ -61,28 +67,25 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           name: Jellyfin.Plugin.Bangumi
-          path: Jellyfin.Plugin.Bangumi.zip
       - uses: actions/download-artifact@v4
         with:
           name: Emby.Plugin.Bangumi
-          path: Emby.Plugin.Bangumi.dll
       - name: Upload to Release
         uses: svenstaro/upload-release-action@v2
         with:
           repo_token: "${{ github.token }}"
-          tag: ci
+          tag: ${{ github.ref_name }}
           overwrite: true
           file_glob: true
           file: "*.Plugin.Bangumi.{dll,zip}"
   repository:
     name: Update Plugin Repository
     runs-on: ubuntu-latest
-    # if: github.event.release.draft == false
+    needs: upload
     steps:
       - uses: actions/download-artifact@v4
         with:
           name: Jellyfin.Plugin.Bangumi
-          path: Jellyfin.Plugin.Bangumi.zip
       - name: Create Plugin Repository for Jellyfin
         shell: pwsh
         env:
@@ -90,7 +93,7 @@ jobs:
           TOKEN: ${{ github.token }}
           VERSION: ${{ github.ref_name }}.0
         run: |
-          $Repository = Invoke-WebRequest https://kookxiang.github.io/jellyfin-plugin-bangumi/repository.json | % Content | ConvertFrom-Json
+          $Repository = Invoke-WebRequest https://jellyfin-plugin-bangumi.kookxiang.dev/repository.json | % Content | ConvertFrom-Json
           New-Item -ItemType Directory -Force -Path Release
           foreach ($Version in $Repository[0].versions) {
             if ($Version.version -eq $env:VERSION) {
@@ -98,22 +101,55 @@ jobs:
             } else {
               Invoke-WebRequest -Uri $Version.sourceUrl -OutFile "Release/$($Version.version).zip"
             }
-            $Version.sourceUrl = "https://jellyfin-plugin-bangumi.kookxiang.dev/$version.zip"
+            $Version.sourceUrl = "https://kookxiang.github.io/jellyfin-plugin-bangumi/$($env:VERSION).zip"
           }
           $Repository[0].versions = @(@{
             checksum =  (Get-FileHash -Algorithm MD5 "Jellyfin.Plugin.Bangumi.zip").Hash.ToLower()
             changelog = $env:CHANGELOG
             targetAbi = "10.9.0.0"
-            sourceUrl = "https://jellyfin-plugin-bangumi.kookxiang.dev/$version.zip"
+            sourceUrl = "https://kookxiang.github.io/jellyfin-plugin-bangumi/$($env:VERSION).zip"
             timestamp = Get-Date -AsUTC -Format s
-            version = "$version.0"
+            version = $env:VERSION
           }) + $Repository[0].versions
-
+          Copy-Item -Path Jellyfin.Plugin.Bangumi.zip -Destination Release/$($env:VERSION).zip -Recurse
           ConvertTo-Json $Repository -Compress | Out-File Release/repository.json -Encoding UTF8NoBOM -NoNewline
-      - name: Deploy to Cloudflare Pages
+      - name: Generate GitHub Pages Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: plugin-repository
+          path: Release/*
+          retention-days: 1
+  deploy-github-pages:
+    name: Deploy to GitHub Pages
+    runs-on: ubuntu-latest
+    needs: repository
+    steps:
+      - name: Download Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: plugin-repository
+          path: pages
+      - name: Repack Artifact for GitHub Pages
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: pages/
+      - name: Deploy
+        uses: actions/deploy-pages@v4
+  deploy-cloudflare-pages:
+    name: Depoly to Cloudflare Pages
+    runs-on: ubuntu-latest
+    needs: repository
+    steps:
+      - name: Download Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: plugin-repository
+          path: pages
+      - name: Replace URL
+        run: sed -i "s|https://kookxiang.github.io/jellyfin-plugin-bangumi/|https://jellyfin-plugin-bangumi.kookxiang.dev/|g" pages/repository.json
+      - name: Deploy
         uses: cloudflare/wrangler-action@v3
         with:
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          command: pages deploy Release --project-name=jellyfin-plugin-bangumi --env=dev
-          # gitHubToken: ${{ github.token }}
+          command: pages deploy pages --project-name=jellyfin-plugin-bangumi
