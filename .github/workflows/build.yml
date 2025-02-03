@@ -1,4 +1,4 @@
-name: 'Jellyfin Plugin'
+name: 'Bangumi Plugin'
 
 on:
   push:
@@ -29,6 +29,21 @@ jobs:
         run: dotnet publish --configuration Release --output publish Jellyfin.Plugin.Bangumi
       - name: .NET Publish (Emby)
         run: dotnet publish --configuration Release --output publish Emby.Plugin.Bangumi
+      - uses: actions/upload-artifact@v4
+        with:
+          name: plugins
+          path: publish/*.dll
+  release:
+    name: Upload to GitHub Release
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: plugins
+          path: .
+      - name: Pack Jellyfin Plugin
+        run: zip -9j Jellyfin.Plugin.Bangumi.zip Jellyfin.Plugin.Bangumi.dll AnitomySharp.dll Fastenshtein.dll FuzzySharp.dll
       - name: Upload to Release
         uses: svenstaro/upload-release-action@v2
         with:
@@ -37,4 +52,4 @@ jobs:
           prerelease: true
           overwrite: true
           file_glob: true
-          file: publish/*.Plugin.Bangumi.dll
+          file: "*.Plugin.Bangumi.{dll,zip}"
