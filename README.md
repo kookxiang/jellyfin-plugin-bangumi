@@ -17,9 +17,16 @@ Jellyfin bgm.tv 数据源插件，用于拉取中文番剧信息及图片。
 
 ## 通过插件库安装
 
-1. 控制台中选择 插件 - 存储库 - 添加：
-`https://jellyfin-plugin-bangumi.pages.dev/repository.json`
+1. 控制台中选择 插件 - 存储库 - 添加
 2. 在插件目录中找到 Bangumi 插件安装
+
+目前有三个插件库地址可供选择，可以视网络情况自行选择：
+ - GitHub Pages\
+   https://kookxiang.github.io/jellyfin-plugin-bangumi/repository.json
+ - CloudFlare Pages\
+   https://jellyfin-plugin-bangumi.kookxiang.dev/repository.json
+ - CloudFlare Pages（不推荐）\
+   https://jellyfin-plugin-bangumi.pages.dev/repository.json
 
 安装后可在后台更新，推荐使用此方式安装
 
