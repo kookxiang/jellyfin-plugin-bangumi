@@ -30,13 +30,11 @@ jobs:
       - name: .NET Publish (Emby)
         run: dotnet publish --configuration Release --output publish Emby.Plugin.Bangumi
       - name: Upload to Release
-        uses: crowbarmaster/GH-Automatic-Releases@v1.6.0
+        uses: svenstaro/upload-release-action@v2
         with:
           repo_token: "${{ github.token }}"
-          automatic_release_tag: ci
+          tag: ci
           prerelease: true
-          title: 持续集成
-          body: 最新的代码打包后会自动上传到这里
-          files: |
-            publish/Emby.Plugin.Bangumi.dll
-            publish/Jellyfin.Plugin.Bangumi.dll
+          overwrite: true
+          file_glob: true
+          file: publish/*.Plugin.Bangumi.dll
