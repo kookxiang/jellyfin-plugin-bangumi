@@ -20,6 +20,9 @@ public partial class OAuthUser
     [JsonPropertyName("expires_time")]
     public DateTime ExpireTime { get; set; }
 
+    [JsonPropertyName("effective_time")]
+    public DateTime? EffectiveTime { get; set; }
+
     [JsonPropertyName("expires_in")]
     public int ExpireIn
     {

@@ -94,7 +94,7 @@ public class OAuthController(BangumiApi api, OAuthStore store, IAuthorizationCon
     public async Task<object?> OAuthCallback([FromQuery(Name = "code")] string code, [FromQuery(Name = "user")] string user)
     {
         var urlPrefix = _oAuthPath ?? $"{Request.Scheme}://{Request.Host}{Request.PathBase}{Request.Path}";
-        var formData = new FormUrlEncodedContent([
+        using var formData = new FormUrlEncodedContent([
             new KeyValuePair<string, string>("grant_type", "authorization_code"),
             new KeyValuePair<string, string>("client_id", ApplicationId),
             new KeyValuePair<string, string>("client_secret", ApplicationSecret),

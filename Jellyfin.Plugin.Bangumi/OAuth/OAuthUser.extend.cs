@@ -22,8 +22,6 @@ public partial class OAuthUser
 
     public string? ProfileUrl { get; set; }
 
-    public DateTime? EffectiveTime { get; set; }
-
     [JsonIgnore]
     public bool Expired => ExpireTime < DateTime.Now;
 
@@ -78,5 +76,6 @@ public partial class OAuthUser
         AccessToken = newUser.AccessToken;
         RefreshToken = newUser.RefreshToken;
         ExpireTime = newUser.ExpireTime;
+        EffectiveTime = DateTime.Now;
     }
 }
