@@ -98,7 +98,7 @@ jobs:
           $Repository[0].versions = $Repository[0].versions | Where-Object { $_.version -ne $env:VERSION }
           foreach ($Version in $Repository[0].versions) {
             Invoke-WebRequest -Uri $Version.sourceUrl -OutFile "Release/$($Version.version).zip"
-            $Version.sourceUrl = "https://kookxiang.github.io/jellyfin-plugin-bangumi/$($env:VERSION).zip"
+            $Version.sourceUrl = "https://kookxiang.github.io/jellyfin-plugin-bangumi/$($Version.version).zip"
           }
           $Repository[0].versions = @(@{
             checksum =  (Get-FileHash -Algorithm MD5 "Jellyfin.Plugin.Bangumi.zip").Hash.ToLower()
