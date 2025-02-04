@@ -1,4 +1,5 @@
-﻿<div class="page type-interior pluginConfigurationPage" data-controller="__plugin/Plugin.Bangumi.Configuration.Script" data-require="emby-input,emby-button,emby-select,emby-checkbox" data-role="page" id="bangumiConfigurationPage">
+﻿<div class="page type-interior pluginConfigurationPage" data-controller="__plugin/Plugin.Bangumi.Configuration.Script"
+     data-require="emby-input,emby-button,emby-select,emby-checkbox" data-role="page" id="bangumiConfigurationPage">
     <link href="configurationpage?name=Plugin.Bangumi.Configuration.Style" rel="stylesheet"/>
     <div data-role="content">
         <div class="content-primary">
@@ -28,7 +29,8 @@
                     <button class="raised emby-button" id="bangumi-oauth-btn" is="emby-button" type="button">
                         <span>授权登录 Bangumi</span>
                     </button>
-                    <button class="emby-button button-link" id="bangumi-oauth-manual-btn" is="emby-button" type="button">
+                    <button class="emby-button button-link" id="bangumi-oauth-manual-btn" is="emby-button"
+                            type="button">
                         <span>手动填写</span>
                     </button>
                     <button class="raised emby-button" id="bangumi-oauth-delete" is="emby-button" style="display: none"
@@ -63,7 +65,8 @@
                 <div class="verticalSection">
                     <div class="sectionTitleContainer flex align-items-center">
                         <h2 class="sectionTitle">离线数据库 (Beta)</h2>
-                        <a class="raised button-alt headerHelpButton emby-button" id="archive-update-schedule-link" is="emby-linkbutton" style="display: none">
+                        <a class="raised button-alt headerHelpButton emby-button" id="archive-update-schedule-link"
+                           is="emby-linkbutton" style="display: none">
                             更新设置
                         </a>
                     </div>
@@ -84,7 +87,8 @@
                             <div class="listItemBodyText secondary" style="margin:0">大小</div>
                             <div class="listItemBodyText" id="archive-size">0</div>
                         </div>
-                        <button id="delete-archive-data" is="paper-icon-button-light" title="删除离线数据库" type="button">
+                        <button id="delete-archive-data" is="paper-icon-button-light" title="删除离线数据库"
+                                type="button">
                             <span aria-hidden="true" class="material-icons delete"></span>
                         </button>
                     </div>
@@ -93,7 +97,8 @@
                             <div class="listItemBodyText secondary" style="margin:0">上次更新时间</div>
                             <div class="listItemBodyText" id="archive-update-time">-</div>
                         </div>
-                        <button id="config-archive-update-task" is="paper-icon-button-light" title="计划任务设置" type="button">
+                        <button id="config-archive-update-task" is="paper-icon-button-light" title="计划任务设置"
+                                type="button">
                             <span aria-hidden="true" class="material-icons settings"></span>
                         </button>
                     </div>
