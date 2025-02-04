@@ -252,7 +252,7 @@ public partial class BangumiApi
     {
         if (id <= 0) return [];
         var persons = await GetSubjectPersons(id, token);
-        return persons?.Select(person => person.ToPersonInfo()).Where(info => info != null) as IEnumerable<PersonInfo> ?? [];
+        return (persons ?? []).Select(person => person.ToPersonInfo()).Where(info => info != null)!;
     }
 
     public async Task<Episode?> GetEpisode(int id, CancellationToken token)

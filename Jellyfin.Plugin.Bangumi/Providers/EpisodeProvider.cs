@@ -151,7 +151,7 @@ public partial class EpisodeProvider(BangumiApi api, Logger<EpisodeProvider> log
         var parentPath = Path.GetDirectoryName(filePath);
         var folderName = Path.GetFileName(parentPath);
         return SpecialEpisodeFileNameRegex().IsMatch(fileName) ||
-               (checkParent && SpecialEpisodeFileNameRegex().IsMatch(folderName ?? ""));
+               checkParent && SpecialEpisodeFileNameRegex().IsMatch(folderName ?? "");
     }
 
     private async Task<Model.Episode?> GetEpisode(EpisodeInfo info, LocalConfiguration localConfiguration, CancellationToken token)

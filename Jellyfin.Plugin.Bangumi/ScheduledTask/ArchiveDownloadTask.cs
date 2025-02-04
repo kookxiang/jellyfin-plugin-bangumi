@@ -63,7 +63,7 @@ public class ArchiveDownloadTask(BangumiApi api, ArchiveData archive, ITaskManag
             var entry = zipStream.GetEntry(fileName);
             if (entry == null)
                 throw new FileNotFoundException($"{fileName} not found in archive file");
-            progress.Report(65D + (30D * (completed + 0.2D) / archive.Stores.Count));
+            progress.Report(65D + 30D * (completed + 0.2D) / archive.Stores.Count);
 
             await using (var writeStream = File.OpenWrite(newStore.FilePath))
             {
@@ -72,17 +72,17 @@ public class ArchiveDownloadTask(BangumiApi api, ArchiveData archive, ITaskManag
                 await writeStream.FlushAsync(cancellationToken);
             }
 
-            progress.Report(65D + (30D * (completed + 0.5D) / archive.Stores.Count));
+            progress.Report(65D + 30D * (completed + 0.5D) / archive.Stores.Count);
 
             log.Info("generating index for {TempName}", $"temp/{newFileName}");
             await newStore.GenerateIndex(cancellationToken);
-            progress.Report(65D + (30D * (completed + 0.8D) / archive.Stores.Count));
+            progress.Report(65D + 30D * (completed + 0.8D) / archive.Stores.Count);
 
             log.Info("replacing {FileName} and index files with {TempName}", fileName, $"temp/{newFileName}");
             await oldStore.Move(archive.TempPath, Path.GetRandomFileName());
             await newStore.Move(archive.BasePath, fileName);
 
-            progress.Report(65D + (30D * ++completed / archive.Stores.Count));
+            progress.Report(65D + 30D * ++completed / archive.Stores.Count);
         }
 
         await archive.SubjectRelations.GenerateIndex(zipStream, cancellationToken);

@@ -1,11 +1,11 @@
-using System.Collections.Generic;
-using System.Text.Json.Serialization;
-using MediaBrowser.Controller.Entities;
 #if EMBY
 using PersonEntityType = MediaBrowser.Model.Entities.PersonType;
 #else
 using Jellyfin.Data.Enums;
 #endif
+using System.Collections.Generic;
+using System.Text.Json.Serialization;
+using MediaBrowser.Controller.Entities;
 
 namespace Jellyfin.Plugin.Bangumi.Model;
 
