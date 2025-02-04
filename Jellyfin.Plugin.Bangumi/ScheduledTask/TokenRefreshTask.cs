@@ -1,16 +1,16 @@
-﻿#if EMBY
-using MediaBrowser.Model.Logging;
-#else
-using Microsoft.Extensions.Logging;
-using Jellyfin.Data.Entities;
-#endif
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Jellyfin.Plugin.Bangumi.OAuth;
 using MediaBrowser.Model.Activity;
 using MediaBrowser.Model.Tasks;
+#if EMBY
+using MediaBrowser.Model.Logging;
+#else
+using Microsoft.Extensions.Logging;
+using Jellyfin.Data.Entities;
+#endif
 
 namespace Jellyfin.Plugin.Bangumi.ScheduledTask;
 
@@ -54,7 +54,7 @@ public class TokenRefreshTask(IActivityManager activity, BangumiApi api, OAuthSt
             cancellationToken.ThrowIfCancellationRequested();
             progress.Report(current / total);
             current++;
-            if (user.Expired)
+            if (user.Expired || string.IsNullOrEmpty(user.RefreshToken))
                 continue;
 
 #if EMBY

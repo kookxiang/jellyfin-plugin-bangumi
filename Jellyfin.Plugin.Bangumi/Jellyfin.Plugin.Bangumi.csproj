@@ -14,8 +14,12 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Remove="Configuration\configPage.html"/>
-    <EmbeddedResource Include="Configuration\ConfigPage.html"/>
+    <None Remove="Configuration\Style.css"/>
+    <None Remove="Configuration\Main.html"/>
+    <None Remove="Configuration\Main.js"/>
+    <EmbeddedResource Include="Configuration\Style.css"/>
+    <EmbeddedResource Include="Configuration\Main.html"/>
+    <EmbeddedResource Include="Configuration\Main.js"/>
   </ItemGroup>
 
   <ItemGroup>

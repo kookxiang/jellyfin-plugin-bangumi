@@ -43,7 +43,7 @@ public partial class OAuthUser
 #endif
         CancellationToken cancellationToken = default)
     {
-        var formData = new FormUrlEncodedContent([
+        using var formData = new FormUrlEncodedContent([
             new KeyValuePair<string, string>("grant_type", "refresh_token"),
             new KeyValuePair<string, string>("client_id", OAuthController.ApplicationId),
             new KeyValuePair<string, string>("client_secret", OAuthController.ApplicationSecret),

@@ -45,7 +45,8 @@ public class OAuthController(BangumiApi api, OAuthStore store, IAuthorizationCon
             ["expire"] = info.ExpireTime,
             ["avatar"] = info.Avatar,
             ["nickname"] = info.NickName,
-            ["url"] = info.ProfileUrl
+            ["url"] = info.ProfileUrl,
+            ["autoRefresh"] = !string.IsNullOrEmpty(info.RefreshToken)
         };
     }
 
@@ -111,5 +112,34 @@ public class OAuthController(BangumiApi api, OAuthStore store, IAuthorizationCon
         store.Set(user, result);
         store.Save();
         return Content("<script>window.opener.postMessage('BANGUMI-OAUTH-COMPLETE'); window.close()</script>", "text/html");
+    }
+
+    [HttpPatch("AccessToken")]
+    [Authorize]
+    public async Task<ActionResult> SetAccessTokenManually([FromForm(Name = "token")] string accessToken)
+    {
+        var authorizationInfo = await authorizationContext.GetAuthorizationInfo(Request);
+        var user = authorizationInfo.User;
+        if (user == null)
+            return BadRequest();
+        using var formData = new FormUrlEncodedContent([
+            new KeyValuePair<string, string>("access_token", accessToken)
+        ]);
+        var response = await api.GetHttpClient().PostAsync("https://bgm.tv/oauth/token_status", formData);
+        var responseBody = await response.Content.ReadAsStringAsync();
+        if (!response.IsSuccessStatusCode)
+        {
+            var error = JsonSerializer.Deserialize<OAuthError>(responseBody, Constants.JsonSerializerOptions);
+            return Problem(error?.ErrorDescription);
+        }
+
+        var result = JsonSerializer.Deserialize<OAuthUser>(responseBody, Constants.JsonSerializerOptions)!;
+        result.AccessToken = accessToken;
+        result.EffectiveTime = DateTime.Now;
+        result.RefreshToken = "";
+        store.Load();
+        store.Set(user.Id, result);
+        store.Save();
+        return Accepted();
     }
 }

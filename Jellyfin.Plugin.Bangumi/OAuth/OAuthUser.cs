@@ -1,8 +1,10 @@
 ﻿using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Text.Json.Serialization;
 
 namespace Jellyfin.Plugin.Bangumi.OAuth;
 
+[SuppressMessage("Design", "CA1044: Properties should not be write only")]
 public partial class OAuthUser
 {
     [JsonPropertyName("access_token")]
@@ -26,7 +28,12 @@ public partial class OAuthUser
     [JsonPropertyName("expires_in")]
     public int ExpireIn
     {
-        get => (int)ExpireTime.Subtract(DateTime.Now).TotalSeconds;
         set => ExpireTime = DateTime.Now.AddSeconds(value);
+    }
+
+    [JsonPropertyName("expires")]
+    public int Expire
+    {
+        set => ExpireTime = DateTime.UnixEpoch.AddSeconds(value);
     }
 }

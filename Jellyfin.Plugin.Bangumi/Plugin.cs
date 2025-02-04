@@ -34,7 +34,17 @@ public class Plugin : BasePlugin<PluginConfiguration>, IHasWebPages
                 DisplayName = "Bangumi 设置",
                 MenuIcon = "app_registration",
                 EnableInMainMenu = true,
-                EmbeddedResourcePath = $"{GetType().Namespace}.Configuration.ConfigPage.html"
+                EmbeddedResourcePath = $"{GetType().Namespace}.Configuration.Main.html"
+            },
+            new PluginPageInfo
+            {
+                Name = "Plugin.Bangumi.Configuration.Script",
+                EmbeddedResourcePath = $"{GetType().Namespace}.Configuration.Main.js"
+            },
+            new PluginPageInfo
+            {
+                Name = "Plugin.Bangumi.Configuration.Style",
+                EmbeddedResourcePath = $"{GetType().Namespace}.Configuration.Style.css"
             }
         ];
     }
