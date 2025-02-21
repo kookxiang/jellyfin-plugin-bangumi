@@ -28,7 +28,12 @@ public class EpisodeMetadataRefreshTask(Logger<EpisodeMetadataRefreshTask> log, 
     {
         if (!archive.Episode.Exists()) return;
 
-        var itemIds = library.GetItemIds(new InternalItemsQuery { IncludeItemTypes = [BaseItemKind.Episode] });
+        var itemIds = library.GetItemIds(new InternalItemsQuery
+        {
+            IncludeItemTypes = [BaseItemKind.Episode],
+            MinPremiereDate = DateTime.Now.AddMonths(-1),
+            MaxPremiereDate = DateTime.Now.AddDays(7)
+        });
         var count = 0d;
         foreach (var itemId in itemIds)
         {
@@ -57,21 +62,6 @@ public class EpisodeMetadataRefreshTask(Logger<EpisodeMetadataRefreshTask> log, 
             {
                 log.Info("episode {Id} not found in archive, skipped", bangumiId);
                 continue;
-            }
-
-            if (DateTime.TryParse(episode.AirDate, out var airDate))
-            {
-                if (airDate < DateTime.Now.AddMonths(-1))
-                {
-                    log.Info("episode #{Id} {Name} aired more than 1 month ago, skipped updating", bangumiId, item.Name);
-                    continue;
-                }
-
-                if (airDate > DateTime.Now.AddDays(7))
-                {
-                    log.Info("episode #{Id} {Name} is not aired yet, skipped updating", bangumiId, item.Name);
-                    continue;
-                }
             }
 
             // update episode metadata
