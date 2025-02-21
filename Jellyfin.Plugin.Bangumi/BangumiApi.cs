@@ -261,7 +261,8 @@ public partial class BangumiApi
 #if !EMBY
         var episode = await archive.Episode.FindById(id);
         if (episode != null && DateTime.TryParse(episode.AirDate, out var airDate))
-            if (airDate < DateTime.Now.Subtract(TimeSpan.FromDays(7)))
+            if (_plugin.Configuration.DaysBeforeUsingArchiveData == 0 ||
+                airDate < DateTime.Now.Subtract(TimeSpan.FromDays(_plugin.Configuration.DaysBeforeUsingArchiveData)))
                 return episode.ToEpisode();
 #endif
         return await Get<Episode>($"{BaseUrl}/v0/episodes/{id}", token);

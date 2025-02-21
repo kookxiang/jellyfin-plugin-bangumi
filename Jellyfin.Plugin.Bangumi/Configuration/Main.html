@@ -103,6 +103,16 @@
                         </button>
                     </div>
                 </div>
+                <div class="selectContainer">
+                    <label class="selectLabel" for="DaysBeforeUsingArchiveData">针对近期放送的剧集始终使用在线接口</label>
+                    <select class="emby-select-withcolor emby-select" id="DaysBeforeUsingArchiveData" is="emby-select">
+                        <option value="0">始终使用离线数据</option>
+                        <option value="7">为 7 日前放送的剧集使用离线数据</option>
+                        <option value="14">为 14 日前放送的剧集使用离线数据（推荐）</option>
+                        <option value="30">为 30 日前放送的剧集使用离线数据</option>
+                    </select>
+                    <div class="fieldDescription">对于近期放送的条目离线数据库更新可能不及时，可通过更换在线接口缓解。</div>
+                </div>
                 <div class="checkboxContainer checkboxContainer-withDescription">
                     <label class="emby-checkbox-label">
                         <input id="RefreshRatingWhenArchiveUpdate" is="emby-checkbox" type="checkbox"/>
