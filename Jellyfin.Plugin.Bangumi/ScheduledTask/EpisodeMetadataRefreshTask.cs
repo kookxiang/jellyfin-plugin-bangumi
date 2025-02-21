@@ -65,9 +65,12 @@ public class EpisodeMetadataRefreshTask(Logger<EpisodeMetadataRefreshTask> log, 
             }
 
             // update episode metadata
-            item.Name = episode.Name;
-            item.OriginalTitle = episode.OriginalName;
-            item.Overview = string.IsNullOrEmpty(episode.Description) ? null : episode.Description;
+            if (!string.IsNullOrEmpty(episode.Name))
+                item.Name = episode.Name;
+            if (!string.IsNullOrEmpty(episode.OriginalName))
+                item.OriginalTitle = episode.OriginalName;
+            if (!string.IsNullOrEmpty(episode.Description))
+                item.Overview = string.IsNullOrEmpty(episode.Description) ? null : episode.Description;
 
             log.Info("update metadata for episode #{Id} {Name}", bangumiId, item.Name);
 
