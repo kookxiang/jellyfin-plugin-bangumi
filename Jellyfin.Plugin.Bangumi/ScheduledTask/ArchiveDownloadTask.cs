@@ -92,7 +92,11 @@ public class ArchiveDownloadTask(BangumiApi api, ArchiveData archive, ITaskManag
         log.Info("update completed. cleaning up temp files");
         Directory.Delete(archive.TempPath, true);
 
-        if (Plugin.Instance?.Configuration.RefreshRatingWhenArchiveUpdate == true) taskManager.Execute<RatingRefreshTask>();
+        if (Plugin.Instance?.Configuration.RefreshRecentEpisodeWhenArchiveUpdate == true)
+            taskManager.Execute<EpisodeMetadataRefreshTask>();
+
+        if (Plugin.Instance?.Configuration.RefreshRatingWhenArchiveUpdate == true)
+            taskManager.Execute<RatingRefreshTask>();
     }
 
     private async Task<ArchiveReleaseMeta> GetLatestArchiveMeta(CancellationToken token)

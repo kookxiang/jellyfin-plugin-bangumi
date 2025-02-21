@@ -24,8 +24,11 @@
     <Compile Include="..\Jellyfin.Plugin.Bangumi\OAuth\*.cs" Exclude="..\Jellyfin.Plugin.Bangumi\OAuth\OAuthController.cs">
       <Link>OAuth\*.cs</Link>
     </Compile>
-    <Compile Include="..\Jellyfin.Plugin.Bangumi\ScheduledTask\*.cs" Exclude="..\Jellyfin.Plugin.Bangumi\ScheduledTask\ArchiveDownloadTask.cs">
-      <Link>ScheduledTask\*.cs</Link>
+    <Compile Include="..\Jellyfin.Plugin.Bangumi\ScheduledTask\RatingRefreshTask.cs">
+      <Link>ScheduledTask\RatingRefreshTask.cs</Link>
+    </Compile>
+    <Compile Include="..\Jellyfin.Plugin.Bangumi\ScheduledTask\TokenRefreshTask.cs">
+      <Link>ScheduledTask\TokenRefreshTask.cs</Link>
     </Compile>
   </ItemGroup>
 

@@ -40,6 +40,8 @@ public class PluginConfiguration : BasePluginConfiguration
 
     public bool SortByFuzzScore { get; set; } = false;
 
+    public bool RefreshRecentEpisodeWhenArchiveUpdate { get; set; } = false;
+
     public bool RefreshRatingWhenArchiveUpdate { get; set; } = false;
 
     public int DaysBeforeUsingArchiveData { get; set; } = 14;
