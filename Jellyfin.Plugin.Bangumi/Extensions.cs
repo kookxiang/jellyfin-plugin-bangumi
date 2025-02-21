@@ -45,7 +45,9 @@ public static class PathExtensions
     /// <param name="str">The STR.</param>
     /// <param name="attribute">The attrib.</param>
     /// <returns>System.String.</returns>
-    /// <exception cref="ArgumentException"><paramref name="str" /> or <paramref name="attribute" /> is empty.</exception>
+    /// <exception cref="ArgumentException">
+    ///     <paramref name="str" /> or <paramref name="attribute" /> is empty.
+    /// </exception>
     public static string? GetAttributeValue(this string? str, string attribute)
     {
         if (string.IsNullOrEmpty(str))

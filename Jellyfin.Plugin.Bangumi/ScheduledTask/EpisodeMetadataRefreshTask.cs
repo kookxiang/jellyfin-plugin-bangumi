@@ -18,7 +18,11 @@ public class EpisodeMetadataRefreshTask(Logger<EpisodeMetadataRefreshTask> log, 
     public string Name => "为近期放送的剧集更新元数据信息";
     public string Description => "从离线数据库中更新近期放送的剧集的元数据信息";
     public string Category => "Bangumi";
-    public IEnumerable<TaskTriggerInfo> GetDefaultTriggers() => [];
+
+    public IEnumerable<TaskTriggerInfo> GetDefaultTriggers()
+    {
+        return [];
+    }
 
     public async Task ExecuteAsync(IProgress<double> progress, CancellationToken cancellationToken)
     {

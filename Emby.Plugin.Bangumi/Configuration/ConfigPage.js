@@ -94,7 +94,7 @@ define(['baseView', 'emby-scroller', 'emby-select', 'emby-input', 'emby-checkbox
             e.preventDefault();
             Dashboard.confirm('取消后将断开与 Bangumi 的连接，不再同步播放进度', '取消授权', function (confirmed) {
                 if (!confirmed) return;
-                ApiClient.fetch({ url: '/Bangumi/OAuth', type: 'DELETE' })
+                ApiClient.fetch({url: '/Bangumi/OAuth', type: 'DELETE'})
                     .then(function () {
                         wrapLoading(loadOAuthState());
                     });
@@ -110,7 +110,7 @@ define(['baseView', 'emby-scroller', 'emby-select', 'emby-input', 'emby-checkbox
                     loadOAuthState();
                     Dashboard.alert('授权有效期已更新');
                 }, function () {
-                    Dashboard.alert({ title: '错误', message: '续期失败，请尝试重新授权' });
+                    Dashboard.alert({title: '错误', message: '续期失败，请尝试重新授权'});
                     container.querySelector('#bangumi-oauth-btn').style.display = '';
                     container.querySelector('#bangumi-oauth-refresh').style.display = 'none';
                 }));
