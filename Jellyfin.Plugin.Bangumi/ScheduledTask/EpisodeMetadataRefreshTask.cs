@@ -11,12 +11,12 @@ using MediaBrowser.Model.Tasks;
 
 namespace Jellyfin.Plugin.Bangumi.ScheduledTask;
 
-public class EpisodeMetadataRefreshTask(Logger<RatingRefreshTask> log, ILibraryManager library, ArchiveData archive)
+public class EpisodeMetadataRefreshTask(Logger<EpisodeMetadataRefreshTask> log, ILibraryManager library, ArchiveData archive)
     : IScheduledTask
 {
     public string Key => "EpisodeMetadataRefreshTask";
-    public string Name => "剧集元数据更新";
-    public string Description => "为近期放送的剧集更新元数据信息";
+    public string Name => "为近期放送的剧集更新元数据信息";
+    public string Description => "从离线数据库中更新近期放送的剧集的元数据信息";
     public string Category => "Bangumi";
     public IEnumerable<TaskTriggerInfo> GetDefaultTriggers() => [];
 
@@ -29,6 +29,9 @@ public class EpisodeMetadataRefreshTask(Logger<RatingRefreshTask> log, ILibraryM
         foreach (var itemId in itemIds)
         {
             progress?.Report(100D * count++ / itemIds.Count);
+
+            // add a small delay to reduce resource usage
+            await Task.Delay(TimeSpan.FromMilliseconds(50), cancellationToken);
 
             // check whether current task was canceled
             cancellationToken.ThrowIfCancellationRequested();
