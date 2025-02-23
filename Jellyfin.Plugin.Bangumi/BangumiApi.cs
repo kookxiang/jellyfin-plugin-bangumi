@@ -32,6 +32,8 @@ public partial class BangumiApi
 
     public async Task<IEnumerable<Subject>> SearchSubject(string keyword, SubjectType? type, CancellationToken token)
     {
+        if (string.IsNullOrEmpty(keyword))
+            return [];
         try
         {
             if (Plugin.Instance!.Configuration.UseTestingSearchApi)
@@ -44,6 +46,9 @@ public partial class BangumiApi
             }
             else
             {
+                // remove `-` in keyword
+                keyword = keyword.Replace(" -", " ");
+
                 var url = $"{BaseUrl}/search/subject/{Uri.EscapeDataString(keyword)}?responseGroup=large";
                 if (type != null)
                     url += $"&type={(int)type}";
