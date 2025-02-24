@@ -148,7 +148,7 @@ public class PlaybackScrobbler(IUserDataManager userDataManager, OAuthStore stor
         }
         catch (Exception e)
         {
-            if (played && e.Message == "Bad Request: you need to add subject to your collection first")
+            if (played && IsErrorFromUncollectedSubject(e))
             {
                 log.Info("report subject #{Subject} status {Status} to bangumi", subjectId, CollectionType.Watching);
                 await api.UpdateCollectionStatus(user.AccessToken, subjectId, CollectionType.Watching, CancellationToken.None);
@@ -180,4 +180,6 @@ public class PlaybackScrobbler(IUserDataManager userDataManager, OAuthStore stor
             await api.UpdateCollectionStatus(user.AccessToken, subjectId, CollectionType.Watched, CancellationToken.None);
         }
     }
+
+    internal static bool IsErrorFromUncollectedSubject(Exception e) => e.Message.Contains("need to add subject to your collection");
 }
