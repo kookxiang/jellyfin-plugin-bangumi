@@ -73,7 +73,10 @@ public class InfoBox : Dictionary<string, string>
                     line = line.Substring(1, line.Length - 2);
                     var subParts = line.Split('|', 2);
                     if (subParts.Length == 2)
-                        infobox.Add(parts[0] + "/" + subParts[0], subParts[1].Trim());
+                        if (infobox.ContainsKey(parts[0] + "/" + subParts[0]))
+                            infobox[parts[0] + "/" + subParts[0]] += subParts[1].Trim();
+                        else
+                            infobox.Add(parts[0] + "/" + subParts[0], subParts[1].Trim());
                     else if (infobox.ContainsKey(parts[0]))
                         infobox[parts[0]] += "\n" + line.Trim();
                     else
