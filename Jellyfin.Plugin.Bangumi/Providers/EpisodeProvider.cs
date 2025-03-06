@@ -29,6 +29,7 @@ public partial class EpisodeProvider(BangumiApi api, Logger<EpisodeProvider> log
         new(@"(Hi)?10p", RegexOptions.IgnoreCase),
         new(@"(8|10)bit", RegexOptions.IgnoreCase),
         new(@"(x|h)(264|265)", RegexOptions.IgnoreCase),
+        new(@"\d{2,}FPS", RegexOptions.IgnoreCase),
         new(@"\[\d{2}(0[1-9]|1[0-2])(0[1-9]|1[0-9]|2[0-9]|3[0-1])]"),
         new(@"(?<=[^P])V\d+")
     ];
