@@ -39,6 +39,7 @@ public partial class EpisodeProvider(BangumiApi api, Logger<EpisodeProvider> log
         new(@"\[([\d\.]{2,})\]"),
         new(@"- ?([\d\.]{2,})"),
         new(@"EP?([\d\.]{2,})", RegexOptions.IgnoreCase),
+        new(@"第(\d+)巻"),
         new(@"\[([\d\.]{2,})"),
         new(@"#([\d\.]{2,})"),
         new(@"(\d{2,})"),
