@@ -249,23 +249,25 @@ public partial class BangumiApi
                 if (results is null)
                     continue;
 
-                // 遍历条目，判断关系
+                // 遍历条目，判断关系，仅处理动画
                 // 不同世界观、不同演绎……等视作单独系列，故未作判断
-                foreach (var result in results)
+                foreach (var result in results.Where(r => r.Type == SubjectType.Anime))
                 {
-                    // 仅处理动画
-                    if (result.Type==SubjectType.Anime)
+                    switch (result.Relation)
                     {
-                        if (result.Relation == SubjectRelation.Sequel || result.Relation == SubjectRelation.Prequel) // 衍生、主线故事
-                        {
-                            // 加入队列
+                        // 衍生、主线故事
+                        case SubjectRelation.Sequel:
+                        case SubjectRelation.Prequel:
                             queue.Enqueue(result.Id);
-                        }
-                        else if (result.Relation == SubjectRelation.Extra || result.Relation == SubjectRelation.Summary)
-                        {
-                            // 无更多关联条目，直接添加进列表
+                            break;
+
+                        // 无更多关联条目，直接添加进列表
+                        case SubjectRelation.Extra:
+                        case SubjectRelation.Summary:
                             allSubjectIds.Add(result.Id);
-                        }
+                            break;
+                        default:
+                            break;
                     }
                 }
                 requestCount++;
