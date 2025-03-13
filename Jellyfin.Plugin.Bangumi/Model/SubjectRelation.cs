@@ -21,4 +21,6 @@ public static class SubjectRelation
     public const string Game = "游戏";
 
     public const string Othe = "其他";
+
+    public const string Summary = "总集篇";
 }
