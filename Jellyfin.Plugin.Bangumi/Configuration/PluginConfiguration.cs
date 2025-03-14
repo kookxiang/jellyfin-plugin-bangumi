@@ -8,6 +8,12 @@ public enum TranslationPreferenceType
     Chinese
 }
 
+public enum EpisodeParserType
+{
+    Basic,
+    AnitomySharp
+}
+
 public class PluginConfiguration : BasePluginConfiguration
 {
     public TranslationPreferenceType TranslationPreference { get; set; } = TranslationPreferenceType.Chinese;
@@ -28,11 +34,7 @@ public class PluginConfiguration : BasePluginConfiguration
 
     public bool UseBangumiSeasonTitle { get; set; } = true;
 
-    public bool AlwaysReplaceEpisodeNumber { get; set; }
-
     public bool AlwaysGetTitleByAnitomySharp { get; set; }
-
-    public bool AlwaysGetEpisodeByAnitomySharp { get; set; }
 
     public bool UseTestingSearchApi { get; set; }
 
@@ -45,4 +47,10 @@ public class PluginConfiguration : BasePluginConfiguration
     public bool RefreshRatingWhenArchiveUpdate { get; set; } = false;
 
     public int DaysBeforeUsingArchiveData { get; set; } = 14;
+
+    public EpisodeParserType EpisodeParser { get; set; } = EpisodeParserType.Basic;
+
+    public bool AlwaysReplaceEpisodeNumber { get; set; }
+    
+    public bool ProcessMultiSeasonFolderByAnitomySharp { get; set; }
 }

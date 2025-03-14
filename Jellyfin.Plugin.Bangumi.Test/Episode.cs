@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using Jellyfin.Plugin.Bangumi.Configuration;
 using Jellyfin.Plugin.Bangumi.Providers;
 using Jellyfin.Plugin.Bangumi.Test.Util;
 using MediaBrowser.Controller.Providers;
@@ -398,7 +399,7 @@ public class Episode
     [TestMethod]
     public async Task GetEpisodeByAnitomySharp()
     {
-        _plugin.Configuration.AlwaysGetEpisodeByAnitomySharp = true;
+        _plugin.Configuration.EpisodeParser = EpisodeParserType.AnitomySharp;
         var episodeData = await _provider.GetMetadata(new EpisodeInfo
             {
                 IndexNumber = 0,
@@ -406,7 +407,7 @@ public class Episode
                 SeriesProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "227102" } }
             },
             _token);
-        _plugin.Configuration.AlwaysGetEpisodeByAnitomySharp = false;
+        _plugin.Configuration.EpisodeParser = EpisodeParserType.Basic;
         Assert.IsNotNull(episodeData, "episode data should not be null");
         Assert.IsNotNull(episodeData.Item, "episode data should not be null");
         Assert.AreEqual(5, episodeData.Item.IndexNumber, "should fix episode index automatically");
