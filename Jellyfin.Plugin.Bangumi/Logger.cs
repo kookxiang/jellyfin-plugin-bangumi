@@ -20,4 +20,9 @@ public class Logger<T>(ILogger<T> logger)
     {
         logger.LogError(message, args);
     }
+    
+    public void Debug(string message, params object?[] args)
+    {
+        logger.LogDebug(message, args);
+    }
 }
