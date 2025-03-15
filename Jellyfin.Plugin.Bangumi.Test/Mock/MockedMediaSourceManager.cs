@@ -95,9 +95,9 @@ public class MockedMediaSourceManager : IMediaSourceManager
         throw new NotImplementedException();
     }
 
-    public List<MediaSourceInfo> GetStaticMediaSources(BaseItem item, bool enablePathSubstitution, User user = null)
+    public List<MediaSourceInfo> GetStaticMediaSources(BaseItem item, bool enablePathSubstitution, User? user = null)
     {
-        return null;
+        return [];
     }
 
     public Task<LiveStreamResponse> OpenLiveStream(LiveStreamRequest request, CancellationToken cancellationToken)
