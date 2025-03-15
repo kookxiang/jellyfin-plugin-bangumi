@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using AnitomySharp;
 
-namespace Jellyfin.Plugin.Bangumi;
+namespace Jellyfin.Plugin.Bangumi.Parser.AnitomyParser;
 
 /// <summary>
 ///     The Anitomy class contains methods for extracting various elements from a string path using the AnitomySharp library.
