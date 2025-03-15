@@ -397,6 +397,7 @@ public class Episode
     }
 
     [TestMethod]
+    [Ignore("AnitomyEpisodeParser is still under development and unavailable")]
     public async Task GetEpisodeByAnitomySharp()
     {
         _plugin.Configuration.EpisodeParser = EpisodeParserType.AnitomySharp;
