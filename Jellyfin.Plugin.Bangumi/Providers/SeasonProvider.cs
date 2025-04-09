@@ -24,6 +24,20 @@ public class SeasonProvider(BangumiApi api, Logger<EpisodeProvider> log, ILibrar
 
     public string Name => Constants.ProviderName;
 
+    private static readonly Dictionary<int, string> chineseOrdinalChars = new()
+    {
+        { 1, "一" },
+        { 2, "二" },
+        { 3, "三" },
+        { 4, "四" },
+        { 5, "五" },
+        { 6, "六" },
+        { 7, "七" },
+        { 8, "八" },
+        { 9, "九" },
+        { 10, "十" },
+    };
+
     public async Task<MetadataResult<Season>> GetMetadata(SeasonInfo info, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
@@ -62,6 +76,27 @@ public class SeasonProvider(BangumiApi api, Logger<EpisodeProvider> log, ILibrar
                 // Search "Season 2" for "Season 1" and "Season 2 Part X"
                 .Where(x => x.IndexNumber == info.IndexNumber - 1 || x.IndexNumber == info.IndexNumber)
                 .MaxBy(x => int.Parse(x.GetProviderId(Constants.ProviderName) ?? "0"));
+            if (previousSeason?.Path == info.Path)
+            {
+                //This is the first season to be matched, which means season 1 and any other possible previous season is missing. We can just try match it by name.
+                string[] searchNames = [$"{series.Name} 第{chineseOrdinalChars[info.IndexNumber ?? 1]}季", $"{series.Name} Season {info.IndexNumber}"];
+                foreach (var searchName in searchNames)
+                {
+                    log.Info($"Guessing season id by name:  {searchName}");
+                    var searchResult = await api.SearchSubject(searchName, cancellationToken);
+                    if (int.TryParse(info.SeriesProviderIds.GetOrDefault(Constants.ProviderName), out var parentId))
+                    {
+                        searchResult = searchResult.Where(x => x.Id != parentId);
+                    }
+                    if (info.Year != null)
+                    {
+                        searchResult = searchResult.Where(x => x.ProductionYear == null || x.ProductionYear == info.Year?.ToString());
+                    }
+                    if (searchResult.Any())
+                        subjectId = searchResult.First().Id;
+                }
+                log.Info("Guessed result: {Name} (#{ID})", subject?.Name, subject?.Id);
+            }
             if (int.TryParse(previousSeason?.GetProviderId(Constants.ProviderName), out var previousSeasonId) && previousSeasonId > 0)
             {
                 log.Info("Guessing season id from previous season #{ID}", previousSeasonId);
