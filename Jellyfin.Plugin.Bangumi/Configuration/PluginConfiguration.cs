@@ -45,4 +45,6 @@ public class PluginConfiguration : BasePluginConfiguration
     public bool RefreshRatingWhenArchiveUpdate { get; set; } = false;
 
     public int DaysBeforeUsingArchiveData { get; set; } = 14;
+
+    public int RatingUpdateMinInterval { get; set; } = 14;
 }
