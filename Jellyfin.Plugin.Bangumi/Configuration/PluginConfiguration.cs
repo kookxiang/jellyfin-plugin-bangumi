@@ -48,6 +48,8 @@ public class PluginConfiguration : BasePluginConfiguration
 
     public int DaysBeforeUsingArchiveData { get; set; } = 14;
 
+    public int RatingUpdateMinInterval { get; set; } = 14;
+
     public EpisodeParserType EpisodeParser { get; set; } = EpisodeParserType.Basic;
 
     public bool AlwaysReplaceEpisodeNumber { get; set; }

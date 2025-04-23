@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using Jellyfin.Plugin.Bangumi.Configuration;
 using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Library;
 using MediaBrowser.Model.Tasks;
@@ -54,6 +55,8 @@ public class RatingRefreshTask(Logger<RatingRefreshTask> log, ILibraryManager li
             }
         })!;
 
+        int updateMinInterval = Plugin.Instance?.Configuration?.RatingUpdateMinInterval ?? 14;
+
         var count = 0d;
         var waitTime = TimeSpan.FromSeconds(1);
 #if !EMBY
@@ -83,7 +86,11 @@ public class RatingRefreshTask(Logger<RatingRefreshTask> log, ILibraryManager li
             var dateLastRefreshed = item.DateLastRefreshed;
 #endif
 
-            if (DateTime.Now.Subtract(dateLastRefreshed).TotalDays < 14) continue;
+            if (DateTime.Now.Subtract(dateLastRefreshed).TotalDays < updateMinInterval)
+            {
+                log.Info($"Skipping item {item.Name} (#{item.Id}) because it was refreshed recently at {dateLastRefreshed}");
+                continue;
+            }
 
             // skip item if it doesn't have bangumi id
             if (!item.ProviderIds.TryGetValue(Constants.ProviderName, out var bangumiId)) continue;
