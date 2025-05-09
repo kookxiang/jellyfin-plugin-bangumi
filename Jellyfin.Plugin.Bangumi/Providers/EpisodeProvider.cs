@@ -70,7 +70,19 @@ public partial class EpisodeProvider(BangumiApi api, Logger<EpisodeProvider> log
         var result = new MetadataResult<Episode> { ResultLanguage = Constants.Language };
 
         if (episode == null)
+        {
+            // remove season number
+            if (IsSpecial(info.Path, true))
+            {
+                result.HasMetadata = true;
+                result.Item = new Episode
+                {
+                    ParentIndexNumber = 0
+                };
+            }
+
             return result;
+        }
 
         result.Item = new Episode();
         result.HasMetadata = true;
@@ -230,7 +242,7 @@ public partial class EpisodeProvider(BangumiApi api, Logger<EpisodeProvider> log
             log.Info("episode is not belongs to series {SeriesId}, ignoring result", seriesId);
         }
 
-        SkipBangumiId:
+SkipBangumiId:
         log.Info("searching episode in series episode list");
         var episodeListData = await api.GetSubjectEpisodeList(seriesId, type, episodeIndex.Value, token);
 
