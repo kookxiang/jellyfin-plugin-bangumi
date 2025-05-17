@@ -1,5 +1,6 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using Jellyfin.Data.Entities;
@@ -23,6 +24,8 @@ namespace Jellyfin.Plugin.Bangumi.Test.Mock;
 
 public class MockedLibraryManager : ILibraryManager
 {
+    private readonly Dictionary<string, BaseItem> _items = [];
+
     public BaseItem? ResolvePath(FileSystemMetadata fileInfo, Folder? parent = null, IDirectoryService? directoryService = null)
     {
         throw new NotImplementedException();
@@ -40,6 +43,14 @@ public class MockedLibraryManager : ILibraryManager
 
     public BaseItem? FindByPath(string path, bool? isFolder)
     {
+        path = path.Replace(Path.AltDirectorySeparatorChar, Path.DirectorySeparatorChar);
+
+        if (_items.TryGetValue(path, out var item))
+        {
+            isFolder ??= false;
+            return item.IsFolder == isFolder ? item : null;
+        }
+
         return null;
     }
 
@@ -145,7 +156,8 @@ public class MockedLibraryManager : ILibraryManager
 
     public void CreateItem(BaseItem item, BaseItem? parent)
     {
-        throw new NotImplementedException();
+        item.Path = item.Path.Replace(Path.AltDirectorySeparatorChar, Path.DirectorySeparatorChar);
+        _items[item.Path] = item;
     }
 
     public void CreateItems(IReadOnlyList<BaseItem> items, BaseItem? parent, CancellationToken cancellationToken)
@@ -439,6 +451,11 @@ public class MockedLibraryManager : ILibraryManager
     }
 
     public void QueueLibraryScan()
+    {
+        throw new NotImplementedException();
+    }
+
+    public Task ValidateTopLibraryFolders(CancellationToken cancellationToken, bool removeRoot = false)
     {
         throw new NotImplementedException();
     }

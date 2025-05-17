@@ -1,8 +1,9 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Jellyfin.Plugin.Bangumi.Providers;
 using Jellyfin.Plugin.Bangumi.Test.Util;
+using MediaBrowser.Controller.Library;
 using MediaBrowser.Controller.Providers;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
@@ -13,8 +14,17 @@ public class Episode
 {
     private readonly Bangumi.Plugin _plugin = ServiceLocator.GetService<Bangumi.Plugin>();
     private readonly EpisodeProvider _provider = ServiceLocator.GetService<EpisodeProvider>();
+    private readonly ILibraryManager _libraryManager = ServiceLocator.GetService<ILibraryManager>();
 
     private readonly CancellationToken _token = new();
+
+    private void CreateSeason(string path)
+    {
+        _libraryManager.CreateItem(new MediaBrowser.Controller.Entities.TV.Season()
+        {
+            Path = FakePath.Create(path)
+        }, null);
+    }
 
     [TestMethod]
     public void ProviderInfo()
@@ -27,33 +37,33 @@ public class Episode
     public async Task EpisodeInfo()
     {
         var episodeData = await _provider.GetMetadata(new EpisodeInfo
-            {
-                Path = FakePath.CreateFile("White Album 2/White Album 2[01][Hi10p_1080p][BDRip][x264_2flac].mkv"),
-                ProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "259013" } },
-                SeriesProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "69496" } }
-            },
+        {
+            Path = FakePath.CreateFile("White Album 2/White Album 2[01][Hi10p_1080p][BDRip][x264_2flac].mkv"),
+            ProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "259013" } },
+            SeriesProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "69496" } }
+        },
             _token);
         Assert.IsNotNull(episodeData, "episode data should not be null");
         Assert.IsNotNull(episodeData.Item, "episode data should not be null");
         Assert.AreEqual("WHITE ALBUM", episodeData.Item.Name, "should return the right episode title");
 
         episodeData = await _provider.GetMetadata(new EpisodeInfo
-            {
-                IndexNumber = 0,
-                Path = FakePath.CreateFile("ONE PIECE/海贼王--S21--E1023.MP4"),
-                SeriesProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "975" } }
-            },
+        {
+            IndexNumber = 0,
+            Path = FakePath.CreateFile("ONE PIECE/海贼王--S21--E1023.MP4"),
+            SeriesProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "975" } }
+        },
             _token);
         Assert.IsNotNull(episodeData, "episode data should not be null");
         Assert.IsNotNull(episodeData.Item, "episode data should not be null");
         Assert.AreEqual(1023, episodeData.Item.IndexNumber, "should return the right episode number");
 
         episodeData = await _provider.GetMetadata(new EpisodeInfo
-            {
-                IndexNumber = 0,
-                Path = FakePath.CreateFile("ONE PIECE/海贼王--S21--E1026.MP4"),
-                SeriesProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "975" } }
-            },
+        {
+            IndexNumber = 0,
+            Path = FakePath.CreateFile("ONE PIECE/海贼王--S21--E1026.MP4"),
+            SeriesProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "975" } }
+        },
             _token);
         Assert.IsNotNull(episodeData, "episode data should not be null");
         Assert.IsNotNull(episodeData.Item, "episode data should not be null");
@@ -64,21 +74,21 @@ public class Episode
     public async Task EpisodeInfoWithoutId()
     {
         var episodeData = await _provider.GetMetadata(new EpisodeInfo
-            {
-                Path = FakePath.CreateFile("White Album 2/White Album 2[01][Hi10p_1080p][BDRip][x264_2flac].mkv"),
-                SeriesProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "69496" } }
-            },
+        {
+            Path = FakePath.CreateFile("White Album 2/White Album 2[01][Hi10p_1080p][BDRip][x264_2flac].mkv"),
+            SeriesProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "69496" } }
+        },
             _token);
         Assert.IsNotNull(episodeData, "episode data should not be null");
         Assert.IsNotNull(episodeData.Item, "episode data should not be null");
         Assert.AreEqual("WHITE ALBUM", episodeData.Item.Name, "should return the right episode title");
 
         episodeData = await _provider.GetMetadata(new EpisodeInfo
-            {
-                IndexNumber = 0,
-                Path = FakePath.CreateFile("[202204]辉夜大小姐想让我告白-超级浪漫-/[202204]辉夜大小姐想让我告白-超级浪漫- S3/ep01.mp4"),
-                SeriesProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "317613" } }
-            },
+        {
+            IndexNumber = 0,
+            Path = FakePath.CreateFile("[202204]辉夜大小姐想让我告白-超级浪漫-/[202204]辉夜大小姐想让我告白-超级浪漫- S3/ep01.mp4"),
+            SeriesProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "317613" } }
+        },
             _token);
         Assert.IsNotNull(episodeData, "episode data should not be null");
         Assert.IsNotNull(episodeData.Item, "episode data should not be null");
@@ -89,11 +99,11 @@ public class Episode
     public async Task LargeEpisodeIndex()
     {
         var episodeData = await _provider.GetMetadata(new EpisodeInfo
-            {
-                Path = FakePath.CreateFile("[CONAN][999][1080P][AVC_AAC][CHS_JP](B07242C7).mp4"),
-                IndexNumber = 999,
-                SeriesProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "899" } }
-            },
+        {
+            Path = FakePath.CreateFile("[CONAN][999][1080P][AVC_AAC][CHS_JP](B07242C7).mp4"),
+            IndexNumber = 999,
+            SeriesProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "899" } }
+        },
             _token);
         Assert.IsNotNull(episodeData, "episode data should not be null");
         Assert.IsNotNull(episodeData.Item, "episode data should not be null");
@@ -104,11 +114,11 @@ public class Episode
     public async Task SpecialEpisodeSupport()
     {
         var episodeData = await _provider.GetMetadata(new EpisodeInfo
-            {
-                Path = FakePath.CreateFile("SPY x FAMILY - 10 [WebRip 1080p HEVC-10bit AAC ASSx2].mkv"),
-                IndexNumber = 0,
-                SeriesProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "329906" } }
-            },
+        {
+            Path = FakePath.CreateFile("SPY x FAMILY - 10 [WebRip 1080p HEVC-10bit AAC ASSx2].mkv"),
+            IndexNumber = 0,
+            SeriesProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "329906" } }
+        },
             _token);
         Assert.IsNotNull(episodeData, "episode data should not be null");
         Assert.IsNotNull(episodeData.Item, "episode data should not be null");
@@ -116,11 +126,11 @@ public class Episode
         Assert.AreEqual("ドッジボール大作戦", episodeData.Item.Name, "should return the right episode title");
 
         episodeData = await _provider.GetMetadata(new EpisodeInfo
-            {
-                Path = FakePath.CreateFile("[Sword Art Online - Alicization -War of Underworld-][00][BDRIP 1920x1080 HEVC-YUV420P10 FLAC].mkv"),
-                IndexNumber = 0,
-                SeriesProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "279457" } }
-            },
+        {
+            Path = FakePath.CreateFile("[Sword Art Online - Alicization -War of Underworld-][00][BDRIP 1920x1080 HEVC-YUV420P10 FLAC].mkv"),
+            IndexNumber = 0,
+            SeriesProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "279457" } }
+        },
             _token);
         Assert.IsNotNull(episodeData, "episode data should not be null");
         Assert.IsNotNull(episodeData.Item, "episode data should not be null");
@@ -128,38 +138,53 @@ public class Episode
         Assert.AreEqual("リフレクション", episodeData.Item.Name, "should return the right episode title");
 
         episodeData = await _provider.GetMetadata(new EpisodeInfo
-            {
-                Path = FakePath.CreateFile("妄想学生会 OVA/[VCB-Studio] Seitokai Yakuindomo [16][Ma10p_1080p][x265_flac].mkv"),
-                IndexNumber = 0,
-                SeriesProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "39118" } }
-            },
+        {
+            Path = FakePath.CreateFile("[VCB-Studio] Seitokai Yakuindomo [16][Ma10p_1080p][x265_flac].mkv"),
+            IndexNumber = 0,
+            SeriesProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "39118" } }
+        },
             _token);
         Assert.IsNotNull(episodeData, "episode data should not be null");
         Assert.IsNotNull(episodeData.Item, "episode data should not be null");
         Assert.AreNotEqual(episodeData.Item.ParentIndexNumber, 0, "should not mark folder as special");
+        Assert.AreEqual("167720", episodeData.Item.ProviderIds[Constants.ProviderName], "should return the right episode id");
+
+        CreateSeason("妄想学生会 OVA");
+        episodeData = await _provider.GetMetadata(new EpisodeInfo
+        {
+            Path = FakePath.CreateFile("妄想学生会 OVA/[VCB-Studio] Seitokai Yakuindomo [16][Ma10p_1080p][x265_flac].mkv"),
+            IndexNumber = 0,
+            SeriesProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "39118" } }
+        },
+            _token);
+        Assert.IsNotNull(episodeData, "episode data should not be null");
+        Assert.IsNotNull(episodeData.Item, "episode data should not be null");
+        Assert.AreEqual(episodeData.Item.ParentIndexNumber, 0, "should mark folder as special");
         Assert.AreEqual("167720", episodeData.Item.ProviderIds[Constants.ProviderName], "should return the right episode id");
     }
 
     [TestMethod]
     public async Task SpecialEpisodeFromSubFolder()
     {
+        CreateSeason("とある科学の超電磁砲S/Specials");
         var episodeData = await _provider.GetMetadata(new EpisodeInfo
-            {
-                Path = FakePath.CreateFile("とある科学の超電磁砲S/Specials/01.mkv"),
-                IndexNumber = 0,
-                SeriesProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "51928" } }
-            },
+        {
+            Path = FakePath.CreateFile("とある科学の超電磁砲S/Specials/01.mkv"),
+            IndexNumber = 0,
+            SeriesProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "51928" } }
+        },
             _token);
         Assert.IsNotNull(episodeData, "episode data should not be null");
         Assert.IsNotNull(episodeData.Item, "episode data should not be null");
         Assert.AreEqual("MMR Ⅲ 〜もっとまるっと超電磁砲Ⅲ〜", episodeData.Item.Name, "should return the right episode title");
 
+        CreateSeason("Season 1 OVA");
         episodeData = await _provider.GetMetadata(new EpisodeInfo
-            {
-                Path = FakePath.CreateFile("Season 1 OVA/Seitokai Yakuindomo [16][Ma10p_1080p][x265_flac].mkv"),
-                IndexNumber = 0,
-                SeriesProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "39118" } }
-            },
+        {
+            Path = FakePath.CreateFile("Season 1 OVA/Seitokai Yakuindomo [16][Ma10p_1080p][x265_flac].mkv"),
+            IndexNumber = 0,
+            SeriesProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "39118" } }
+        },
             _token);
         Assert.IsNotNull(episodeData, "episode data should not be null");
         Assert.IsNotNull(episodeData.Item, "episode data should not be null");
@@ -170,12 +195,12 @@ public class Episode
     public async Task SpecialEpisodeMetadataFromSubject()
     {
         var episodeData = await _provider.GetMetadata(new EpisodeInfo
-            {
-                Path = FakePath.CreateFile("OVA\\Tonikaku Kawaii: Seifuku [WebRip 1080p HEVC-10bit AAC ASSx2].mkv"),
-                ParentIndexNumber = 0,
-                ProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "1143188" } },
-                SeriesProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "301541" } }
-            },
+        {
+            Path = FakePath.CreateFile("OVA\\Tonikaku Kawaii: Seifuku [WebRip 1080p HEVC-10bit AAC ASSx2].mkv"),
+            ParentIndexNumber = 0,
+            ProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "1143188" } },
+            SeriesProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "301541" } }
+        },
             _token);
         Assert.IsNotNull(episodeData, "episode data should not be null");
         Assert.IsNotNull(episodeData.Item, "episode data should not be null");
@@ -187,11 +212,11 @@ public class Episode
     public async Task NonIntegerEpisodeIndexSupport()
     {
         var episodeData = await _provider.GetMetadata(new EpisodeInfo
-            {
-                Path = FakePath.CreateFile("Ore no Imouto ga Konna ni Kawaii Wake ga Nai - 12.5 [BD 1920x1080 x264 FLAC Sub(GB,Big5,Jap)].mkv"),
-                IndexNumber = 0,
-                SeriesProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "5436" } }
-            },
+        {
+            Path = FakePath.CreateFile("Ore no Imouto ga Konna ni Kawaii Wake ga Nai - 12.5 [BD 1920x1080 x264 FLAC Sub(GB,Big5,Jap)].mkv"),
+            IndexNumber = 0,
+            SeriesProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "5436" } }
+        },
             _token);
         Assert.IsNotNull(episodeData, "episode data should not be null");
         Assert.IsNotNull(episodeData.Item, "episode data should not be null");
@@ -202,11 +227,11 @@ public class Episode
     public async Task FixEpisodeIndex()
     {
         var episodeData = await _provider.GetMetadata(new EpisodeInfo
-            {
-                IndexNumber = 1080,
-                Path = FakePath.CreateFile("White Album 2/White Album 2[01][Hi10p_1080p][BDRip][x264_2flac].mkv"),
-                SeriesProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "69496" } }
-            },
+        {
+            IndexNumber = 1080,
+            Path = FakePath.CreateFile("White Album 2/White Album 2[01][Hi10p_1080p][BDRip][x264_2flac].mkv"),
+            SeriesProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "69496" } }
+        },
             _token);
         Assert.IsNotNull(episodeData, "episode data should not be null");
         Assert.IsNotNull(episodeData.Item, "episode data should not be null");
@@ -218,11 +243,11 @@ public class Episode
     public async Task FixEpisodeIndexWithoutCount()
     {
         var episodeData = await _provider.GetMetadata(new EpisodeInfo
-            {
-                IndexNumber = 1080,
-                Path = FakePath.CreateFile("Asobi Asobase/Asobi Asobase [12][Ma10p_1080p][x265_flac_aac].mkv"),
-                SeriesProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "236020" } }
-            },
+        {
+            IndexNumber = 1080,
+            Path = FakePath.CreateFile("Asobi Asobase/Asobi Asobase [12][Ma10p_1080p][x265_flac_aac].mkv"),
+            SeriesProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "236020" } }
+        },
             _token);
         Assert.IsNotNull(episodeData, "episode data should not be null");
         Assert.IsNotNull(episodeData.Item, "episode data should not be null");
@@ -234,77 +259,77 @@ public class Episode
     public async Task FixEpisodeIndexWithNumberInName()
     {
         var episodeData = await _provider.GetMetadata(new EpisodeInfo
-            {
-                IndexNumber = 0,
-                Path = FakePath.CreateFile("Steins;Gate 0/Steins;Gate 0 [23][Ma10p_1080p][x265_flac].mkv"),
-                SeriesProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "129807" } }
-            },
+        {
+            IndexNumber = 0,
+            Path = FakePath.CreateFile("Steins;Gate 0/Steins;Gate 0 [23][Ma10p_1080p][x265_flac].mkv"),
+            SeriesProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "129807" } }
+        },
             _token);
         Assert.IsNotNull(episodeData, "episode data should not be null");
         Assert.IsNotNull(episodeData.Item, "episode data should not be null");
         Assert.AreEqual(23, episodeData.Item.IndexNumber, "should fix episode index automatically");
 
         episodeData = await _provider.GetMetadata(new EpisodeInfo
-            {
-                IndexNumber = 0,
-                Path = FakePath.CreateFile("Log Horizon 2/Log Horizon 2 [08][Ma10p_1080p][x265_flac].mkv"),
-                SeriesProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "100517" } }
-            },
+        {
+            IndexNumber = 0,
+            Path = FakePath.CreateFile("Log Horizon 2/Log Horizon 2 [08][Ma10p_1080p][x265_flac].mkv"),
+            SeriesProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "100517" } }
+        },
             _token);
         Assert.IsNotNull(episodeData, "episode data should not be null");
         Assert.IsNotNull(episodeData.Item, "episode data should not be null");
         Assert.AreEqual(8, episodeData.Item.IndexNumber, "should fix episode index automatically");
 
         episodeData = await _provider.GetMetadata(new EpisodeInfo
-            {
-                IndexNumber = 0,
-                Path = FakePath.CreateFile("Kanojo, Okarishimasu/Kanojo, Okarishimasu [07][Ma444-10p_1080p][x265_flac].mkv"),
-                SeriesProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "296076" } }
-            },
+        {
+            IndexNumber = 0,
+            Path = FakePath.CreateFile("Kanojo, Okarishimasu/Kanojo, Okarishimasu [07][Ma444-10p_1080p][x265_flac].mkv"),
+            SeriesProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "296076" } }
+        },
             _token);
         Assert.IsNotNull(episodeData, "episode data should not be null");
         Assert.IsNotNull(episodeData.Item, "episode data should not be null");
         Assert.AreEqual(7, episodeData.Item.IndexNumber, "should fix episode index automatically");
 
         episodeData = await _provider.GetMetadata(new EpisodeInfo
-            {
-                IndexNumber = 0,
-                Path = FakePath.CreateFile("Kakegurui/Kakegurui 賭ケグルイ [Live Action S01] 第02話 (BDRip 1920x1080p x264 10bit AVC FLAC).mkv"),
-                SeriesProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "230953" } }
-            },
+        {
+            IndexNumber = 0,
+            Path = FakePath.CreateFile("Kakegurui/Kakegurui 賭ケグルイ [Live Action S01] 第02話 (BDRip 1920x1080p x264 10bit AVC FLAC).mkv"),
+            SeriesProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "230953" } }
+        },
             _token);
         Assert.IsNotNull(episodeData, "episode data should not be null");
         Assert.IsNotNull(episodeData.Item, "episode data should not be null");
         Assert.AreEqual(2, episodeData.Item.IndexNumber, "should fix episode index automatically");
 
         episodeData = await _provider.GetMetadata(new EpisodeInfo
-            {
-                IndexNumber = 0,
-                Path = FakePath.CreateFile("Eighty-Six/[AI-Raws] 86 #02 スピアヘッド (BD HEVC 1920x1080 yuv444p10le FLAC)[E56E5DFE].mkv"),
-                SeriesProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "302189" } }
-            },
+        {
+            IndexNumber = 0,
+            Path = FakePath.CreateFile("Eighty-Six/[AI-Raws] 86 #02 スピアヘッド (BD HEVC 1920x1080 yuv444p10le FLAC)[E56E5DFE].mkv"),
+            SeriesProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "302189" } }
+        },
             _token);
         Assert.IsNotNull(episodeData, "episode data should not be null");
         Assert.IsNotNull(episodeData.Item, "episode data should not be null");
         Assert.AreEqual(2, episodeData.Item.IndexNumber, "should fix episode index automatically");
 
         episodeData = await _provider.GetMetadata(new EpisodeInfo
-            {
-                IndexNumber = 0,
-                Path = FakePath.CreateFile("Eighty-Six/[AI-Raws] 86 #22 シン (BD HEVC 1920x1080 yuv444p10le FLAC)[65CA4ED3].mkv"),
-                SeriesProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "331887" } }
-            },
+        {
+            IndexNumber = 0,
+            Path = FakePath.CreateFile("Eighty-Six/[AI-Raws] 86 #22 シン (BD HEVC 1920x1080 yuv444p10le FLAC)[65CA4ED3].mkv"),
+            SeriesProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "331887" } }
+        },
             _token);
         Assert.IsNotNull(episodeData, "episode data should not be null");
         Assert.IsNotNull(episodeData.Item, "episode data should not be null");
         Assert.AreEqual(22, episodeData.Item.IndexNumber, "should fix episode index automatically");
 
         episodeData = await _provider.GetMetadata(new EpisodeInfo
-            {
-                IndexNumber = 0,
-                Path = FakePath.CreateFile("Detective Conan/[SBSUB][CONAN][5][WEBRIP][1080P][HEVC_AAC][CHS_CHT_JP](951D8C84).mkv"),
-                SeriesProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "899" } }
-            },
+        {
+            IndexNumber = 0,
+            Path = FakePath.CreateFile("Detective Conan/[SBSUB][CONAN][5][WEBRIP][1080P][HEVC_AAC][CHS_CHT_JP](951D8C84).mkv"),
+            SeriesProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "899" } }
+        },
             _token);
         Assert.IsNotNull(episodeData, "episode data should not be null");
         Assert.IsNotNull(episodeData.Item, "episode data should not be null");
@@ -315,11 +340,11 @@ public class Episode
     public async Task FixEpisodeIndexWithBracketsInName()
     {
         var episodeData = await _provider.GetMetadata(new EpisodeInfo
-            {
-                IndexNumber = 0,
-                Path = FakePath.CreateFile("Date A Live/Date A Live [05(BDBOX Ver.)][Hi10p_1080p][x264_flac].mkv"),
-                SeriesProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "49131" } }
-            },
+        {
+            IndexNumber = 0,
+            Path = FakePath.CreateFile("Date A Live/Date A Live [05(BDBOX Ver.)][Hi10p_1080p][x264_flac].mkv"),
+            SeriesProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "49131" } }
+        },
             _token);
         Assert.IsNotNull(episodeData, "episode data should not be null");
         Assert.IsNotNull(episodeData.Item, "episode data should not be null");
@@ -330,12 +355,12 @@ public class Episode
     public async Task FixIncorrectEpisodeId()
     {
         var episodeData = await _provider.GetMetadata(new EpisodeInfo
-            {
-                IndexNumber = 1080,
-                Path = FakePath.CreateFile("Saki/Saki [01] [Hi10p_720p][BDRip][x264_flac].mkv"),
-                ProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "162427" } },
-                SeriesProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "1444" } }
-            },
+        {
+            IndexNumber = 1080,
+            Path = FakePath.CreateFile("Saki/Saki [01] [Hi10p_720p][BDRip][x264_flac].mkv"),
+            ProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "162427" } },
+            SeriesProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "1444" } }
+        },
             _token);
         Assert.IsNotNull(episodeData, "episode data should not be null");
         Assert.IsNotNull(episodeData.Item, "episode data should not be null");
@@ -348,12 +373,12 @@ public class Episode
     public async Task SpecialEpisodeInDifferentSubject()
     {
         var episodeData = await _provider.GetMetadata(new EpisodeInfo
-            {
-                IndexNumber = 1080,
-                Path = FakePath.CreateFile("Yahari Ore no Seishun Lovecome wa Machigatte Iru. Zoku/Yahari Ore no Seishun Lovecome wa Machigatte Iru. Zoku [OVA][Ma10p_1080p][x265_flac].mkv"),
-                ProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "555794" } },
-                SeriesProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "102134" } }
-            },
+        {
+            IndexNumber = 1080,
+            Path = FakePath.CreateFile("Yahari Ore no Seishun Lovecome wa Machigatte Iru. Zoku/Yahari Ore no Seishun Lovecome wa Machigatte Iru. Zoku [OVA][Ma10p_1080p][x265_flac].mkv"),
+            ProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "555794" } },
+            SeriesProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "102134" } }
+        },
             _token);
         Assert.IsNotNull(episodeData, "episode data should not be null");
         Assert.IsNotNull(episodeData.Item, "episode data should not be null");
@@ -381,14 +406,14 @@ public class Episode
     private async Task<int?> TestEpisodeIndex(string fileName, int previous, int? episodeId)
     {
         var episodeData = await _provider.GetMetadata(new EpisodeInfo
-            {
-                Path = FakePath.CreateFile($"White Album 2/{fileName}"),
-                IndexNumber = previous,
-                ProviderIds = episodeId == null
+        {
+            Path = FakePath.CreateFile($"White Album 2/{fileName}"),
+            IndexNumber = previous,
+            ProviderIds = episodeId == null
                     ? new Dictionary<string, string>()
                     : new Dictionary<string, string> { { Constants.ProviderName, $"{episodeId}" } },
-                SeriesProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "69496" } }
-            },
+            SeriesProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "69496" } }
+        },
             _token);
         Assert.IsNotNull(episodeData, "episode data should not be null");
         Assert.IsNotNull(episodeData.Item, "episode data should not be null");
@@ -400,11 +425,11 @@ public class Episode
     {
         _plugin.Configuration.AlwaysGetEpisodeByAnitomySharp = true;
         var episodeData = await _provider.GetMetadata(new EpisodeInfo
-            {
-                IndexNumber = 0,
-                Path = FakePath.CreateFile("[VCB-Studio] BEATLESS [Ma10p_1080p]/[VCB-Studio] BEATLESS [05][Ma10p_1080p][x265_flac].mkv"),
-                SeriesProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "227102" } }
-            },
+        {
+            IndexNumber = 0,
+            Path = FakePath.CreateFile("[VCB-Studio] BEATLESS [Ma10p_1080p]/[VCB-Studio] BEATLESS [05][Ma10p_1080p][x265_flac].mkv"),
+            SeriesProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "227102" } }
+        },
             _token);
         _plugin.Configuration.AlwaysGetEpisodeByAnitomySharp = false;
         Assert.IsNotNull(episodeData, "episode data should not be null");
@@ -418,10 +443,10 @@ public class Episode
     {
         FakePath.CreateFile("Kimetsu no Yaiba/Season 2/bangumi.ini", "[Bangumi]\nID=350764\nOffset=26\n");
         var episodeData = await _provider.GetMetadata(new EpisodeInfo
-            {
-                IndexNumber = 0,
-                Path = FakePath.CreateFile("Kimetsu no Yaiba/Season 2/[BeanSub&FZSD&LoliHouse] Kimetsu no Yaiba - 27 [WebRip 1080p HEVC-10bit AAC ASSx2].mkv")
-            },
+        {
+            IndexNumber = 0,
+            Path = FakePath.CreateFile("Kimetsu no Yaiba/Season 2/[BeanSub&FZSD&LoliHouse] Kimetsu no Yaiba - 27 [WebRip 1080p HEVC-10bit AAC ASSx2].mkv")
+        },
             _token);
         Assert.IsNotNull(episodeData, "episode data should not be null");
         Assert.IsNotNull(episodeData.Item, "episode data should not be null");
@@ -430,10 +455,10 @@ public class Episode
 
         FakePath.CreateFile("Jujutsu Kaisen/Season 2/bangumi.ini", "[Bangumi]\nID=369304\nOffset=-24\n");
         episodeData = await _provider.GetMetadata(new EpisodeInfo
-            {
-                IndexNumber = 0,
-                Path = FakePath.CreateFile("Jujutsu Kaisen/Season 2/Jujutsu Kaisen (2020) - S02E03 - Hidden Inventory 3 [WEBRip-1080p][10bit][x265][AAC 2.0][JA]-LoliHouse.mkv")
-            },
+        {
+            IndexNumber = 0,
+            Path = FakePath.CreateFile("Jujutsu Kaisen/Season 2/Jujutsu Kaisen (2020) - S02E03 - Hidden Inventory 3 [WEBRip-1080p][10bit][x265][AAC 2.0][JA]-LoliHouse.mkv")
+        },
             _token);
         Assert.IsNotNull(episodeData, "episode data should not be null");
         Assert.IsNotNull(episodeData.Item, "episode data should not be null");
@@ -445,11 +470,11 @@ public class Episode
     public async Task GetEpisodeForSubjectWithSingleEpisode()
     {
         var episodeData = await _provider.GetMetadata(new EpisodeInfo
-            {
-                IndexNumber = 0,
-                Path = FakePath.CreateFile("やはり俺の青春ラブコメはまちがっている。完 OVA/[Nekomoe kissaten&VCB-Studio] Oregairu Kan [OVA][Ma10p_1080p][x265_flac].mp4"),
-                SeriesProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "325587" } }
-            },
+        {
+            IndexNumber = 0,
+            Path = FakePath.CreateFile("やはり俺の青春ラブコメはまちがっている。完 OVA/[Nekomoe kissaten&VCB-Studio] Oregairu Kan [OVA][Ma10p_1080p][x265_flac].mp4"),
+            SeriesProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "325587" } }
+        },
             _token);
         Assert.IsNotNull(episodeData, "episode data should not be null");
         Assert.IsNotNull(episodeData.Item, "episode data should not be null");
