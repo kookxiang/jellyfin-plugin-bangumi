@@ -159,11 +159,25 @@ public partial class EpisodeProvider(BangumiApi api, Logger<EpisodeProvider> log
     [GeneratedRegex(@"[^\w]PV([^a-zA-Z]|$)")]
     private static partial Regex PreviewEpisodeFileNameRegex();
 
-    private static bool IsSpecial(string filePath, bool checkParent = true)
+    private bool IsSpecial(string filePath, bool checkParent = true)
     {
         var fileName = Path.GetFileName(filePath);
         var parentPath = Path.GetDirectoryName(filePath);
         var folderName = Path.GetFileName(parentPath);
+
+        if (checkParent)
+        {
+            if (parentPath == null)
+            {
+                checkParent = false;
+            }
+            else
+            {
+                // check if parent is a season(subfolder), otherwise it is a series(root folder), check on root folder is not needed
+                checkParent = libraryManager.FindByPath(parentPath, true) is Season;
+            }
+        }
+
         return SpecialEpisodeFileNameRegex().IsMatch(fileName) ||
                checkParent && SpecialEpisodeFileNameRegex().IsMatch(folderName ?? "");
     }
