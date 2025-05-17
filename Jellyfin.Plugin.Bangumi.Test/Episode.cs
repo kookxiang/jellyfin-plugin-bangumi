@@ -370,6 +370,18 @@ public class Episode
     }
 
     [TestMethod]
+    public async Task FixEpisodeNotFound()
+    {
+        var episodeData = await _provider.GetMetadata(new EpisodeInfo
+        {
+            Path = FakePath.CreateFile("[VCB-Studio] Princess Lover! OVA [01][Ma10p_720p][x265_ac3].mkv"),
+            SeriesProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "8631" } }
+        },
+            _token);
+        Assert.IsNotNull(episodeData, "MetadataResult should not be null");
+    }
+
+    [TestMethod]
     public async Task SpecialEpisodeInDifferentSubject()
     {
         var episodeData = await _provider.GetMetadata(new EpisodeInfo

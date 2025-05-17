@@ -63,9 +63,19 @@ public partial class EpisodeProvider(BangumiApi api, Logger<EpisodeProvider> log
     {
         cancellationToken.ThrowIfCancellationRequested();
         var localConfiguration = await LocalConfiguration.ForPath(info.Path);
-        var episode = await GetEpisode(info, localConfiguration, cancellationToken);
+        Model.Episode? episode = null;
 
-        log.Info("metadata for {FilePath}: {EpisodeInfo}", Path.GetFileName(info.Path), episode);
+        // throw execption will cause the episode to not show up anywhere
+        try
+        {
+            episode = await GetEpisode(info, localConfiguration, cancellationToken);
+
+            log.Info("metadata for {FilePath}: {EpisodeInfo}", Path.GetFileName(info.Path), episode);
+        }
+        catch (Exception e)
+        {
+            log.Error($"metadata for {info.Path} error: {e.Message}");
+        }
 
         var result = new MetadataResult<Episode> { ResultLanguage = Constants.Language };
 
