@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -63,14 +63,36 @@ public partial class EpisodeProvider(BangumiApi api, Logger<EpisodeProvider> log
     {
         cancellationToken.ThrowIfCancellationRequested();
         var localConfiguration = await LocalConfiguration.ForPath(info.Path);
-        var episode = await GetEpisode(info, localConfiguration, cancellationToken);
+        Model.Episode? episode = null;
 
-        log.Info("metadata for {FilePath}: {EpisodeInfo}", Path.GetFileName(info.Path), episode);
+        // throw execption will cause the episode to not show up anywhere
+        try
+        {
+            episode = await GetEpisode(info, localConfiguration, cancellationToken);
+
+            log.Info("metadata for {FilePath}: {EpisodeInfo}", Path.GetFileName(info.Path), episode);
+        }
+        catch (Exception e)
+        {
+            log.Error($"metadata for {info.Path} error: {e.Message}");
+        }
 
         var result = new MetadataResult<Episode> { ResultLanguage = Constants.Language };
 
         if (episode == null)
+        {
+            // remove season number
+            if (IsSpecial(info.Path, true))
+            {
+                result.HasMetadata = true;
+                result.Item = new Episode
+                {
+                    ParentIndexNumber = 0
+                };
+            }
+
             return result;
+        }
 
         result.Item = new Episode();
         result.HasMetadata = true;
@@ -88,7 +110,7 @@ public partial class EpisodeProvider(BangumiApi api, Logger<EpisodeProvider> log
         result.Item.ParentIndexNumber = info.ParentIndexNumber ?? 1;
 
         var parent = libraryManager.FindByPath(Path.GetDirectoryName(info.Path)!, true);
-        if (IsSpecial(info.Path, false) || episode.Type == EpisodeType.Special || info.ParentIndexNumber == 0)
+        if (IsSpecial(info.Path, true) || episode.Type == EpisodeType.Special || info.ParentIndexNumber == 0)
         {
             result.Item.ParentIndexNumber = 0;
         }
@@ -147,11 +169,25 @@ public partial class EpisodeProvider(BangumiApi api, Logger<EpisodeProvider> log
     [GeneratedRegex(@"[^\w]PV([^a-zA-Z]|$)")]
     private static partial Regex PreviewEpisodeFileNameRegex();
 
-    private static bool IsSpecial(string filePath, bool checkParent = true)
+    private bool IsSpecial(string filePath, bool checkParent = true)
     {
         var fileName = Path.GetFileName(filePath);
         var parentPath = Path.GetDirectoryName(filePath);
         var folderName = Path.GetFileName(parentPath);
+
+        if (checkParent)
+        {
+            if (parentPath == null)
+            {
+                checkParent = false;
+            }
+            else
+            {
+                // check if parent is a season(subfolder), otherwise it is a series(root folder), check on root folder is not needed
+                checkParent = libraryManager.FindByPath(parentPath, true) is Season;
+            }
+        }
+
         return SpecialEpisodeFileNameRegex().IsMatch(fileName) ||
                checkParent && SpecialEpisodeFileNameRegex().IsMatch(folderName ?? "");
     }
@@ -230,7 +266,7 @@ public partial class EpisodeProvider(BangumiApi api, Logger<EpisodeProvider> log
             log.Info("episode is not belongs to series {SeriesId}, ignoring result", seriesId);
         }
 
-        SkipBangumiId:
+SkipBangumiId:
         log.Info("searching episode in series episode list");
         var episodeListData = await api.GetSubjectEpisodeList(seriesId, type, episodeIndex.Value, token);
 
