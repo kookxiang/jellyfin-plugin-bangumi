@@ -151,7 +151,6 @@ public class Season
         result = await _provider.GetMetadata(new SeasonInfo
         {
             Path = FakePath.Create("恶魔高校D×D/恶魔高校D×D OAD"),
-            ProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "46010" } } // 暂不支持识别特典目录，手动指定id
         }, _token);
         Assert.IsTrue(result.HasMetadata, "should return metadata when folder name contains season");
         Assert.AreEqual("ハイスクールD×D OAD", result.Item.OriginalTitle, "should return the right season title");
@@ -161,7 +160,6 @@ public class Season
         result = await _provider.GetMetadata(new SeasonInfo
         {
             Path = FakePath.Create("恶魔高校D×D/恶魔高校D×D DX OAD"),
-            ProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "127827" } } // 暂不支持识别特典目录，手动指定id
         }, _token);
         Assert.IsTrue(result.HasMetadata, "should return metadata when folder name contains season");
         Assert.AreEqual("ハイスクールD×D DX OAD", result.Item.OriginalTitle, "should return the right season title");

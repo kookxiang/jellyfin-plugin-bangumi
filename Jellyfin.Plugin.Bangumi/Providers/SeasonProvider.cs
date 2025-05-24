@@ -88,7 +88,7 @@ public partial class SeasonProvider(BangumiApi api, Logger<EpisodeProvider> log,
         else if (seasonPath is not null && libraryManager.FindByPath(seasonPath, true) is Series series)
         {
             log.Info($"Guessing season id by folder path:  {info.Path}");
-            subject = await SearchSubjectByFolderPath(info.Path, cancellationToken);
+            subject = await SearchSubjectByFolderPath(series, info.Path, cancellationToken);
 
             if (subject != null)
             {
@@ -249,22 +249,30 @@ public partial class SeasonProvider(BangumiApi api, Logger<EpisodeProvider> log,
         return result;
     }
 
-    private async Task<Subject?> SearchSubjectByFolderPath(string folderPath, CancellationToken cancellationToken)
-    {
-        if (IsSpecialFolder(folderPath)) return null; // todo：识别特典内容、剧场版等
+    /// <summary>
+    /// 匹配仅包含SP名称的文件夹名
+    /// </summary>
+    /// <returns></returns>
+    [GeneratedRegex(@"^(SPs?|Specials?|OVA|OAD|特典|特典映像|剧场版|劇場版)$", RegexOptions.IgnoreCase, "zh-CN")]
+    private static partial Regex OnlySpNameRegex();
 
+    private async Task<Subject?> SearchSubjectByFolderPath(Series series, string folderPath, CancellationToken cancellationToken)
+    {
         var folderName = Path.GetFileName(folderPath);
         var searchName = GetBangumiNameFromFolderName(folderName);
-        log.Info($"Guessing season id by folder name:  {searchName}");
+        if (IsSpecialFolder(folderPath))
+        {
+            if (OnlySpNameRegex().IsMatch(searchName))
+            {
+                // 仅sp文件夹名无法判断番剧，添加番剧名称作为前缀
+                searchName = $"{series.Name} {searchName}";
+            }
+        }
 
-        var subjects = await api.SearchSubjectSorted(searchName, SubjectType.Anime, cancellationToken);
-        if (subjects == null || !subjects.Any()) return null;
+        log.Info($"Guessing season id by folder name: {searchName}");
+        var subjects = await api.SearchSubjectRaw(searchName, SubjectType.Anime, cancellationToken);
 
-        var bestMatched = subjects.FirstOrDefault();
-        // 相似度百分比，大于等于该值则认为匹配成功
-        int matchPercent = 80;
-
-        return bestMatched.Item2 >= matchPercent ? bestMatched.Item1 : null;
+        return BangumiApi.GetBestMatchSubjectWithKeywords(subjects, [searchName]);
     }
 
     public Task<IEnumerable<RemoteSearchResult>> GetSearchResults(SeasonInfo searchInfo, CancellationToken cancellationToken)
