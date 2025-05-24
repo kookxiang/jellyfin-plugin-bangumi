@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
@@ -124,14 +124,38 @@ public class Subject
 #if EMBY
         return list;
 #else
+        return GetSortedScoresBySimilarity(list, keyword).Select(s => s.Item1);
+#endif
+    }
+
+    public static IEnumerable<(Subject, int)> GetSortedScoresBySimilarity(IEnumerable<Subject> list, string keyword)
+    {
+#if EMBY
+        return list.Select(s=>(s,100));
+#else
         var instance = new Levenshtein(keyword);
-        return list
-            .OrderBy(subject =>
-                Math.Min(
-                    instance.DistanceFrom(subject.ChineseName ?? subject.OriginalName),
-                    instance.DistanceFrom(subject.OriginalName)
-                )
+
+        return list.Select(subject =>
+        {
+            var score = Math.Min(
+                instance.DistanceFrom(subject.ChineseName ?? subject.OriginalName),
+                instance.DistanceFrom(subject.OriginalName)
             );
+
+            if (subject.Alias != null)
+            {
+                foreach (var alias in subject.Alias)
+                {
+                    score = Math.Min(score, instance.DistanceFrom(alias));
+                }
+            }
+
+            // 转换 Levenshtein 距离
+            float percent = (1 - ((float)score / keyword.Length)) * 100;
+
+            return (subject, percent);
+        }).OrderByDescending(s => s.percent)
+        .Select(s => (s.subject, (int)Math.Round(s.percent)));
 #endif
     }
 
@@ -140,28 +164,33 @@ public class Subject
 #if EMBY
         return list;
 #else
-        keyword = keyword.ToLower();
-
-        var score = list.Select(subject =>
-            {
-                var chineseNameScore = subject.ChineseName != null
-                    ? Fuzz.Ratio(subject.ChineseName.ToLower(), keyword)
-                    : 0;
-                var originalNameScore = Fuzz.Ratio(subject.OriginalName.ToLower(), keyword);
-                var aliasScore = subject.Alias?.Select(alias => Fuzz.Ratio(alias.ToLower(), keyword)) ?? [];
-
-                var maxScore = Math.Max(chineseNameScore, Math.Max(originalNameScore, aliasScore.DefaultIfEmpty(int.MinValue).Max()));
-
-                return new
-                {
-                    Subject = subject,
-                    Score = maxScore
-                };
-            })
-            .OrderByDescending(pair => pair.Score)
-            .Select(pair => pair.Subject);
+        var score = GetSortedScoresByFuzz(list, keyword)
+            .Select(pair => pair.Item1);
 
         return score;
+#endif
+    }
+
+    public static IEnumerable<(Subject, int)> GetSortedScoresByFuzz(IEnumerable<Subject> list, string keyword)
+    {
+#if EMBY
+        return list.Select(s=>(s,100));
+#else
+        keyword = keyword.ToLower();
+
+        return list.Select(subject =>
+        {
+            var chineseNameScore = subject.ChineseName != null
+                ? Fuzz.Ratio(subject.ChineseName.ToLower(), keyword)
+                : 0;
+            var originalNameScore = Fuzz.Ratio(subject.OriginalName.ToLower(), keyword);
+            var aliasScore = subject.Alias?.Select(alias => Fuzz.Ratio(alias.ToLower(), keyword)) ?? [];
+
+            var maxScore = Math.Max(chineseNameScore, Math.Max(originalNameScore, aliasScore.DefaultIfEmpty(int.MinValue).Max()));
+
+            return (subject, maxScore);
+        })
+            .OrderByDescending(pair => pair.maxScore);
 #endif
     }
 }

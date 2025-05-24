@@ -43,7 +43,8 @@ public partial class EpisodeProvider(BangumiApi api, Logger<EpisodeProvider> log
         new(@"\[([\d\.]{2,})"),
         new(@"#([\d\.]{2,})"),
         new(@"(\d{2,})"),
-        new(@"\[([\d\.]+)\]")
+        new(@"\[([\d\.]+)\]"),
+        new(@"^([\d\.]+(\.\d+)?)\.[a-zA-Z]+$")
     ];
 
     private static readonly Regex[] _allSpecialEpisodeFileNameRegex =
@@ -62,10 +63,25 @@ public partial class EpisodeProvider(BangumiApi api, Logger<EpisodeProvider> log
     public async Task<MetadataResult<Episode>> GetMetadata(EpisodeInfo info, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
+
+        var result = new MetadataResult<Episode> { ResultLanguage = Constants.Language };
+
+        if (info == null) return result;
+
+        if (IsMisc(info.Path))
+        {
+            log.Info($"misc file match, skip getting metadata: {info.Path}");
+
+            // 清除之前获取的元数据
+            result.Item = new Episode();
+            result.HasMetadata = true;
+            return result;
+        }
+
         var localConfiguration = await LocalConfiguration.ForPath(info.Path);
         Model.Episode? episode = null;
 
-        // throw execption will cause the episode to not show up anywhere
+        // throw exception will cause the episode to not show up anywhere
         try
         {
             episode = await GetEpisode(info, localConfiguration, cancellationToken);
@@ -76,8 +92,6 @@ public partial class EpisodeProvider(BangumiApi api, Logger<EpisodeProvider> log
         {
             log.Error($"metadata for {info.Path} error: {e.Message}");
         }
-
-        var result = new MetadataResult<Episode> { ResultLanguage = Constants.Language };
 
         if (episode == null)
         {
@@ -107,25 +121,30 @@ public partial class EpisodeProvider(BangumiApi api, Logger<EpisodeProvider> log
         result.Item.OriginalTitle = episode.OriginalName;
         result.Item.IndexNumber = (int)episode.Order + localConfiguration.Offset;
         result.Item.Overview = string.IsNullOrEmpty(episode.Description) ? null : episode.Description;
-        result.Item.ParentIndexNumber = info.ParentIndexNumber ?? 1;
 
         var parent = libraryManager.FindByPath(Path.GetDirectoryName(info.Path)!, true);
-        if (IsSpecial(info.Path, true) || episode.Type == EpisodeType.Special || info.ParentIndexNumber == 0)
-        {
-            result.Item.ParentIndexNumber = 0;
-        }
-        else if (parent is Season season)
+        if (parent is Season season)
         {
             result.Item.SeasonId = season.Id;
-            if (season.IndexNumber != null)
-                result.Item.ParentIndexNumber = season.IndexNumber;
+            if (season.ProviderIds.TryGetValue(Constants.SeasonNumberProviderName, out var seasonNum))
+                if (int.TryParse(seasonNum, out var num))
+                    result.Item.ParentIndexNumber = num;
+        }
+
+        if (!result.Item.ParentIndexNumber.HasValue)
+        {
+            if (IsSpecial(info.Path, true) || episode.Type == EpisodeType.Special)
+            {
+                result.Item.ParentIndexNumber = 0;
+            }
+            else
+            {
+                result.Item.ParentIndexNumber = 1;
+            }
         }
 
         if (episode.Type == EpisodeType.Normal && result.Item.ParentIndexNumber > 0)
             return result;
-
-        // mark episode as special
-        result.Item.ParentIndexNumber = 0;
 
         // use title and overview from special episode subject if episode data is empty
         var series = await api.GetSubject(episode.ParentId, cancellationToken);
@@ -134,9 +153,9 @@ public partial class EpisodeProvider(BangumiApi api, Logger<EpisodeProvider> log
 
         // use title from special episode subject if episode data is empty
         if (string.IsNullOrEmpty(result.Item.Name))
-            result.Item.Name = series.Name;
+            result.Item.Name = Path.GetFileNameWithoutExtension(info.Path);
         if (string.IsNullOrEmpty(result.Item.OriginalTitle))
-            result.Item.OriginalTitle = series.OriginalName;
+            result.Item.OriginalTitle = Path.GetFileNameWithoutExtension(info.Path);
 
         var seasonNumber = parent is Season ? parent.IndexNumber : 1;
         if (!string.IsNullOrEmpty(episode.AirDate) && string.Compare(episode.AirDate, series.AirDate, StringComparison.Ordinal) < 0)
@@ -169,27 +188,79 @@ public partial class EpisodeProvider(BangumiApi api, Logger<EpisodeProvider> log
     [GeneratedRegex(@"[^\w]PV([^a-zA-Z]|$)")]
     private static partial Regex PreviewEpisodeFileNameRegex();
 
-    private bool IsSpecial(string filePath, bool checkParent = true)
+    private bool MatchSpExcludeRegexes(string filePath, bool checkParent)
     {
-        var fileName = Path.GetFileName(filePath);
-        var parentPath = Path.GetDirectoryName(filePath);
+        if (string.IsNullOrEmpty(filePath)) return false;
+
+        bool result = PluginConfiguration.MatchExcludeRegexes(
+            Plugin.Instance!.Configuration.SpExcludeRegexFullPath,
+            filePath,
+            (p, e) => log.Error($"Check if filePath \"{filePath}\" is special episode using regex \"{p}\" failed:  {e.Message}"));
+        if (result) return result;
+
+        var parentPath = Path.GetDirectoryName(filePath) ?? "";
         var folderName = Path.GetFileName(parentPath);
 
-        if (checkParent)
+        if (checkParent && !string.IsNullOrEmpty(folderName))
         {
-            if (parentPath == null)
+            // 忽略根目录名称
+            if (libraryManager.FindByPath(parentPath, true) is not Series)
             {
-                checkParent = false;
-            }
-            else
-            {
-                // check if parent is a season(subfolder), otherwise it is a series(root folder), check on root folder is not needed
-                checkParent = libraryManager.FindByPath(parentPath, true) is Season;
+                result |= PluginConfiguration.MatchExcludeRegexes(
+                    Plugin.Instance!.Configuration.SpExcludeRegexFolderName,
+                    folderName,
+                    (p, e) => log.Error($"Check if folderName \"{folderName}\" is special episode using regex \"{p}\" failed:  {e.Message}"));
+                if (result) return result;
             }
         }
 
-        return SpecialEpisodeFileNameRegex().IsMatch(fileName) ||
-               checkParent && SpecialEpisodeFileNameRegex().IsMatch(folderName ?? "");
+        var fileName = Path.GetFileName(filePath);
+        result |= PluginConfiguration.MatchExcludeRegexes(
+            Plugin.Instance!.Configuration.SpExcludeRegexFileName,
+            fileName,
+            (p, e) => log.Error($"Check if fileName \"{fileName}\" is special episode using regex \"{p}\" failed:  {e.Message}"));
+
+        return result;
+    }
+
+    private bool IsSpecial(string filePath, bool checkParent = true)
+    {
+        return MatchSpExcludeRegexes(filePath, checkParent);
+    }
+
+    private bool IsMisc(string filePath)
+    {
+        if (string.IsNullOrEmpty(filePath)) return false;
+
+        bool result = PluginConfiguration.MatchExcludeRegexes(
+            Plugin.Instance!.Configuration.MiscExcludeRegexFullPath,
+            filePath,
+            (p, e) => log.Error($"Check if filePath \"{filePath}\" is misc file using regex \"{p}\" failed:  {e.Message}"));
+        if (result) return result;
+
+        var parentPath = Path.GetDirectoryName(filePath) ?? "";
+        var folderName = Path.GetFileName(parentPath);
+
+        if (!string.IsNullOrEmpty(folderName))
+        {
+            // 忽略根目录名称
+            if (libraryManager.FindByPath(parentPath, true) is not Series)
+            {
+                result |= PluginConfiguration.MatchExcludeRegexes(
+                    Plugin.Instance!.Configuration.MiscExcludeRegexFolderName,
+                    folderName,
+                    (p, e) => log.Error($"Check if folderName \"{folderName}\" is misc file using regex \"{p}\" failed:  {e.Message}"));
+                if (result) return result;
+            }
+        }
+
+        var fileName = Path.GetFileName(filePath);
+        result |= PluginConfiguration.MatchExcludeRegexes(
+            Plugin.Instance!.Configuration.MiscExcludeRegexFileName,
+            fileName,
+            (p, e) => log.Error($"Check if fileName \"{fileName}\" is misc file using regex \"{p}\" failed:  {e.Message}"));
+
+        return result;
     }
 
     private async Task<Model.Episode?> GetEpisode(EpisodeInfo info, LocalConfiguration localConfiguration, CancellationToken token)
@@ -269,6 +340,19 @@ public partial class EpisodeProvider(BangumiApi api, Logger<EpisodeProvider> log
 SkipBangumiId:
         log.Info("searching episode in series episode list");
         var episodeListData = await api.GetSubjectEpisodeList(seriesId, type, episodeIndex.Value, token);
+
+        // 部分OVA独立一个条目页面，没有区分正篇或特典剧集
+        if (episodeListData != null
+            && !episodeListData.Any()
+            && type == EpisodeType.Special)
+        {
+            var subject = await api.GetSubject(seriesId, token);
+            if (subject != null &&
+                (subject.Platform == SubjectPlatform.OVA || subject.GenreTags.Contains("OVA")))
+            {
+                episodeListData = await api.GetSubjectEpisodeList(seriesId, EpisodeType.Normal, episodeIndex.Value, token);
+            }
+        }
 
         if (episodeListData == null)
         {

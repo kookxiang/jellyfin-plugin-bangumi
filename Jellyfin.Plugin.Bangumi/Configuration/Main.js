@@ -96,7 +96,7 @@
 
     function saveConfiguration() {
         var config = Object.assign({}, configuration);
-        var elements = container.querySelectorAll('input,select');
+        var elements = container.querySelectorAll('input,select,textarea');
         for (var i = 0; i < elements.length; i++) {
             var element = elements[i];
             if (element.type === 'checkbox') {
@@ -143,7 +143,7 @@
             const token = prompt('请填写 Access Token');
             if (!token) return;
             wrapLoading(
-                ApiClient.fetch({url: '/Plugins/Bangumi/AccessToken', type: 'PATCH', data: {token: token}})
+                ApiClient.fetch({ url: '/Plugins/Bangumi/AccessToken', type: 'PATCH', data: { token: token } })
                     .then(function () {
                         Dashboard.alert('授权成功');
                         return loadOAuthState();
@@ -159,7 +159,7 @@
         e.preventDefault();
         Dashboard.confirm('取消后将断开与 Bangumi 的连接，不再同步播放进度', '取消授权', function (confirmed) {
             if (!confirmed) return;
-            ApiClient.fetch({url: '/Plugins/Bangumi/OAuth', type: 'DELETE'})
+            ApiClient.fetch({ url: '/Plugins/Bangumi/OAuth', type: 'DELETE' })
                 .then(function () {
                     wrapLoading(loadOAuthState());
                 });
@@ -175,7 +175,7 @@
                 loadOAuthState();
                 Dashboard.alert('授权有效期已更新');
             }, function () {
-                Dashboard.alert({title: '错误', message: '续期失败，请尝试重新授权'});
+                Dashboard.alert({ title: '错误', message: '续期失败，请尝试重新授权' });
                 container.querySelector('#bangumi-oauth-btn').style.display = '';
                 container.querySelector('#bangumi-oauth-refresh').style.display = 'none';
             }));
@@ -186,11 +186,59 @@
         Dashboard.confirm('确定要清空离线数据库吗？', '警告', function (confirmed) {
             if (!confirmed) return;
             Dashboard.showLoadingMsg();
-            wrapLoading(ApiClient.fetch({url: '/Plugins/Bangumi/Archive/Store', type: 'DELETE'})
+            wrapLoading(ApiClient.fetch({ url: '/Plugins/Bangumi/Archive/Store', type: 'DELETE' })
                 .then(function () {
                     loadArchiveState();
                     Dashboard.alert('离线数据库已清空');
                 }));
         })
+    });
+
+    container.querySelector('#SpExcludeRegexFullPathResetBtn').addEventListener('click', function (e) {
+        e.preventDefault();
+        container.querySelector('#SpExcludeRegexFullPath').value = configuration['DefaultSpExcludeRegexFullPath'];
+    });
+
+    container.querySelector('#SpExcludeRegexFolderNameResetBtn').addEventListener('click', function (e) {
+        e.preventDefault();
+        container.querySelector('#SpExcludeRegexFolderName').value = configuration['DefaultSpExcludeRegexFolderName'];
+    });
+
+    container.querySelector('#SpExcludeRegexFileNameResetBtn').addEventListener('click', function (e) {
+        e.preventDefault();
+        container.querySelector('#SpExcludeRegexFileName').value = configuration['DefaultSpExcludeRegexFileName'];
+    });
+
+    container.querySelector('#MiscExcludeRegexFullPathResetBtn').addEventListener('click', function (e) {
+        e.preventDefault();
+        container.querySelector('#MiscExcludeRegexFullPath').value = configuration['DefaultMiscExcludeRegexFullPath'];
+    });
+
+    container.querySelector('#MiscExcludeRegexFolderNameResetBtn').addEventListener('click', function (e) {
+        e.preventDefault();
+        container.querySelector('#MiscExcludeRegexFolderName').value = configuration['DefaultMiscExcludeRegexFolderName'];
+    });
+
+    container.querySelector('#MiscExcludeRegexFileNameResetBtn').addEventListener('click', function (e) {
+        e.preventDefault();
+        container.querySelector('#MiscExcludeRegexFileName').value = configuration['DefaultMiscExcludeRegexFileName'];
+    });
+
+    container.querySelectorAll('.bangumi-tab-container').forEach(tabContainer => {
+        tabContainer.querySelectorAll('.bangumi-tab-header-button').forEach(btn => {
+            btn.addEventListener('click', function () {
+                tabContainer.querySelectorAll('.bangumi-tab-header-button').forEach(b => b.classList.remove('active'));
+                tabContainer.querySelectorAll('.bangumi-tab-content').forEach(tc => tc.classList.remove('active'));
+
+                btn.classList.add('active');
+
+                let id = btn.getAttribute('data-tab');
+                tabContainer.querySelectorAll('.bangumi-tab-content').forEach(c => {
+                    if (c.getAttribute('data-tab') == id) {
+                        c.classList.add('active');
+                    }
+                });
+            });
+        });
     });
 })();

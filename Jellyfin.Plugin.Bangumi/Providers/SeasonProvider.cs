@@ -1,8 +1,9 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using Jellyfin.Plugin.Bangumi.Configuration;
@@ -15,7 +16,7 @@ using MediaBrowser.Model.Providers;
 
 namespace Jellyfin.Plugin.Bangumi.Providers;
 
-public class SeasonProvider(BangumiApi api, Logger<EpisodeProvider> log, ILibraryManager libraryManager)
+public partial class SeasonProvider(BangumiApi api, Logger<EpisodeProvider> log, ILibraryManager libraryManager)
     : IRemoteMetadataProvider<Season, SeasonInfo>, IHasOrder
 {
     private static PluginConfiguration Configuration => Plugin.Instance!.Configuration;
@@ -52,6 +53,20 @@ public class SeasonProvider(BangumiApi api, Logger<EpisodeProvider> log, ILibrar
 
         var seasonPath = Path.GetDirectoryName(info.Path);
 
+        if (IsMiscFolder(info.Path))
+        {
+            log.Info($"{info.Path} matches misc folder, skip searching");
+
+            // 清除之前获取的元数据
+            result.HasMetadata = true;
+            result.Item = new Season()
+            {
+                Name = baseName
+            };
+
+            return result;
+        }
+
         var subjectId = 0;
         if (localConfiguration.Id != 0)
         {
@@ -72,39 +87,50 @@ public class SeasonProvider(BangumiApi api, Logger<EpisodeProvider> log, ILibrar
         }
         else if (seasonPath is not null && libraryManager.FindByPath(seasonPath, true) is Series series)
         {
-            var previousSeason = series.Children
-                // Search "Season 2" for "Season 1" and "Season 2 Part X"
-                .Where(x => x.IndexNumber == info.IndexNumber - 1 || x.IndexNumber == info.IndexNumber)
-                .MaxBy(x => int.Parse(x.GetProviderId(Constants.ProviderName) ?? "0"));
-            if (previousSeason?.Path == info.Path)
+            log.Info($"Guessing season id by folder path:  {info.Path}");
+            subject = await SearchSubjectByFolderPath(series, info.Path, cancellationToken);
+
+            if (subject != null)
             {
-                //This is the first season to be matched, which means season 1 and any other possible previous season is missing. We can just try match it by name.
-                string[] searchNames = [$"{series.Name} 第{chineseOrdinalChars[info.IndexNumber ?? 1]}季", $"{series.Name} Season {info.IndexNumber}"];
-                foreach (var searchName in searchNames)
-                {
-                    log.Info($"Guessing season id by name:  {searchName}");
-                    var searchResult = await api.SearchSubject(searchName, cancellationToken);
-                    if (int.TryParse(info.SeriesProviderIds.GetOrDefault(Constants.ProviderName), out var parentId))
-                    {
-                        searchResult = searchResult.Where(x => x.Id != parentId);
-                    }
-                    if (info.Year != null)
-                    {
-                        searchResult = searchResult.Where(x => x.ProductionYear == null || x.ProductionYear == info.Year?.ToString());
-                    }
-                    if (searchResult.Any())
-                        subjectId = searchResult.First().Id;
-                }
-                log.Info("Guessed result: {Name} (#{ID})", subject?.Name, subject?.Id);
+                subjectId = subject.Id;
+                log.Info("Guessed result: {Name} (#{ID})", subject.Name, subject.Id);
             }
-            if (int.TryParse(previousSeason?.GetProviderId(Constants.ProviderName), out var previousSeasonId) && previousSeasonId > 0)
+            else
             {
-                log.Info("Guessing season id from previous season #{ID}", previousSeasonId);
-                subject = await api.SearchNextSubject(previousSeasonId, cancellationToken);
-                if (subject != null)
+                var previousSeason = series.Children
+                    // Search "Season 2" for "Season 1" and "Season 2 Part X"
+                    .Where(x => x.IndexNumber == info.IndexNumber - 1 || x.IndexNumber == info.IndexNumber)
+                    .MaxBy(x => int.Parse(x.GetProviderId(Constants.ProviderName) ?? "0"));
+                if (previousSeason?.Path == info.Path)
                 {
-                    log.Info("Guessed result: {Name} (#{ID})", subject.Name, subject.Id);
-                    subjectId = subject.Id;
+                    //This is the first season to be matched, which means season 1 and any other possible previous season is missing. We can just try match it by name.
+                    string[] searchNames = [$"{series.Name} 第{chineseOrdinalChars[info.IndexNumber ?? 1]}季", $"{series.Name} Season {info.IndexNumber}"];
+                    foreach (var searchName in searchNames)
+                    {
+                        log.Info($"Guessing season id by name:  {searchName}");
+                        var searchResult = await api.SearchSubject(searchName, cancellationToken);
+                        if (int.TryParse(info.SeriesProviderIds.GetOrDefault(Constants.ProviderName), out var parentId))
+                        {
+                            searchResult = searchResult.Where(x => x.Id != parentId);
+                        }
+                        if (info.Year != null)
+                        {
+                            searchResult = searchResult.Where(x => x.ProductionYear == null || x.ProductionYear == info.Year?.ToString());
+                        }
+                        if (searchResult.Any())
+                            subjectId = searchResult.First().Id;
+                    }
+                    log.Info("Guessed result: {Name} (#{ID})", subject?.Name, subject?.Id);
+                }
+                if (int.TryParse(previousSeason?.GetProviderId(Constants.ProviderName), out var previousSeasonId) && previousSeasonId > 0)
+                {
+                    log.Info("Guessing season id from previous season #{ID}", previousSeasonId);
+                    subject = await api.SearchNextSubject(previousSeasonId, cancellationToken);
+                    if (subject != null)
+                    {
+                        log.Info("Guessed result: {Name} (#{ID})", subject.Name, subject.Id);
+                        subjectId = subject.Id;
+                    }
                 }
             }
         }
@@ -148,10 +174,105 @@ public class SeasonProvider(BangumiApi api, Logger<EpisodeProvider> log, ILibrar
         if (subject.IsNSFW)
             result.Item.OfficialRating = "X";
 
+        // 获取到的季号可能不准确（例如fsn在Bangumi中前作是fz，但实际上季号一般是独立计算的），因此只在没有设置季号时尝试猜测
+        if (int.TryParse(info.ProviderIds.GetOrDefault(Constants.SeasonNumberProviderName), out var seasonNumber))
+        {
+            result.Item.ProviderIds.Add(Constants.SeasonNumberProviderName, seasonNumber.ToString());
+        }
+        else
+        {
+            if (IsSpecialFolder(info.Path))
+            {
+                result.Item.ProviderIds.Add(Constants.SeasonNumberProviderName, "0");
+            }
+            else
+            {
+                var num = await GuessSeasonNumber(subject, cancellationToken);
+                if (num.HasValue)
+                {
+                    result.Item.ProviderIds.Add(Constants.SeasonNumberProviderName, num.ToString());
+                }
+            }
+        }
+
         (await api.GetSubjectPersonInfos(subject.Id, cancellationToken)).ToList().ForEach(result.AddPerson);
         (await api.GetSubjectCharacters(subject.Id, cancellationToken)).ToList().ForEach(result.AddPerson);
 
         return result;
+    }
+
+    private bool IsMiscFolder(string folderPath)
+    {
+        if (string.IsNullOrEmpty(folderPath)) return false;
+
+        bool result = PluginConfiguration.MatchExcludeRegexes(
+            Plugin.Instance!.Configuration.MiscExcludeRegexFullPath,
+            folderPath,
+            (p, e) => log.Error($"Guessing \"{folderPath}\" season id using regex \"{p}\" failed:  {e.Message}"));
+
+        var folderName = Path.GetFileName(folderPath);
+        if (result || string.IsNullOrEmpty(folderName)) return result;
+
+        // 忽略根目录名称
+        if (libraryManager.FindByPath(folderPath, true) is not Series)
+        {
+            result |= PluginConfiguration.MatchExcludeRegexes(
+            Plugin.Instance!.Configuration.MiscExcludeRegexFolderName,
+            folderName,
+            (p, e) => log.Error($"Guessing \"{folderName}\" season id using regex \"{p}\" failed:  {e.Message}"));
+        }
+
+        return result;
+    }
+
+    private bool IsSpecialFolder(string folderPath)
+    {
+        if (string.IsNullOrEmpty(folderPath)) return false;
+
+        bool result = PluginConfiguration.MatchExcludeRegexes(
+            Plugin.Instance!.Configuration.SpExcludeRegexFullPath,
+            folderPath,
+            (p, e) => log.Error($"Guessing \"{folderPath}\" season id using regex \"{p}\" failed:  {e.Message}"));
+
+        var folderName = Path.GetFileName(folderPath);
+        if (result || string.IsNullOrEmpty(folderName)) return result;
+
+        // 忽略根目录名称
+        if (libraryManager.FindByPath(folderPath, true) is not Series)
+        {
+            result |= PluginConfiguration.MatchExcludeRegexes(
+            Plugin.Instance!.Configuration.SpExcludeRegexFolderName,
+            folderName,
+            (p, e) => log.Error($"Guessing \"{folderName}\" season id using regex \"{p}\" failed:  {e.Message}"));
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// 匹配仅包含SP名称的文件夹名
+    /// </summary>
+    /// <returns></returns>
+    [GeneratedRegex(@"^(SPs?|Specials?|OVA|OAD|特典|特典映像|剧场版|劇場版)$", RegexOptions.IgnoreCase, "zh-CN")]
+    private static partial Regex OnlySpNameRegex();
+
+    private async Task<Subject?> SearchSubjectByFolderPath(Series series, string folderPath, CancellationToken cancellationToken)
+    {
+        var folderName = Path.GetFileName(folderPath);
+        var searchName = GetBangumiNameFromFolderName(folderName);
+        if (IsSpecialFolder(folderPath))
+        {
+            if (OnlySpNameRegex().IsMatch(searchName))
+            {
+                // 仅sp文件夹名无法判断番剧，添加番剧名称作为前缀
+                searchName = $"{series.Name} {searchName}";
+            }
+        }
+
+        log.Info($"Guessing season id by folder name: {searchName}");
+        var subjects = await api.SearchSubjectRaw(searchName, SubjectType.Anime, cancellationToken);
+
+        return await api.GetBestMatchSubjectWithKeywords(subjects, [searchName], cancellationToken);
     }
 
     public Task<IEnumerable<RemoteSearchResult>> GetSearchResults(SeasonInfo searchInfo, CancellationToken cancellationToken)
@@ -162,5 +283,107 @@ public class SeasonProvider(BangumiApi api, Logger<EpisodeProvider> log, ILibrar
     public Task<HttpResponseMessage> GetImageResponse(string url, CancellationToken cancellationToken)
     {
         return api.GetHttpClient().GetAsync(url, cancellationToken);
+    }
+
+    /// <summary>
+    /// 获取番剧名称
+    /// </summary>
+    /// <param name="foldername">目录名</param>
+    /// <returns>番剧名称</returns>
+    private static string GetBangumiNameFromFolderName(string foldername)
+    {
+        // 常见的目录格式中，番剧名称通常为非括号内的内容
+        // 部分目录格式则是将包括番剧名称在内的元数据都用括号分割，通常情况番剧名称在第二个括号内容里
+
+        Dictionary<char, char> brackets = new()
+        {
+            ['['] = ']',
+            ['('] = ')',
+            ['【'] = '】',
+            ['（'] = '）',
+        };
+
+        // 括号内的内容
+        List<string> bracketContent = [];
+        // 当前分块内容
+        string current = string.Empty;
+        // 括号栈
+        Stack<char> stack = new();
+
+        foreach (char c in foldername)
+        {
+            if (brackets.ContainsKey(c)) // 匹配到左括号
+            {
+                if (stack.Count == 0)
+                {
+                    current = current.Trim();
+
+                    // 获取到非括号内内容，直接返回
+                    if (current.Length > 0)
+                    {
+                        return current;
+                    }
+                }
+
+                stack.Push(c);
+            }
+            else if (brackets.ContainsValue(c)) // 匹配到右括号
+            {
+                if (stack.Count > 0 && c == brackets[stack.Peek()]) // 嵌套括号匹配
+                {
+                    stack.Pop();
+
+                    // 匹配到最外层括号，记录其内容
+                    if (stack.Count == 0)
+                    {
+                        current += c;
+
+                        bracketContent.Add(current);
+                        current = string.Empty;
+
+                        continue;
+                    }
+                }
+            }
+
+            current += c;
+        }
+
+        if (current.Length > 0)
+        {
+            bracketContent.Add(current.Trim());
+        }
+
+        // 匹配不到非括号内内容，默认返回第2个括号内的内容
+        return bracketContent.Count > 1 ? bracketContent[1] : bracketContent[0];
+    }
+
+    private async Task<int?> GuessSeasonNumber(Subject subject, CancellationToken cancellationToken)
+    {
+        if (BangumiApi.IsOVAOrMovie(subject)) return 0;
+
+        log.Info($"Guessing season number for {subject.Name} ({subject.Id})");
+
+        int maxRequestCount = 10;
+        // 查找所有前传条目
+        var subjects = await api.SearchPreviousSubjects(subject.Id, maxRequestCount, cancellationToken);
+
+        // 达到最大请求次数，可能是前传条目过多
+        if (subjects.Count == maxRequestCount + 1)
+        {
+            Subject earliest = subjects.Last().OrderBy(s => s.Id).First();
+            var prev = api.SearchPreviousSubject(earliest.Id, 1, cancellationToken);
+
+            if (prev == null) return null;
+            // 还能继续查找前传条目，超出最大请求次数，无法判断季号
+            if (prev.Id != earliest.Id) return null;
+        }
+
+        // 根据前传数量判断季号
+        return subjects.Count switch
+        {
+            0 => null,// 找不到当前条目，无法判断
+            _ => subjects.Count,// 
+        };
     }
 }
