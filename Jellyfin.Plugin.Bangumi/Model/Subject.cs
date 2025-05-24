@@ -130,6 +130,9 @@ public class Subject
 
     public static IEnumerable<(Subject, int)> GetSortedScoresBySimilarity(IEnumerable<Subject> list, string keyword)
     {
+#if EMBY
+        return list.Select(s=>(s,100));
+#else
         var instance = new Levenshtein(keyword);
 
         return list.Select(subject =>
@@ -153,6 +156,7 @@ public class Subject
             return (subject, percent);
         }).OrderByDescending(s => s.percent)
         .Select(s => (s.subject, (int)Math.Round(s.percent)));
+#endif
     }
 
     public static IEnumerable<Subject> SortByFuzzScore(IEnumerable<Subject> list, string keyword)
@@ -169,6 +173,9 @@ public class Subject
 
     public static IEnumerable<(Subject, int)> GetSortedScoresByFuzz(IEnumerable<Subject> list, string keyword)
     {
+#if EMBY
+        return list.Select(s=>(s,100));
+#else
         keyword = keyword.ToLower();
 
         return list.Select(subject =>
@@ -184,5 +191,6 @@ public class Subject
             return (subject, maxScore);
         })
             .OrderByDescending(pair => pair.maxScore);
+#endif
     }
 }

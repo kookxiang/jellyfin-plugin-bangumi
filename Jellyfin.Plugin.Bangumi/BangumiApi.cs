@@ -104,7 +104,11 @@ public partial class BangumiApi
             }
             catch (Exception e)
             {
+#if EMBY
+                Console.WriteLine($"Failed to get subject {subject.Name}（{subject.Id}） alias info for sorting: {e.Message}");
+#else
                 logger.Error($"Failed to get subject {subject.Name}（{subject.Id}） alias info for sorting: {e.Message}");
+#endif
                 subjectWithInfobox.Add(subject);
             }
         }
