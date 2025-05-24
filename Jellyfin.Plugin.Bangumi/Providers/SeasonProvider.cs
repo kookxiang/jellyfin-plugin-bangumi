@@ -272,7 +272,7 @@ public partial class SeasonProvider(BangumiApi api, Logger<EpisodeProvider> log,
         log.Info($"Guessing season id by folder name: {searchName}");
         var subjects = await api.SearchSubjectRaw(searchName, SubjectType.Anime, cancellationToken);
 
-        return BangumiApi.GetBestMatchSubjectWithKeywords(subjects, [searchName]);
+        return await api.GetBestMatchSubjectWithKeywords(subjects, [searchName], cancellationToken);
     }
 
     public Task<IEnumerable<RemoteSearchResult>> GetSearchResults(SeasonInfo searchInfo, CancellationToken cancellationToken)

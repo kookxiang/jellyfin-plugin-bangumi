@@ -78,25 +78,40 @@ public partial class BangumiApi
         }
     }
 
-    public static IEnumerable<(Subject, int)> SortSubjects(ICollection<Subject> list, string keyword)
+    public async Task<IEnumerable<(Subject, int)>> SortSubjects(IEnumerable<Subject> list, string keyword, CancellationToken token)
     {
-        if (Plugin.Instance!.Configuration.SortByFuzzScore && list.Count > 1)
+        Subject[] array = list?.ToArray() ?? [];
+
+        // 仅使用前 5 个条目获取别名用于排序
+        var num = Math.Min(array.Length, 5);
+
+        List<Subject> subjectWithInfobox = [];
+        for (int i = 0; i < num; i++)
         {
-            // 仅使用前 5 个条目获取别名并排序
-            var num = 5;
-            var subjectWithInfobox = list.Take(num).ToList();
-            var sortedSubjects = Subject.GetSortedScoresByFuzz(subjectWithInfobox, keyword);
-            return sortedSubjects.Concat(list.Skip(num).Select(s => (s, 0))).ToList();
+            var subject = await GetSubject(array[i].Id, token);
+            if (subject != null)
+            {
+                subjectWithInfobox.Add(subject);
+            }
         }
 
-        return Subject.GetSortedScoresBySimilarity(list, keyword);
+        // 拼接剩余条目
+        subjectWithInfobox.AddRange(array.Skip(num));
+
+        if (Plugin.Instance!.Configuration.SortByFuzzScore && array.Length > 1)
+        {
+            var sortedSubjects = Subject.GetSortedScoresByFuzz(subjectWithInfobox, keyword);
+            return sortedSubjects.ToList();
+        }
+
+        return Subject.GetSortedScoresBySimilarity(subjectWithInfobox, keyword);
     }
 
     public async Task<IEnumerable<(Subject, int)>> SearchSubjectSorted(string keyword, SubjectType? type, CancellationToken token)
     {
         var list = await SearchSubjectRaw(keyword, type, token);
 
-        return SortSubjects(list, keyword);
+        return await SortSubjects(list, keyword, token);
     }
 
     /// <summary>
@@ -106,15 +121,15 @@ public partial class BangumiApi
     /// <param name="keywords">要匹配的关键词集合，每个关键词都会单独计算分数</param>
     /// <param name="minScore">符合匹配的最低分数，范围：0-100，0表示完全不相关，100表示精准匹配</param>
     /// <returns>返回匹配分数最高且大于等于 <paramref name="minScore"/> 的条目，否则返回null</returns>
-    public static Subject? GetBestMatchSubjectWithKeywords(ICollection<Subject> list, IEnumerable<string> keywords, int minScore = 80)
+    public async Task<Subject?> GetBestMatchSubjectWithKeywords(IEnumerable<Subject>? list, IEnumerable<string> keywords, CancellationToken token, int minScore = 80)
     {
-        if (list == null || list.Count == 0 || keywords == null) return null;
+        if (list == null || !list.Any() || keywords == null) return null;
 
         (Subject, int) result = default;
 
         foreach (var keyword in keywords)
         {
-            var sortedSubjects = SortSubjects(list, keyword);
+            var sortedSubjects = await SortSubjects(list, keyword, token);
             var bestMatch = sortedSubjects.FirstOrDefault(s => s.Item2 >= minScore);
 
             if (bestMatch != default)
