@@ -37,14 +37,15 @@ public partial class BangumiApi
         return result.Select(s => s.Item1);
     }
 
-    public async Task<IEnumerable<(Subject, int)>> SearchSubjectSorted(string keyword, SubjectType? type, CancellationToken token)
+    public async Task<List<Subject>> SearchSubjectRaw(string keyword, SubjectType? type, CancellationToken token)
     {
         if (string.IsNullOrEmpty(keyword))
             return [];
+
         try
         {
             SearchResult<Subject>? searchResult;
-            IEnumerable<Subject> list;
+            List<Subject> list;
 
             if (Plugin.Instance!.Configuration.UseTestingSearchApi)
             {
@@ -53,7 +54,7 @@ public partial class BangumiApi
                     searchParams.Filter.Type = [type.Value];
 
                 searchResult = await Post<SearchResult<Subject>>($"{BaseUrl}/v0/search/subjects", new JsonContent(searchParams), token);
-                list = searchResult?.Data ?? [];
+                list = searchResult?.Data?.ToList() ?? [];
             }
             else
             {
@@ -65,28 +66,67 @@ public partial class BangumiApi
                     url += $"&type={(int)type}";
 
                 searchResult = await Get<SearchResult<Subject>>(url, token);
-                list = searchResult?.List ?? [];
+                list = searchResult?.List?.ToList() ?? [];
             }
 
-            if (Plugin.Instance.Configuration.SortByFuzzScore && list.Count() > 1)
-            {
-                // 仅使用前 5 个条目获取别名并排序
-                var num = 5;
-                var tasks = list.Take(num).Select(subject => GetSubject(subject.Id, token));
-                var subjectWithInfobox = await Task.WhenAll(tasks);
-
-                var sortedSubjects =
-                    Subject.GetSortedScoresByFuzz(subjectWithInfobox.Where(s => s != null).Cast<Subject>().ToList(), keyword);
-                return sortedSubjects.Concat(list.Skip(num).Select(s => (s, 0))).ToList();
-            }
-
-            return Subject.GetSortedScoresBySimilarity(list, keyword);
+            return list;
         }
         catch (JsonException)
         {
             // 404 Not Found Anime
             return [];
         }
+    }
+
+    public static IEnumerable<(Subject, int)> SortSubjects(ICollection<Subject> list, string keyword)
+    {
+        if (Plugin.Instance!.Configuration.SortByFuzzScore && list.Count > 1)
+        {
+            // 仅使用前 5 个条目获取别名并排序
+            var num = 5;
+            var subjectWithInfobox = list.Take(num).ToList();
+            var sortedSubjects = Subject.GetSortedScoresByFuzz(subjectWithInfobox, keyword);
+            return sortedSubjects.Concat(list.Skip(num).Select(s => (s, 0))).ToList();
+        }
+
+        return Subject.GetSortedScoresBySimilarity(list, keyword);
+    }
+
+    public async Task<IEnumerable<(Subject, int)>> SearchSubjectSorted(string keyword, SubjectType? type, CancellationToken token)
+    {
+        var list = await SearchSubjectRaw(keyword, type, token);
+
+        return SortSubjects(list, keyword);
+    }
+
+    /// <summary>
+    /// 获取最匹配的条目
+    /// </summary>
+    /// <param name="list">条目列表</param>
+    /// <param name="keywords">要匹配的关键词集合，每个关键词都会单独计算分数</param>
+    /// <param name="minScore">符合匹配的最低分数，范围：0-100，0表示完全不相关，100表示精准匹配</param>
+    /// <returns>返回匹配分数最高且大于等于 <paramref name="minScore"/> 的条目，否则返回null</returns>
+    public static Subject? GetBestMatchSubjectWithKeywords(ICollection<Subject> list, IEnumerable<string> keywords, int minScore = 80)
+    {
+        if (list == null || list.Count == 0 || keywords == null) return null;
+
+        (Subject, int) result = default;
+
+        foreach (var keyword in keywords)
+        {
+            var sortedSubjects = SortSubjects(list, keyword);
+            var bestMatch = sortedSubjects.FirstOrDefault(s => s.Item2 >= minScore);
+
+            if (bestMatch != default)
+            {
+                if (result == default || bestMatch.Item2 > result.Item2)
+                {
+                    result = bestMatch;
+                }
+            }
+        }
+
+        return result == default ? null : result.Item1;
     }
 
     public async Task<Subject?> GetSubject(int id, CancellationToken token)
