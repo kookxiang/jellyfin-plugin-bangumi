@@ -88,9 +88,23 @@ public partial class BangumiApi
         List<Subject> subjectWithInfobox = [];
         for (int i = 0; i < num; i++)
         {
-            var subject = await GetSubject(array[i].Id, token);
-            if (subject != null)
+            var subject = array[i];
+            // 一些条目能搜索到，但是获取详情时会报错
+            try
             {
+                var s = await GetSubject(subject.Id, token);
+                if (s != null)
+                {
+                    subjectWithInfobox.Add(s);
+                }
+                else
+                {
+                    subjectWithInfobox.Add(subject);
+                }
+            }
+            catch (Exception e)
+            {
+                logger.Error($"Failed to get subject {subject.Name}（{subject.Id}） alias info for sorting: {e.Message}");
                 subjectWithInfobox.Add(subject);
             }
         }
