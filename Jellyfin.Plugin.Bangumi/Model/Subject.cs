@@ -139,6 +139,14 @@ public class Subject
                 instance.DistanceFrom(subject.OriginalName)
             );
 
+            if (subject.Alias != null)
+            {
+                foreach (var alias in subject.Alias)
+                {
+                    score = Math.Min(score, instance.DistanceFrom(alias));
+                }
+            }
+
             // 转换 Levenshtein 距离
             float percent = (1 - ((float)score / keyword.Length)) * 100;
 
