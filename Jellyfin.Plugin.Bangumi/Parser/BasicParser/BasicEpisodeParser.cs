@@ -114,12 +114,12 @@ public partial class BasicEpisodeParser(EpisodeParserContext context, Logger<Bas
         if (context.Configuration.AlwaysReplaceEpisodeNumber)
         {
             log.Info("guess episode number from filename {FileName} because of plugin configuration", fileName);
-            episodeIndex = GuessEpisodeNumber(episodeIndex, fileName);
+            episodeIndex = GuessEpisodeNumber(context, log, episodeIndex, fileName);
         }
         else if (episodeIndex is null or 0)
         {
             log.Info("guess episode number from filename {FileName} because it's empty", fileName);
-            episodeIndex = GuessEpisodeNumber(episodeIndex, fileName);
+            episodeIndex = GuessEpisodeNumber(context, log, episodeIndex, fileName);
         }
 
         if (context.LocalConfiguration.Offset != 0)
@@ -176,6 +176,8 @@ SkipBangumiId:
         {
             var maxEpisodeNumber = episodeListData.Any() ? episodeListData.Max(x => x.Order) : double.PositiveInfinity;
             episodeIndex = GuessEpisodeNumber(
+                context,
+                log,
                 episodeIndex + context.LocalConfiguration.Offset,
                 fileName,
                 maxEpisodeNumber + context.LocalConfiguration.Offset
@@ -222,7 +224,7 @@ SkipBangumiId:
         return null;
     }
 
-    private double GuessEpisodeNumber(double? current, string fileName, double max = double.PositiveInfinity)
+    private static double GuessEpisodeNumber<T>(EpisodeParserContext context, Logger<T> log, double? current, string fileName, double max = double.PositiveInfinity)
     {
         var tempName = fileName;
         var episodeIndex = current ?? 0;
@@ -274,4 +276,28 @@ SkipBangumiId:
         return episodeIndex;
     }
 
+    public static double? ExtractSeasonNumberFromPath<T>(EpisodeParserContext context, Logger<T> log)
+    {
+        throw new NotImplementedException();
+    }
+
+    public static double? ExtractEpisodeNumberFromPath<T>(EpisodeParserContext context, Logger<T> log)
+    {
+        return GuessEpisodeNumber(
+            context,
+            log,
+            context.Info.IndexNumber,
+            Path.GetFileName(context.Info.Path)
+        );
+    }
+
+    public static string? ExtractAnimeTitleFromPath<T>(EpisodeParserContext context, Logger<T> log)
+    {
+        throw new NotImplementedException();
+    }
+
+    public static EpisodeType? ExtractEpisodeTypeFromPath<T>(EpisodeParserContext context, Logger<T> log)
+    {
+        return GuessEpisodeTypeFromFileName(Path.GetFileName(context.Info.Path)) ?? EpisodeType.Normal;
+    }
 }

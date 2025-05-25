@@ -4,6 +4,8 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Jellyfin.Plugin.Bangumi.Model;
+using Jellyfin.Plugin.Bangumi.Parser.AnitomyParser;
+using Jellyfin.Plugin.Bangumi.Parser.BasicParser;
 
 namespace Jellyfin.Plugin.Bangumi.Parser.MixParser
 {
@@ -11,27 +13,40 @@ namespace Jellyfin.Plugin.Bangumi.Parser.MixParser
     {
         public Task<Episode?> GetEpisode()
         {
+            log.Info("AnitomyEpisodeParser.GetEpisode is still under development, context: {Context}", context);
             throw new NotImplementedException();
         }
 
-        public static double ExtractSeasonNumberFromPath(string path)
+        public static double? ExtractSeasonNumberFromPath<T>(EpisodeParserContext context, Logger<T> log)
         {
-            throw new NotImplementedException();
+            return AnitomyEpisodeParser.ExtractSeasonNumberFromPath(context, log);
         }
 
-        public static double ExtractEpisodeNumberFromPath(string path)
+        public static double? ExtractEpisodeNumberFromPath<T>(EpisodeParserContext context, Logger<T> log)
         {
-            throw new NotImplementedException();
+            var num = AnitomyEpisodeParser.ExtractEpisodeNumberFromPath(context, log);
+            if (num != null)
+            {
+                return num;
+            }
+
+            return BasicEpisodeParser.ExtractEpisodeNumberFromPath(context, log);
         }
 
-        public static string ExtractBangumiTitleFromPath(string path)
+        public static string? ExtractAnimeTitleFromPath<T>(EpisodeParserContext context, Logger<T> log)
         {
-            throw new NotImplementedException();
+            return AnitomyEpisodeParser.ExtractAnimeTitleFromPath(context, log);
         }
 
-        public static EpisodeType ExtractEpisodeTypeFromPath(string path)
+        public static EpisodeType? ExtractEpisodeTypeFromPath<T>(EpisodeParserContext context, Logger<T> log)
         {
-            throw new NotImplementedException();
+            var type = AnitomyEpisodeParser.ExtractEpisodeTypeFromPath(context, log);
+            if (type != null)
+            {
+                return type;
+            }
+
+            return BasicEpisodeParser.ExtractEpisodeTypeFromPath(context, log);
         }
     }
 }
