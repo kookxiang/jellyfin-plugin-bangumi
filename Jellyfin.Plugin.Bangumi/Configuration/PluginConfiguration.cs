@@ -14,7 +14,8 @@ public enum TranslationPreferenceType
 public enum EpisodeParserType
 {
     Basic,
-    AnitomySharp
+    AnitomySharp,
+    Mix
 }
 
 public class PluginConfiguration : BasePluginConfiguration
