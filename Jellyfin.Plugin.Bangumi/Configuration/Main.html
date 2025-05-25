@@ -203,15 +203,6 @@
                 </div>
                 <div class="checkboxContainer checkboxContainer-withDescription">
                     <label class="emby-checkbox-label">
-                        <input id="AlwaysReplaceEpisodeNumber" is="emby-checkbox" type="checkbox"/>
-                        <span>始终根据文件名猜测集数</span>
-                    </label>
-                    <div class="fieldDescription">
-                        用于修正 Jellyfin 自动识别集号错误的情况，由插件重新按文件名判断并纠正。少数情况下插件可能识别错误。
-                    </div>
-                </div>
-                <div class="checkboxContainer checkboxContainer-withDescription">
-                    <label class="emby-checkbox-label">
                         <input id="TrustExistedBangumiId" is="emby-checkbox" type="checkbox"/>
                         <span>始终根据配置的 Bangumi ID 获取元数据</span>
                     </label>
@@ -234,26 +225,45 @@
                     </label>
                     <div class="fieldDescription">排序时会加入条目别名，提高首个条目匹配率。测试接口未启用此算法</div>
                 </div>
+                <div class="selectContainer">
+                    <label class="selectLabel" for="EpisodeParser">剧集解析器</label>
+                    <select class="emby-select-withcolor emby-select" id="EpisodeParser" is="emby-select">
+                        <option value="Basic">基础剧集解析器</option>
+                        <option value="AnitomySharp">AnitomySharp 剧集解析器</option>
+                    </select>
+                </div>
+                <div class="episode-parser-options" episode-parser="Basic" style="display:none;">
+                    <div class="checkboxContainer checkboxContainer-withDescription">
+                        <label class="emby-checkbox-label">
+                            <input id="AlwaysReplaceEpisodeNumber" is="emby-checkbox" type="checkbox" />
+                            <span>始终根据文件名猜测集数</span>
+                        </label>
+                        <div class="fieldDescription">
+                            用于修正 Jellyfin 自动识别集号错误的情况，由插件重新按文件名判断并纠正。少数情况下插件可能识别错误。
+                        </div>
+                    </div>
+                </div>
+                <div class="episode-parser-options" episode-parser="AnitomySharp" style="display:none;">
+                    <div class="checkboxContainer checkboxContainer-withDescription">
+                        <label class="emby-checkbox-label">
+                            <input id="ProcessMultiSeasonFolderByAnitomySharp" is="emby-checkbox" type="checkbox" />
+                            <span>使用 AnitomySharp 搜索多季度目录</span>
+                        </label>
+                        <div class="fieldDescription">
+                            用于剧集，建议搭配「使用 Bangumi 词条作为季名称」使用。准确率一般，开发中……
+                        </div>
+                    </div>
+                </div>
                 <div class="verticalSection">
                     <div class="sectionTitleContainer flex align-items-center">
                         <h2 class="sectionTitle">AnitomySharp</h2>
                     </div>
                 </div>
-                <div class="selectContainer">
-                    <div class="checkboxContainer checkboxContainer-withDescription">
-                        <label class="emby-checkbox-label">
-                            <input id="AlwaysGetEpisodeByAnitomySharp" is="emby-checkbox" type="checkbox"/>
-                            <span>使用 AnitomySharp 猜测集数</span>
-                        </label>
-                    </div>
-                </div>
-                <div class="selectContainer">
-                    <div class="checkboxContainer checkboxContainer-withDescription">
-                        <label class="emby-checkbox-label">
-                            <input id="AlwaysGetTitleByAnitomySharp" is="emby-checkbox" type="checkbox"/>
-                            <span>使用 AnitomySharp 猜测动画名</span>
-                        </label>
-                    </div>
+                <div class="checkboxContainer checkboxContainer-withDescription">
+                    <label class="emby-checkbox-label">
+                        <input id="AlwaysGetTitleByAnitomySharp" is="emby-checkbox" type="checkbox" />
+                        <span>使用 AnitomySharp 猜测动画名</span>
+                    </label>
                 </div>
                 <div class="submit-button-container">
                     <button class="raised button-submit block emby-button" is="emby-button" type="submit">

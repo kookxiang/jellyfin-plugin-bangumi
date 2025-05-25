@@ -91,6 +91,10 @@
                     element.value = config[configKey];
                 }
             });
+
+            if (container.querySelector('#EpisodeParser')) {
+                updateEpisodeParserDisplay();
+            }
         });
     }
 
@@ -193,4 +197,16 @@
                 }));
         })
     });
+
+    container.querySelector('#EpisodeParser').addEventListener('change', function (e) {
+        e.preventDefault();
+        updateEpisodeParserDisplay();
+    });
+
+    function updateEpisodeParserDisplay() {
+        const parser = container.querySelector('#EpisodeParser').value;
+        container.querySelectorAll('.episode-parser-options').forEach(el => {
+            el.style.display = el.getAttribute('episode-parser') === parser ? '' : 'none';
+        });
+    }
 })();
