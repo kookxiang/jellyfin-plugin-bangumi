@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Net.Http;
@@ -33,15 +33,37 @@ public class EpisodeProvider(BangumiApi api, Logger<EpisodeProvider> log, ILibra
 
         var context = new EpisodeParserContext(api, libraryManager, info, mediaSourceManager, Configuration, localConfiguration, cancellationToken);
         var parser = EpisodeParserFactory.CreateParser(Configuration, context, anitomyLogger, basicLogger);
-        var episode = await parser.GetEpisode();
 
+        Model.Episode? episode = null;
 
-        log.Info("metadata for {FilePath}: {EpisodeInfo}", Path.GetFileName(info.Path), episode);
+        // throw execption will cause the episode to not show up anywhere
+        try
+        {
+            episode = await parser.GetEpisode();
+
+            log.Info("metadata for {FilePath}: {EpisodeInfo}", Path.GetFileName(info.Path), episode);
+        }
+        catch (Exception e)
+        {
+            log.Error($"metadata for {info.Path} error: {e.Message}");
+        }
 
         var result = new MetadataResult<Episode> { ResultLanguage = Constants.Language };
 
         if (episode == null)
+        {
+            // remove season number
+            if (BasicEpisodeParser.IsSpecial(info.Path, context.LibraryManager, true))
+            {
+                result.HasMetadata = true;
+                result.Item = new Episode
+                {
+                    ParentIndexNumber = 0
+                };
+            }
+
             return result;
+        }
 
         result.Item = new Episode();
         result.HasMetadata = true;
@@ -59,7 +81,7 @@ public class EpisodeProvider(BangumiApi api, Logger<EpisodeProvider> log, ILibra
         result.Item.ParentIndexNumber = info.ParentIndexNumber ?? 1;
 
         var parent = libraryManager.FindByPath(Path.GetDirectoryName(info.Path)!, true);
-        if (BasicEpisodeParser.IsSpecial(info.Path, false) || episode.Type == EpisodeType.Special || info.ParentIndexNumber == 0)
+        if (BasicEpisodeParser.IsSpecial(info.Path, context.LibraryManager, true) || episode.Type == EpisodeType.Special || info.ParentIndexNumber == 0)
         {
             result.Item.ParentIndexNumber = 0;
         }

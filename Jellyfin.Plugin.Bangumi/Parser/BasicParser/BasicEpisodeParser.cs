@@ -6,6 +6,7 @@ using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Jellyfin.Plugin.Bangumi.Model;
 using MediaBrowser.Controller.Entities.TV;
+using MediaBrowser.Controller.Library;
 
 namespace Jellyfin.Plugin.Bangumi.Parser.BasicParser;
 public partial class BasicEpisodeParser(EpisodeParserContext context, Logger<BasicEpisodeParser> log) : IEpisodeParser
@@ -58,11 +59,25 @@ public partial class BasicEpisodeParser(EpisodeParserContext context, Logger<Bas
     [GeneratedRegex(@"[^\w]PV([^a-zA-Z]|$)")]
     private static partial Regex PreviewEpisodeFileNameRegex();
 
-    public static bool IsSpecial(string filePath, bool checkParent = true)
+    public static bool IsSpecial(string filePath, ILibraryManager libraryManager, bool checkParent = true)
     {
         var fileName = Path.GetFileName(filePath);
         var parentPath = Path.GetDirectoryName(filePath);
         var folderName = Path.GetFileName(parentPath);
+
+        if (checkParent)
+        {
+            if (parentPath == null)
+            {
+                checkParent = false;
+            }
+            else
+            {
+                // check if parent is a season(subfolder), otherwise it is a series(root folder), check on root folder is not needed
+                checkParent = libraryManager.FindByPath(parentPath, true) is Season;
+            }
+        }
+
         return SpecialEpisodeFileNameRegex().IsMatch(fileName) ||
                checkParent && SpecialEpisodeFileNameRegex().IsMatch(folderName ?? "");
     }
@@ -73,7 +88,7 @@ public partial class BasicEpisodeParser(EpisodeParserContext context, Logger<Bas
         if (string.IsNullOrEmpty(fileName))
             return null;
 
-        var type = IsSpecial(context.Info.Path) ? EpisodeType.Special : GuessEpisodeTypeFromFileName(fileName);
+        var type = IsSpecial(context.Info.Path, context.LibraryManager) ? EpisodeType.Special : GuessEpisodeTypeFromFileName(fileName);
         var seriesId = context.LocalConfiguration.Id;
 
         var parent = context.LibraryManager.FindByPath(Path.GetDirectoryName(context.Info.Path)!, true);
