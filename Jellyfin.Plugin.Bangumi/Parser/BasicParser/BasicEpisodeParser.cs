@@ -83,61 +83,40 @@ public partial class BasicEpisodeParser(EpisodeParserContext context, Logger<Bas
                checkParent && SpecialEpisodeFileNameRegex().IsMatch(folderName ?? "");
     }
 
-    public async Task<Model.Episode?> GetEpisode()
+    public static int GetSubjectId<T>(EpisodeParserContext context, Logger<T> log)
     {
-        Model.Episode? result = null;
-        if (IsSpecial(context.Info.Path, context.LibraryManager, true))
+        // 从本地配置获取
+        var subjectId = context.LocalConfiguration.Id;
+        if (subjectId != 0)
         {
-            result = new Model.Episode()
-            {
-                ParentIndexNumber = 0,
-            };
+            log.Info("get subject id {Id} from local configuration", subjectId);
+            return subjectId;
         }
 
-        var fileName = Path.GetFileName(context.Info.Path);
-        if (string.IsNullOrEmpty(fileName))
-            return result;
-
-        var type = IsSpecial(context.Info.Path, context.LibraryManager) ? EpisodeType.Special : GuessEpisodeTypeFromFileName(fileName);
-        var seriesId = context.LocalConfiguration.Id;
-
+        // 从Season目录获取
         var parent = context.LibraryManager.FindByPath(Path.GetDirectoryName(context.Info.Path)!, true);
         if (parent is Season)
+        {
             if (int.TryParse(parent.ProviderIds.GetValueOrDefault(Constants.ProviderName), out var seasonId))
             {
-                log.Info("used session id {SeasonId} from parent", seasonId);
-                seriesId = seasonId;
+                log.Info("get subject id {Id} from parent", seasonId);
+                return seasonId;
             }
-
-        if (seriesId == 0)
-            if (!int.TryParse(context.Info.SeriesProviderIds?.GetValueOrDefault(Constants.ProviderName), out seriesId))
-                return result;
-
-        if (context.LocalConfiguration.Id != 0)
-        {
-            log.Info("used session id {SeasonId} from local configuration", context.LocalConfiguration.Id);
-            seriesId = context.LocalConfiguration.Id;
         }
 
-        double? episodeIndex = context.Info.IndexNumber;
-
-        if (context.Configuration.AlwaysReplaceEpisodeNumber)
+        // 从Series目录获取
+        if (int.TryParse(context.Info.SeriesProviderIds?.GetValueOrDefault(Constants.ProviderName), out var seriesId))
         {
-            log.Info("guess episode number from filename {FileName} because of plugin configuration", fileName);
-            episodeIndex = GuessEpisodeNumber(context, log, episodeIndex, fileName);
-        }
-        else if (episodeIndex is null or 0)
-        {
-            log.Info("guess episode number from filename {FileName} because it's empty", fileName);
-            episodeIndex = GuessEpisodeNumber(context, log, episodeIndex, fileName);
+            log.Info("get subject id {Id} from series provider ids", seriesId);
+            return seriesId;
         }
 
-        if (context.LocalConfiguration.Offset != 0)
-        {
-            log.Info("applying offset {Offset} to episode index {EpisodeIndex}", -context.LocalConfiguration.Offset, episodeIndex);
-            episodeIndex -= context.LocalConfiguration.Offset;
-        }
+        log.Warn("cannot find subject id from context, return 0");
+        return 0;
+    }
 
+    public static async Task<Model.Episode?> GetEpisodeFromProviderId<T>(EpisodeParserContext context, Logger<T> log, int subjectId, double episodeIndex)
+    {
         if (int.TryParse(context.Info.ProviderIds?.GetValueOrDefault(Constants.ProviderName), out var episodeId))
         {
             log.Info("fetching episode info using saved id: {EpisodeId}", episodeId);
@@ -146,12 +125,7 @@ public partial class BasicEpisodeParser(EpisodeParserContext context, Logger<Bas
 
             // return if episode still not found
             if (episode == null)
-                goto SkipBangumiId;
-
-            if (IsSpecial(context.Info.Path, context.LibraryManager, true) || episode.Type == EpisodeType.Special)
-            {
-                episode.ParentIndexNumber = 0;
-            }
+                return null;
 
             if (context.Configuration.TrustExistedBangumiId)
             {
@@ -165,33 +139,39 @@ public partial class BasicEpisodeParser(EpisodeParserContext context, Logger<Bas
                 return episode;
             }
 
-            if (episode.ParentId == seriesId && Math.Abs(episode.Order - episodeIndex.Value) < 0.1)
+            if (episode.ParentId == subjectId && Math.Abs(episode.Order - episodeIndex) < 0.1)
                 return episode;
 
-            log.Info("episode is not belongs to series {SeriesId}, ignoring result", seriesId);
+            log.Info("episode is not belongs to series {SeriesId}, ignoring result", subjectId);
         }
 
-SkipBangumiId:
+        return null;
+    }
+
+    public static async Task<Model.Episode?> SearchEpisodes<T>(EpisodeParserContext context, Logger<T> log, EpisodeType? type, int subjectId, double episodeIndex)
+    {
+        var fileName = Path.GetFileName(context.Info.Path);
+
         log.Info("searching episode in series episode list");
-        var episodeListData = await context.Api.GetSubjectEpisodeList(seriesId, type, episodeIndex.Value, context.Token);
+        var episodeListData = await context.Api.GetSubjectEpisodeList(subjectId, type, episodeIndex, context.Token);
 
         // 部分OVA独立一个条目页面，没有区分正篇或特典剧集
         if (episodeListData != null
             && !episodeListData.Any()
             && type == EpisodeType.Special)
         {
-            var subject = await context.Api.GetSubject(seriesId, context.Token);
+            var subject = await context.Api.GetSubject(subjectId, context.Token);
             if (subject != null &&
                 (subject.Platform == SubjectPlatform.OVA || subject.GenreTags.Contains("OVA")))
             {
-                episodeListData = await context.Api.GetSubjectEpisodeList(seriesId, EpisodeType.Normal, episodeIndex.Value, context.Token);
+                episodeListData = await context.Api.GetSubjectEpisodeList(subjectId, EpisodeType.Normal, episodeIndex, context.Token);
             }
         }
 
         if (episodeListData == null)
         {
             log.Warn("search failed: no episode found in episode");
-            return result;
+            return null;
         }
 
         if (episodeListData.Count() == 1 && type is null or EpisodeType.Normal)
@@ -222,13 +202,45 @@ SkipBangumiId:
             }
 
             log.Warn("cannot find episode {index} with type {type}, searching all types", episodeIndex, type);
-            type = null;
-            goto SkipBangumiId;
+            return await SearchEpisodes(context, log, null, subjectId, episodeIndex);
         }
         catch (InvalidOperationException)
         {
-            return result;
+            return null;
         }
+    }
+
+    public async Task<Model.Episode?> GetEpisode()
+    {
+        Model.Episode? result = null;
+
+        var fileName = Path.GetFileName(context.Info.Path);
+        var type = IsSpecial(context.Info.Path, context.LibraryManager) ? EpisodeType.Special : GuessEpisodeTypeFromFileName(fileName);
+        if (type == EpisodeType.Special)
+        {
+            result = new Model.Episode()
+            {
+                ParentIndexNumber = 0,
+            };
+        }
+
+        if (string.IsNullOrEmpty(fileName))
+            return result;
+
+        var subjectId = GetSubjectId(context, log);
+        var episodeIndexNumber = ExtractEpisodeNumberFromPath(context, log) ?? 0;
+
+        result = await GetEpisodeFromProviderId(context, log, subjectId, episodeIndexNumber)
+            ?? await SearchEpisodes(context, log, type, subjectId, episodeIndexNumber);
+        if (result != null)
+        {
+            if (type == EpisodeType.Special || result.Type == EpisodeType.Special)
+            {
+                result.ParentIndexNumber = 0;
+            }
+        }
+
+        return result;
     }
 
     private static EpisodeType? GuessEpisodeTypeFromFileName(string fileName)
@@ -311,12 +323,27 @@ SkipBangumiId:
 
     public static double? ExtractEpisodeNumberFromPath<T>(EpisodeParserContext context, Logger<T> log)
     {
-        return GuessEpisodeNumber(
-            context,
-            log,
-            context.Info.IndexNumber,
-            Path.GetFileName(context.Info.Path)
-        );
+        var fileName = Path.GetFileName(context.Info.Path);
+        double episodeIndexNumber = context.Info.IndexNumber ?? 0;
+
+        if (context.Configuration.AlwaysReplaceEpisodeNumber)
+        {
+            log.Info("guess episode number from filename {FileName} because of plugin configuration", fileName);
+            episodeIndexNumber = GuessEpisodeNumber(context, log, episodeIndexNumber, fileName);
+        }
+        else if (episodeIndexNumber == 0)
+        {
+            log.Info("guess episode number from filename {FileName} because it's empty", fileName);
+            episodeIndexNumber = GuessEpisodeNumber(context, log, episodeIndexNumber, fileName);
+        }
+
+        if (context.LocalConfiguration.Offset != 0)
+        {
+            log.Info("applying offset {Offset} to episode index {EpisodeIndex}", -context.LocalConfiguration.Offset, episodeIndexNumber);
+            episodeIndexNumber -= context.LocalConfiguration.Offset;
+        }
+
+        return episodeIndexNumber;
     }
 
     public static string? ExtractAnimeTitleFromPath<T>(EpisodeParserContext context, Logger<T> log)
