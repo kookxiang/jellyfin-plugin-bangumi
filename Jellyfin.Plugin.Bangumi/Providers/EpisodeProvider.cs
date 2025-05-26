@@ -37,7 +37,7 @@ public class EpisodeProvider(BangumiApi api, Logger<EpisodeProvider> log, ILibra
 
         Model.Episode? episode = null;
 
-        // throw execption will cause the episode to not show up anywhere
+        // throw exception will cause the episode to not show up anywhere
         try
         {
             episode = await parser.GetEpisode();
@@ -79,25 +79,23 @@ public class EpisodeProvider(BangumiApi api, Logger<EpisodeProvider> log, ILibra
         result.Item.OriginalTitle = episode.OriginalName;
         result.Item.IndexNumber = (int)episode.Order + localConfiguration.Offset;
         result.Item.Overview = string.IsNullOrEmpty(episode.Description) ? null : episode.Description;
-        result.Item.ParentIndexNumber = info.ParentIndexNumber ?? 1;
 
         var parent = libraryManager.FindByPath(Path.GetDirectoryName(info.Path)!, true);
-        if (BasicEpisodeParser.IsSpecial(info.Path, context.LibraryManager, true) || episode.Type == EpisodeType.Special || info.ParentIndexNumber == 0)
-        {
-            result.Item.ParentIndexNumber = 0;
-        }
-        else if (parent is Season season)
+        if (parent is Season season)
         {
             result.Item.SeasonId = season.Id;
-            if (season.IndexNumber != null)
-                result.Item.ParentIndexNumber = season.IndexNumber;
+            if (season.ProviderIds.TryGetValue(Constants.SeasonNumberProviderName, out var seasonNum))
+                if (int.TryParse(seasonNum, out var num))
+                    result.Item.ParentIndexNumber = num;
+        }
+
+        if (!result.Item.ParentIndexNumber.HasValue)
+        {
+            result.Item.ParentIndexNumber = (int?)episode.ParentIndexNumber ?? info.ParentIndexNumber;
         }
 
         if (episode.Type == EpisodeType.Normal && result.Item.ParentIndexNumber > 0)
             return result;
-
-        // mark episode as special
-        result.Item.ParentIndexNumber = 0;
 
         // use title and overview from special episode subject if episode data is empty
         var series = await api.GetSubject(episode.ParentId, cancellationToken);
