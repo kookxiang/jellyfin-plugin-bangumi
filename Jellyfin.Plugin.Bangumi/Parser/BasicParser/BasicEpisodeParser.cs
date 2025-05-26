@@ -35,7 +35,8 @@ public partial class BasicEpisodeParser(EpisodeParserContext context, Logger<Bas
         new(@"\[([\d\.]{2,})"),
         new(@"#([\d\.]{2,})"),
         new(@"(\d{2,})"),
-        new(@"\[([\d\.]+)\]")
+        new(@"\[([\d\.]+)\]"),
+        new(@"^(\d+(\.\d+)?)\.[a-zA-Z]+$")
     ];
 
     private static readonly Regex[] _allSpecialEpisodeFileNameRegex =
@@ -173,6 +174,19 @@ public partial class BasicEpisodeParser(EpisodeParserContext context, Logger<Bas
 SkipBangumiId:
         log.Info("searching episode in series episode list");
         var episodeListData = await context.Api.GetSubjectEpisodeList(seriesId, type, episodeIndex.Value, context.Token);
+
+        // 部分OVA独立一个条目页面，没有区分正篇或特典剧集
+        if (episodeListData != null
+            && !episodeListData.Any()
+            && type == EpisodeType.Special)
+        {
+            var subject = await context.Api.GetSubject(seriesId, context.Token);
+            if (subject != null &&
+                (subject.Platform == SubjectPlatform.OVA || subject.GenreTags.Contains("OVA")))
+            {
+                episodeListData = await context.Api.GetSubjectEpisodeList(seriesId, EpisodeType.Normal, episodeIndex.Value, context.Token);
+            }
+        }
 
         if (episodeListData == null)
         {
