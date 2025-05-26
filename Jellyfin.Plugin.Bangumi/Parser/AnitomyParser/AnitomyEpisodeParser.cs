@@ -54,7 +54,14 @@ public class AnitomyEpisodeParser : IEpisodeParser
         var filename = Path.GetFileName(path);
 
         var anitomy = new Anitomy(filename);
-        return double.TryParse(anitomy.ExtractEpisodeNumber(), out double num) ? num : null;
+        if (double.TryParse(anitomy.ExtractEpisodeNumber(), out double num))
+        {
+            return IEpisodeParser.OffsetEpisodeIndexNumberByLocalConfiguration(context, log, num);
+        }
+        else
+        {
+            return null;
+        }
     }
 
     public static string? ExtractAnimeTitleFromPath<T>(EpisodeParserContext context, Logger<T> log)

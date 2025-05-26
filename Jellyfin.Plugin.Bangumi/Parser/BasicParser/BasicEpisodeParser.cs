@@ -324,7 +324,7 @@ public partial class BasicEpisodeParser(EpisodeParserContext context, Logger<Bas
     public static double? ExtractEpisodeNumberFromPath<T>(EpisodeParserContext context, Logger<T> log)
     {
         var fileName = Path.GetFileName(context.Info.Path);
-        double episodeIndexNumber = context.Info.IndexNumber ?? 0;
+        double? episodeIndexNumber = context.Info.IndexNumber ?? 0;
 
         if (context.Configuration.AlwaysReplaceEpisodeNumber)
         {
@@ -337,11 +337,7 @@ public partial class BasicEpisodeParser(EpisodeParserContext context, Logger<Bas
             episodeIndexNumber = GuessEpisodeNumber(context, log, episodeIndexNumber, fileName);
         }
 
-        if (context.LocalConfiguration.Offset != 0)
-        {
-            log.Info("applying offset {Offset} to episode index {EpisodeIndex}", -context.LocalConfiguration.Offset, episodeIndexNumber);
-            episodeIndexNumber -= context.LocalConfiguration.Offset;
-        }
+        episodeIndexNumber = IEpisodeParser.OffsetEpisodeIndexNumberByLocalConfiguration(context, log, episodeIndexNumber);
 
         return episodeIndexNumber;
     }

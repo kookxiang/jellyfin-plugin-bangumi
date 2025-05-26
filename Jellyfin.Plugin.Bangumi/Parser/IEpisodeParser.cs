@@ -52,4 +52,25 @@ public interface IEpisodeParser
 
         return [.. names];
     }
+
+    /// <summary>
+    /// 应用本地配置中的偏移量到集号
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
+    /// <param name="context"></param>
+    /// <param name="log"></param>
+    /// <param name="episodeIndexNumber">原本的集号</param>
+    /// <returns>偏移后的集号</returns>
+    static double? OffsetEpisodeIndexNumberByLocalConfiguration<T>(EpisodeParserContext context, Logger<T> log, double? episodeIndexNumber)
+    {
+        if (episodeIndexNumber == null) return null;
+
+        if (context.LocalConfiguration.Offset != 0)
+        {
+            log.Info("applying offset {Offset} to episode index {EpisodeIndex}", -context.LocalConfiguration.Offset, episodeIndexNumber);
+            episodeIndexNumber -= context.LocalConfiguration.Offset;
+        }
+
+        return episodeIndexNumber;
+    }
 }
