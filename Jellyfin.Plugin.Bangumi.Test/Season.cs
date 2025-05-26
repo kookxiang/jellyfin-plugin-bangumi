@@ -4,6 +4,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Jellyfin.Plugin.Bangumi.Providers;
 using Jellyfin.Plugin.Bangumi.Test.Util;
+using MediaBrowser.Controller.Library;
 using MediaBrowser.Controller.Providers;
 using MediaBrowser.Model.Entities;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
@@ -13,9 +14,11 @@ namespace Jellyfin.Plugin.Bangumi.Test;
 [TestClass]
 public class Season
 {
+    private readonly Bangumi.Plugin _plugin = ServiceLocator.GetService<Bangumi.Plugin>();
     private readonly BangumiApi _api = ServiceLocator.GetService<BangumiApi>();
     private readonly SubjectImageProvider _imageProvider = ServiceLocator.GetService<SubjectImageProvider>();
     private readonly SeasonProvider _provider = ServiceLocator.GetService<SeasonProvider>();
+    private readonly ILibraryManager _libraryManager = ServiceLocator.GetService<ILibraryManager>();
 
     private readonly CancellationToken _token = new();
 
@@ -105,5 +108,100 @@ public class Season
         {
             Assert.IsFalse(SeasonProvider.OnlySeasonNumberRegex().IsMatch(s), $"Should not match: {s}");
         }
+    }
+
+    [TestMethod]
+    public async Task GuessSeasonNumber()
+    {
+        FakePath.CreateSeries(_libraryManager, "[DMG] 冴えない彼女の育てかた [BDRip][S1+S2+MOVIE]");
+
+        var result = await _provider.GetMetadata(new SeasonInfo
+        {
+            Path = FakePath.Create("[DMG] 冴えない彼女の育てかた [BDRip][S1+S2+MOVIE]/[DMG] 冴えない彼女の育てかた [BDRip]")
+        }, _token);
+        Assert.IsTrue(result.HasMetadata, "should return metadata when folder name contains season");
+        Assert.AreEqual("冴えない彼女の育てかた", result.Item.OriginalTitle, "should return the right season title");
+        Assert.AreEqual(100403, int.Parse(result.Item.ProviderIds.GetOrDefault(Constants.ProviderName) ?? ""), "should return the right season id");
+        Assert.AreEqual(1, int.Parse(result.Item.ProviderIds.GetOrDefault(Constants.SeasonNumberProviderName) ?? ""), "should return the right season number");
+
+        result = await _provider.GetMetadata(new SeasonInfo
+        {
+            Path = FakePath.Create("[DMG] 冴えない彼女の育てかた [BDRip][S1+S2+MOVIE]/[DMG] 冴えない彼女の育てかた♭ [BDRip]")
+        }, _token);
+        Assert.IsTrue(result.HasMetadata, "should return metadata when folder name contains season");
+        Assert.AreEqual("冴えない彼女の育てかた ♭", result.Item.OriginalTitle, "should return the right season title");
+        Assert.AreEqual(132734, int.Parse(result.Item.ProviderIds.GetOrDefault(Constants.ProviderName) ?? ""), "should return the right season id");
+        Assert.AreEqual(2, int.Parse(result.Item.ProviderIds.GetOrDefault(Constants.SeasonNumberProviderName) ?? ""), "should return the right season number");
+
+        // default api does not support fuzzy search
+        _plugin.Configuration.UseTestingSearchApi = true;
+        result = await _provider.GetMetadata(new SeasonInfo
+        {
+            Path = FakePath.Create("[DMG] 冴えない彼女の育てかた [BDRip][S1+S2+MOVIE]/[DMG] 劇場版 冴えない彼女の育てかた Fine [BDRip]")
+        }, _token);
+        Assert.IsTrue(result.HasMetadata, "should return metadata when folder name contains season");
+        Assert.AreEqual("冴えない彼女の育てかた Fine", result.Item.OriginalTitle, "should return the right season title");
+        Assert.AreEqual(231497, int.Parse(result.Item.ProviderIds.GetOrDefault(Constants.ProviderName) ?? ""), "should return the right season id");
+        Assert.AreEqual(0, int.Parse(result.Item.ProviderIds.GetOrDefault(Constants.SeasonNumberProviderName) ?? ""), "should return the right season number");
+    }
+
+    [TestMethod]
+    public async Task GuessSeasonNumber2()
+    {
+        FakePath.CreateSeries(_libraryManager, "恶魔高校D×D");
+
+        var result = await _provider.GetMetadata(new SeasonInfo
+        {
+            Path = FakePath.Create("恶魔高校D×D/恶魔高校D×D")
+        }, _token);
+        Assert.IsTrue(result.HasMetadata, "should return metadata when folder name contains season");
+        Assert.AreEqual("ハイスクールD×D", result.Item.OriginalTitle, "should return the right season title");
+        Assert.AreEqual(15910, int.Parse(result.Item.ProviderIds.GetOrDefault(Constants.ProviderName) ?? ""), "should return the right season id");
+        Assert.AreEqual(1, int.Parse(result.Item.ProviderIds.GetOrDefault(Constants.SeasonNumberProviderName) ?? ""), "should return the right season number");
+
+        result = await _provider.GetMetadata(new SeasonInfo
+        {
+            Path = FakePath.Create("恶魔高校D×D/恶魔高校D×D NEW")
+        }, _token);
+        Assert.IsTrue(result.HasMetadata, "should return metadata when folder name contains season");
+        Assert.AreEqual("ハイスクールD×D NEW", result.Item.OriginalTitle, "should return the right season title");
+        Assert.AreEqual(48700, int.Parse(result.Item.ProviderIds.GetOrDefault(Constants.ProviderName) ?? ""), "should return the right season id");
+        Assert.AreEqual(2, int.Parse(result.Item.ProviderIds.GetOrDefault(Constants.SeasonNumberProviderName) ?? ""), "should return the right season number");
+
+        result = await _provider.GetMetadata(new SeasonInfo
+        {
+            Path = FakePath.Create("恶魔高校D×D/恶魔高校D×D BorN")
+        }, _token);
+        Assert.IsTrue(result.HasMetadata, "should return metadata when folder name contains season");
+        Assert.AreEqual("ハイスクールD×D BorN", result.Item.OriginalTitle, "should return the right season title");
+        Assert.AreEqual(106212, int.Parse(result.Item.ProviderIds.GetOrDefault(Constants.ProviderName) ?? ""), "should return the right season id");
+        Assert.AreEqual(3, int.Parse(result.Item.ProviderIds.GetOrDefault(Constants.SeasonNumberProviderName) ?? ""), "should return the right season number");
+
+        result = await _provider.GetMetadata(new SeasonInfo
+        {
+            Path = FakePath.Create("恶魔高校D×D/恶魔高校D×D HERO")
+        }, _token);
+        Assert.IsTrue(result.HasMetadata, "should return metadata when folder name contains season");
+        Assert.AreEqual("ハイスクールD×D HERO", result.Item.OriginalTitle, "should return the right season title");
+        Assert.AreEqual(195845, int.Parse(result.Item.ProviderIds.GetOrDefault(Constants.ProviderName) ?? ""), "should return the right season id");
+        Assert.AreEqual(4, int.Parse(result.Item.ProviderIds.GetOrDefault(Constants.SeasonNumberProviderName) ?? ""), "should return the right season number");
+
+        result = await _provider.GetMetadata(new SeasonInfo
+        {
+            Path = FakePath.Create("恶魔高校D×D/恶魔高校D×D OAD"),
+        }, _token);
+        Assert.IsTrue(result.HasMetadata, "should return metadata when folder name contains season");
+        Assert.AreEqual("ハイスクールD×D OAD", result.Item.OriginalTitle, "should return the right season title");
+        Assert.AreEqual(46010, int.Parse(result.Item.ProviderIds.GetOrDefault(Constants.ProviderName) ?? ""), "should return the right season id");
+        Assert.AreEqual(0, int.Parse(result.Item.ProviderIds.GetOrDefault(Constants.SeasonNumberProviderName) ?? ""), "should return the right season number");
+
+        result = await _provider.GetMetadata(new SeasonInfo
+        {
+            Path = FakePath.Create("恶魔高校D×D/恶魔高校D×D DX OAD"),
+        }, _token);
+        Assert.IsTrue(result.HasMetadata, "should return metadata when folder name contains season");
+        Assert.AreEqual("ハイスクールD×D DX OAD", result.Item.OriginalTitle, "should return the right season title");
+        Assert.AreEqual(127827, int.Parse(result.Item.ProviderIds.GetOrDefault(Constants.ProviderName) ?? ""), "should return the right season id");
+        Assert.AreEqual(0, int.Parse(result.Item.ProviderIds.GetOrDefault(Constants.SeasonNumberProviderName) ?? ""), "should return the right season number");
     }
 }
