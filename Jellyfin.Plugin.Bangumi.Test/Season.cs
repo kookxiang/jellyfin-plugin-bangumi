@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -30,10 +30,10 @@ public class Season
     public async Task WithSeasonFolder()
     {
         var result = await _provider.GetMetadata(new SeasonInfo
-            {
-                Path = FakePath.Create("White Album 2/Season 1"),
-                ProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "69496" } }
-            },
+        {
+            Path = FakePath.Create("White Album 2/Season 1"),
+            ProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "69496" } }
+        },
             _token);
         Assert.IsTrue(result.HasMetadata, "should return metadata when folder name contains season");
     }
@@ -67,5 +67,43 @@ public class Season
         Assert.AreEqual(ImageType.Primary, _imageProvider.GetSupportedImages(season).First(), "should support primary image");
         var imgList = await _imageProvider.GetImages(new MediaBrowser.Controller.Entities.TV.Season { ProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "69496" } } }, _token);
         Assert.IsTrue(imgList.Any(), "should return at least one image");
+    }
+
+    [TestMethod()]
+    public void OnlySeasonNumberRegexTest()
+    {
+        // 匹配应为 true 的情况
+        string[] shouldMatch =
+        [
+            "1", "01", "S1", "S01", "Season 1", "Season01",
+            "I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X", "XI", "XII", "XIII", "XIV", "XV", "XVI", "XVII", "XVIII", "XIX", "XX",
+            "第一季", "第1季", "第十季", "第2部", "第3期", "第零季",
+            "1st Season", "2nd Season", "3rd Season", "4th Season",
+            "Season One", "Season Two", "Season Three", "Season Ten"
+        ];
+
+        // 匹配应为 false 的情况
+        string[] shouldNotMatch =
+        [
+            "White Album",
+            "Season",
+            "Sp",
+            "第季",
+            "OVA",
+            "偶像大师 闪耀色彩 第二季",
+            "OVERLORD IV",
+            "Overlord II",
+            "High Score Girl S01 + OVA + S02",
+            "Arifureta S02"
+        ];
+
+        foreach (var s in shouldMatch)
+        {
+            Assert.IsTrue(SeasonProvider.OnlySeasonNumberRegex().IsMatch(s), $"Should match: {s}");
+        }
+        foreach (var s in shouldNotMatch)
+        {
+            Assert.IsFalse(SeasonProvider.OnlySeasonNumberRegex().IsMatch(s), $"Should not match: {s}");
+        }
     }
 }
