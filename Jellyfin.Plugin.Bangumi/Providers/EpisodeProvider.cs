@@ -53,16 +53,6 @@ public class EpisodeProvider(BangumiApi api, Logger<EpisodeProvider> log, ILibra
 
         if (episode == null)
         {
-            // remove season number
-            if (BasicEpisodeParser.IsSpecial(info.Path, context.LibraryManager, true))
-            {
-                result.HasMetadata = true;
-                result.Item = new Episode
-                {
-                    ParentIndexNumber = 0
-                };
-            }
-
             return result;
         }
 

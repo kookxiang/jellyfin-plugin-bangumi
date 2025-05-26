@@ -84,9 +84,18 @@ public partial class BasicEpisodeParser(EpisodeParserContext context, Logger<Bas
 
     public async Task<Model.Episode?> GetEpisode()
     {
+        Model.Episode? result = null;
+        if (IsSpecial(context.Info.Path, context.LibraryManager, true))
+        {
+            result = new Model.Episode()
+            {
+                ParentIndexNumber = 0,
+            };
+        }
+
         var fileName = Path.GetFileName(context.Info.Path);
         if (string.IsNullOrEmpty(fileName))
-            return null;
+            return result;
 
         var type = IsSpecial(context.Info.Path, context.LibraryManager) ? EpisodeType.Special : GuessEpisodeTypeFromFileName(fileName);
         var seriesId = context.LocalConfiguration.Id;
@@ -101,7 +110,7 @@ public partial class BasicEpisodeParser(EpisodeParserContext context, Logger<Bas
 
         if (seriesId == 0)
             if (!int.TryParse(context.Info.SeriesProviderIds?.GetValueOrDefault(Constants.ProviderName), out seriesId))
-                return null;
+                return result;
 
         if (context.LocalConfiguration.Id != 0)
         {
@@ -138,6 +147,11 @@ public partial class BasicEpisodeParser(EpisodeParserContext context, Logger<Bas
             if (episode == null)
                 goto SkipBangumiId;
 
+            if (IsSpecial(context.Info.Path, context.LibraryManager, true) || episode.Type == EpisodeType.Special)
+            {
+                episode.ParentIndexNumber = 0;
+            }
+
             if (context.Configuration.TrustExistedBangumiId)
             {
                 log.Info("trust exists bangumi id is enabled, skip further checks");
@@ -163,7 +177,7 @@ SkipBangumiId:
         if (episodeListData == null)
         {
             log.Warn("search failed: no episode found in episode");
-            return null;
+            return result;
         }
 
         if (episodeListData.Count() == 1 && type is null or EpisodeType.Normal)
@@ -199,7 +213,7 @@ SkipBangumiId:
         }
         catch (InvalidOperationException)
         {
-            return null;
+            return result;
         }
     }
 
