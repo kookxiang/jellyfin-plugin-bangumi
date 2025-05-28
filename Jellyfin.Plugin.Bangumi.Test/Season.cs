@@ -4,6 +4,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Jellyfin.Plugin.Bangumi.Providers;
 using Jellyfin.Plugin.Bangumi.Test.Util;
+using Jellyfin.Plugin.Bangumi.Utils;
 using MediaBrowser.Controller.Library;
 using MediaBrowser.Controller.Providers;
 using MediaBrowser.Model.Entities;
@@ -102,11 +103,11 @@ public class Season
 
         foreach (var s in shouldMatch)
         {
-            Assert.IsTrue(SeasonProvider.OnlySeasonNumberRegex().IsMatch(s), $"Should match: {s}");
+            Assert.IsTrue(FileNameParser.IsSeasonNumberOnly(s), $"Should match: {s}");
         }
         foreach (var s in shouldNotMatch)
         {
-            Assert.IsFalse(SeasonProvider.OnlySeasonNumberRegex().IsMatch(s), $"Should not match: {s}");
+            Assert.IsFalse(FileNameParser.IsSeasonNumberOnly(s), $"Should not match: {s}");
         }
     }
 
@@ -203,5 +204,69 @@ public class Season
         Assert.AreEqual("ハイスクールD×D DX OAD", result.Item.OriginalTitle, "should return the right season title");
         Assert.AreEqual(127827, int.Parse(result.Item.ProviderIds.GetOrDefault(Constants.ProviderName) ?? ""), "should return the right season id");
         Assert.AreEqual(0, int.Parse(result.Item.ProviderIds.GetOrDefault(Constants.SeasonNumberProviderName) ?? ""), "should return the right season number");
+    }
+
+    [TestMethod]
+    public void ExtractSeasonNumber()
+    {
+        var dict = new Dictionary<string, double?>()
+        {
+            { "S1", 1 },
+            { "S01", 1 },
+            { "Season 1", 1 },
+            { "Season01", 1 },
+            { "第一季", 1 },
+            { "第1季", 1 },
+            { "第零季", 0 },
+            { "1st Season", 1 },
+            { "Season One", 1 },
+            { "Season Two", 2 },
+            { "Season Ten", 10 },
+            { "第2季", 2 },
+            { "第十季", 10 },
+            { "第3期", 3 },
+            { "第2部", 2 },
+            { "虚构推理 第二季", 2 },
+            { "虚構推理 Season2", 2 },
+            { "盾之勇者成名录 第二季", 2 },
+            { "盾の勇者の成り上がり Season 2", 2 },
+            { "Tate no Yuusha no Nariagari", null },
+            { "Tate no Yuusha no Nariagari Season 2", 2 },
+            { "The Rising of the Shield Hero Season 2", 2 },
+
+            { "i", 1 }, { "II", 2 }, { "III", 3 }, { "IV", 4 }, { "V", 5 },
+            { "VI", 6 }, { "VII", 7 }, { "VIII", 8 }, { "IX", 9 }, { "X", 10 },
+            { "XI", 11 }, { "XII", 12 }, { "XIII", 13 }, { "XIV", 14 }, { "XV", 15 },
+            { "XVI", 16 }, { "XVII", 17 }, { "XVIII", 18 }, { "XIX", 19 }, { "XX", 20 },
+
+            { "White Album", null },
+            { "Season", null },
+            { "Sp", null },
+            { "第季", null },
+            { "OVA", null },
+            { "偶像大师 闪耀色彩 第二季", 2 },
+            { "OVERLORD IV", 4 },
+            { "Overlord II", 2 },
+            { "Arifureta S02", 2 },
+            { "とある魔術の禁書目録Ⅱ", 2 },
+            { "とある魔術の禁書目録Ⅲ", 3 },
+            { "[Nekomoe kissaten&VCB-Studio] SPYxFAMILY S1 [Ma10p_1080p]", 1 },
+            { "[Nekomoe kissaten&VCB-Studio] SPYxFAMILY S2 [Ma10p_1080p]", 2 },
+            { "[VCB-Studio] Log Horizon [Hi10p_1080p]", null },
+            { "[VCB-Studio] Log Horizon 2 [Ma10p_1080p]", 2 },
+            { "[Snow-Raws] プリンセスコネクト！ Re：Dive", null },
+            { "[Snow-Raws] プリンセスコネクト！ Re：Dive Season 2", 2 },
+            { "[轻音少女第二季][SOSG][K-ON!!][1-27]", 2 },
+            { "[VCB-Studio] Karakai Jouzu no Takagi-san [Ma10p_1080p]", null },
+            { "[UHA-WINGS&VCB-Studio] Karakai Jouzu no Takagi-san 2 [Ma10p_1080p]", 2 },
+            { "[UHA-WINGS&VCB-Studio] Karakai Jouzu no Takagi-san 3 [Ma10p_1080p]", 3 },
+            { "[VCB-Studio&TUcaptions] Date A Live II [Hi10p_1080p]", 2 },
+            { "[VCB-Studio] Sword Art Online II [Ma10p_1080p]", 2 },
+        };
+
+        foreach (var item in dict)
+        {
+            Assert.AreEqual(item.Value, FileNameParser.ExtractAnimeSeason(item.Key), $"Extracted season number for {item.Key} should be {item.Value}");
+        }
     }
 }
