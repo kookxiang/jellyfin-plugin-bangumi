@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -41,6 +41,29 @@ public class SeriesProvider(BangumiApi api, Logger<SeriesProvider> log)
         else
             _ = int.TryParse(info.ProviderIds.GetOrDefault(Constants.ProviderName), out subjectId);
 
+        if (subjectId == 0 && Configuration.AlwaysGetTitleByAnitomySharp)
+        {
+            var anitomy = new Anitomy(baseName);
+            var searchName = anitomy.ExtractAnimeTitle() ?? info.Name;
+            if (int.TryParse(anitomy.ExtractAnimeSeason(), out var season))
+            {
+                searchName = $"{searchName} {season}";
+            }
+            else if (int.TryParse(anitomy.ExtractEpisodeNumber(), out season))
+            {
+                // 有时会解析成集号，如：[VCB-Studio] Log Horizon 2 [Ma10p_1080p]
+                searchName = $"{searchName} {season}";
+            }
+            log.Info("Searching {Name} in bgm.tv", searchName);
+
+            // 不保证使用非原名或中文进行查询时返回正确结果
+            var searchResult = await api.SearchSubject(searchName, cancellationToken);
+            if (info.Year != null)
+                searchResult = searchResult.Where(x => x.ProductionYear == null || x.ProductionYear == info.Year?.ToString());
+            if (searchResult.Any())
+                subjectId = searchResult.First().Id;
+        }
+
         if (subjectId == 0)
         {
             var searchName = info.Name;
@@ -57,19 +80,6 @@ public class SeriesProvider(BangumiApi api, Logger<SeriesProvider> log)
         {
             var searchName = info.OriginalTitle;
             log.Info("Searching {Name} in bgm.tv", searchName);
-            var searchResult = await api.SearchSubject(searchName, cancellationToken);
-            if (info.Year != null)
-                searchResult = searchResult.Where(x => x.ProductionYear == null || x.ProductionYear == info.Year?.ToString());
-            if (searchResult.Any())
-                subjectId = searchResult.First().Id;
-        }
-
-        if (subjectId == 0 && Configuration.AlwaysGetTitleByAnitomySharp)
-        {
-            var anitomy = new Anitomy(baseName);
-            var searchName = anitomy.ExtractAnimeTitle() ?? info.Name;
-            log.Info("Searching {Name} in bgm.tv", searchName);
-            // 不保证使用非原名或中文进行查询时返回正确结果
             var searchResult = await api.SearchSubject(searchName, cancellationToken);
             if (info.Year != null)
                 searchResult = searchResult.Where(x => x.ProductionYear == null || x.ProductionYear == info.Year?.ToString());

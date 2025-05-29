@@ -53,6 +53,8 @@ public class EpisodeProvider(BangumiApi api, Logger<EpisodeProvider> log, ILibra
 
         if (episode == null)
         {
+            result.Item = new Episode();
+            result.HasMetadata = true;
             return result;
         }
 
@@ -81,7 +83,7 @@ public class EpisodeProvider(BangumiApi api, Logger<EpisodeProvider> log, ILibra
 
         if (!result.Item.ParentIndexNumber.HasValue)
         {
-            result.Item.ParentIndexNumber = (int?)episode.ParentIndexNumber ?? info.ParentIndexNumber;
+            result.Item.ParentIndexNumber = (int?)episode.ParentIndexNumber ?? 1;
         }
 
         if (episode.Type == EpisodeType.Normal && result.Item.ParentIndexNumber > 0)
@@ -98,7 +100,24 @@ public class EpisodeProvider(BangumiApi api, Logger<EpisodeProvider> log, ILibra
         if (string.IsNullOrEmpty(result.Item.OriginalTitle))
             result.Item.OriginalTitle = Path.GetFileNameWithoutExtension(info.Path);
 
-        var seasonNumber = parent is Season ? parent.IndexNumber : 1;
+        var seasonNumber = 1;
+        while (parent is not Series)
+        {
+            // 多季度合集中，sp可能位于更深层的目录中
+            if (parent is not Season)
+            {
+                var parentPath = Path.GetDirectoryName(parent!.Path);
+                if (string.IsNullOrEmpty(parentPath)) break;
+                parent = libraryManager.FindByPath(parentPath, true);
+                continue;
+            }
+
+            if (parent.ProviderIds.TryGetValue(Constants.SeasonNumberProviderName, out var seasonNum))
+            {
+                _ = int.TryParse(seasonNum, out seasonNumber);
+            }
+            break;
+        }
         if (!string.IsNullOrEmpty(episode.AirDate) && string.Compare(episode.AirDate, series.AirDate, StringComparison.Ordinal) < 0)
             result.Item.AirsBeforeEpisodeNumber = seasonNumber;
         else

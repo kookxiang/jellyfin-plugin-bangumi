@@ -98,12 +98,13 @@ public class PluginConfiguration : BasePluginConfiguration
         }
     }
 
-    public string DefaultMiscExcludeRegexFullPath => "";
+    public string DefaultMiscExcludeRegexFullPath => @"\b(特典CD|CDs?)\b";
 
-    public string DefaultMiscExcludeRegexFolderName => @"\b(PVs?|Previews?|Scans?|menus?|Fonts?|Extras?|CDs?|bonus|Music|Subs?|Subtitles?|漫画|特别漫画)\b
+    public string DefaultMiscExcludeRegexFolderName => @"\b(PVs?|Previews?|Scans?|menus?|Fonts?|Extras?|CDs?|bonus|Music|Subs?|Subtitles?|漫画|特别漫画|特典CD)\b
 NCOP|NCED";
 
-    public string DefaultMiscExcludeRegexFileName => @"\b(WEB予告|NCOP\d*|NCED\d*|menu\d*|PV\d*|CM\d*)\b";
+    public string DefaultMiscExcludeRegexFileName => @"\b(WEB予告|NCOP\d*|NCED\d*|menu\d*\w*|PV\d*|Preview\d*|CM集?\d*|IV\d*)\b
+NCOP|NCED|ノンテロップ\s*OP|ノンテロップ\s*ED|メニュー画面\s*\d+";
 
     private string _miscExcludeRegexFullPath;
     public string MiscExcludeRegexFullPath
