@@ -46,6 +46,11 @@ public class Episode
     [JsonPropertyName("ep")]
     public double Index { get; set; }
 
+    /// <summary>
+    /// 季号
+    /// </summary>
+    public double? ParentIndexNumber { get; set; }
+
     [JsonPropertyName("airdate")]
     public string AirDate { get; set; } = "";
 

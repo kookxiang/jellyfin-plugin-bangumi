@@ -33,10 +33,10 @@ public class Series
     public async Task GetByNameUsingOldApi()
     {
         var result = await _provider.GetMetadata(new SeriesInfo
-            {
-                Name = "【我推的孩子】",
-                Path = FakePath.Create("Oshi no ko")
-            },
+        {
+            Name = "【我推的孩子】",
+            Path = FakePath.Create("Oshi no ko")
+        },
             _token);
         Assert.IsNotNull(result.Item, "series data should not be null");
         Assert.AreEqual("【推しの子】", result.Item.Name, "should return correct series name");
@@ -49,10 +49,10 @@ public class Series
         try
         {
             var result = await _provider.GetMetadata(new SeriesInfo
-                {
-                    Name = "命运-奇异赝品 黎明低语",
-                    Path = FakePath.Create("Fate Strange Fake Whispers of Dawn")
-                },
+            {
+                Name = "命运-奇异赝品 黎明低语",
+                Path = FakePath.Create("Fate Strange Fake Whispers of Dawn")
+            },
                 _token);
             Assert.IsNotNull(result.Item, "series data should not be null");
             Assert.AreEqual("Fate/strange Fake -Whispers of Dawn-", result.Item.Name, "should return correct series name");
@@ -67,22 +67,34 @@ public class Series
     public async Task GetByName()
     {
         var result = await _provider.GetMetadata(new SeriesInfo
-            {
-                Name = "White Album2",
-                Path = FakePath.Create("White Album 2")
-            },
+        {
+            Name = "White Album2",
+            Path = FakePath.Create("White Album 2")
+        },
             _token);
         AssertSeries(result);
+
+        _plugin.Configuration.AlwaysGetTitleByAnitomySharp = true;
+
+        result = await _provider.GetMetadata(new SeriesInfo
+        {
+            Name = "[Pussub&VCB-Studio] White Album 2 [Hi10p_1080p]",
+            Path = FakePath.Create("White Album 2")
+        },
+            _token);
+        AssertSeries(result);
+
+        _plugin.Configuration.AlwaysGetTitleByAnitomySharp = false;
     }
 
     [TestMethod]
     public async Task GetByAttribute()
     {
         var result = await _provider.GetMetadata(new SeriesInfo
-            {
-                Name = "ホワイトアルバム2",
-                Path = FakePath.Create("ホワイトアルバム2[bangumi-69496]")
-            },
+        {
+            Name = "ホワイトアルバム2",
+            Path = FakePath.Create("ホワイトアルバム2[bangumi-69496]")
+        },
             _token);
         AssertSeries(result);
     }
@@ -91,18 +103,18 @@ public class Series
     public async Task GetByNameAndAirDate()
     {
         var result = await _provider.GetMetadata(new SeriesInfo
-            {
-                Name = "からかい上手の高木さん",
-                Year = 2022
-            },
+        {
+            Name = "からかい上手の高木さん",
+            Year = 2022
+        },
             _token);
         Assert.AreEqual(result.Item.ProviderIds[Constants.ProviderName], "347887");
 
         result = await _provider.GetMetadata(new SeriesInfo
-            {
-                Name = "からかい上手の高木さん",
-                Year = 2018
-            },
+        {
+            Name = "からかい上手の高木さん",
+            Year = 2018
+        },
             _token);
         Assert.AreEqual(result.Item.ProviderIds[Constants.ProviderName], "219200");
     }
@@ -111,11 +123,11 @@ public class Series
     public async Task GetById()
     {
         var result = await _provider.GetMetadata(new SeriesInfo
-            {
-                Name = "White Album 2",
-                Path = FakePath.Create("White Album 2"),
-                ProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "69496" } }
-            },
+        {
+            Name = "White Album 2",
+            Path = FakePath.Create("White Album 2"),
+            ProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "69496" } }
+        },
             _token);
         AssertSeries(result);
     }
@@ -124,10 +136,10 @@ public class Series
     public async Task SearchByName()
     {
         var searchResults = await _provider.GetSearchResults(new SeriesInfo
-            {
-                Name = "White Album2",
-                Path = FakePath.Create("White Album 2")
-            },
+        {
+            Name = "White Album2",
+            Path = FakePath.Create("White Album 2")
+        },
             _token);
         Assert.IsTrue(searchResults.Any(x => x.ProviderIds[Constants.ProviderName].Equals("69496")), "should have correct search result");
     }
@@ -135,13 +147,18 @@ public class Series
     [TestMethod]
     public async Task SearchByNewApi()
     {
+        var lastVaule = _plugin.Configuration.UseTestingSearchApi;
+        _plugin.Configuration.UseTestingSearchApi = true;
+
         var searchResults = await _provider.GetSearchResults(new SeriesInfo
-            {
-                Name = "命运-奇异赝品 黎明低语",
-                Path = FakePath.Create("Fate Strange Fake Whispers of Dawn")
-            },
+        {
+            Name = "命运-奇异赝品 黎明低语",
+            Path = FakePath.Create("Fate Strange Fake Whispers of Dawn")
+        },
             _token);
         Assert.IsTrue(searchResults.Any(x => x.ProviderIds[Constants.ProviderName].Equals("402128")), "should have correct search result");
+
+        _plugin.Configuration.UseTestingSearchApi = lastVaule;
     }
 
     [TestMethod]
@@ -149,10 +166,10 @@ public class Series
     {
         _plugin.Configuration.AlwaysGetTitleByAnitomySharp = true;
         var result = await _provider.GetMetadata(new SeriesInfo
-            {
-                Name = "[Airota&LoliHouse] Toaru Kagaku no Railgun T [BDRip 1080p HEVC-10bit FLAC]",
-                Path = FakePath.Create("[Airota&LoliHouse] Toaru Kagaku no Railgun T [BDRip 1080p HEVC-10bit FLAC]")
-            },
+        {
+            Name = "[Airota&LoliHouse] Toaru Kagaku no Railgun T [BDRip 1080p HEVC-10bit FLAC]",
+            Path = FakePath.Create("[Airota&LoliHouse] Toaru Kagaku no Railgun T [BDRip 1080p HEVC-10bit FLAC]")
+        },
             _token);
         _plugin.Configuration.AlwaysGetTitleByAnitomySharp = false;
         Assert.AreEqual("とある科学の超電磁砲T", result.Item.Name, "should return correct series name");
@@ -162,10 +179,10 @@ public class Series
     public async Task SearchById()
     {
         var searchResults = await _provider.GetSearchResults(new SeriesInfo
-            {
-                Path = FakePath.Create("White Album 2"),
-                ProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "69496" } }
-            },
+        {
+            Path = FakePath.Create("White Album 2"),
+            ProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "69496" } }
+        },
             _token);
         Assert.IsTrue(searchResults.Any(x => x.ProviderIds[Constants.ProviderName].Equals("69496")), "should have correct search result");
     }
@@ -179,13 +196,13 @@ public class Series
         searchResults = await _api.SearchSubject("ガンダムビルドファイターズトライ", _token);
         Assert.AreEqual(searchResults.First().Id, 105875, "should return most similar item as first");
 
+        // 原排序错误匹配: The Adventures of Mark Twain, id:113269
         _plugin.Configuration.SortByFuzzScore = true;
         searchResults = await _api.SearchSubject("The Adventures of Tom Sawyer", _token);
         Assert.AreEqual(searchResults.First().Id, 23611, "should return most similar item as first");
-        // 原排序错误匹配: The Adventures of Mark Twain, id:113269
         _plugin.Configuration.SortByFuzzScore = false;
         searchResults = await _api.SearchSubject("The Adventures of Tom Sawyer", _token);
-        Assert.AreNotEqual(searchResults.First().Id, 23611, "should return most similar item as first");
+        Assert.AreEqual(searchResults.First().Id, 23611, "should return most similar item as first");
     }
 
     [TestMethod]

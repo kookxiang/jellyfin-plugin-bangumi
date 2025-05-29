@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
@@ -9,6 +9,7 @@ using Jellyfin.Plugin.Bangumi.Configuration;
 #if !EMBY
 using FuzzySharp;
 using Levenshtein = Fastenshtein.Levenshtein;
+using Jellyfin.Plugin.Bangumi.Utils;
 #endif
 
 namespace Jellyfin.Plugin.Bangumi.Model;
@@ -119,49 +120,129 @@ public class Subject
         }
     }
 
-    public static IEnumerable<Subject> SortBySimilarity(IEnumerable<Subject> list, string keyword)
+    /// <summary>
+    /// 获取候选列表中每个条目的匹配分数
+    /// </summary>
+    /// <param name="list">候选列表</param>
+    /// <param name="keyword">搜索关键词</param>
+    /// <param name="seasonNumber">季号，如果为null，仅对关键词进行常规匹配；
+    /// 如果为0，只匹配OVA、剧场版条目；
+    /// 如果为其他，则同时匹配候选列表及关键词中的季号，降低不匹配候选项分数</param>
+    /// <returns></returns>
+    /// <remarks><paramref name="seasonNumber"/> 不为null时，需要确保 <paramref name="keyword"/> 不包含季号信息，否则匹配度可能降低</remarks>
+    public static IEnumerable<(Subject, int)> GetSortedScores(IEnumerable<Subject> list, string keyword, int? seasonNumber = null)
+    {
+        List<(Subject, int)> result = [];
+
+        if (list == null) return result;
+        var candidateList = list.ToArray();
+        if (candidateList.Length == 0) return result;
+
+        keyword = keyword.ToLower();
+
+        foreach (var candidate in candidateList)
+        {
+            // 跳过非OVA、剧场版条目
+            if (seasonNumber == 0)
+            {
+                if (!BangumiApi.IsOVAOrMovie(candidate))
+                {
+                    result.Add((candidate, 0));
+                    continue;
+                }
+            }
+
+            // 预处理候选名称列表
+            var names = (candidate.Alias ?? [])
+                .Concat([candidate.ChineseName, candidate.OriginalName])
+                .Where(name => !string.IsNullOrEmpty(name))
+                .Select(name => name!.ToLower())
+                .ToArray();
+
+            int candidateSeasonNumber = 1;
+            if (seasonNumber != null)
+            {
+#if EMBY
+                candidateSeasonNumber = seasonNumber.Value;
+#else
+                // 拆分候选项名称和季号
+                for (int i = 0; i < names.Length; i++)
+                {
+                    var (parsedNameTitle, parsedNameSeason) = FileNameParser.SplitAnimeTitleAndSeason(names[i], false);
+                    names[i] = parsedNameTitle;
+
+                    // 季号null等同1
+                    parsedNameSeason ??= 1;
+
+                    // 部分别名不包含季号信息，优先取高于1的季号
+                    if (parsedNameSeason > 1)
+                    {
+                        candidateSeasonNumber = (int)parsedNameSeason;
+                    }
+                }
+#endif
+            }
+
+            // 获取名称分数
+            int score;
+            if (Plugin.Instance!.Configuration.SortByFuzzScore)
+            {
+                score = GetSortedScoresByFuzz(names, keyword);
+            }
+            else
+            {
+                score = GetSortedScoresBySimilarity(names, keyword);
+            }
+
+            // 季号不匹配，降权
+            if (seasonNumber != null && seasonNumber != candidateSeasonNumber)
+            {
+                score = (int)(score * 0.8);
+            }
+
+            result.Add((candidate, score));
+        }
+
+        // 按最匹配顺序排序
+        return result.OrderByDescending(s => s.Item2);
+    }
+
+    public static int GetSortedScoresBySimilarity(IEnumerable<string> candidateList, string keyword)
     {
 #if EMBY
-        return list;
+        return 100;
 #else
         var instance = new Levenshtein(keyword);
-        return list
-            .OrderBy(subject =>
-                Math.Min(
-                    instance.DistanceFrom(subject.ChineseName ?? subject.OriginalName),
-                    instance.DistanceFrom(subject.OriginalName)
-                )
-            );
+
+        var maxScore = candidateList.Select(candidate =>
+        {
+            var score = instance.DistanceFrom(candidate);
+
+            // 转换 Levenshtein 距离
+            float percent = (1 - ((float)score / keyword.Length)) * 100;
+
+            return percent;
+        }).OrderByDescending(s => s)
+        .First();
+
+        return (int)maxScore;
 #endif
     }
 
-    public static IEnumerable<Subject> SortByFuzzScore(IEnumerable<Subject> list, string keyword)
+    public static int GetSortedScoresByFuzz(IEnumerable<string> candidateList, string keyword)
     {
 #if EMBY
-        return list;
+        return 100;
 #else
-        keyword = keyword.ToLower();
+        var maxScore = candidateList.Select(candidate =>
+        {
+            var score = Fuzz.Ratio(candidate, keyword);
 
-        var score = list.Select(subject =>
-            {
-                var chineseNameScore = subject.ChineseName != null
-                    ? Fuzz.Ratio(subject.ChineseName.ToLower(), keyword)
-                    : 0;
-                var originalNameScore = Fuzz.Ratio(subject.OriginalName.ToLower(), keyword);
-                var aliasScore = subject.Alias?.Select(alias => Fuzz.Ratio(alias.ToLower(), keyword)) ?? [];
+            return score;
+        }).OrderByDescending(s => s)
+        .First();
 
-                var maxScore = Math.Max(chineseNameScore, Math.Max(originalNameScore, aliasScore.DefaultIfEmpty(int.MinValue).Max()));
-
-                return new
-                {
-                    Subject = subject,
-                    Score = maxScore
-                };
-            })
-            .OrderByDescending(pair => pair.Score)
-            .Select(pair => pair.Subject);
-
-        return score;
+        return maxScore;
 #endif
     }
 }

@@ -9,6 +9,7 @@ using Jellyfin.Plugin.Bangumi.Model;
 using Jellyfin.Plugin.Bangumi.Parser;
 using Jellyfin.Plugin.Bangumi.Parser.AnitomyParser;
 using Jellyfin.Plugin.Bangumi.Parser.BasicParser;
+using Jellyfin.Plugin.Bangumi.Parser.MixParser;
 using MediaBrowser.Controller.Entities.TV;
 using MediaBrowser.Controller.Library;
 using MediaBrowser.Controller.Providers;
@@ -17,7 +18,7 @@ using Episode = MediaBrowser.Controller.Entities.TV.Episode;
 
 namespace Jellyfin.Plugin.Bangumi.Providers;
 
-public class EpisodeProvider(BangumiApi api, Logger<EpisodeProvider> log, ILibraryManager libraryManager, IMediaSourceManager mediaSourceManager, Logger<AnitomyEpisodeParser> anitomyLogger, Logger<BasicEpisodeParser> basicLogger)
+public class EpisodeProvider(BangumiApi api, Logger<EpisodeProvider> log, ILibraryManager libraryManager, IMediaSourceManager mediaSourceManager, Logger<AnitomyEpisodeParser> anitomyLogger, Logger<BasicEpisodeParser> basicLogger, Logger<MixEpisodeParser> mixLogger)
     : IRemoteMetadataProvider<Episode, EpisodeInfo>, IHasOrder
 {
 
@@ -32,11 +33,11 @@ public class EpisodeProvider(BangumiApi api, Logger<EpisodeProvider> log, ILibra
         var localConfiguration = await LocalConfiguration.ForPath(info.Path);
 
         var context = new EpisodeParserContext(api, libraryManager, info, mediaSourceManager, Configuration, localConfiguration, cancellationToken);
-        var parser = EpisodeParserFactory.CreateParser(Configuration, context, anitomyLogger, basicLogger);
+        var parser = EpisodeParserFactory.CreateParser(Configuration, context, anitomyLogger, basicLogger, mixLogger);
 
         Model.Episode? episode = null;
 
-        // throw execption will cause the episode to not show up anywhere
+        // throw exception will cause the episode to not show up anywhere
         try
         {
             episode = await parser.GetEpisode();
@@ -52,16 +53,8 @@ public class EpisodeProvider(BangumiApi api, Logger<EpisodeProvider> log, ILibra
 
         if (episode == null)
         {
-            // remove season number
-            if (BasicEpisodeParser.IsSpecial(info.Path, context.LibraryManager, true))
-            {
-                result.HasMetadata = true;
-                result.Item = new Episode
-                {
-                    ParentIndexNumber = 0
-                };
-            }
-
+            result.Item = new Episode();
+            result.HasMetadata = true;
             return result;
         }
 
@@ -78,25 +71,23 @@ public class EpisodeProvider(BangumiApi api, Logger<EpisodeProvider> log, ILibra
         result.Item.OriginalTitle = episode.OriginalName;
         result.Item.IndexNumber = (int)episode.Order + localConfiguration.Offset;
         result.Item.Overview = string.IsNullOrEmpty(episode.Description) ? null : episode.Description;
-        result.Item.ParentIndexNumber = info.ParentIndexNumber ?? 1;
 
         var parent = libraryManager.FindByPath(Path.GetDirectoryName(info.Path)!, true);
-        if (BasicEpisodeParser.IsSpecial(info.Path, context.LibraryManager, true) || episode.Type == EpisodeType.Special || info.ParentIndexNumber == 0)
-        {
-            result.Item.ParentIndexNumber = 0;
-        }
-        else if (parent is Season season)
+        if (parent is Season season)
         {
             result.Item.SeasonId = season.Id;
-            if (season.IndexNumber != null)
-                result.Item.ParentIndexNumber = season.IndexNumber;
+            if (season.ProviderIds.TryGetValue(Constants.SeasonNumberProviderName, out var seasonNum))
+                if (int.TryParse(seasonNum, out var num))
+                    result.Item.ParentIndexNumber = num;
+        }
+
+        if (!result.Item.ParentIndexNumber.HasValue)
+        {
+            result.Item.ParentIndexNumber = (int?)episode.ParentIndexNumber ?? 1;
         }
 
         if (episode.Type == EpisodeType.Normal && result.Item.ParentIndexNumber > 0)
             return result;
-
-        // mark episode as special
-        result.Item.ParentIndexNumber = 0;
 
         // use title and overview from special episode subject if episode data is empty
         var series = await api.GetSubject(episode.ParentId, cancellationToken);
@@ -105,11 +96,28 @@ public class EpisodeProvider(BangumiApi api, Logger<EpisodeProvider> log, ILibra
 
         // use title from special episode subject if episode data is empty
         if (string.IsNullOrEmpty(result.Item.Name))
-            result.Item.Name = series.Name;
+            result.Item.Name = Path.GetFileNameWithoutExtension(info.Path);
         if (string.IsNullOrEmpty(result.Item.OriginalTitle))
-            result.Item.OriginalTitle = series.OriginalName;
+            result.Item.OriginalTitle = Path.GetFileNameWithoutExtension(info.Path);
 
-        var seasonNumber = parent is Season ? parent.IndexNumber : 1;
+        var seasonNumber = 1;
+        while (parent != null && parent is not Series)
+        {
+            // 多季度合集中，sp可能位于更深层的目录中
+            if (parent is not Season)
+            {
+                var parentPath = Path.GetDirectoryName(parent!.Path);
+                if (string.IsNullOrEmpty(parentPath)) break;
+                parent = libraryManager.FindByPath(parentPath, true);
+                continue;
+            }
+
+            if (parent.ProviderIds.TryGetValue(Constants.SeasonNumberProviderName, out var seasonNum))
+            {
+                _ = int.TryParse(seasonNum, out seasonNumber);
+            }
+            break;
+        }
         if (!string.IsNullOrEmpty(episode.AirDate) && string.Compare(episode.AirDate, series.AirDate, StringComparison.Ordinal) < 0)
             result.Item.AirsBeforeEpisodeNumber = seasonNumber;
         else

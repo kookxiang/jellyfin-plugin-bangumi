@@ -97,3 +97,37 @@
 #bangumi-archive-container:not(.has-archive-data) .archive-data-required {
     display: none;
 }
+
+.bangumi-tab-container {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 1.8em;
+}
+
+.bangumi-tab-header {
+    display: flex;
+    border-bottom: 1px solid #cccccc;
+}
+
+.bangumi-tab-header-button {
+    background: none;
+    border: none;
+    padding: 8px 16px;
+    cursor: pointer;
+    font-size: 1em;
+    color: #888;
+}
+
+    .bangumi-tab-header-button.active {
+        color: #5fafff;
+        border-bottom: 2px solid #1976d2;
+    }
+
+.bangumi-tab-content {
+    display: none;
+    padding: 16px 0;
+}
+
+    .bangumi-tab-content.active {
+        display: block;
+    }
