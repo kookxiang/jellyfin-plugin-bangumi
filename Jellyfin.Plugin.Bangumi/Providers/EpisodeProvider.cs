@@ -101,7 +101,7 @@ public class EpisodeProvider(BangumiApi api, Logger<EpisodeProvider> log, ILibra
             result.Item.OriginalTitle = Path.GetFileNameWithoutExtension(info.Path);
 
         var seasonNumber = 1;
-        while (parent is not Series)
+        while (parent != null && parent is not Series)
         {
             // 多季度合集中，sp可能位于更深层的目录中
             if (parent is not Season)

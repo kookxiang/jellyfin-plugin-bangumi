@@ -73,6 +73,18 @@ public class Series
         },
             _token);
         AssertSeries(result);
+
+        _plugin.Configuration.AlwaysGetTitleByAnitomySharp = true;
+
+        result = await _provider.GetMetadata(new SeriesInfo
+        {
+            Name = "[Pussub&VCB-Studio] White Album 2 [Hi10p_1080p]",
+            Path = FakePath.Create("White Album 2")
+        },
+            _token);
+        AssertSeries(result);
+
+        _plugin.Configuration.AlwaysGetTitleByAnitomySharp = false;
     }
 
     [TestMethod]
@@ -135,6 +147,9 @@ public class Series
     [TestMethod]
     public async Task SearchByNewApi()
     {
+        var lastVaule = _plugin.Configuration.UseTestingSearchApi;
+        _plugin.Configuration.UseTestingSearchApi = true;
+
         var searchResults = await _provider.GetSearchResults(new SeriesInfo
         {
             Name = "命运-奇异赝品 黎明低语",
@@ -142,6 +157,8 @@ public class Series
         },
             _token);
         Assert.IsTrue(searchResults.Any(x => x.ProviderIds[Constants.ProviderName].Equals("402128")), "should have correct search result");
+
+        _plugin.Configuration.UseTestingSearchApi = lastVaule;
     }
 
     [TestMethod]

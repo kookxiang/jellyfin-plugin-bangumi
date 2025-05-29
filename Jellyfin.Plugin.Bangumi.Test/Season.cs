@@ -266,7 +266,21 @@ public class Season
 
         foreach (var item in dict)
         {
-            Assert.AreEqual(item.Value, FileNameParser.ExtractAnimeSeason(item.Key), $"Extracted season number for {item.Key} should be {item.Value}");
+            Assert.AreEqual(item.Value, FileNameParser.ExtractAnimeSeason(item.Key, false), $"Extracted season number for {item.Key} should be {item.Value}");
         }
+    }
+
+    [TestMethod]
+    public async Task SearchSubjectByFolderPath()
+    {
+        FakePath.CreateSeries(_libraryManager, "[VCB-Studio] Tate no Yuusha no Nariagari");
+
+        var result = await _provider.GetMetadata(new SeasonInfo
+        {
+            Path = FakePath.Create("[VCB-Studio] Tate no Yuusha no Nariagari/[VCB-Studio] Tate no Yuusha no Nariagari Season 2 [Ma10p_1080p]")
+        }, _token);
+        Assert.IsTrue(result.HasMetadata, "should return metadata when folder name contains season");
+        Assert.AreEqual(289906, int.Parse(result.Item.ProviderIds.GetOrDefault(Constants.ProviderName) ?? ""), "should return the right season id");
+        Assert.AreEqual(2, int.Parse(result.Item.ProviderIds.GetOrDefault(Constants.SeasonNumberProviderName) ?? ""), "should return the right season number");
     }
 }

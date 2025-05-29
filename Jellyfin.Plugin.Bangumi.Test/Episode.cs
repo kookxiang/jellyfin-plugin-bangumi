@@ -563,4 +563,81 @@ public class Episode
         Assert.IsTrue(episodeData.HasMetadata, "episode data should not be null");
         Assert.AreEqual(503689, int.Parse(episodeData.Item.ProviderIds[Constants.ProviderName]), "should return the right episode id");
     }
+
+    [TestMethod]
+    public async Task MultipleSeasonEpisodesInSingleFolder()
+    {
+        _plugin.Configuration.EpisodeParser = EpisodeParserType.Mix;
+
+        var basedir = "[Moozzi2] Nisekoi BD-BOX - S1 + S2 + OAD";
+        FakePath.CreateSeries(_libraryManager, basedir);
+
+        var episodeData = await _provider.GetMetadata(new EpisodeInfo
+        {
+            Path = FakePath.CreateFile($"{basedir}/[Moozzi2] Nisekoi S1 - 04 (BD 1920x1080 x.264-10Bit Flac).mkv"),
+            SeasonProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "74628" } }
+        },
+            _token);
+        Assert.IsTrue(episodeData.HasMetadata, "episode data should not be null");
+        Assert.AreEqual(1, episodeData.Item.ParentIndexNumber.GetValueOrDefault(), "should return the right ParentIndexNumber");
+        Assert.AreEqual(4, episodeData.Item.IndexNumber.GetValueOrDefault(), "should return the right IndexNumber");
+        Assert.AreEqual(350240, int.Parse(episodeData.Item.ProviderIds[Constants.ProviderName]), "should return the right episode id");
+
+        episodeData = await _provider.GetMetadata(new EpisodeInfo
+        {
+            Path = FakePath.CreateFile($"{basedir}/[Moozzi2] Nisekoi S2 - 11 (BD 1920x1080 x.264-10Bit FLACx2).mkv"),
+            SeasonProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "114758" } }
+        },
+            _token);
+        Assert.IsTrue(episodeData.HasMetadata, "episode data should not be null");
+        Assert.AreEqual(2, episodeData.Item.ParentIndexNumber.GetValueOrDefault(), "should return the right ParentIndexNumber");
+        Assert.AreEqual(11, episodeData.Item.IndexNumber.GetValueOrDefault(), "should return the right IndexNumber");
+        Assert.AreEqual(512852, int.Parse(episodeData.Item.ProviderIds[Constants.ProviderName]), "should return the right episode id");
+
+        _plugin.Configuration.EpisodeParser = EpisodeParserType.Basic;
+    }
+
+    [TestMethod]
+    public async Task MultipleSeasonEpisodesInSingleFolder2()
+    {
+        _plugin.Configuration.EpisodeParser = EpisodeParserType.Mix;
+
+        var basedir = "[アニメ BD] 魔法少女リリカルなのは+A's+StrikerS+劇場版(The MOVIE 1st&2nd A's) 全54話+特典+CDx51+Scans(1920x1080 HEVC 10bit FLAC+DTS-HDMA Sub(chi+eng+jpn) chap)";
+        FakePath.CreateSeries(_libraryManager, basedir);
+
+        var episodeData = await _provider.GetMetadata(new EpisodeInfo
+        {
+            Path = FakePath.CreateFile($"{basedir}/[アニメ BD] 魔法少女リリカルなのは 無印(第1期) 第04話「ライバル！？もうひとりの魔法少女なの！」(1424x1068 HEVC 10bit FLAC softSub(chs+cht+eng) chap).mkv"),
+            SeasonProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "1262" } }
+        },
+            _token);
+        Assert.IsTrue(episodeData.HasMetadata, "episode data should not be null");
+        Assert.AreEqual(1, episodeData.Item.ParentIndexNumber.GetValueOrDefault(), "should return the right ParentIndexNumber");
+        Assert.AreEqual(4, episodeData.Item.IndexNumber.GetValueOrDefault(), "should return the right IndexNumber");
+        Assert.AreEqual(3687, int.Parse(episodeData.Item.ProviderIds[Constants.ProviderName]), "should return the right episode id");
+
+        episodeData = await _provider.GetMetadata(new EpisodeInfo
+        {
+            Path = FakePath.CreateFile($"{basedir}/[アニメ BD] 魔法少女リリカルなのはA's(第2期) 第06話「それは小さな願いなの（後編）」(1416x1068 HEVC 10bit FLAC softSub(chs+cht+eng+jpn) chap).mkv"),
+            SeasonProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "1263" } }
+        },
+            _token);
+        Assert.IsTrue(episodeData.HasMetadata, "episode data should not be null");
+        Assert.AreEqual(2, episodeData.Item.ParentIndexNumber.GetValueOrDefault(), "should return the right ParentIndexNumber");
+        Assert.AreEqual(6, episodeData.Item.IndexNumber.GetValueOrDefault(), "should return the right IndexNumber");
+        Assert.AreEqual(3702, int.Parse(episodeData.Item.ProviderIds[Constants.ProviderName]), "should return the right episode id");
+
+        episodeData = await _provider.GetMetadata(new EpisodeInfo
+        {
+            Path = FakePath.CreateFile($"{basedir}/[アニメ BD] 魔法少女リリカルなのはStrikerS(第3期) 第21話「決戦」(1912x1068 HEVC 10bit FLAC softSub(chs+cht+eng) chap).mkv"),
+            SeasonProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "1264" } }
+        },
+            _token);
+        Assert.IsTrue(episodeData.HasMetadata, "episode data should not be null");
+        Assert.AreEqual(3, episodeData.Item.ParentIndexNumber.GetValueOrDefault(), "should return the right ParentIndexNumber");
+        Assert.AreEqual(21, episodeData.Item.IndexNumber.GetValueOrDefault(), "should return the right IndexNumber");
+        Assert.AreEqual(3730, int.Parse(episodeData.Item.ProviderIds[Constants.ProviderName]), "should return the right episode id");
+
+        _plugin.Configuration.EpisodeParser = EpisodeParserType.Basic;
+    }
 }
