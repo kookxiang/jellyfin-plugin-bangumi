@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 using Jellyfin.Plugin.Bangumi.Configuration;
 using Jellyfin.Plugin.Bangumi.Model;
 using Jellyfin.Plugin.Bangumi.Parser.AnitomyParser;
+using Jellyfin.Plugin.Bangumi.Utils;
 using MediaBrowser.Controller.Entities.TV;
 using MediaBrowser.Controller.Library;
 using MediaBrowser.Controller.Providers;
@@ -252,58 +253,69 @@ public partial class SeasonProvider(BangumiApi api, Logger<EpisodeProvider> log,
 
     private async Task<Subject?> SearchSubjectByFolderPath(Series series, string folderPath, CancellationToken cancellationToken)
     {
-        var folderName = Path.GetFileName(folderPath);
-        var anitomy = new Anitomy(folderName);
-        var searchName = anitomy.ExtractAnimeTitle();
-        if (string.IsNullOrEmpty(searchName))
+        var searchNameSeason = GetValidAnimeTitleAndSeason(log, series, folderPath);
+        if (searchNameSeason == default)
         {
             log.Error($"Failed to extract anime title from folder path: {folderPath}");
             return null;
         }
-
-        if (!IsValidAnimeTitle(searchName))
+        else
         {
-            // 仅sp文件夹名无法判断番剧，添加番剧名称作为前缀
-            searchName = $"{series.Name} {searchName}";
+            log.Info($"Search subject by folder path: {folderPath}, name: {searchNameSeason.Item1}, season: {searchNameSeason.Item2}");
         }
 
-        log.Info($"Guessing season id by folder name: {searchName}");
-        var subjects = await api.SearchSubjectRaw(searchName, SubjectType.Anime, cancellationToken);
+        var subjects = await api.SearchSubject(searchNameSeason.Item1, cancellationToken, searchNameSeason.Item2);
 
-        return await api.GetBestMatchSubjectWithKeywords(subjects, [searchName], cancellationToken);
+        return subjects?.FirstOrDefault();
     }
 
-    [GeneratedRegex(@"^(" +
-        @"第?([零一二三四五六七八九十\d]+)[季部期]?" + "|" + // 纯数字, 第一季, 二期, 第3部
-        @"S\d+" + "|" + // S1, S01
-        @"Season\s*\d+" + "|" + // Season 1
-        @"I|II|III|IV|V|VI|VII|VIII|IX|X|XI|XII|XIII|XIV|XV|XVI|XVII|XVIII|XIX|XX" + "|" + // 罗马数字1-20
-        @"\d+(st|nd|rd|th)(\s*Season)?" + "|" + // 1st Season
-        @"Season\s*(One|Two|Three|Four|Five|Six|Seven|Eight|Nine|Ten)" + // 英文单词
-        @")$", RegexOptions.IgnoreCase)]
-    public static partial Regex OnlySeasonNumberRegex();
-
     /// <summary>
-    /// 判断文件夹名是否有效的番剧名称
+    /// 从文件夹路径获取有效的番剧名称用于搜索，包含季号
     /// </summary>
-    /// <param name="folderName">文件夹名</param>
+    /// <param name="folderPath">文件夹路径</param>
     /// <returns></returns>
-    private static bool IsValidAnimeTitle(string folderName)
+    private static (string, int?) GetValidAnimeTitleAndSeason<T>(Logger<T> log, Series series, string folderPath)
     {
+        var folderName = Path.GetFileName(folderPath);
+
+        // 只包含剧集类型关键词，如 "SP", "OVA" 等
         var type = AnitomyEpisodeTypeMapping.GetAnitomyAndBangumiEpisodeType([folderName]);
         if (type.Item1 != null && folderName == type.Item1)
         {
-            // 只包含剧集类型关键词，如 "SP", "OVA" 等
-            return false;
+            folderName = $"{series.Name} {folderName}";
+            return default;
         }
 
-        if (OnlySeasonNumberRegex().IsMatch(folderName))
+        var anitomy = new Anitomy(folderName);
+        // 使用 Anitomy 清理文件名
+        var searchName = anitomy.ExtractAnimeTitle();
+        if (string.IsNullOrEmpty(searchName))
         {
-            // 只包含季号或类似的关键词，如 "S1", "Season 2" 等
-            return false;
+            return default;
         }
 
-        return true;
+        (string, int?) result = default;
+        if (int.TryParse(anitomy.ExtractAnimeSeason(), out var season))
+        {
+            // 如果包含季号，直接返回
+            result = (searchName, season);
+        }
+        else if (int.TryParse(anitomy.ExtractEpisodeNumber(), out season))
+        {
+            // 有时会解析成集号，如：[VCB-Studio] Log Horizon 2 [Ma10p_1080p]
+            result = (searchName, season);
+        }
+        else
+        {
+            // Anitomy只能获取部分数字季号，使用其他方法再次尝试获取季号
+            var split = FileNameParser.SplitAnimeTitleAndSeason(searchName, false);
+            result = (split.Item1, (int?)split.Item2);
+        }
+
+        if (result.Item2 != null && result.Item2 < 1)
+            return (folderName, null);
+        else
+            return result;
     }
 
     public Task<IEnumerable<RemoteSearchResult>> GetSearchResults(SeasonInfo searchInfo, CancellationToken cancellationToken)

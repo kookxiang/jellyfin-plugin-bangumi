@@ -25,14 +25,14 @@ public partial class BangumiApi
             ? "https://api.bgm.tv"
             : Plugin.Instance!.Configuration.BaseServerUrl.TrimEnd('/');
 
-    public Task<IEnumerable<Subject>> SearchSubject(string keyword, CancellationToken token)
+    public Task<IEnumerable<Subject>> SearchSubject(string keyword, CancellationToken token, int? seasonNumber = null)
     {
-        return SearchSubject(keyword, SubjectType.Anime, token);
+        return SearchSubject(keyword, SubjectType.Anime, token, seasonNumber);
     }
 
-    public async Task<IEnumerable<Subject>> SearchSubject(string keyword, SubjectType? type, CancellationToken token)
+    public async Task<IEnumerable<Subject>> SearchSubject(string keyword, SubjectType? type, CancellationToken token, int? seasonNumber = null)
     {
-        var result = await SearchSubjectSorted(keyword, type, token);
+        var result = await SearchSubjectSorted(keyword, type, token, seasonNumber);
 
         return result.Select(s => s.Item1);
     }
@@ -78,7 +78,7 @@ public partial class BangumiApi
         }
     }
 
-    public async Task<IEnumerable<(Subject, int)>> SortSubjects(IEnumerable<Subject> list, string keyword, CancellationToken token)
+    public async Task<IEnumerable<(Subject, int)>> SortSubjects(IEnumerable<Subject> list, string keyword, CancellationToken token, int? seasonNumber = null)
     {
         Subject[] array = list?.ToArray() ?? [];
 
@@ -116,50 +116,14 @@ public partial class BangumiApi
         // 拼接剩余条目
         subjectWithInfobox.AddRange(array.Skip(num));
 
-        if (Plugin.Instance!.Configuration.SortByFuzzScore && array.Length > 1)
-        {
-            var sortedSubjects = Subject.GetSortedScoresByFuzz(subjectWithInfobox, keyword);
-            return sortedSubjects.ToList();
-        }
-
-        return Subject.GetSortedScoresBySimilarity(subjectWithInfobox, keyword);
+        return Subject.GetSortedScores(subjectWithInfobox, keyword, seasonNumber);
     }
 
-    public async Task<IEnumerable<(Subject, int)>> SearchSubjectSorted(string keyword, SubjectType? type, CancellationToken token)
+    public async Task<IEnumerable<(Subject, int)>> SearchSubjectSorted(string keyword, SubjectType? type, CancellationToken token, int? seasonNumber = null)
     {
         var list = await SearchSubjectRaw(keyword, type, token);
 
-        return await SortSubjects(list, keyword, token);
-    }
-
-    /// <summary>
-    /// 获取最匹配的条目
-    /// </summary>
-    /// <param name="list">条目列表</param>
-    /// <param name="keywords">要匹配的关键词集合，每个关键词都会单独计算分数</param>
-    /// <param name="minScore">符合匹配的最低分数，范围：0-100，0表示完全不相关，100表示精准匹配</param>
-    /// <returns>返回匹配分数最高且大于等于 <paramref name="minScore"/> 的条目，否则返回null</returns>
-    public async Task<Subject?> GetBestMatchSubjectWithKeywords(IEnumerable<Subject>? list, IEnumerable<string> keywords, CancellationToken token, int minScore = 80)
-    {
-        if (list == null || !list.Any() || keywords == null) return null;
-
-        (Subject, int) result = default;
-
-        foreach (var keyword in keywords)
-        {
-            var sortedSubjects = await SortSubjects(list, keyword, token);
-            var bestMatch = sortedSubjects.FirstOrDefault(s => s.Item2 >= minScore);
-
-            if (bestMatch != default)
-            {
-                if (result == default || bestMatch.Item2 > result.Item2)
-                {
-                    result = bestMatch;
-                }
-            }
-        }
-
-        return result == default ? null : result.Item1;
+        return await SortSubjects(list, keyword, token, seasonNumber);
     }
 
     public async Task<Subject?> GetSubject(int id, CancellationToken token)
