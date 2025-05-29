@@ -93,11 +93,18 @@ public partial class BasicEpisodeParser(EpisodeParserContext context, Logger<Bas
             return subjectId;
         }
 
+        // 从虚拟Season获取
+        if (int.TryParse(context.Info.SeasonProviderIds?.GetValueOrDefault(Constants.ProviderName), out var seasonId))
+        {
+            log.Info("get subject id {Id} from season provider ids", seasonId);
+            return seasonId;
+        }
+
         // 从Season目录获取
         var parent = context.LibraryManager.FindByPath(Path.GetDirectoryName(context.Info.Path)!, true);
         if (parent is Season)
         {
-            if (int.TryParse(parent.ProviderIds.GetValueOrDefault(Constants.ProviderName), out var seasonId))
+            if (int.TryParse(parent.ProviderIds.GetValueOrDefault(Constants.ProviderName), out seasonId))
             {
                 log.Info("get subject id {Id} from parent", seasonId);
                 return seasonId;
@@ -148,7 +155,7 @@ public partial class BasicEpisodeParser(EpisodeParserContext context, Logger<Bas
         return null;
     }
 
-    public static async Task<Model.Episode?> SearchEpisodes<T>(EpisodeParserContext context, Logger<T> log, EpisodeType? type, int subjectId, double episodeIndex)
+    public static async Task<Model.Episode?> SearchEpisodes<T>(EpisodeParserContext context, Logger<T> log, EpisodeType? type, int subjectId, double episodeIndex, bool guessEpisodeNumber = true)
     {
         var fileName = Path.GetFileName(context.Info.Path);
 
@@ -180,7 +187,7 @@ public partial class BasicEpisodeParser(EpisodeParserContext context, Logger<Bas
             return episodeListData.First();
         }
 
-        if (type is null or EpisodeType.Normal)
+        if (guessEpisodeNumber && type is null or EpisodeType.Normal)
         {
             var maxEpisodeNumber = episodeListData.Any() ? episodeListData.Max(x => x.Order) : double.PositiveInfinity;
             episodeIndex = GuessEpisodeNumber(

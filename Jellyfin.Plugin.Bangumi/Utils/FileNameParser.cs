@@ -40,7 +40,7 @@ namespace Jellyfin.Plugin.Bangumi.Utils
             // 第21話, 第二话
             new Regex(@"第(?<episodeNumber>[零一二三四五六七八九十\d]+)[话話集]", RegexOptions.IgnoreCase | RegexOptions.Compiled),
             // S01E01
-            new Regex(@"S\d+E(?<episodeNumber>\d+)", RegexOptions.IgnoreCase | RegexOptions.Compiled),
+            new Regex(@"(?<=S\d+)E(?<episodeNumber>\d+)", RegexOptions.IgnoreCase | RegexOptions.Compiled),
             // 带括号纯数字
             new Regex(@"[\[【(（](?<episodeNumber>\d+)[\]】)）]", RegexOptions.IgnoreCase | RegexOptions.Compiled),
             // E01, Ep01, Episode 01
@@ -48,7 +48,7 @@ namespace Jellyfin.Plugin.Bangumi.Utils
             // 100-man no Inochi no Ue ni Ore wa Tatteiru - 01, Danganronpa 3 - Mirai Hen - 01
             new Regex(@"\s-\s(?<episodeNumber>\d+)\b", RegexOptions.IgnoreCase | RegexOptions.Compiled),
             // Season 2 - 01, S3 - 02
-            new Regex(@"\b(S\d+|Season\s*\d+)\b.*?(?<episodeNumber>\d+)\b", RegexOptions.IgnoreCase | RegexOptions.Compiled),
+            new Regex(@"\b(?<=S\d+|Season\s*\d+\b.*?)(?<episodeNumber>\d+)\b", RegexOptions.IgnoreCase | RegexOptions.Compiled),
             // 末尾数字无隔开，如：xxx01.mkv
             new Regex(@"(?<episodeNumber>\d+)\.\w+$", RegexOptions.IgnoreCase | RegexOptions.Compiled),
             // 纯数字（容易识别错误，应放在最后）
