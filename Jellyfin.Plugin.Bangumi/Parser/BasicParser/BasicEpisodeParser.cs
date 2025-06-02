@@ -89,44 +89,23 @@ public partial class BasicEpisodeParser(EpisodeParserContext context, Logger<Bas
             return null;
 
         var type = IsSpecial(context.Info.Path, context.LibraryManager) ? EpisodeType.Special : GuessEpisodeTypeFromFileName(fileName);
-        var seriesId = context.LocalConfiguration.Id;
+        
+        var seriesId = LocalConfigurationHelper.GetSeriesId(context.LocalConfiguration, context.Info, context.LibraryManager);
 
-        var parent = context.LibraryManager.FindByPath(Path.GetDirectoryName(context.Info.Path)!, true);
-        if (parent is Season)
-            if (int.TryParse(parent.ProviderIds.GetValueOrDefault(Constants.ProviderName), out var seasonId))
-            {
-                log.Info("used session id {SeasonId} from parent", seasonId);
-                seriesId = seasonId;
-            }
-
-        if (seriesId == 0)
-            if (!int.TryParse(context.Info.SeriesProviderIds?.GetValueOrDefault(Constants.ProviderName), out seriesId))
-                return null;
-
-        if (context.LocalConfiguration.Id != 0)
-        {
-            log.Info("used session id {SeasonId} from local configuration", context.LocalConfiguration.Id);
-            seriesId = context.LocalConfiguration.Id;
-        }
-
-        double? episodeIndex = context.Info.IndexNumber;
+        double episodeIndex = context.Info.IndexNumber ?? 0;
 
         if (context.Configuration.AlwaysReplaceEpisodeNumber)
         {
             log.Info("guess episode number from filename {FileName} because of plugin configuration", fileName);
             episodeIndex = GuessEpisodeNumber(episodeIndex, fileName);
         }
-        else if (episodeIndex is null or 0)
+        else if (episodeIndex is 0)
         {
             log.Info("guess episode number from filename {FileName} because it's empty", fileName);
             episodeIndex = GuessEpisodeNumber(episodeIndex, fileName);
         }
 
-        if (context.LocalConfiguration.Offset != 0)
-        {
-            log.Info("applying offset {Offset} to episode index {EpisodeIndex}", -context.LocalConfiguration.Offset, episodeIndex);
-            episodeIndex -= context.LocalConfiguration.Offset;
-        }
+        LocalConfigurationHelper.ApplyEpisodeOffset(ref episodeIndex, context.LocalConfiguration);
 
         if (int.TryParse(context.Info.ProviderIds?.GetValueOrDefault(Constants.ProviderName), out var episodeId))
         {
@@ -150,7 +129,7 @@ public partial class BasicEpisodeParser(EpisodeParserContext context, Logger<Bas
                 return episode;
             }
 
-            if (episode.ParentId == seriesId && Math.Abs(episode.Order - episodeIndex.Value) < 0.1)
+            if (episode.ParentId == seriesId && Math.Abs(episode.Order - episodeIndex) < 0.1)
                 return episode;
 
             log.Info("episode is not belongs to series {SeriesId}, ignoring result", seriesId);
@@ -158,7 +137,7 @@ public partial class BasicEpisodeParser(EpisodeParserContext context, Logger<Bas
 
 SkipBangumiId:
         log.Info("searching episode in series episode list");
-        var episodeListData = await context.Api.GetSubjectEpisodeList(seriesId, type, episodeIndex.Value, context.Token);
+        var episodeListData = await context.Api.GetSubjectEpisodeList(seriesId, type, episodeIndex, context.Token);
 
         if (episodeListData == null)
         {
