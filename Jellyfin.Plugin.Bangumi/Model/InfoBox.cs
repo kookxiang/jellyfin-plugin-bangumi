@@ -42,7 +42,11 @@ public class InfoBox : Dictionary<string, string>
                     }
                     else
                     {
-                        infobox.Add((key.GetString() ?? "") + "/" + (subKey.GetString() ?? ""), subValue.GetString() ?? "");
+                        var newKey = (key.GetString() ?? "") + "/" + (subKey.GetString() ?? "");
+                        if (!infobox.ContainsKey(newKey))
+                        {
+                            infobox.Add(newKey, subValue.GetString() ?? "");
+                        }
                     }
                 }
         }
