@@ -42,13 +42,13 @@
                 var link = container.querySelector('#archive-update-schedule-link');
                 link.style.display = '';
                 link.addEventListener('click', function () {
-                    Dashboard.navigate('/dashboard/tasks/edit?id=' + task.Id);
+                    Dashboard.navigate('/dashboard/tasks/' + task.Id);
                 });
 
                 var button = container.querySelector('#config-archive-update-task');
                 button.style.display = '';
                 button.addEventListener('click', function () {
-                    Dashboard.navigate('/dashboard/tasks/edit?id=' + task.Id);
+                    Dashboard.navigate('/dashboard/tasks/' + task.Id);
                 });
             });
         });
