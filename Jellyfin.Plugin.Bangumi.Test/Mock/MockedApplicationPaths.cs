@@ -5,6 +5,16 @@ namespace Jellyfin.Plugin.Bangumi.Test.Mock;
 
 public class MockedApplicationPaths : IApplicationPaths
 {
+    public void MakeSanityCheckOrThrow()
+    {
+        throw new System.NotImplementedException();
+    }
+
+    public void CreateAndCheckMarker(string path, string markerName, bool recursive = false)
+    {
+        throw new System.NotImplementedException();
+    }
+
     public string ProgramDataPath => Path.GetTempPath();
     public string WebPath => Path.GetTempPath();
     public string ProgramSystemPath => Path.GetTempPath();
@@ -18,4 +28,8 @@ public class MockedApplicationPaths : IApplicationPaths
     public string CachePath => Path.GetTempPath();
     public string TempDirectory => Path.GetTempPath();
     public string VirtualDataPath => Path.GetTempPath();
+
+    public string TrickplayPath => Path.GetTempPath();
+
+    public string BackupPath => Path.GetTempPath();
 }

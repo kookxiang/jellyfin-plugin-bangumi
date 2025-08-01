@@ -26,7 +26,11 @@ public class ArchiveDownloadTask(BangumiApi api, ArchiveData archive, ITaskManag
         [
             new TaskTriggerInfo
             {
+#if EMBY
                 Type = TaskTriggerInfo.TriggerInterval,
+#else
+                Type = TaskTriggerInfoType.IntervalTrigger,
+#endif
                 IntervalTicks = TimeSpan.FromDays(14).Ticks,
                 MaxRuntimeTicks = TimeSpan.FromHours(1).Ticks
             }
