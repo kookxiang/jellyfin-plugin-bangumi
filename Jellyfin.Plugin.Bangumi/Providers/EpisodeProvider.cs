@@ -20,7 +20,6 @@ namespace Jellyfin.Plugin.Bangumi.Providers;
 public class EpisodeProvider(BangumiApi api, Logger<EpisodeProvider> log, ILibraryManager libraryManager, IMediaSourceManager mediaSourceManager, Logger<AnitomyEpisodeParser> anitomyLogger, Logger<BasicEpisodeParser> basicLogger)
     : IRemoteMetadataProvider<Episode, EpisodeInfo>, IHasOrder
 {
-
     private static PluginConfiguration Configuration => Plugin.Instance!.Configuration;
 
     public int Order => -5;
@@ -33,6 +32,8 @@ public class EpisodeProvider(BangumiApi api, Logger<EpisodeProvider> log, ILibra
 
         var context = new EpisodeParserContext(api, libraryManager, info, mediaSourceManager, Configuration, localConfiguration, cancellationToken);
         var parser = EpisodeParserFactory.CreateParser(Configuration, context, anitomyLogger, basicLogger);
+
+        var hasSeasonFolder = libraryManager.FindByPath(Path.GetDirectoryName(info.Path)!, true) is not Series;
 
         Model.Episode? episode = null;
 
@@ -56,10 +57,7 @@ public class EpisodeProvider(BangumiApi api, Logger<EpisodeProvider> log, ILibra
             if (BasicEpisodeParser.IsSpecial(info.Path, context.LibraryManager, true))
             {
                 result.HasMetadata = true;
-                result.Item = new Episode
-                {
-                    ParentIndexNumber = 0
-                };
+                result.Item = new Episode { ParentIndexNumber = 0 };
             }
 
             return result;
@@ -78,10 +76,10 @@ public class EpisodeProvider(BangumiApi api, Logger<EpisodeProvider> log, ILibra
         result.Item.OriginalTitle = episode.OriginalName;
         result.Item.IndexNumber = (int)episode.Order + localConfiguration.Offset;
         result.Item.Overview = string.IsNullOrEmpty(episode.Description) ? null : episode.Description;
-        result.Item.ParentIndexNumber = info.ParentIndexNumber ?? 1;
+        result.Item.ParentIndexNumber = hasSeasonFolder ? info.ParentIndexNumber ?? 1 : 1;
 
         var parent = libraryManager.FindByPath(Path.GetDirectoryName(info.Path)!, true);
-        if (BasicEpisodeParser.IsSpecial(info.Path, context.LibraryManager, true) || episode.Type == EpisodeType.Special || info.ParentIndexNumber == 0)
+        if (BasicEpisodeParser.IsSpecial(info.Path, context.LibraryManager, true) || episode.Type == EpisodeType.Special || hasSeasonFolder && (info.ParentIndexNumber == 0))
         {
             result.Item.ParentIndexNumber = 0;
         }
@@ -127,5 +125,4 @@ public class EpisodeProvider(BangumiApi api, Logger<EpisodeProvider> log, ILibra
     {
         return api.GetHttpClient().GetAsync(url, cancellationToken);
     }
-
 }
