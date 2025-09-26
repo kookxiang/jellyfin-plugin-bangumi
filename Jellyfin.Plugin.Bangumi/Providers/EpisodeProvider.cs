@@ -33,8 +33,6 @@ public class EpisodeProvider(BangumiApi api, Logger<EpisodeProvider> log, ILibra
         var context = new EpisodeParserContext(api, libraryManager, info, mediaSourceManager, Configuration, localConfiguration, cancellationToken);
         var parser = EpisodeParserFactory.CreateParser(Configuration, context, anitomyLogger, basicLogger);
 
-        var hasSeasonFolder = libraryManager.FindByPath(Path.GetDirectoryName(info.Path)!, true) is not Series;
-
         Model.Episode? episode = null;
 
         // throw execption will cause the episode to not show up anywhere
@@ -72,14 +70,15 @@ public class EpisodeProvider(BangumiApi api, Logger<EpisodeProvider> log, ILibra
         if (episode.AirDate.Length == 4)
             result.Item.ProductionYear = int.Parse(episode.AirDate);
 
+        var parent = libraryManager.FindByPath(Path.GetDirectoryName(info.Path)!, true);
+
         result.Item.Name = episode.Name;
         result.Item.OriginalTitle = episode.OriginalName;
         result.Item.IndexNumber = (int)episode.Order + localConfiguration.Offset;
         result.Item.Overview = string.IsNullOrEmpty(episode.Description) ? null : episode.Description;
-        result.Item.ParentIndexNumber = hasSeasonFolder ? info.ParentIndexNumber ?? 1 : 1;
+        result.Item.ParentIndexNumber = parent is Series ? 1 : info.ParentIndexNumber ?? 1;
 
-        var parent = libraryManager.FindByPath(Path.GetDirectoryName(info.Path)!, true);
-        if (BasicEpisodeParser.IsSpecial(info.Path, context.LibraryManager, true) || episode.Type == EpisodeType.Special || hasSeasonFolder && (info.ParentIndexNumber == 0))
+        if (BasicEpisodeParser.IsSpecial(info.Path, context.LibraryManager, true) || episode.Type == EpisodeType.Special || (parent is not Series && info.ParentIndexNumber == 0))
         {
             result.Item.ParentIndexNumber = 0;
         }
