@@ -25,10 +25,10 @@ jobs:
           exclude: ci
       - name: Patch version
         run: sed -i "/Version/s/>.*</>${{ steps.meta.outputs.tag }}.${{ steps.meta.outputs.distance }}</" Directory.Build.props
-      - name: Setup .NET 8.x
+      - name: Setup .NET 9.x
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: 8
+          dotnet-version: 9
       - name: Restore NuGet Packages
         run: dotnet restore
       - name: .NET Test
@@ -72,7 +72,7 @@ jobs:
               name = "Bangumi"
               overview = "bgm.tv metadata provider for Jellyfin"
               owner = "kookxiang"
-              targetAbi = "10.9.0.0"
+              targetAbi = "10.11.0.0"
               timestamp = Get-Date -AsUTC -Format s
               version = "${{ needs.build.outputs.version }}"
           } | ConvertTo-Json -Compress | Out-File "jellyfin/meta.json" -Encoding UTF8 -NoNewline

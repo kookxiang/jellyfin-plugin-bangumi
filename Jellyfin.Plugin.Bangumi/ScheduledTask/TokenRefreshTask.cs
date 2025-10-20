@@ -22,7 +22,11 @@ public class TokenRefreshTask(BangumiApi api, OAuthStore store, Logger<TokenRefr
         [
             new TaskTriggerInfo
             {
+#if EMBY
                 Type = TaskTriggerInfo.TriggerInterval,
+#else
+                Type = TaskTriggerInfoType.IntervalTrigger,
+#endif
                 IntervalTicks = TimeSpan.FromDays(1).Ticks,
                 MaxRuntimeTicks = TimeSpan.FromMinutes(10).Ticks
             }

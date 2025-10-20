@@ -17,15 +17,17 @@ jobs:
   build:
     name: Build Release Package
     runs-on: ubuntu-latest
+    env:
+      TARGET_ABI_VERSION: 10.11.0.0
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
       - name: Patch version
         run: sed -i "/Version/s/>.*</>${{ github.ref_name }}.0</" Directory.Build.props
-      - name: Setup .NET 8.x
+      - name: Setup .NET 9.x
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: 8
+          dotnet-version: 9
       - name: Restore NuGet Packages
         run: dotnet restore
       - name: .NET Publish
@@ -43,7 +45,7 @@ jobs:
               name = "Bangumi"
               overview = "bgm.tv metadata provider for Jellyfin"
               owner = "kookxiang"
-              targetAbi = "10.9.0.0"
+              targetAbi = $env:TARGET_ABI_VERSION
               timestamp = Get-Date -AsUTC -Format s
               version = "${{ github.ref_name }}.0"
           } | ConvertTo-Json -Compress | Out-File "publish/meta.json" -Encoding UTF8 -NoNewline
@@ -103,7 +105,7 @@ jobs:
           $Repository[0].versions = @(@{
             checksum =  (Get-FileHash -Algorithm MD5 "Jellyfin.Plugin.Bangumi.zip").Hash.ToLower()
             changelog = $env:CHANGELOG
-            targetAbi = "10.9.0.0"
+            targetAbi = $env:TARGET_ABI_VERSION
             sourceUrl = "https://kookxiang.github.io/jellyfin-plugin-bangumi/$($env:VERSION).zip"
             timestamp = Get-Date -AsUTC -Format s
             version = $env:VERSION

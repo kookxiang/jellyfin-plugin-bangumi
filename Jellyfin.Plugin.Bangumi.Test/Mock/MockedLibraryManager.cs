@@ -3,8 +3,9 @@ using System.Collections.Generic;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
-using Jellyfin.Data.Entities;
 using Jellyfin.Data.Enums;
+using Jellyfin.Database.Implementations.Entities;
+using Jellyfin.Database.Implementations.Enums;
 using MediaBrowser.Controller.Dto;
 using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Entities.Audio;
@@ -94,6 +95,11 @@ public class MockedLibraryManager : ILibraryManager
         throw new NotImplementedException();
     }
 
+    public Task ValidateTopLibraryFolders(CancellationToken cancellationToken, bool removeRoot = false)
+    {
+        throw new NotImplementedException();
+    }
+
     public Task UpdateImagesAsync(BaseItem item, bool forceUpdate = false)
     {
         throw new NotImplementedException();
@@ -134,7 +140,7 @@ public class MockedLibraryManager : ILibraryManager
         throw new NotImplementedException();
     }
 
-    public void AddParts(IEnumerable<IResolverIgnoreRule> rules, IEnumerable<IItemResolver> resolvers, IEnumerable<IIntroProvider> introProviders, IEnumerable<IBaseItemComparer> itemComparers, IEnumerable<ILibraryPostScanTask> postscanTasks)
+    public void AddParts(IEnumerable<IResolverIgnoreRule> rules, IEnumerable<IItemResolver> resolvers, IEnumerable<IIntroProvider> introProviders, IEnumerable<IBaseItemComparer> itemComparers, IEnumerable<ILibraryPostScanTask> postScanTasks)
     {
         throw new NotImplementedException();
     }
@@ -250,7 +256,7 @@ public class MockedLibraryManager : ILibraryManager
         throw new NotImplementedException();
     }
 
-    public int? GetSeasonNumberFromPath(string path)
+    public int? GetSeasonNumberFromPath(string path, Guid? parentId)
     {
         throw new NotImplementedException();
     }
@@ -290,17 +296,17 @@ public class MockedLibraryManager : ILibraryManager
         throw new NotImplementedException();
     }
 
-    public List<PersonInfo> GetPeople(BaseItem item)
+    public IReadOnlyList<PersonInfo> GetPeople(BaseItem item)
     {
         throw new NotImplementedException();
     }
 
-    public List<PersonInfo> GetPeople(InternalPeopleQuery query)
+    public IReadOnlyList<PersonInfo> GetPeople(InternalPeopleQuery query)
     {
         throw new NotImplementedException();
     }
 
-    public List<MediaBrowser.Controller.Entities.Person> GetPeopleItems(InternalPeopleQuery query)
+    public IReadOnlyList<MediaBrowser.Controller.Entities.Person> GetPeopleItems(InternalPeopleQuery query)
     {
         throw new NotImplementedException();
     }
@@ -310,17 +316,17 @@ public class MockedLibraryManager : ILibraryManager
         throw new NotImplementedException();
     }
 
-    public Task UpdatePeopleAsync(BaseItem item, List<PersonInfo> people, CancellationToken cancellationToken)
+    public Task UpdatePeopleAsync(BaseItem item, IReadOnlyList<PersonInfo> people, CancellationToken cancellationToken)
     {
         throw new NotImplementedException();
     }
 
-    public List<Guid> GetItemIds(InternalItemsQuery query)
+    public IReadOnlyList<Guid> GetItemIds(InternalItemsQuery query)
     {
         throw new NotImplementedException();
     }
 
-    public List<string> GetPeopleNames(InternalPeopleQuery query)
+    public IReadOnlyList<string> GetPeopleNames(InternalPeopleQuery query)
     {
         throw new NotImplementedException();
     }
@@ -340,17 +346,27 @@ public class MockedLibraryManager : ILibraryManager
         throw new NotImplementedException();
     }
 
-    public List<BaseItem> GetItemList(InternalItemsQuery query)
+    public IReadOnlyList<BaseItem> GetItemList(InternalItemsQuery query)
     {
         throw new NotImplementedException();
     }
 
-    public List<BaseItem> GetItemList(InternalItemsQuery query, bool allowExternalContent)
+    public IReadOnlyList<BaseItem> GetItemList(InternalItemsQuery query, bool allowExternalContent)
     {
         throw new NotImplementedException();
     }
 
-    public List<BaseItem> GetItemList(InternalItemsQuery query, List<BaseItem> parents)
+    public IReadOnlyList<BaseItem> GetItemList(InternalItemsQuery query, List<BaseItem> parents)
+    {
+        throw new NotImplementedException();
+    }
+
+    public IReadOnlyList<BaseItem> GetLatestItemList(InternalItemsQuery query, IReadOnlyList<BaseItem> parents, CollectionType collectionType)
+    {
+        throw new NotImplementedException();
+    }
+
+    public IReadOnlyList<string> GetNextUpSeriesKeys(InternalItemsQuery query, IReadOnlyCollection<BaseItem> parents, DateTime dateCutoff)
     {
         throw new NotImplementedException();
     }
@@ -451,11 +467,6 @@ public class MockedLibraryManager : ILibraryManager
     }
 
     public void QueueLibraryScan()
-    {
-        throw new NotImplementedException();
-    }
-
-    public Task ValidateTopLibraryFolders(CancellationToken cancellationToken, bool removeRoot = false)
     {
         throw new NotImplementedException();
     }

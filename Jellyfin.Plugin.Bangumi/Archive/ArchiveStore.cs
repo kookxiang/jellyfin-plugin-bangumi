@@ -142,7 +142,7 @@ public partial class ArchiveStore<T>(string basePath, string fileName) : IArchiv
         indexReader.Seek(id * indexSize, SeekOrigin.Begin);
         var buffer = new byte[indexSize];
         // ReSharper disable once MustUseReturnValue
-        await indexReader.ReadAsync(buffer.AsMemory(0, indexSize));
+        await indexReader.ReadExactlyAsync(buffer.AsMemory(0, indexSize));
         var offset = indexSize switch
         {
             sizeof(byte) => buffer[0],

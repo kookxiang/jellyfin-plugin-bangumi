@@ -6,7 +6,7 @@
     <PackageVersion Include="AnitomySharp.NET6" Version="0.5.1" />
     <PackageVersion Include="Fastenshtein" Version="1.0.10" />
     <PackageVersion Include="FuzzySharp" Version="2.0.2" />
-    <PackageVersion Include="Jellyfin.Controller" Version="10.10.7" />
+    <PackageVersion Include="Jellyfin.Controller" Version="10.11.0-rc3" />
     <PackageVersion Include="MediaBrowser.Server.Core" Version="4.9.0.14-beta" />
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="16.11.0" />
     <PackageVersion Include="MSTest.TestAdapter" Version="3.3.1" />
