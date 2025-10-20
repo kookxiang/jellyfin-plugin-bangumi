@@ -15,7 +15,10 @@ public class InfoBoxTest
     [TestMethod]
     public async Task DuplicatedKey()
     {
-        var subject = await _api.GetSubject(374319, _token);
+        var subject = await _api.GetSubject(293049, _token);
+        Assert.AreEqual(subject?.InfoBox?.Get("音响"), "マジックカプセル；音响制作担当：見留滉平");
+
+        subject = await _api.GetSubject(374319, _token);
         Assert.AreEqual(subject?.InfoBox?.Get("中文名"), "无意间变成狗，被喜欢的女生捡回家。");
     }
 }

@@ -23,7 +23,7 @@ public class InfoBox : Dictionary<string, string>
                 continue;
 
             if (value.ValueKind == JsonValueKind.String)
-                infobox.Add(key.GetString() ?? "", value.GetString() ?? "");
+                infobox[key.GetString() ?? ""] = value.GetString() ?? "";
 
             else if (value.ValueKind == JsonValueKind.Array)
                 foreach (var subItem in value.EnumerateArray())
@@ -43,10 +43,7 @@ public class InfoBox : Dictionary<string, string>
                     else
                     {
                         var newKey = (key.GetString() ?? "") + "/" + (subKey.GetString() ?? "");
-                        if (!infobox.ContainsKey(newKey))
-                        {
-                            infobox.Add(newKey, subValue.GetString() ?? "");
-                        }
+                        infobox[newKey] = subValue.GetString() ?? "";
                     }
                 }
         }
