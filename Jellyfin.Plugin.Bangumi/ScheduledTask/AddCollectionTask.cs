@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Jellyfin.Data.Enums;
 using MediaBrowser.Controller.Collections;
 using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Library;
@@ -35,7 +36,7 @@ public class AddCollectionTask(BangumiApi api, ILibraryManager libraryManager, I
         progress?.Report(0);
 
         // 获取所有使用 Bangumi 插件的条目（电影/电视剧）
-        var query = new InternalItemsQuery { };
+        var query = new InternalItemsQuery { IncludeItemTypes = [BaseItemKind.Series, BaseItemKind.Movie] };
         var subjects = libraryManager.GetItemList(query)
             .Where(o => o.ProviderIds.ContainsKey(Constants.PluginName) && (o.GetClientTypeName() == "Series" || o.GetClientTypeName() == "Movie"))
             .Distinct()
