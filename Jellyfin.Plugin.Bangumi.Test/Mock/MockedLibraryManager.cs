@@ -221,6 +221,11 @@ public class MockedLibraryManager : ILibraryManager
         throw new NotImplementedException();
     }
 
+    public void DeleteItemsUnsafeFast(IEnumerable<BaseItem> items)
+    {
+        throw new NotImplementedException();
+    }
+
     public void DeleteItem(BaseItem item, DeleteOptions options, bool notifyParentItem)
     {
         throw new NotImplementedException();
@@ -441,6 +446,11 @@ public class MockedLibraryManager : ILibraryManager
         throw new NotImplementedException();
     }
 
+    public IReadOnlyDictionary<string, MusicArtist[]> GetArtists(IReadOnlyList<string> names)
+    {
+        throw new NotImplementedException();
+    }
+
     public QueryResult<(BaseItem Item, ItemCounts ItemCounts)> GetAlbumArtists(InternalItemsQuery query)
     {
         throw new NotImplementedException();
@@ -452,6 +462,11 @@ public class MockedLibraryManager : ILibraryManager
     }
 
     public int GetCount(InternalItemsQuery query)
+    {
+        throw new NotImplementedException();
+    }
+
+    public ItemCounts GetItemCounts(InternalItemsQuery query)
     {
         throw new NotImplementedException();
     }
