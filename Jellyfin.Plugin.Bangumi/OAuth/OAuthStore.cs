@@ -32,6 +32,8 @@ public class OAuthStore
 
     public void Save()
     {
+        if (!Directory.Exists(_applicationPaths.PluginConfigurationsPath))
+            Directory.CreateDirectory(_applicationPaths.PluginConfigurationsPath);
         File.WriteAllText(StorePath, JsonSerializer.Serialize(_users));
     }
 
