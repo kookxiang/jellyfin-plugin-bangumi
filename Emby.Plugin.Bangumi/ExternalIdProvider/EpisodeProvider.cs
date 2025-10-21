@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -84,14 +84,22 @@ public class EpisodeProvider(BangumiApi api, ILogger log) : IRemoteMetadataProvi
 
     private async Task<Model.Episode?> GetEpisode(EpisodeInfo searchInfo, CancellationToken token)
     {
-        if (!int.TryParse(searchInfo.SeasonProviderIds.GetOrDefault(Constants.ProviderName), out var seasonId))
-            if (!int.TryParse(searchInfo.SeriesProviderIds.GetOrDefault(Constants.ProviderName), out seasonId))
-                return null;
+        var localConfiguration = await LocalConfiguration.ForPath(searchInfo.Path);
+
+        var seasonId = localConfiguration.Id;
+        if (seasonId == 0)
+            if (!int.TryParse(searchInfo.SeasonProviderIds.GetOrDefault(Constants.ProviderName), out seasonId))
+                if (!int.TryParse(searchInfo.SeriesProviderIds.GetOrDefault(Constants.ProviderName), out seasonId))
+                    return null;
 
         double? episodeIndex = searchInfo.IndexNumber;
 
         if (episodeIndex is null)
             return null;
+
+        var offset = localConfiguration.Offset;
+        if (offset != 0)
+            episodeIndex -= offset;
 
         if (int.TryParse(searchInfo.GetProviderId(Constants.ProviderName), out var episodeId))
         {
