@@ -110,12 +110,12 @@ public class EpisodeProvider(BangumiApi api, ILogger log) : IRemoteMetadataProvi
             if (Configuration.TrustExistedBangumiId)
                 return episode;
 
-            if (episode.ParentId == seasonId && Math.Abs(episode.Order - episodeIndex.Value) < 0.1)
+            if (episode.ParentId == seasonId && Math.Abs(episode.Order - episodeIndex!.Value) < 0.1)
                 return episode;
         }
 
         SkipBangumiId:
-        var episodeListData = await api.GetSubjectEpisodeList(seasonId, null, episodeIndex.Value, token);
+        var episodeListData = await api.GetSubjectEpisodeList(seasonId, null, episodeIndex!.Value, token);
         if (episodeListData == null)
             return null;
         try
