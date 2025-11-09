@@ -19,6 +19,6 @@ public class ExternalIdProvider: IExternalId
 
     public string Key => Constants.ProviderName;
 
-    public ExternalIdMediaType? Type => ExternalIdMediaType.Album;
+    public ExternalIdMediaType? Type => ExternalIdMediaType.Series;
 }
 
