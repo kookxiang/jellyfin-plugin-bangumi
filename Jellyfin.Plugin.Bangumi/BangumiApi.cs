@@ -8,6 +8,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Jellyfin.Plugin.Bangumi.Model;
 using MediaBrowser.Controller.Entities;
+using Person = Jellyfin.Plugin.Bangumi.Model.Person;
 using User = Jellyfin.Plugin.Bangumi.Model.User;
 #if EMBY
 using HttpRequestOptions = MediaBrowser.Common.Net.HttpRequestOptions;
@@ -345,6 +346,12 @@ public partial class BangumiApi
     {
         var person = await Get<PersonDetail>($"{BaseUrl}/v0/persons/{id}", token);
         return person?.DefaultImage;
+    }
+
+    public async Task<IEnumerable<Person>?> SearchPerson(string keyword, CancellationToken token)
+    {
+        var searchResult = await Post<DataList<Person>>($"{BaseUrl}/v0/search/persons", new JsonContent(new SearchParams { Keyword = keyword}), token);
+        return searchResult?.Data;
     }
 
     public async Task<User?> GetAccountInfo(string accessToken, CancellationToken token)

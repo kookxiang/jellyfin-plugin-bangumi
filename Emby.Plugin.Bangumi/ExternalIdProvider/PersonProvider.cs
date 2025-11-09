@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using MediaBrowser.Common.Net;
@@ -37,9 +38,42 @@ public class PersonProvider(BangumiApi api)
         return result;
     }
 
-    public Task<IEnumerable<RemoteSearchResult>> GetSearchResults(PersonLookupInfo searchInfo, CancellationToken cancellationToken)
+    public async Task<IEnumerable<RemoteSearchResult>> GetSearchResults(PersonLookupInfo searchInfo, CancellationToken cancellationToken)
     {
-        throw new NotImplementedException();
+        cancellationToken.ThrowIfCancellationRequested();
+        var results = new List<RemoteSearchResult>();
+
+        if (!int.TryParse(searchInfo.ProviderIds?.GetValueOrDefault(Constants.ProviderName), out var id))
+        {
+            var persons = await api.SearchPerson(searchInfo.Name, cancellationToken);
+
+            results.AddRange((persons ?? []).Select(item => new RemoteSearchResult
+            {
+                Name = item.Name,
+                SearchProviderName = item.Name,
+                ImageUrl = item.DefaultImage,
+                Overview = item.ShortSummary,
+                ProviderIds = { { Constants.ProviderName, item.Id.ToString() } }
+            }));
+
+            return results;
+        }
+
+        var person = await api.GetPerson(id, cancellationToken);
+        if (person == null)
+            return results;
+
+        var result = new RemoteSearchResult
+        {
+            Name = person.Name,
+            SearchProviderName = person.Name,
+            ImageUrl = person.DefaultImage,
+            Overview = person.Summary,
+            PremiereDate = person.Birthdate
+        };
+        result.ProviderIds.Add(Constants.ProviderName, id.ToString());
+        results.Add(result);
+        return results;
     }
 
     public Task<HttpResponseInfo> GetImageResponse(string url, CancellationToken cancellationToken)

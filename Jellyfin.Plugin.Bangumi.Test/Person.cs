@@ -57,4 +57,12 @@ public class Person
         var imgList = await _imageProvider.GetImages(new MediaBrowser.Controller.Entities.TV.Episode { ProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "5847" } } }, _token);
         Assert.IsTrue(imgList.Any(), "should return at least one image");
     }
+
+    [TestMethod]
+    public async Task SearchPerson()
+    {
+        var results = await _provider.GetSearchResults(new PersonLookupInfo { Name = "上坂すみれ" }, _token);
+        Assert.IsTrue(results.Any(), "should return at least one search result");
+        Assert.IsNotNull(results.ToList().Find(x => x.ProviderIds[Constants.ProviderName] == "7307"), "should find correct person in search results");
+    }
 }

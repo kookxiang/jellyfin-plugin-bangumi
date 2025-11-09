@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
@@ -50,7 +51,21 @@ public class PersonProvider(BangumiApi api)
         var results = new List<RemoteSearchResult>();
 
         if (!int.TryParse(searchInfo.ProviderIds.GetOrDefault(Constants.ProviderName), out var id))
-            throw new NotImplementedException();
+        {
+            var searchResult = await api.SearchPerson(searchInfo.Name, cancellationToken);
+            var persons = searchResult?.ToList();
+
+            results.AddRange((persons ?? []).Select(item => new RemoteSearchResult
+            {
+                Name = item.Name,
+                SearchProviderName = item.Name,
+                ImageUrl = item.DefaultImage,
+                Overview = item.ShortSummary,
+                ProviderIds = { { Constants.ProviderName, item.Id.ToString() } }
+            }));
+
+            return results;
+        }
 
         var person = await api.GetPerson(id, cancellationToken);
         if (person == null)
