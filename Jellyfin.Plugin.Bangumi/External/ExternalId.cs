@@ -8,7 +8,7 @@ using MediaBrowser.Model.Providers;
 
 namespace Jellyfin.Plugin.Bangumi.External;
 
-public class ExternalIdProvider: IExternalId
+public class ExternalIdProvider : IExternalId
 {
     public bool Supports(IHasProviderIds item)
     {
@@ -19,6 +19,5 @@ public class ExternalIdProvider: IExternalId
 
     public string Key => Constants.ProviderName;
 
-    public ExternalIdMediaType? Type => ExternalIdMediaType.Series;
+    public ExternalIdMediaType? Type => null;
 }
-
