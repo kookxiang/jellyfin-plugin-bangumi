@@ -13,7 +13,7 @@ public static class DictionaryExtensions
 
 public static class StringExtensions
 {
-    private const string MarkdownForcedLineBreak = "<br>\n";
+    private const string MarkdownForcedLineBreak = "  \n";
 
     public static string ToMarkdown(this string input)
     {
