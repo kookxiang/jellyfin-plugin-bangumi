@@ -102,6 +102,7 @@ jobs:
             Invoke-WebRequest -Uri $Version.sourceUrl -OutFile "Release/$($Version.version).zip"
             $Version.sourceUrl = "https://kookxiang.github.io/jellyfin-plugin-bangumi/$($Version.version).zip"
           }
+          $Repository[0].imageUrl = "https://kookxiang.github.io/jellyfin-plugin-bangumi/poster.png"
           $Repository[0].versions = @(@{
             checksum =  (Get-FileHash -Algorithm MD5 "Jellyfin.Plugin.Bangumi.zip").Hash.ToLower()
             changelog = $env:CHANGELOG
@@ -109,8 +110,10 @@ jobs:
             sourceUrl = "https://kookxiang.github.io/jellyfin-plugin-bangumi/$($env:VERSION).zip"
             timestamp = Get-Date -AsUTC -Format s
             version = $env:VERSION
+            imageUrl = "https://kookxiang.github.io/jellyfin-plugin-bangumi/poster.png"
           }) + $Repository[0].versions
           Copy-Item -Path Jellyfin.Plugin.Bangumi.zip -Destination Release/$($env:VERSION).zip -Recurse
+          Copy-Item -Path poster.png -Destination Release/poster.png
           ConvertTo-Json @($Repository[0]) -Compress -Depth 5 | Out-File Release/repository.json -Encoding UTF8NoBOM -NoNewline
       - name: Generate GitHub Pages Artifact
         uses: actions/upload-artifact@v4
