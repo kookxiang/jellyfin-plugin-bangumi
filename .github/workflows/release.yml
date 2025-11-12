@@ -22,8 +22,6 @@ jobs:
   build:
     name: Build Release Package
     runs-on: ubuntu-latest
-    env:
-      TARGET_ABI_VERSION: 10.11.0.0
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
@@ -41,7 +39,6 @@ jobs:
         shell: pwsh
         env:
           CHANGELOG: ${{ github.event.release.body }}
-          TARGET_ABI_VERSION: ${{ env.TARGET_ABI_VERSION }}
         run: |
           @{
               category = "Metadata"
@@ -51,7 +48,7 @@ jobs:
               name = "Bangumi"
               overview = "bgm.tv metadata provider for Jellyfin"
               owner = "kookxiang"
-              targetAbi = $env:TARGET_ABI_VERSION
+              targetAbi = "10.11.0.0"
               timestamp = Get-Date -AsUTC -Format s
               version = "${{ github.ref_name }}.0"
               imageUrl = "https://kookxiang.github.io/jellyfin-plugin-bangumi/poster.png"
@@ -101,7 +98,6 @@ jobs:
           CHANGELOG: ${{ github.event.release.body }}
           TOKEN: ${{ github.token }}
           VERSION: ${{ github.ref_name }}.0
-          TARGET_ABI_VERSION: ${{ env.TARGET_ABI_VERSION }}
         run: |
           $Repository = Invoke-WebRequest https://jellyfin-plugin-bangumi.kookxiang.dev/repository.json | % Content | ConvertFrom-Json
           New-Item -ItemType Directory -Force -Path Release
@@ -123,7 +119,7 @@ jobs:
             versions = @(@{
               checksum =  (Get-FileHash -Algorithm MD5 "Jellyfin.Plugin.Bangumi.zip").Hash.ToLower()
               changelog = $env:CHANGELOG
-              targetAbi = $env:TARGET_ABI_VERSION
+              targetAbi = "10.11.0.0"
               sourceUrl = "https://kookxiang.github.io/jellyfin-plugin-bangumi/$($env:VERSION).zip"
               timestamp = Get-Date -AsUTC -Format s
               version = $env:VERSION
