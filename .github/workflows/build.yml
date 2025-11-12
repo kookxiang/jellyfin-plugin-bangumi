@@ -75,6 +75,7 @@ jobs:
               targetAbi = "10.11.0.0"
               timestamp = Get-Date -AsUTC -Format s
               version = "${{ needs.build.outputs.version }}"
+              imageUrl = "https://kookxiang.github.io/jellyfin-plugin-bangumi/poster.png"
           } | ConvertTo-Json -Compress | Out-File "jellyfin/meta.json" -Encoding UTF8 -NoNewline
       - name: Pack Jellyfin Plugin
         run: zip -9j Jellyfin.Plugin.Bangumi.zip jellyfin/*.dll jellyfin/meta.json
