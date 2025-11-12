@@ -110,7 +110,7 @@ jobs:
           }
           Copy-Item -Path Jellyfin.Plugin.Bangumi.zip -Destination Release/$($env:VERSION).zip -Recurse
           Invoke-WebRequest -Uri https://raw.githubusercontent.com/kookxiang/jellyfin-plugin-bangumi/refs/heads/master/poster.png -OutFile Release/poster.png
-          @{
+          ConvertTo-Json -Compress -Depth 5 @(@{
             category = "Metadata"
             description = "bgm.tv metadata provider for Jellyfin"
             guid = "41b59f1b-a6cf-474a-b416-785379cbd856"
@@ -127,7 +127,7 @@ jobs:
               version = $env:VERSION
               imageUrl = "https://kookxiang.github.io/jellyfin-plugin-bangumi/poster.png"
             }) + $Repository[0].versions
-          } | ConvertTo-Json -Compress -Depth 5 | Out-File Release/repository.json -Encoding UTF8NoBOM -NoNewline
+          }) | Out-File Release/repository.json -Encoding UTF8NoBOM -NoNewline
       - name: Generate GitHub Pages Artifact
         uses: actions/upload-artifact@v4
         with:
