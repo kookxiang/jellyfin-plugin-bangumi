@@ -50,7 +50,7 @@ jobs:
               name = "Bangumi"
               overview = "bgm.tv metadata provider for Jellyfin"
               owner = "kookxiang"
-              targetAbi = $env:TARGET_ABI_VERSION
+              targetAbi = "$｛｛ env.TARGET_ABI_VERSION }｝"
               timestamp = Get-Date -AsUTC -Format s
               version = "${{ github.ref_name }}.0"
               imageUrl = "https://kookxiang.github.io/jellyfin-plugin-bangumi/poster.png"
@@ -121,7 +121,7 @@ jobs:
             versions = @(@{
               checksum =  (Get-FileHash -Algorithm MD5 "Jellyfin.Plugin.Bangumi.zip").Hash.ToLower()
               changelog = $env:CHANGELOG
-              targetAbi = $env:TARGET_ABI_VERSION
+              targetAbi = "$｛｛ env.TARGET_ABI_VERSION }｝"
               sourceUrl = "https://kookxiang.github.io/jellyfin-plugin-bangumi/$($env:VERSION).zip"
               timestamp = Get-Date -AsUTC -Format s
               version = $env:VERSION
