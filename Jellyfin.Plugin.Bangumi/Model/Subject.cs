@@ -144,9 +144,9 @@ public class Subject
 
         var score = list.Select(subject =>
             {
-                var chineseNameScore = subject.ChineseName != null
-                    ? Fuzz.Ratio(subject.ChineseName.ToLower(), keyword)
-                    : 0;
+                var chineseNameScore = string.IsNullOrEmpty(subject.ChineseName)
+                    ? 0
+                    : Fuzz.Ratio(subject.ChineseName.ToLower(), keyword);
                 var originalNameScore = Fuzz.Ratio(subject.OriginalName.ToLower(), keyword);
                 var aliasScore = subject.Alias?.Select(alias => Fuzz.Ratio(alias.ToLower(), keyword)) ?? [];
 

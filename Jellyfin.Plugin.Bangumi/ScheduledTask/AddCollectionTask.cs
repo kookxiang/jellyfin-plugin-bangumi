@@ -79,7 +79,7 @@ public class AddCollectionTask(BangumiApi api, ILibraryManager libraryManager, I
             // 创建合集
             var option = new CollectionCreationOptions
             {
-                Name = (firstSeries.ChineseName ?? firstSeries.OriginalName) + "（系列）",
+                Name = $"{(string.IsNullOrEmpty(firstSeries.ChineseName) ? firstSeries.OriginalName : firstSeries.ChineseName)}（系列）",
 #if EMBY
                 ItemIdList = subjectsInLibrary.Select(o => o.InternalId).ToArray(),
 #else
@@ -95,7 +95,7 @@ public class AddCollectionTask(BangumiApi api, ILibraryManager libraryManager, I
 
             // 添加已处理的 subjects，避免后面重复处理
             processed.UnionWith(subjectsInLibrary.Select(c => c.Id));
-            log.Info($"添加合集：{subject.Name}");
+            log.Info("添加合集：{subjects}", string.Join(", ", subjectsInLibrary.Select(s => s.Name)));
 
             // 随机设置合集封面
             var moviesImages = subjectsInLibrary.Where(o => o.HasImage(ImageType.Primary));
