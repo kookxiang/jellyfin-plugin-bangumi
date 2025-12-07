@@ -60,7 +60,7 @@ public partial class OAuthUser
         var response = await httpClient.SendAsync(options, "POST");
         var isFailed = response.StatusCode >= HttpStatusCode.MovedPermanently;
         var stream = new StreamReader(response.Content);
-        var responseBody = await stream.ReadToEndAsync(cancellationToken);
+        var responseBody = await stream.ReadToEndAsync();
 #else
         var response = await httpClient.PostAsync("https://bgm.tv/oauth/access_token", formData, cancellationToken);
         var isFailed = !response.IsSuccessStatusCode;
@@ -69,7 +69,11 @@ public partial class OAuthUser
         if (isFailed)
         {
             var error = JsonSerializer.Deserialize<OAuthError>(responseBody, Constants.JsonSerializerOptions)!;
+#if EMBY
+            throw new HttpRequestException(error.ErrorDescription);
+#else
             throw new HttpIOException(HttpRequestError.InvalidResponse, error.ErrorDescription);
+#endif
         }
 
         var newUser = JsonSerializer.Deserialize<OAuthUser>(responseBody, Constants.JsonSerializerOptions)!;
