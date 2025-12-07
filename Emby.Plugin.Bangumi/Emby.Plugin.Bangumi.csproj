@@ -1,7 +1,8 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
+    <TargetFramework>net6.0</TargetFramework>
+    <LangVersion>12.0</LangVersion>
     <RootNamespace>Jellyfin.Plugin.Bangumi</RootNamespace>
     <DefineConstants>EMBY</DefineConstants>
   </PropertyGroup>

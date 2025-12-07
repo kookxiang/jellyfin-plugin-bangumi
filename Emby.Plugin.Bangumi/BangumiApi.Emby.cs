@@ -29,7 +29,7 @@ public partial class BangumiApi(IHttpClient httpClient, OAuthStore store)
         using var response = await httpClient.SendAsync(options, method);
         if (response.StatusCode >= HttpStatusCode.MovedPermanently) await HandleHttpException(response);
         using var stream = new StreamReader(response.Content);
-        return await stream.ReadToEndAsync(token);
+        return await stream.ReadToEndAsync();
     }
 
     public Task<T?> Get<T>(string url, CancellationToken token)
@@ -60,7 +60,7 @@ public partial class BangumiApi(IHttpClient httpClient, OAuthStore store)
             "POST");
         if (response.StatusCode >= HttpStatusCode.MovedPermanently) await HandleHttpException(response);
         using var stream = new StreamReader(response.Content);
-        return await stream.ReadToEndAsync(token);
+        return await stream.ReadToEndAsync();
     }
 
     public Task<T?> Post<T>(string url, HttpContent content)

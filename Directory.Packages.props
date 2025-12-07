@@ -7,12 +7,12 @@
     <PackageVersion Include="Fastenshtein" Version="1.0.10" />
     <PackageVersion Include="FuzzySharp" Version="2.0.2" />
     <PackageVersion Include="Jellyfin.Controller" Version="10.11.0" />
-    <PackageVersion Include="MediaBrowser.Server.Core" Version="4.9.0.33-beta" />
+    <PackageVersion Include="MediaBrowser.Server.Core" Version="4.9.1.90" />
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="16.11.0" />
     <PackageVersion Include="MSTest.TestAdapter" Version="3.3.1" />
     <PackageVersion Include="MSTest.TestFramework" Version="3.0.2" />
     <PackageVersion Include="Newtonsoft.Json" Version="13.0.3" />
     <PackageVersion Include="StyleCop.Analyzers" Version="1.2.0-beta.556" />
-    <PackageVersion Include="System.IO.Pipelines" Version="6.0.0" />
+    <PackageVersion Include="System.IO.Pipelines" Version="8.0.0" />
   </ItemGroup>
 </Project>
