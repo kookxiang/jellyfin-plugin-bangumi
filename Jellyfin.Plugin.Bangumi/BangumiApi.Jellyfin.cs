@@ -9,17 +9,17 @@ using System.Threading;
 using System.Threading.Tasks;
 using Jellyfin.Plugin.Bangumi.Archive;
 using Jellyfin.Plugin.Bangumi.OAuth;
-using MediaBrowser.Common.Net;
 
 namespace Jellyfin.Plugin.Bangumi;
 
-public partial class BangumiApi(IHttpClientFactory httpClientFactory, ArchiveData archive, OAuthStore store, Logger<BangumiApi> logger)
+public partial class BangumiApi(ArchiveData archive, OAuthStore store, Logger<BangumiApi> logger)
 {
     private readonly Plugin _plugin = Plugin.Instance!;
 
     public Task<string> Get(string url, string? accessToken, CancellationToken token, bool useCache = true)
     {
-        return Send(new HttpRequestMessage(HttpMethod.Get, url), accessToken, token, useCache);
+        using var message = new HttpRequestMessage(HttpMethod.Get, url);
+        return Send(message, accessToken, token, useCache);
     }
 
     public async Task<T?> Get<T>(string url, CancellationToken token, bool useCache = true)
@@ -35,7 +35,7 @@ public partial class BangumiApi(IHttpClientFactory httpClientFactory, ArchiveDat
 
     public async Task<string> Post(string url, HttpContent content, string? accessToken, CancellationToken token)
     {
-        var request = new HttpRequestMessage(HttpMethod.Post, url);
+        using var request = new HttpRequestMessage(HttpMethod.Post, url);
         request.Content = content;
         return await Send(request, accessToken, token);
     }
@@ -53,8 +53,8 @@ public partial class BangumiApi(IHttpClientFactory httpClientFactory, ArchiveDat
 
     public async Task<string?> FollowRedirection(string url, CancellationToken token)
     {
-        var httpClient = GetHttpClient(new HttpClientHandler { AllowAutoRedirect = false });
-        var request = new HttpRequestMessage(HttpMethod.Get, url);
+        using var httpClient = GetHttpClient();
+        using var request = new HttpRequestMessage(HttpMethod.Get, url);
         if (store.GetAvailable() != null) request.Headers.Authorization = AuthenticationHeaderValue.Parse("Bearer " + store.GetAvailable()?.AccessToken);
 
         using var response = await httpClient.SendAsync(request, token);
@@ -93,19 +93,19 @@ public partial class BangumiApi(IHttpClientFactory httpClientFactory, ArchiveDat
         return await Send(request, store.GetAvailable()?.AccessToken, token);
     }
 
+
     public HttpClient GetHttpClient()
     {
-        var httpClient = httpClientFactory.CreateClient(NamedClient.Default);
-        httpClient.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("Jellyfin.Plugin.Bangumi", _plugin.Version.ToString()));
-        httpClient.DefaultRequestHeaders.UserAgent.Add(
-            new ProductInfoHeaderValue("(https://github.com/kookxiang/jellyfin-plugin-bangumi)"));
-        httpClient.Timeout = TimeSpan.FromMilliseconds(_plugin.Configuration.RequestTimeout);
-        return httpClient;
-    }
-
-    public HttpClient GetHttpClient(HttpClientHandler handler)
-    {
-        var httpClient = new HttpClient(handler);
+#pragma warning disable CA2000
+        var handler = new HttpClientHandler
+        {
+            AllowAutoRedirect = false,
+            CheckCertificateRevocationList = true,
+            UseProxy = !string.IsNullOrEmpty(_plugin.Configuration.ProxyServerUrl),
+            Proxy = !string.IsNullOrEmpty(_plugin.Configuration.ProxyServerUrl) ? new WebProxy(_plugin.Configuration.ProxyServerUrl) : HttpClient.DefaultProxy,
+        };
+#pragma warning restore CA2000
+        var httpClient = new HttpClient(handler, true);
         httpClient.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("Jellyfin.Plugin.Bangumi", _plugin.Version.ToString()));
         httpClient.DefaultRequestHeaders.UserAgent.Add(
             new ProductInfoHeaderValue("(https://github.com/kookxiang/jellyfin-plugin-bangumi)"));

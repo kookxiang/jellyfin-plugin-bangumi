@@ -53,7 +53,9 @@ public class PluginConfiguration : BasePluginConfiguration
     public EpisodeParserType EpisodeParser { get; set; } = EpisodeParserType.Basic;
 
     public bool AlwaysReplaceEpisodeNumber { get; set; }
-    
+
     public bool ProcessMultiSeasonFolderByAnitomySharp { get; set; }
+
+    public string? ProxyServerUrl { get; set; }
 
 }

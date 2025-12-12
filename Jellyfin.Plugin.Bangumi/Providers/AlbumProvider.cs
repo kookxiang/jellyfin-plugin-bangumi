@@ -156,6 +156,7 @@ public class AlbumProvider(BangumiApi api, Logger<AlbumProvider> log)
 
     public async Task<HttpResponseMessage> GetImageResponse(string url, CancellationToken cancellationToken)
     {
-        return await api.GetHttpClient().GetAsync(url, cancellationToken).ConfigureAwait(false);
+        using var httpClient = api.GetHttpClient();
+        return await httpClient.GetAsync(url, cancellationToken);
     }
 }

@@ -62,7 +62,8 @@ public class OAuthController(BangumiApi api, OAuthStore store, IAuthorizationCon
         var info = store.Get(user.Id);
         if (info == null)
             return BadRequest();
-        await info.Refresh(api.GetHttpClient());
+        using var httpClient = api.GetHttpClient();
+        await info.Refresh(httpClient);
         await info.GetProfile(api);
         store.Save();
         return Accepted();
@@ -102,7 +103,8 @@ public class OAuthController(BangumiApi api, OAuthStore store, IAuthorizationCon
             new KeyValuePair<string, string>("code", code),
             new KeyValuePair<string, string>("redirect_uri", $"{urlPrefix}?user={user}")
         ]);
-        var response = await api.GetHttpClient().PostAsync("https://bgm.tv/oauth/access_token", formData);
+        using var httpClient = api.GetHttpClient();
+        var response = await httpClient.PostAsync("https://bgm.tv/oauth/access_token", formData);
         var responseBody = await response.Content.ReadAsStringAsync();
         if (!response.IsSuccessStatusCode) return JsonSerializer.Deserialize<OAuthError>(responseBody, Constants.JsonSerializerOptions);
         var result = JsonSerializer.Deserialize<OAuthUser>(responseBody, Constants.JsonSerializerOptions)!;
@@ -124,8 +126,9 @@ public class OAuthController(BangumiApi api, OAuthStore store, IAuthorizationCon
             return BadRequest();
         using var formData = new FormUrlEncodedContent([
             new KeyValuePair<string, string>("access_token", accessToken)
-        ]);
-        var response = await api.GetHttpClient().PostAsync("https://bgm.tv/oauth/token_status", formData);
+        ]);;
+        using var httpClient = api.GetHttpClient();
+        var response = await httpClient.PostAsync("https://bgm.tv/oauth/token_status", formData);
         var responseBody = await response.Content.ReadAsStringAsync();
         if (!response.IsSuccessStatusCode)
         {

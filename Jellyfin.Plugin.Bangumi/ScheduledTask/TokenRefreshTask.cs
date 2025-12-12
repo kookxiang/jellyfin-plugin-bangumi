@@ -46,6 +46,13 @@ public class TokenRefreshTask(BangumiApi api, OAuthStore store, Logger<TokenRefr
         var users = store.GetUsers();
         var current = 0d;
         var total = users.Count;
+
+#if EMBY
+        var httpClient = api.GetHttpClient();
+#else
+        using var httpClient = api.GetHttpClient();
+#endif
+
         foreach (var (guid, user) in users)
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -59,7 +66,7 @@ public class TokenRefreshTask(BangumiApi api, OAuthStore store, Logger<TokenRefr
 
             try
             {
-                await user.Refresh(api.GetHttpClient(), cancellationToken);
+                await user.Refresh(httpClient, cancellationToken);
                 await user.GetProfile(api, cancellationToken);
                 logger.Info($"用户 #{user.UserId} 授权刷新成功");
             }

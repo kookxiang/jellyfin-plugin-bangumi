@@ -120,8 +120,9 @@ public class EpisodeProvider(BangumiApi api, Logger<EpisodeProvider> log, ILibra
         throw new NotImplementedException();
     }
 
-    public Task<HttpResponseMessage> GetImageResponse(string url, CancellationToken cancellationToken)
+    public async Task<HttpResponseMessage> GetImageResponse(string url, CancellationToken cancellationToken)
     {
-        return api.GetHttpClient().GetAsync(url, cancellationToken);
+        using var httpClient = api.GetHttpClient();
+        return await httpClient.GetAsync(url, cancellationToken);
     }
 }
