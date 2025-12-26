@@ -11,11 +11,13 @@ using MediaBrowser.Model.Providers;
 namespace Jellyfin.Plugin.Bangumi.ExternalIdProvider;
 
 public class PersonProvider(BangumiApi api)
-    : IRemoteMetadataProvider<Person, PersonLookupInfo>, IHasOrder
+    : IRemoteMetadataProvider<Person, PersonLookupInfo>, IHasOrder, IHasSupportedExternalIdentifiers
 {
     public int Order => -5;
 
     public string Name => Constants.ProviderName;
+    
+    public string[] GetSupportedExternalIdentifiers() => [Constants.ProviderName];
 
     public async Task<MetadataResult<Person>> GetMetadata(PersonLookupInfo info, CancellationToken cancellationToken)
     {

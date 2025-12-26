@@ -1,10 +1,10 @@
-﻿using MediaBrowser.Controller.Entities.TV;
+using MediaBrowser.Controller.Entities.TV;
 using MediaBrowser.Controller.Providers;
 using MediaBrowser.Model.Entities;
 
 namespace Jellyfin.Plugin.Bangumi.Extension;
 
-public class ExternalSeriesId : IExternalId
+public class ExternalSeriesId : IExternalId, IHasWebsite
 {
     public bool Supports(IHasProviderIds item)
     {
@@ -16,4 +16,6 @@ public class ExternalSeriesId : IExternalId
     public string Key => Constants.ProviderName;
 
     public string UrlFormatString => "https://bgm.tv/subject/{0}";
+
+    public string Website => "https://bgm.tv";
 }

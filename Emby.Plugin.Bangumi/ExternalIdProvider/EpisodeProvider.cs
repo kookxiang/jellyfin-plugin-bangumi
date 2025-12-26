@@ -14,12 +14,15 @@ using Episode = MediaBrowser.Controller.Entities.TV.Episode;
 
 namespace Jellyfin.Plugin.Bangumi.ExternalIdProvider;
 
-public class EpisodeProvider(BangumiApi api, ILogger log) : IRemoteMetadataProvider<Episode, EpisodeInfo>, IHasOrder
+public class EpisodeProvider(BangumiApi api, ILogger log) : IRemoteMetadataProvider<Episode, EpisodeInfo>, IHasOrder, IHasSupportedExternalIdentifiers
 {
     private static PluginConfiguration Configuration => Plugin.Instance!.Configuration;
 
     public int Order => -5;
+
     public string Name => Constants.ProviderName;
+    
+    public string[] GetSupportedExternalIdentifiers() => [Constants.ProviderName];
 
     public async Task<MetadataResult<Episode>> GetMetadata(EpisodeInfo info, CancellationToken cancellationToken)
     {
