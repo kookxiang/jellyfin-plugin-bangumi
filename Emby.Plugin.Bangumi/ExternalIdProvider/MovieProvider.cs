@@ -14,13 +14,15 @@ using MediaBrowser.Model.Providers;
 namespace Jellyfin.Plugin.Bangumi.ExternalIdProvider;
 
 public class MovieProvider(BangumiApi api, ILogger logger)
-    : IRemoteMetadataProvider<Movie, MovieInfo>, IHasOrder
+    : IRemoteMetadataProvider<Movie, MovieInfo>, IHasOrder, IHasSupportedExternalIdentifiers
 {
     private static PluginConfiguration Configuration => Plugin.Instance!.Configuration;
 
     public int Order => -5;
 
     public string Name => Constants.ProviderName;
+    
+    public string[] GetSupportedExternalIdentifiers() => [Constants.ProviderName];
 
     public async Task<MetadataResult<Movie>> GetMetadata(MovieInfo info, CancellationToken cancellationToken)
     {

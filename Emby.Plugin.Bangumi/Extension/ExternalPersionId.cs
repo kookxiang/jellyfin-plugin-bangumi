@@ -4,7 +4,7 @@ using MediaBrowser.Model.Entities;
 
 namespace Jellyfin.Plugin.Bangumi.Extension;
 
-public class ExternalPersonId : IExternalId
+public class ExternalPersonId : IExternalId, IHasWebsite
 {
     public bool Supports(IHasProviderIds item)
     {
@@ -16,4 +16,6 @@ public class ExternalPersonId : IExternalId
     public string Key => Constants.ProviderName;
 
     public string UrlFormatString => "https://bgm.tv/person/{0}";
+    
+    public string Website => "https://bgm.tv";
 }

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -13,13 +13,15 @@ using MediaBrowser.Model.Providers;
 namespace Jellyfin.Plugin.Bangumi.ExternalIdProvider;
 
 public class SeasonProvider(BangumiApi api, ILogger log)
-    : IRemoteMetadataProvider<Season, SeasonInfo>, IHasOrder
+    : IRemoteMetadataProvider<Season, SeasonInfo>, IHasOrder, IHasSupportedExternalIdentifiers
 {
     private static PluginConfiguration Configuration => Plugin.Instance!.Configuration;
 
     public int Order => -5;
 
     public string Name => Constants.ProviderName;
+    
+    public string[] GetSupportedExternalIdentifiers() => [Constants.ProviderName];
 
     public async Task<MetadataResult<Season>> GetMetadata(SeasonInfo info, CancellationToken cancellationToken)
     {
