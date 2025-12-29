@@ -49,6 +49,8 @@ public class EpisodeProvider(BangumiApi api, Logger<EpisodeProvider> log, ILibra
 
         var result = new MetadataResult<Episode> { ResultLanguage = Constants.Language };
 
+        if (localConfiguration.Skip) return result;
+
         if (episode == null)
         {
             // remove season number
