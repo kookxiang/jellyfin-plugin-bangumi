@@ -20,14 +20,7 @@ public class DuplicatedEpisodeRemoveTask(Logger<DuplicatedEpisodeRemoveTask> log
     public string Description => "清理重复 Bangumi ID 的剧集";
     public string Category => "Bangumi";
 
-    public IEnumerable<TaskTriggerInfo> GetDefaultTriggers() =>
-    [
-        new()
-        {
-            Type = TaskTriggerInfoType.DailyTrigger,
-            TimeOfDayTicks = TimeSpan.FromHours(3).Ticks,
-        }
-    ];
+    public IEnumerable<TaskTriggerInfo> GetDefaultTriggers() => [];
 
     private static PluginConfiguration Configuration => Plugin.Instance!.Configuration;
 
@@ -72,6 +65,13 @@ public class DuplicatedEpisodeRemoveTask(Logger<DuplicatedEpisodeRemoveTask> log
                 continue;
             }
 
+            var duplicatedEntries = list.GroupBy(x => x.Path).Where(g => g.Count() > 1).ToList();
+            if (duplicatedEntries.Count > 0)
+            {
+                logger.Warn("Episode with Bangumi ID {Id} has duplicated entries: {Paths}, ignored.", id, string.Join(", ", duplicatedEntries.Select(x => x.Key)));
+                continue;
+            }
+
             logger.Info("Episode with Bangumi ID {Id} has {Count} copies.", id, list.Count);
             List<BaseItem> pendingRemovalList;
 
@@ -106,6 +106,7 @@ public class DuplicatedEpisodeRemoveTask(Logger<DuplicatedEpisodeRemoveTask> log
             }
 
             logger.Info("Removing duplicated episode {Id} files: {Paths}", id, string.Join(", ", pendingRemovalList.Select(item => item.Path)));
+            if (Configuration.DetectDuplicatedEpisodeOnly) continue;
             foreach (var baseItem in pendingRemovalList)
             {
                 library.DeleteItem(baseItem, new DeleteOptions { DeleteFileLocation = true }, true);

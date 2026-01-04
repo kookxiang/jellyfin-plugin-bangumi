@@ -64,6 +64,8 @@ public class PluginConfiguration : BasePluginConfiguration
 
     public RemoveDuplicatedEpisodeMode RemoveDuplicatedEpisode { get; set; } = RemoveDuplicatedEpisodeMode.Off;
 
+    public bool DetectDuplicatedEpisodeOnly { get; set; }
+
     public string? ProxyServerUrl { get; set; }
 
 }
