@@ -274,19 +274,26 @@
                         <h2 class="sectionTitle">重复剧集检测</h2>
                     </div>
                 </div>
-                <div class="selectContainer">
-                    <label class="selectLabel" for="RemoveDuplicatedEpisode">清理相同 ID 的剧集</label>
-                    <select class="emby-select-withcolor emby-select" id="RemoveDuplicatedEpisode" is="emby-select">
-                        <option value="Off">关闭 (默认)</option>
-                        <option value="ModifiedTime">按文件最后修改时间，只保留最新版本</option>
-                    </select>
+                <div class="checkboxContainer checkboxContainer-withDescription">
+                    <label class="emby-checkbox-label">
+                        <input id="DetectDuplicatedEpisode" is="emby-checkbox" type="checkbox"/>
+                        <span>启用</span>
+                    </label>
+                    <div class="fieldDescription">默认保留最后修改的版本</div>
                 </div>
                 <div class="checkboxContainer checkboxContainer-withDescription">
                     <label class="emby-checkbox-label">
-                        <input id="DetectDuplicatedEpisodeOnly" is="emby-checkbox" type="checkbox"/>
-                        <span>只返回重复文件列表，不实际删除</span>
+                        <input id="SkipDuplicatedEpisodeDetectForSpecials" is="emby-checkbox" type="checkbox"/>
+                        <span>仅检测正片</span>
                     </label>
-                    <div class="fieldDescription">只在日志中返回待删除文件列表，强烈建议先验证一下</div>
+                    <div class="fieldDescription">OVA、OAD、特典等误判概率较高，启用后跳过这些内容</div>
+                </div>
+                <div class="checkboxContainer checkboxContainer-withDescription">
+                    <label class="emby-checkbox-label">
+                        <input id="RemoveDuplicatedEpisode" is="emby-checkbox" type="checkbox"/>
+                        <span>删除检测出来的文件</span>
+                    </label>
+                    <div class="fieldDescription">删除后无法恢复，请务必先在日志中查看并确认后再启用删除功能。</div>
                 </div>
                 <div class="submit-button-container">
                     <button class="raised button-submit block emby-button" is="emby-button" type="submit">

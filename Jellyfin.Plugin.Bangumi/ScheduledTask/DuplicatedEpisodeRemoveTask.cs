@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using Jellyfin.Data.Enums;
 using Jellyfin.Plugin.Bangumi.Configuration;
 using MediaBrowser.Controller.Entities;
+using MediaBrowser.Controller.Entities.TV;
 using MediaBrowser.Controller.Library;
 using MediaBrowser.Model.Entities;
 using MediaBrowser.Model.Tasks;
@@ -26,7 +27,7 @@ public class DuplicatedEpisodeRemoveTask(Logger<DuplicatedEpisodeRemoveTask> log
 
     public void Execute(IProgress<double> progress, CancellationToken cancellationToken)
     {
-        if (Configuration.RemoveDuplicatedEpisode == RemoveDuplicatedEpisodeMode.Off) return;
+        if (!Configuration.DetectDuplicatedEpisode) return;
 
         progress.Report(0);
 
@@ -42,12 +43,14 @@ public class DuplicatedEpisodeRemoveTask(Logger<DuplicatedEpisodeRemoveTask> log
 
         progress.Report(10);
 
-        foreach (var episode in episodeList)
+        foreach (var item in episodeList)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            var id = episode.GetProviderId(Constants.PluginName);
+            var id = item.GetProviderId(Constants.PluginName);
             if (id is null) continue;
             if (!map.ContainsKey(id)) map[id] = [];
+            if (item is not Episode episode) continue;
+            if ((episode.Season?.IndexNumber == 0 || episode.ParentIndexNumber == 0) && Configuration.SkipDuplicatedEpisodeDetectForSpecials) continue;
             map[id].Add(episode);
         }
 
@@ -73,17 +76,8 @@ public class DuplicatedEpisodeRemoveTask(Logger<DuplicatedEpisodeRemoveTask> log
             }
 
             logger.Info("Episode with Bangumi ID {Id} has {Count} copies: {Paths}", id, list.Count, string.Join(", ", list.Select(x => x.Path)));
-            List<BaseItem> pendingRemovalList;
-
-            if (Configuration.RemoveDuplicatedEpisode is RemoveDuplicatedEpisodeMode.ModifiedTime)
-            {
-                var paths = list.Select(item => item.Path).OrderByDescending(path => new FileInfo(path).LastWriteTime).ToList();
-                pendingRemovalList = list.Where(item => item.Path != paths[0]).ToList();
-            }
-            else
-            {
-                throw new NotImplementedException($"RemoveDuplicatedEpisodeMode {Configuration.RemoveDuplicatedEpisode} not implemented.");
-            }
+            var paths = list.Select(item => item.Path).OrderByDescending(path => new FileInfo(path).LastWriteTime).ToList();
+            var pendingRemovalList = list.Where(item => item.Path != paths[0]).ToList();
 
             if (pendingRemovalList.Count <= 0) continue;
 
@@ -106,7 +100,7 @@ public class DuplicatedEpisodeRemoveTask(Logger<DuplicatedEpisodeRemoveTask> log
             }
 
             logger.Info("Removing duplicated episode {Id} files: {Paths}", id, string.Join(", ", pendingRemovalList.Select(item => item.Path)));
-            if (Configuration.DetectDuplicatedEpisodeOnly) continue;
+            if (!Configuration.RemoveDuplicatedEpisode) continue;
             foreach (var baseItem in pendingRemovalList)
             {
                 library.DeleteItem(baseItem, new DeleteOptions { DeleteFileLocation = true }, true);

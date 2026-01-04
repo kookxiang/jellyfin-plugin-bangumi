@@ -14,12 +14,6 @@ public enum EpisodeParserType
     AnitomySharp
 }
 
-public enum RemoveDuplicatedEpisodeMode
-{
-    Off,
-    ModifiedTime,
-}
-
 public class PluginConfiguration : BasePluginConfiguration
 {
     public TranslationPreferenceType TranslationPreference { get; set; } = TranslationPreferenceType.Chinese;
@@ -62,10 +56,11 @@ public class PluginConfiguration : BasePluginConfiguration
 
     public bool ProcessMultiSeasonFolderByAnitomySharp { get; set; }
 
-    public RemoveDuplicatedEpisodeMode RemoveDuplicatedEpisode { get; set; } = RemoveDuplicatedEpisodeMode.Off;
+    public bool DetectDuplicatedEpisode { get; set; } = true;
 
-    public bool DetectDuplicatedEpisodeOnly { get; set; }
+    public bool SkipDuplicatedEpisodeDetectForSpecials { get; set; } = true;
+
+    public bool RemoveDuplicatedEpisode { get; set; }
 
     public string? ProxyServerUrl { get; set; }
-
 }
