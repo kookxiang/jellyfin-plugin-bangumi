@@ -53,7 +53,7 @@ public partial class BangumiApi(ArchiveData archive, OAuthStore store, Logger<Ba
 
     public async Task<string?> FollowRedirection(string url, CancellationToken token)
     {
-        using var httpClient = GetHttpClient();
+        using var httpClient = GetHttpClient(allowAutoRedirect: false);
         using var request = new HttpRequestMessage(HttpMethod.Get, url);
         if (store.GetAvailable() != null) request.Headers.Authorization = AuthenticationHeaderValue.Parse("Bearer " + store.GetAvailable()?.AccessToken);
 
@@ -94,12 +94,12 @@ public partial class BangumiApi(ArchiveData archive, OAuthStore store, Logger<Ba
     }
 
 
-    public HttpClient GetHttpClient()
+    public HttpClient GetHttpClient(bool allowAutoRedirect = true)
     {
 #pragma warning disable CA2000
         var handler = new HttpClientHandler
         {
-            AllowAutoRedirect = false,
+            AllowAutoRedirect = allowAutoRedirect,
             CheckCertificateRevocationList = true,
             UseProxy = !string.IsNullOrEmpty(_plugin.Configuration.ProxyServerUrl),
             Proxy = !string.IsNullOrEmpty(_plugin.Configuration.ProxyServerUrl) ? new WebProxy(_plugin.Configuration.ProxyServerUrl) : HttpClient.DefaultProxy,
