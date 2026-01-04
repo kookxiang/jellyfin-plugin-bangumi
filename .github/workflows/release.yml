@@ -22,6 +22,8 @@ jobs:
   build:
     name: Build Release Package
     runs-on: ubuntu-latest
+    outputs:
+      abi-version: ${{ steps.abi-version.outputs.version }}
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
@@ -35,6 +37,13 @@ jobs:
         run: dotnet restore
       - name: .NET Publish
         run: dotnet publish --configuration Release --output publish Jellyfin.Plugin.Bangumi
+      - name: Resolve Target ABI Version
+        id: abi-version
+        shell: pwsh
+        run: |
+          $dll = Get-ChildItem -Path ~/.nuget/packages/jellyfin.controller -Filter "MediaBrowser.Controller.dll" -Recurse | Select-Object -First 1
+          $version = [System.Reflection.AssemblyName]::GetAssemblyName($dll.FullName).Version.ToString()
+          echo "version=$version" >> $env:GITHUB_OUTPUT
       - name: Generate Jellyfin Plugin Metadata
         shell: pwsh
         env:
@@ -48,7 +57,7 @@ jobs:
               name = "Bangumi"
               overview = "bgm.tv metadata provider for Jellyfin"
               owner = "kookxiang"
-              targetAbi = "10.11.0.0"
+              targetAbi = "${{ steps.abi-version.outputs.version }}"
               timestamp = Get-Date -AsUTC -Format s
               version = "${{ github.ref_name }}.0"
               imageUrl = "https://kookxiang.github.io/jellyfin-plugin-bangumi/poster.png"
@@ -119,7 +128,7 @@ jobs:
             versions = @(@{
               checksum =  (Get-FileHash -Algorithm MD5 "Jellyfin.Plugin.Bangumi.zip").Hash.ToLower()
               changelog = $env:CHANGELOG
-              targetAbi = "10.11.0.0"
+              targetAbi = "${{ needs.build.outputs.abi-version }}"
               sourceUrl = "https://kookxiang.github.io/jellyfin-plugin-bangumi/$($env:VERSION).zip"
               timestamp = Get-Date -AsUTC -Format s
               version = $env:VERSION
