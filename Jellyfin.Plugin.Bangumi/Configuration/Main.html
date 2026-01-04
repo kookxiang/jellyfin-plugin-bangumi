@@ -269,6 +269,18 @@
                         <span>使用 AnitomySharp 猜测动画名</span>
                     </label>
                 </div>
+                <div class="verticalSection">
+                    <div class="sectionTitleContainer flex align-items-center">
+                        <h2 class="sectionTitle">附加功能</h2>
+                    </div>
+                </div>
+                <div class="selectContainer">
+                    <label class="selectLabel" for="RemoveDuplicatedEpisode">自动清理相同 Bangumi ID 的剧集</label>
+                    <select class="emby-select-withcolor emby-select" id="RemoveDuplicatedEpisode" is="emby-select">
+                        <option value="Off">不清理 (默认)</option>
+                        <option value="ModifiedTime">按文件最后修改时间，保留最新版本</option>
+                    </select>
+                </div>
                 <div class="submit-button-container">
                     <button class="raised button-submit block emby-button" is="emby-button" type="submit">
                         <span>保存</span>
