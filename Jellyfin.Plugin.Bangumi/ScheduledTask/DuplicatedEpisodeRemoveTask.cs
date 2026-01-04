@@ -72,7 +72,7 @@ public class DuplicatedEpisodeRemoveTask(Logger<DuplicatedEpisodeRemoveTask> log
                 continue;
             }
 
-            logger.Info("Episode with Bangumi ID {Id} has {Count} copies.", id, list.Count);
+            logger.Info("Episode with Bangumi ID {Id} has {Count} copies: {Paths}", id, list.Count, string.Join(", ", list.Select(x => x.Path)));
             List<BaseItem> pendingRemovalList;
 
             if (Configuration.RemoveDuplicatedEpisode is RemoveDuplicatedEpisodeMode.ModifiedTime)
