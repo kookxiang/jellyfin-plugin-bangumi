@@ -14,6 +14,7 @@ jobs:
     name: Build and Test Plugin
     runs-on: ubuntu-latest
     outputs:
+      abi-version: ${{ steps.abi-version.outputs.version }}
       version: ${{ steps.meta.outputs.tag }}.${{ steps.meta.outputs.distance }}
     steps:
       - name: Checkout Repository
@@ -35,6 +36,13 @@ jobs:
         run: dotnet test --configuration Release Jellyfin.Plugin.Bangumi.Test
       - name: .NET Publish
         run: dotnet publish --configuration Release --output publish Jellyfin.Plugin.Bangumi
+      - name: Resolve Target ABI Version
+        id: abi-version
+        shell: pwsh
+        run: |
+          $dll = Get-ChildItem -Path ~/.nuget/packages/jellyfin.controller -Filter "MediaBrowser.Controller.dll" -Recurse | Select-Object -First 1
+          $version = [System.Reflection.AssemblyName]::GetAssemblyName($dll.FullName).Version.ToString()
+          echo "version=$version" >> $env:GITHUB_OUTPUT
       - uses: actions/upload-artifact@v4
         with:
           name: jellyfin-plugin
@@ -72,7 +80,7 @@ jobs:
               name = "Bangumi"
               overview = "bgm.tv metadata provider for Jellyfin"
               owner = "kookxiang"
-              targetAbi = "10.11.0.0"
+              targetAbi = "${{ needs.build.outputs.abi-version }}"
               timestamp = Get-Date -AsUTC -Format s
               version = "${{ needs.build.outputs.version }}"
               imageUrl = "https://kookxiang.github.io/jellyfin-plugin-bangumi/poster.png"
