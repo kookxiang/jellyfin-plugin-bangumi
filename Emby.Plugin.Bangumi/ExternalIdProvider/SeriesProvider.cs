@@ -74,7 +74,24 @@ public class SeriesProvider(BangumiApi api, ILogger log)
         if (subject.IsNSFW)
             result.Item.OfficialRating = "X";
 
-        (await api.GetSubjectPersonInfos(subject.Id, cancellationToken)).ToList().ForEach(result.AddPerson);
+        try
+        {
+            (await api.GetSubjectPersonInfos(subject.Id, cancellationToken)).ToList().ForEach(result.AddPerson);
+        }
+        catch (Exception ex)
+        {
+            log.Error("Failed to get person infos for subject {0} : {1}", subject.Id, ex);
+        }
+
+        try
+        {
+            (await api.GetSubjectCharacters(subject.Id, cancellationToken)).ToList().ForEach(result.AddPerson);
+        }
+        catch (Exception ex)
+        {
+            log.Error("Failed to get person infos for subject {0} : {1}", subject.Id, ex);
+        }
+
         (await api.GetSubjectCharacters(subject.Id, cancellationToken)).ToList().ForEach(result.AddPerson);
 
         return result;
