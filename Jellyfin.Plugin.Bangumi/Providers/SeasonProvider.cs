@@ -24,7 +24,7 @@ public class SeasonProvider(BangumiApi api, Logger<EpisodeProvider> log, ILibrar
 
     public string Name => Constants.ProviderName;
 
-    private static readonly Dictionary<int, string> chineseOrdinalChars = new()
+    private static readonly Dictionary<int, string> ChineseOrdinalChars = new()
     {
         { 1, "一" },
         { 2, "二" },
@@ -78,26 +78,43 @@ public class SeasonProvider(BangumiApi api, Logger<EpisodeProvider> log, ILibrar
                 .MaxBy(x => int.Parse(x.GetProviderId(Constants.ProviderName) ?? "0"));
             if (previousSeason?.Path == info.Path)
             {
-                //This is the first season to be matched, which means season 1 and any other possible previous season is missing. We can just try match it by name.
-                string[] searchNames = [$"{series.Name} 第{chineseOrdinalChars[info.IndexNumber ?? 1]}季", $"{series.Name} Season {info.IndexNumber}"];
-                foreach (var searchName in searchNames)
+                try
                 {
-                    log.Info($"Guessing season id by name:  {searchName}");
-                    var searchResult = await api.SearchSubject(searchName, cancellationToken);
-                    if (int.TryParse(info.SeriesProviderIds.GetOrDefault(Constants.ProviderName), out var parentId))
+                    //This is the first season to be matched, which means season 1 and any other possible previous season is missing. We can just try match it by name.
+                    string[] searchNames =
+                    [
+                        $"{series.Name} 第{ChineseOrdinalChars[info.IndexNumber ?? 1]}季",
+                        $"{series.Name} Season {info.IndexNumber}"
+                    ];
+                    foreach (var searchName in searchNames)
                     {
-                        searchResult = searchResult.Where(x => x.Id != parentId);
+                        log.Info($"Guessing season id by name:  {searchName}");
+                        var searchResult = await api.SearchSubject(searchName, cancellationToken);
+                        if (int.TryParse(info.SeriesProviderIds.GetOrDefault(Constants.ProviderName), out var parentId))
+                        {
+                            searchResult = searchResult.Where(x => x.Id != parentId);
+                        }
+
+                        if (info.Year != null)
+                        {
+                            searchResult = searchResult.Where(x =>
+                                x.ProductionYear == null || x.ProductionYear == info.Year?.ToString());
+                        }
+
+                        if (searchResult.Any())
+                            subjectId = searchResult.First().Id;
                     }
-                    if (info.Year != null)
-                    {
-                        searchResult = searchResult.Where(x => x.ProductionYear == null || x.ProductionYear == info.Year?.ToString());
-                    }
-                    if (searchResult.Any())
-                        subjectId = searchResult.First().Id;
+
+                    log.Info("Guessed result: {Name} (#{ID})", subject?.Name, subject?.Id);
                 }
-                log.Info("Guessed result: {Name} (#{ID})", subject?.Name, subject?.Id);
+                catch (Exception ex)
+                {
+                    log.Error("Error occurred while guessing season id by name: {Error}", ex);
+                }
             }
-            if (int.TryParse(previousSeason?.GetProviderId(Constants.ProviderName), out var previousSeasonId) && previousSeasonId > 0)
+
+            if (int.TryParse(previousSeason?.GetProviderId(Constants.ProviderName), out var previousSeasonId) &&
+                previousSeasonId > 0)
             {
                 log.Info("Guessing season id from previous season #{ID}", previousSeasonId);
                 subject = await api.SearchNextSubject(previousSeasonId, cancellationToken);
@@ -154,7 +171,8 @@ public class SeasonProvider(BangumiApi api, Logger<EpisodeProvider> log, ILibrar
         return result;
     }
 
-    public Task<IEnumerable<RemoteSearchResult>> GetSearchResults(SeasonInfo searchInfo, CancellationToken cancellationToken)
+    public Task<IEnumerable<RemoteSearchResult>> GetSearchResults(SeasonInfo searchInfo,
+        CancellationToken cancellationToken)
     {
         return Task.FromResult(Enumerable.Empty<RemoteSearchResult>());
     }
