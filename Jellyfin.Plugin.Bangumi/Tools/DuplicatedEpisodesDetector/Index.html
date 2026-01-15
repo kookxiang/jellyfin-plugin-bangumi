@@ -1,0 +1,83 @@
+<div class="page type-interior pluginConfigurationPage" data-require="emby-input,emby-button,emby-select,emby-checkbox" data-role="page" id="duplicatedEpisodeDetectPage">
+    <link href="configurationpage?name=Plugin.Bangumi.Tools.DuplicatedEpisodesDetector.Style" rel="stylesheet"/>
+    <div data-role="content">
+        <div class="content-primary">
+            <form id="detect-form">
+                <div class="verticalSection">
+                    <div class="sectionTitleContainer flex align-items-center">
+                        <h2 class="sectionTitle">重复剧集检测</h2>
+                    </div>
+                </div>
+                <div class="checkboxContainer checkboxContainer-withDescription">
+                    <label class="emby-checkbox-label">
+                        <input id="skip-specials" is="emby-checkbox" type="checkbox" checked/>
+                        <span>仅检测正片</span>
+                    </label>
+                    <div class="fieldDescription">OVA、OAD、特典等误判概率较高，启用后跳过这些内容</div>
+                </div>
+                <div class="checkboxContainer checkboxContainer-withDescription">
+                    <label class="emby-checkbox-label">
+                        <input id="check-length" is="emby-checkbox" type="checkbox" checked/>
+                        <span>检查时长</span>
+                    </label>
+                    <div class="fieldDescription">如果时长差距超过 1%，且相差超过 30 秒，则认为是不同的章节</div>
+                </div>
+                <div class="submit-button-container">
+                    <button id="start-scan-button" class="raised button-submit block emby-button" is="emby-button" type="submit">
+                        <span>开始检测</span>
+                    </button>
+                </div>
+            </form>
+            <form id="detect-result" style="display: none">
+                <div class="verticalSection">
+                    <div class="sectionTitleContainer flex align-items-center">
+                        <h2 class="sectionTitle">检测结果</h2>
+                    </div>
+                </div>
+                <template id="episode-template">
+                    <div class="detect-result-item">
+                        <div class="detect-result-title">
+                            <i class="material-icons live_tv"></i>
+                            <h3></h3>
+                            <a target="_blank" class="material-icons open_in_new"></a>
+                        </div>
+                        <div class="detect-result-files"></div>
+                    </div>
+                </template>
+                <template id="item-template">
+                    <label>
+                        <input class="emby-checkbox" type="checkbox"/>
+                        <span class="checkboxOutline">
+                            <span class="material-icons check" aria-hidden="true"></span>
+                        </span>
+                        <div class="item-container">
+                            <div class="item-file-path"></div>
+                            <div class="item-file-info">
+                                <span>
+                                    <i class="material-icons today"></i>
+                                    <time class="file-modified-time">January 10, 2026 at 6:30:53 PM</time>
+                                </span>
+                                <span>
+                                    <i class="material-icons timer"></i>
+                                    <span class="duration">12 min, 34 sec</span>
+                                </span>
+                            </div>
+                        </div>
+                        <a target="_blank" class="material-icons info"></a>
+                    </label>
+                </template>
+                <div class="detect-result-list"></div>
+                <div class="remove-button-container">
+                    <button id="remove-button" class="raised button-submit block emby-button" is="emby-button" type="submit">
+                        <span>删除所选文件</span>
+                    </button>
+                </div>
+                <div class="detect-result-empty">
+                    <i class="material-icons check"></i>
+                    <div class="message">没有检测到重复剧集</div>
+                </div>
+            </form>
+        </div>
+    </div>
+    <script src="configurationpage?name=Plugin.Bangumi.Tools.DuplicatedEpisodesDetector.Script"></script>
+</div>

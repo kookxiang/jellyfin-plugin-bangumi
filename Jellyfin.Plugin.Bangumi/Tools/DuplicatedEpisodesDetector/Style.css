@@ -1,0 +1,136 @@
+#detect-result {
+    margin-top: 3em;
+}
+
+.detect-result-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2em;
+    margin-top: 4em;
+}
+
+.detect-result-empty .material-icons {
+    display: flex;
+    width: 96px;
+    height: 96px;
+    font-size: 64px;
+    border-radius: 48px;
+    align-items: center;
+    justify-content: center;
+    background-color: var(--jf-palette-success-main);
+}
+
+.detect-result-list {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+}
+
+.detect-result-title {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.detect-result-title h3 {
+    flex: 1;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+.detect-result-title a {
+    color: var(--jf-palette-text-primary);
+    opacity: 0.5;
+    transition: opacity 0.25s ease-in-out;
+    text-decoration: none;
+}
+
+.detect-result-title a:hover {
+    opacity: 1;
+}
+
+.detect-result-files {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.detect-result-files > label {
+    display: flex;
+    flex-direction: row;
+    padding: 1rem 1.25rem;
+    gap: 1rem;
+    border-radius: 0.25rem;
+    overflow: hidden;
+    background-color: var(--jf-palette-background-paper);
+    box-shadow: var(--jf-shadows-3);
+    transition: all 0.25s ease-in-out;
+}
+
+.detect-result-files > label:hover {
+    box-shadow: var(--jf-shadows-8);
+}
+
+.detect-result-files .checkboxOutline {
+    position: static;
+    flex-shrink: 0;
+}
+
+.detect-result-files > label:focus + .checkboxOutline {
+    border-color: var(--jf-palette-primary-main);
+}
+
+.detect-result-files > label > input:checked + .checkboxOutline {
+    border-color: var(--jf-palette-primary-main);
+    background-color: var(--jf-palette-primary-main);
+}
+
+.detect-result-files > label:focus > input:checked + .checkboxOutline {
+    border-color: var(--jf-palette-action-active);
+}
+
+.detect-result-files input:not(:checked) + .checkboxOutline > .check {
+    display: none;
+}
+
+.detect-result-files a {
+    color: var(--jf-palette-text-primary);
+    opacity: 0.5;
+    transition: opacity 0.25s ease-in-out;
+    text-decoration: none;
+}
+
+.detect-result-files a:hover {
+    opacity: 1;
+}
+
+.item-file-path {
+    flex: 1;
+}
+
+.item-file-info {
+    margin-top: 0.5rem;
+    font-size: 0.8rem;
+    display: flex;
+    gap: 2rem;
+    align-items: center;
+    opacity: 0.5;
+    color: var(--jf-palette-text-secondary);
+}
+
+.item-file-info > span {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.item-file-info .material-icons {
+    font-size: 1rem;
+}
+
+.remove-button-container {
+    margin-top: 3rem;
+}

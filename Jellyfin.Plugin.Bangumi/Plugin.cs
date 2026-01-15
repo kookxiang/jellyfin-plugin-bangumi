@@ -45,7 +45,23 @@ public class Plugin : BasePlugin<PluginConfiguration>, IHasWebPages
             {
                 Name = "Plugin.Bangumi.Configuration.Style",
                 EmbeddedResourcePath = $"{GetType().Namespace}.Configuration.Style.css"
-            }
+            },
+            new PluginPageInfo
+            {
+                Name = "Plugin.Bangumi.Tools.DuplicatedEpisodesDetector",
+                DisplayName = "重复剧集检测",
+                EmbeddedResourcePath = $"{GetType().Namespace}.Tools.DuplicatedEpisodesDetector.Index.html"
+            },
+            new PluginPageInfo
+            {
+                Name = "Plugin.Bangumi.Tools.DuplicatedEpisodesDetector.Script",
+                EmbeddedResourcePath = $"{GetType().Namespace}.Tools.DuplicatedEpisodesDetector.Script.js"
+            },
+            new PluginPageInfo
+            {
+                Name = "Plugin.Bangumi.Tools.DuplicatedEpisodesDetector.Style",
+                EmbeddedResourcePath = $"{GetType().Namespace}.Tools.DuplicatedEpisodesDetector.Style.css"
+            },
         ];
     }
 }

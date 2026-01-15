@@ -17,9 +17,15 @@
     <None Remove="Configuration\Style.css"/>
     <None Remove="Configuration\Main.html"/>
     <None Remove="Configuration\Main.js"/>
+    <None Remove="Tools\DuplicatedEpisodesDetector\Index.html"/>
+    <None Remove="Tools\DuplicatedEpisodesDetector\Script.js"/>
+    <None Remove="Tools\DuplicatedEpisodesDetector\Style.css"/>
     <EmbeddedResource Include="Configuration\Style.css"/>
     <EmbeddedResource Include="Configuration\Main.html"/>
     <EmbeddedResource Include="Configuration\Main.js"/>
+    <EmbeddedResource Include="Tools\DuplicatedEpisodesDetector\Index.html"/>
+    <EmbeddedResource Include="Tools\DuplicatedEpisodesDetector\Script.js"/>
+    <EmbeddedResource Include="Tools\DuplicatedEpisodesDetector\Style.css"/>
   </ItemGroup>
 
   <ItemGroup>

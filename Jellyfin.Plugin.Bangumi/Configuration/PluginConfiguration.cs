@@ -56,11 +56,5 @@ public class PluginConfiguration : BasePluginConfiguration
 
     public bool ProcessMultiSeasonFolderByAnitomySharp { get; set; }
 
-    public bool DetectDuplicatedEpisode { get; set; } = true;
-
-    public bool SkipDuplicatedEpisodeDetectForSpecials { get; set; } = true;
-
-    public bool RemoveDuplicatedEpisode { get; set; }
-
     public string? ProxyServerUrl { get; set; }
 }

@@ -40,15 +40,13 @@
                 });
                 if (!task) return;
                 var link = container.querySelector('#archive-update-schedule-link');
+                link.href = '#/dashboard/tasks/' + task.Id;
                 link.style.display = '';
-                link.addEventListener('click', function () {
-                    Dashboard.navigate('/dashboard/tasks/' + task.Id);
-                });
 
                 var button = container.querySelector('#config-archive-update-task');
                 button.style.display = '';
                 button.addEventListener('click', function () {
-                    Dashboard.navigate('/dashboard/tasks/' + task.Id);
+                    link.click();
                 });
             });
         });

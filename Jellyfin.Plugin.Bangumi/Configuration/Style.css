@@ -97,3 +97,38 @@
 #bangumi-archive-container:not(.has-archive-data) .archive-data-required {
     display: none;
 }
+
+.bangumi-plugin-tools-container {
+    padding: 8px 0;
+    margin-bottom: 1em;
+    background-color: var(--jf-palette-background-paper);
+}
+
+.bangumi-plugin-tools-container .bangumi-plugin-tools {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    padding: 8px 42px 8px 54px;
+    color: inherit;
+    text-decoration: none;
+}
+
+.bangumi-plugin-tools > .material-icons.handyman {
+    position: absolute;
+    top: 16px;
+    left: 16px;
+}
+
+.bangumi-plugin-tools > .material-icons.navigate_next {
+    position: absolute;
+    top: 16px;
+    right: 12px;
+}
+
+.bangumi-plugin-tools-container .bangumi-plugin-tools-title {
+    color: var(--jf-palette-text-primary)
+}
+
+.bangumi-plugin-tools-container .bangumi-plugin-tools-description {
+    color: var(--jf-palette-text-secondary);
+}

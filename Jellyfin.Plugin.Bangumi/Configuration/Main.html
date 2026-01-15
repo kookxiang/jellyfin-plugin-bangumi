@@ -271,29 +271,16 @@
                 </div>
                 <div class="verticalSection">
                     <div class="sectionTitleContainer flex align-items-center">
-                        <h2 class="sectionTitle">重复剧集检测</h2>
+                        <h2 class="sectionTitle">附加工具</h2>
                     </div>
                 </div>
-                <div class="checkboxContainer checkboxContainer-withDescription">
-                    <label class="emby-checkbox-label">
-                        <input id="DetectDuplicatedEpisode" is="emby-checkbox" type="checkbox"/>
-                        <span>启用</span>
-                    </label>
-                    <div class="fieldDescription">默认保留最后修改的版本</div>
-                </div>
-                <div class="checkboxContainer checkboxContainer-withDescription">
-                    <label class="emby-checkbox-label">
-                        <input id="SkipDuplicatedEpisodeDetectForSpecials" is="emby-checkbox" type="checkbox"/>
-                        <span>仅检测正片</span>
-                    </label>
-                    <div class="fieldDescription">OVA、OAD、特典等误判概率较高，启用后跳过这些内容</div>
-                </div>
-                <div class="checkboxContainer checkboxContainer-withDescription">
-                    <label class="emby-checkbox-label">
-                        <input id="RemoveDuplicatedEpisode" is="emby-checkbox" type="checkbox"/>
-                        <span>删除检测出来的文件</span>
-                    </label>
-                    <div class="fieldDescription">删除后无法恢复，请务必先在日志中查看并确认后再启用删除功能。</div>
+                <div class="bangumi-plugin-tools-container">
+                    <a href="#/configurationpage?name=Plugin.Bangumi.Tools.DuplicatedEpisodesDetector" class="bangumi-plugin-tools">
+                        <i class="material-icons handyman"></i>
+                        <div class="bangumi-plugin-tools-title">重复剧集检测</div>
+                        <div class="bangumi-plugin-tools-description">检测并删除重复的剧集文件</div>
+                        <i class="material-icons navigate_next"></i>
+                    </a>
                 </div>
                 <div class="submit-button-container">
                     <button class="raised button-submit block emby-button" is="emby-button" type="submit">
