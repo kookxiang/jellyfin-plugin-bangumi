@@ -96,7 +96,7 @@ jobs:
   repository:
     name: Update Plugin Repository
     runs-on: ubuntu-latest
-    needs: upload
+    needs: [build, upload]
     steps:
       - uses: actions/download-artifact@v4
         with:
@@ -107,6 +107,7 @@ jobs:
           CHANGELOG: ${{ github.event.release.body }}
           TOKEN: ${{ github.token }}
           VERSION: ${{ github.ref_name }}.0
+          ABI_VERSION: ${{ needs.build.outputs.abi-version }}
         run: |
           $Repository = Invoke-WebRequest https://jellyfin-plugin-bangumi.kookxiang.dev/repository.json | % Content | ConvertFrom-Json
           New-Item -ItemType Directory -Force -Path Release
@@ -128,7 +129,7 @@ jobs:
             versions = @(@{
               checksum =  (Get-FileHash -Algorithm MD5 "Jellyfin.Plugin.Bangumi.zip").Hash.ToLower()
               changelog = $env:CHANGELOG
-              targetAbi = "${{ needs.build.outputs.abi-version }}"
+              targetAbi = $env:ABI_VERSION
               sourceUrl = "https://kookxiang.github.io/jellyfin-plugin-bangumi/$($env:VERSION).zip"
               timestamp = Get-Date -AsUTC -Format s
               version = $env:VERSION
