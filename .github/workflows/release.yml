@@ -113,6 +113,10 @@ jobs:
           New-Item -ItemType Directory -Force -Path Release
           $Repository[0].versions = $Repository[0].versions | Where-Object { $_.version -ne $env:VERSION }
           foreach ($Version in $Repository[0].versions) {
+            # 历史原因，为 1.7.3 和 1.7.4 补充 targetAbi 字段
+            if ([string]::IsNullOrEmpty($Version.targetAbi)) {
+              $Version.targetAbi = "10.10.0.0"
+            }
             Invoke-WebRequest -Uri $Version.sourceUrl -OutFile "Release/$($Version.version).zip"
             $Version.sourceUrl = "https://kookxiang.github.io/jellyfin-plugin-bangumi/$($Version.version).zip"
           }
