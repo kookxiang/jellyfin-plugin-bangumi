@@ -137,6 +137,7 @@ public class SeasonProvider(BangumiApi api, Logger<EpisodeProvider> log, ILibrar
 
         result.Item = new Season();
         result.HasMetadata = true;
+        result.Item.IndexNumber = info.IndexNumber;
 
         result.Item.ProviderIds.Add(Constants.ProviderName, subject.Id.ToString());
         result.Item.CommunityRating = subject.Rating?.Score;
