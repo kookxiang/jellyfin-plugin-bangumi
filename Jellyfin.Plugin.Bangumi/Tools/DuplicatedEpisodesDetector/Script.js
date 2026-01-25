@@ -16,7 +16,7 @@
                 url: '/Plugins/Bangumi/Tools/DuplicatedEpisodesDetector/Scan',
                 data: {
                     length: container.querySelector('#check-length').checked,
-                    specials: container.querySelector('#skip-specials').checked,
+                    specials: !container.querySelector('#skip-specials').checked,
                 },
             });
             const result = await request.json();
