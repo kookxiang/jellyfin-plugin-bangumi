@@ -160,6 +160,40 @@ public class Series
     }
 
     [TestMethod]
+    public async Task GetByOriginalTitleFirst()
+    {
+        // Test with UseOriginalTitleFirst enabled
+        _plugin.Configuration.UseOriginalTitleFirst = true;
+        try
+        {
+            var result = await _provider.GetMetadata(new SeriesInfo
+                {
+                    Name = "不正确的中文翻译",
+                    OriginalTitle = "White Album2",
+                    Path = FakePath.Create("White Album 2")
+                },
+                _token);
+            Assert.IsNotNull(result.Item, "series data should not be null when using original title first");
+            Assert.AreEqual("WHITE ALBUM2", result.Item.Name, "should find correct series using original title");
+        }
+        finally
+        {
+            _plugin.Configuration.UseOriginalTitleFirst = false;
+        }
+
+        // Test with default behavior (UseOriginalTitleFirst disabled)
+        var result2 = await _provider.GetMetadata(new SeriesInfo
+            {
+                Name = "White Album2",
+                OriginalTitle = "不应该用这个搜索",
+                Path = FakePath.Create("White Album 2")
+            },
+            _token);
+        Assert.IsNotNull(result2.Item, "series data should not be null with default behavior");
+        Assert.AreEqual("WHITE ALBUM2", result2.Item.Name, "should find correct series using name with default behavior");
+    }
+
+    [TestMethod]
     public async Task SearchById()
     {
         var searchResults = await _provider.GetSearchResults(new SeriesInfo
