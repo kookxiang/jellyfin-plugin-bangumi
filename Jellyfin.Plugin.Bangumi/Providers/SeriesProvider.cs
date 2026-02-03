@@ -50,9 +50,8 @@ public class SeriesProvider(BangumiApi api, Logger<SeriesProvider> log)
             // First search attempt
             if (firstSearch != null)
             {
-                var searchName = firstSearch;
-                log.Info("Searching {Name} in bgm.tv", searchName);
-                var searchResult = await api.SearchSubject(searchName, cancellationToken);
+                log.Info("Searching {Name} in bgm.tv", firstSearch);
+                var searchResult = await api.SearchSubject(firstSearch, cancellationToken);
                 if (info.Year != null)
                     searchResult = searchResult.Where(x => x.ProductionYear == null || x.ProductionYear == info.Year?.ToString());
                 if (searchResult.Any())
@@ -62,9 +61,8 @@ public class SeriesProvider(BangumiApi api, Logger<SeriesProvider> log)
             // Second search attempt (if first failed and titles are different)
             if (subjectId == 0 && secondSearch != null && !string.Equals(firstSearch, secondSearch, StringComparison.Ordinal))
             {
-                var searchName = secondSearch;
-                log.Info("Searching {Name} in bgm.tv", searchName);
-                var searchResult = await api.SearchSubject(searchName, cancellationToken);
+                log.Info("Searching {Name} in bgm.tv", secondSearch);
+                var searchResult = await api.SearchSubject(secondSearch, cancellationToken);
                 if (info.Year != null)
                     searchResult = searchResult.Where(x => x.ProductionYear == null || x.ProductionYear == info.Year?.ToString());
                 if (searchResult.Any())

@@ -43,9 +43,8 @@ public class AlbumProvider(BangumiApi api, Logger<AlbumProvider> log)
             // First search attempt
             if (firstSearch != null)
             {
-                var searchName = firstSearch;
-                log.Info("Searching {Name} in bgm.tv", searchName);
-                var searchResult = await api.SearchSubject(searchName, SubjectType.Music, cancellationToken);
+                log.Info("Searching {Name} in bgm.tv", firstSearch);
+                var searchResult = await api.SearchSubject(firstSearch, SubjectType.Music, cancellationToken);
                 if (info.Year != null)
                     searchResult = searchResult.Where(x => x.ProductionYear == null || x.ProductionYear == info.Year?.ToString());
                 if (searchResult.Any())
@@ -55,9 +54,8 @@ public class AlbumProvider(BangumiApi api, Logger<AlbumProvider> log)
             // Second search attempt (if first failed and titles are different)
             if (subjectId == 0 && secondSearch != null && !string.Equals(firstSearch, secondSearch, StringComparison.Ordinal))
             {
-                var searchName = secondSearch;
-                log.Info("Searching {Name} in bgm.tv", searchName);
-                var searchResult = await api.SearchSubject(searchName, SubjectType.Music, cancellationToken);
+                log.Info("Searching {Name} in bgm.tv", secondSearch);
+                var searchResult = await api.SearchSubject(secondSearch, SubjectType.Music, cancellationToken);
                 if (info.Year != null)
                     searchResult = searchResult.Where(x => x.ProductionYear == null || x.ProductionYear == info.Year?.ToString());
                 if (searchResult.Any())
