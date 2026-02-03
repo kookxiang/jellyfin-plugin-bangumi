@@ -229,6 +229,13 @@
                     </label>
                     <div class="fieldDescription">排序时会加入条目别名，提高首个条目匹配率。测试接口未启用此算法</div>
                 </div>
+                <div class="checkboxContainer checkboxContainer-withDescription">
+                    <label class="emby-checkbox-label">
+                        <input id="UseOriginalTitleFirst" is="emby-checkbox" type="checkbox"/>
+                        <span>优先使用原标题搜索</span>
+                    </label>
+                    <div class="fieldDescription">当存在原标题(OriginalTitle)时，优先使用原标题进行搜索，而不是使用翻译后的名称。这可以提高跨平台信息匹配的准确性，特别是对于不同平台翻译不一致的情况。</div>
+                </div>
                 <div class="selectContainer">
                     <label class="selectLabel" for="EpisodeParser">剧集解析器</label>
                     <select class="emby-select-withcolor emby-select" id="EpisodeParser" is="emby-select">
