@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Jellyfin.Plugin.Bangumi.Configuration;
+using Jellyfin.Plugin.Bangumi.Model;
 using MediaBrowser.Common.Net;
 using MediaBrowser.Controller.Entities.TV;
 using MediaBrowser.Controller.Providers;
@@ -28,8 +29,13 @@ public class SeriesProvider(BangumiApi api, ILogger log)
     {
         cancellationToken.ThrowIfCancellationRequested();
         var result = new MetadataResult<Series> { ResultLanguage = Constants.Language };
+        var localConfiguration = await LocalConfiguration.ForPath(info.Path);
 
-        _ = int.TryParse(info.GetProviderId(Constants.ProviderName), out var subjectId);
+        int subjectId;
+        if (localConfiguration.Id != 0)
+            subjectId = localConfiguration.Id;
+        else
+            _ = int.TryParse(info.ProviderIds.GetOrDefault(Constants.ProviderName), out subjectId);
 
         if (subjectId == 0)
         {
