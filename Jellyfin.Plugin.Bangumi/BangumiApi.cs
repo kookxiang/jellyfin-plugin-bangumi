@@ -4,6 +4,7 @@ using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Threading;
 using System.Threading.Tasks;
 using Jellyfin.Plugin.Bangumi.Model;
@@ -170,7 +171,56 @@ public partial class BangumiApi
             url += $"&type={(int)type}";
         if (offset > 0)
             url += $"&offset={offset}";
-        return await Get<DataList<Episode>>(url, token);
+        var result = await Get<DataList<Episode>>(url, token);
+        if (result is { Total: > 0 })
+            return result;
+
+        // Fallback to legacy API for older music subjects or empty v0 results
+        var legacyUrl = $"{BaseUrl}/subject/{id}?responseGroup=large";
+        var legacyResult = await Get<LegacySubject>(legacyUrl, token);
+        if (legacyResult?.Eps == null || legacyResult.Eps.Count == 0)
+            return result;
+
+        var eps = legacyResult.Eps.Select(ep => new Episode
+        {
+            Id = ep.Id,
+            ParentId = id,
+            Type = ep.Type,
+            OriginalNameRaw = ep.Name,
+            ChineseNameRaw = ep.NameCn,
+            Order = ep.Sort,
+            Disc = ep.Disc,
+            AirDate = ep.AirDate,
+            DescriptionRaw = ep.Desc
+        }).ToList();
+
+        return new DataList<Episode>
+        {
+            Total = eps.Count,
+            Limit = PageSize,
+            Offset = (int)offset,
+            Data = eps.Skip((int)offset).Take(PageSize).ToList()
+        };
+    }
+
+    private class LegacySubject
+    {
+        [JsonPropertyName("eps")]
+        public List<LegacyEpisode>? Eps { get; set; }
+    }
+
+    private class LegacyEpisode
+    {
+        public int Id { get; set; }
+        public EpisodeType Type { get; set; }
+        public string Name { get; set; } = "";
+        [JsonPropertyName("name_cn")]
+        public string? NameCn { get; set; }
+        public double Sort { get; set; }
+        public int Disc { get; set; }
+        [JsonPropertyName("airdate")]
+        public string AirDate { get; set; } = "";
+        public string? Desc { get; set; }
     }
 
     public async Task<IEnumerable<RelatedSubject>?> GetRelatedSubjects(int id, CancellationToken token)

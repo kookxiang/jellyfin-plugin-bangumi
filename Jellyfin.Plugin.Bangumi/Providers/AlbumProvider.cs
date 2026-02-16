@@ -104,7 +104,7 @@ public class AlbumProvider(BangumiApi api, Logger<AlbumProvider> log)
             result.Item.ProductionYear = int.Parse(subject.ProductionYear);
 
         var persons = await api.GetSubjectPersons(subject.Id, cancellationToken);
-        result.Item.AlbumArtists = persons?.Where(person => person.Type == 3).Select(person => person.Name).ToList();
+        result.Item.AlbumArtists = persons?.Where(person => person.Type is 2 or 3).Select(person => person.Name).ToList();
 
         return result;
     }

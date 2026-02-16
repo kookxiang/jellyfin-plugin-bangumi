@@ -63,22 +63,15 @@ public class MusicSongProvider(BangumiApi api, ILibraryManager libraryManager, L
         return await httpClient.GetAsync(url, cancellationToken);
     }
 
-    private async Task<Episode?> GetSong(ItemLookupInfo info, CancellationToken token)
+    internal async Task<Episode?> GetSong(SongInfo info, int albumId, CancellationToken token)
     {
         var fileName = Path.GetFileName(info.Path);
         if (string.IsNullOrEmpty(fileName))
             return null;
 
-        var album = libraryManager.FindByPath(info.Path, false)?.FindParent<MusicAlbum>();
-        if (album is null)
-            return null;
-
-        if (!int.TryParse(album.ProviderIds.GetValueOrDefault(Constants.ProviderName), out var albumId))
-            return null;
-
         double songIndex = info.IndexNumber ?? 0;
 
-        if (int.TryParse(info.ProviderIds?.GetValueOrDefault(Constants.ProviderName), out var songId))
+        if (int.TryParse(info.ProviderIds.GetValueOrDefault(Constants.ProviderName), out var songId))
         {
             var song = await api.GetEpisode(songId, token);
             if (song == null)
@@ -97,11 +90,34 @@ public class MusicSongProvider(BangumiApi api, ILibraryManager libraryManager, L
             return null;
         try
         {
-            return episodeListData.OrderBy(x => x.Type).First(x => x.Order.Equals(songIndex));
+            var parentIndexNumber = info.ParentIndexNumber ?? 1;
+            var list = episodeListData.OrderBy(x => x.Type).ToList();
+
+            // 1. 优先名称匹配
+            var nameMatched = list.FirstOrDefault(x =>
+                string.Equals(x.OriginalName, info.Name, StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(x.ChineseName, info.Name, StringComparison.OrdinalIgnoreCase));
+            if (nameMatched != null) return nameMatched;
+
+            // 2. 次优匹配碟片号和轨道号都相同的
+            var discMatched = list.FirstOrDefault(x => x.Disc == parentIndexNumber && Math.Abs(x.Order - songIndex) < 0.1);
+            if (discMatched != null) return discMatched;
+
+            // 3. 最后回退到仅匹配轨道号
+            return list.First(x => x.Order.Equals(songIndex));
         }
         catch (InvalidOperationException)
         {
             return null;
         }
+    }
+
+    private async Task<Episode?> GetSong(SongInfo info, CancellationToken token)
+    {
+        var album = libraryManager.FindByPath(info.Path, false)?.FindParent<MusicAlbum>();
+        if (album == null || !int.TryParse(album.ProviderIds.GetValueOrDefault(Constants.ProviderName), out var albumId))
+            return null;
+
+        return await GetSong(info, albumId, token);
     }
 }
