@@ -43,25 +43,31 @@ public class SeriesProvider(BangumiApi api, Logger<SeriesProvider> log)
 
         if (subjectId == 0)
         {
-            var searchName = info.Name;
-            log.Info("Searching {Name} in bgm.tv", searchName);
-            var searchResult = await api.SearchSubject(searchName, cancellationToken);
-            if (info.Year != null)
-                searchResult = searchResult.Where(x => x.ProductionYear == null || x.ProductionYear == info.Year?.ToString());
-            if (searchResult.Any())
-                subjectId = searchResult.First().Id;
-        }
+            // Determine search order based on configuration
+            var firstSearch = Configuration.UseOriginalTitleFirst ? info.OriginalTitle : info.Name;
+            var secondSearch = Configuration.UseOriginalTitleFirst ? info.Name : info.OriginalTitle;
 
-        if (subjectId == 0 && info.OriginalTitle != null &&
-            !string.Equals(info.OriginalTitle, info.Name, StringComparison.Ordinal))
-        {
-            var searchName = info.OriginalTitle;
-            log.Info("Searching {Name} in bgm.tv", searchName);
-            var searchResult = await api.SearchSubject(searchName, cancellationToken);
-            if (info.Year != null)
-                searchResult = searchResult.Where(x => x.ProductionYear == null || x.ProductionYear == info.Year?.ToString());
-            if (searchResult.Any())
-                subjectId = searchResult.First().Id;
+            // First search attempt
+            if (firstSearch != null)
+            {
+                log.Info("Searching {Name} in bgm.tv", firstSearch);
+                var searchResult = await api.SearchSubject(firstSearch, cancellationToken);
+                if (info.Year != null)
+                    searchResult = searchResult.Where(x => x.ProductionYear == null || x.ProductionYear == info.Year?.ToString());
+                if (searchResult.Any())
+                    subjectId = searchResult.First().Id;
+            }
+
+            // Second search attempt (if first failed and titles are different)
+            if (subjectId == 0 && secondSearch != null && !string.Equals(firstSearch, secondSearch, StringComparison.Ordinal))
+            {
+                log.Info("Searching {Name} in bgm.tv", secondSearch);
+                var searchResult = await api.SearchSubject(secondSearch, cancellationToken);
+                if (info.Year != null)
+                    searchResult = searchResult.Where(x => x.ProductionYear == null || x.ProductionYear == info.Year?.ToString());
+                if (searchResult.Any())
+                    subjectId = searchResult.First().Id;
+            }
         }
 
         if (subjectId == 0 && Configuration.AlwaysGetTitleByAnitomySharp)

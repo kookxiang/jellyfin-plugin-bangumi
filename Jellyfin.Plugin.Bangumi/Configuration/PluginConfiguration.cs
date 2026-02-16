@@ -57,4 +57,6 @@ public class PluginConfiguration : BasePluginConfiguration
     public bool ProcessMultiSeasonFolderByAnitomySharp { get; set; }
 
     public string? ProxyServerUrl { get; set; }
+
+    public bool UseOriginalTitleFirst { get; set; }
 }

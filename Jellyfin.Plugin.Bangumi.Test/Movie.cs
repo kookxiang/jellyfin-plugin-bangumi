@@ -62,6 +62,28 @@ public class Movie
     }
 
     [TestMethod]
+    public async Task GetByOriginalTitleFirst()
+    {
+        // Test with UseOriginalTitleFirst enabled
+        _plugin.Configuration.UseOriginalTitleFirst = true;
+        try
+        {
+            var result = await _provider.GetMetadata(new MovieInfo
+                {
+                    Name = "错误的翻译",
+                    OriginalTitle = "STEINS;GATE 負荷領域のデジャヴ"
+                },
+                _token);
+            Assert.IsNotNull(result.Item, "movie data should not be null when using original title first");
+            Assert.AreEqual("STEINS;GATE 負荷領域のデジャヴ", result.Item.Name, "should find correct movie using original title");
+        }
+        finally
+        {
+            _plugin.Configuration.UseOriginalTitleFirst = false;
+        }
+    }
+
+    [TestMethod]
     public async Task SearchById()
     {
         var searchResults = await _provider.GetSearchResults(new MovieInfo { ProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "23119" } } }, _token);
