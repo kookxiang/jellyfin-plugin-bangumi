@@ -34,6 +34,9 @@ public class ServiceLocator
         serviceCollection.AddScoped<SeasonProvider>();
         serviceCollection.AddScoped<SeriesProvider>();
         serviceCollection.AddScoped<SubjectImageProvider>();
+        serviceCollection.AddScoped<AlbumProvider>();
+        serviceCollection.AddScoped<MusicArtistProvider>();
+        serviceCollection.AddScoped<MusicSongProvider>();
         new PluginServiceRegistrator().RegisterServices(serviceCollection, null!);
         _provider = serviceCollection.BuildServiceProvider();
 

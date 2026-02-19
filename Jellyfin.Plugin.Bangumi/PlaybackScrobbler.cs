@@ -71,12 +71,6 @@ public class PlaybackScrobbler(IUserDataManager userDataManager, OAuthStore stor
             return;
         }
 
-        if (item is Audio)
-        {
-            log.Info("audio playback report is not supported by bgm.tv, ignored");
-            return;
-        }
-
         if (item is Movie)
         {
             subjectId = subjectId == 0 ? episodeId : subjectId;

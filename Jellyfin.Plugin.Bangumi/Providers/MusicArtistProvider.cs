@@ -1,10 +1,12 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using MediaBrowser.Controller.Entities.Audio;
 using MediaBrowser.Controller.Providers;
+using MediaBrowser.Model.Entities;
 using MediaBrowser.Model.Providers;
 
 namespace Jellyfin.Plugin.Bangumi.Providers;
@@ -37,9 +39,42 @@ public class MusicArtistProvider(BangumiApi api)
         return result;
     }
 
-    public Task<IEnumerable<RemoteSearchResult>> GetSearchResults(ArtistInfo searchInfo, CancellationToken cancellationToken)
+    public async Task<IEnumerable<RemoteSearchResult>> GetSearchResults(ArtistInfo searchInfo, CancellationToken cancellationToken)
     {
-        throw new NotImplementedException();
+        cancellationToken.ThrowIfCancellationRequested();
+        var results = new List<RemoteSearchResult>();
+
+        if (int.TryParse(searchInfo.ProviderIds.GetOrDefault(Constants.ProviderName), out var id))
+        {
+            var person = await api.GetPerson(id, cancellationToken);
+            if (person == null)
+                return results;
+            var result = new RemoteSearchResult
+            {
+                Name = person.Name,
+                ImageUrl = person.DefaultImage,
+                Overview = person.Summary
+            };
+            result.SetProviderId(Constants.ProviderName, id.ToString());
+            results.Add(result);
+        }
+        else if (!string.IsNullOrEmpty(searchInfo.Name))
+        {
+            var persons = await api.SearchPerson(searchInfo.Name, cancellationToken);
+            foreach (var item in persons ?? [])
+            {
+                var result = new RemoteSearchResult
+                {
+                    Name = item.Name,
+                    ImageUrl = item.DefaultImage,
+                    Overview = item.Career?.Any() == true ? string.Join(", ", item.Career) : null
+                };
+                result.SetProviderId(Constants.ProviderName, item.Id.ToString());
+                results.Add(result);
+            }
+        }
+
+        return results;
     }
 
     public async Task<HttpResponseMessage> GetImageResponse(string url, CancellationToken cancellationToken)
