@@ -31,7 +31,7 @@ public partial class BangumiApi
             async entry =>
             {
                 logger.Info("request api without cache: {url}", request.RequestUri);
-                var response = await SendWithOutCache(request, accessToken, CancellationToken.None);
+                var response = await SendWithOutCache(request, accessToken, token);
                 entry.Size = response.Length;
                 entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromDays(7);
                 entry.SlidingExpiration = TimeSpan.FromHours(6);
@@ -41,7 +41,7 @@ public partial class BangumiApi
 
     private async Task<string> SendWithOutCache(HttpRequestMessage request, string? accessToken, CancellationToken token)
     {
-        var httpClient = GetHttpClient();
+        using var httpClient = GetHttpClient();
         if (!string.IsNullOrEmpty(accessToken))
             request.Headers.Authorization = AuthenticationHeaderValue.Parse("Bearer " + accessToken);
         using var response = await httpClient.SendAsync(request, token);
