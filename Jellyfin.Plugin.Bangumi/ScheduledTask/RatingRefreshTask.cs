@@ -63,7 +63,7 @@ public class RatingRefreshTask(Logger<RatingRefreshTask> log, ILibraryManager li
         var waitTime = TimeSpan.FromSeconds(1);
 #if !EMBY
         if (archive.Subject.Exists())
-            waitTime = TimeSpan.FromSeconds(0.1);
+            waitTime = TimeSpan.FromMilliseconds(50);
 #endif
         foreach (var id in idList)
         {
