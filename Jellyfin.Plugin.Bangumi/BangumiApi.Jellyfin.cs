@@ -96,16 +96,15 @@ public partial class BangumiApi(ArchiveData archive, OAuthStore store, Logger<Ba
 
     public HttpClient GetHttpClient(bool allowAutoRedirect = true)
     {
-#pragma warning disable CA2000
+#pragma warning disable CA2000, CA5399
         var handler = new HttpClientHandler
         {
             AllowAutoRedirect = allowAutoRedirect,
-            CheckCertificateRevocationList = true,
             UseProxy = !string.IsNullOrEmpty(_plugin.Configuration.ProxyServerUrl),
             Proxy = !string.IsNullOrEmpty(_plugin.Configuration.ProxyServerUrl) ? new WebProxy(_plugin.Configuration.ProxyServerUrl) : HttpClient.DefaultProxy,
         };
-#pragma warning restore CA2000
         var httpClient = new HttpClient(handler, true);
+#pragma warning restore CA2000, CA5399
         httpClient.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("Jellyfin.Plugin.Bangumi", _plugin.Version.ToString()));
         httpClient.DefaultRequestHeaders.UserAgent.Add(
             new ProductInfoHeaderValue("(https://github.com/kookxiang/jellyfin-plugin-bangumi)"));
