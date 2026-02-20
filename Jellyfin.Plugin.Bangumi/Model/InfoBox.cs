@@ -83,6 +83,8 @@ public class InfoBox : Dictionary<string, string>
                     else
                         infobox.Add(parts[0], line.Trim());
                 }
+            else if (infobox.ContainsKey(parts[0]))
+                infobox[parts[0]] += "\n" + parts[1].Trim();
             else
                 infobox.Add(parts[0], parts[1].Trim());
         }
