@@ -6,6 +6,8 @@ using Jellyfin.Plugin.Bangumi.Configuration;
 using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Library;
 using MediaBrowser.Model.Tasks;
+using System.Linq;
+
 #if !EMBY
 using Jellyfin.Data.Enums;
 using Jellyfin.Plugin.Bangumi.Archive;
@@ -53,7 +55,7 @@ public class RatingRefreshTask(Logger<RatingRefreshTask> log, ILibraryManager li
                 BaseItemKind.Series
 #endif
             }
-        })!;
+        })!.ToArray();
 
         int updateMinInterval = Plugin.Instance?.Configuration?.RatingUpdateMinInterval ?? 14;
 
@@ -66,11 +68,7 @@ public class RatingRefreshTask(Logger<RatingRefreshTask> log, ILibraryManager li
         foreach (var id in idList)
         {
             // report refresh progress
-#if EMBY
             progress.Report(100D * count++ / idList.Length);
-#else
-            progress.Report(100D * count++ / idList.Count);
-#endif
 
             // check whether current task was canceled
             cancellationToken.ThrowIfCancellationRequested();

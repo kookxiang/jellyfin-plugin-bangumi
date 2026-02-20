@@ -83,7 +83,7 @@ public partial class BangumiApi
     {
         if (id <= 0) return null;
 #if !EMBY
-        var subject = await archive.Subject.FindById(id);
+        var subject = await archive.Subject.FindById(id, token);
         if (subject != null)
             return subject.ToSubject();
 #endif
@@ -105,7 +105,7 @@ public partial class BangumiApi
     {
         if (id <= 0) return null;
 #if !EMBY
-        var episodeList = (await archive.SubjectEpisodeRelation.GetEpisodes(id))
+        var episodeList = (await archive.SubjectEpisodeRelation.GetEpisodes(id, token))
             .Where(x => x.Type == type || type == null)
             .Select(x => x.ToEpisode());
         if (episodeList.Any()) return episodeList;
@@ -227,7 +227,7 @@ public partial class BangumiApi
     {
         if (id <= 0) return null;
 #if !EMBY
-        var relations = await archive.SubjectRelations.Get(id);
+        var relations = await archive.SubjectRelations.Get(id, token);
         if (relations.Any())
             return relations;
 #endif
@@ -349,7 +349,7 @@ public partial class BangumiApi
     {
         if (id <= 0) return null;
 #if !EMBY
-        var relatedPerson = await archive.SubjectPersonRelation.Get(id);
+        var relatedPerson = await archive.SubjectPersonRelation.Get(id, token);
         if (relatedPerson.Any())
             return relatedPerson;
 #endif
@@ -367,7 +367,7 @@ public partial class BangumiApi
     {
         if (id <= 0) return null;
 #if !EMBY
-        var episode = await archive.Episode.FindById(id);
+        var episode = await archive.Episode.FindById(id, token);
         if (episode != null && DateTime.TryParse(episode.AirDate, out var airDate))
             if (_plugin.Configuration.DaysBeforeUsingArchiveData == 0 ||
                 airDate < DateTime.Now.Subtract(TimeSpan.FromDays(_plugin.Configuration.DaysBeforeUsingArchiveData)))
@@ -380,7 +380,7 @@ public partial class BangumiApi
     {
         if (id <= 0) return null;
 #if !EMBY
-        var person = await archive.Person.FindById(id);
+        var person = await archive.Person.FindById(id, token);
         if (person != null)
             return person.ToPersonDetail();
 #endif

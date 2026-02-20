@@ -35,14 +35,14 @@ public class SubjectEpisodeRelation(ArchiveData archive)
         return _mapping.Count > 0;
     }
 
-    public async Task<IEnumerable<Episode>> GetEpisodes(int subjectId)
+    public async Task<IEnumerable<Episode>> GetEpisodes(int subjectId, CancellationToken token = default)
     {
         await Load();
         if (!_mapping.TryGetValue(subjectId, out var idList)) return [];
         var list = new List<Episode>();
         foreach (var id in idList)
         {
-            var episode = await archive.Episode.FindById(id);
+            var episode = await archive.Episode.FindById(id, token);
             if (episode != null)
                 list.Add(episode);
         }

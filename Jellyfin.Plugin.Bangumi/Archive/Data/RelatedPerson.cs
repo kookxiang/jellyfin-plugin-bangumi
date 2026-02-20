@@ -1,4 +1,5 @@
 ﻿using System.Text.Json.Serialization;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Jellyfin.Plugin.Bangumi.Archive.Data;
@@ -11,9 +12,9 @@ public class RelatedPerson
     [JsonPropertyName("position")]
     public short Position { get; set; }
 
-    public async Task<Model.RelatedPerson> ToRelatedPerson(ArchiveData archive)
+    public async Task<Model.RelatedPerson> ToRelatedPerson(ArchiveData archive, CancellationToken token = default)
     {
-        var person = await archive.Person.FindById(PersonId);
+        var person = await archive.Person.FindById(PersonId, token);
 
         return new Model.RelatedPerson
         {

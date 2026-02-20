@@ -57,7 +57,7 @@ public class EpisodeMetadataRefreshTask(Logger<EpisodeMetadataRefreshTask> log, 
             }
 
             // obtain episode metadata
-            var episode = (await archive.Episode.FindById(bangumiId))?.ToEpisode();
+            var episode = (await archive.Episode.FindById(bangumiId, cancellationToken))?.ToEpisode();
             if (episode == null)
             {
                 log.Info("episode {Id} not found in archive, skipped", bangumiId);

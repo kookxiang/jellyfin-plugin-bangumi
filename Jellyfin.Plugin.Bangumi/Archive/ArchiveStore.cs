@@ -124,7 +124,7 @@ public partial class ArchiveStore<T>(string basePath, string fileName) : IArchiv
         }
     }
 
-    public async Task<T?> FindById(int id)
+    public async Task<T?> FindById(int id, CancellationToken token = default)
     {
         if (!Exists())
             return null;
@@ -142,7 +142,7 @@ public partial class ArchiveStore<T>(string basePath, string fileName) : IArchiv
         indexReader.Seek(id * indexSize, SeekOrigin.Begin);
         var buffer = new byte[indexSize];
         // ReSharper disable once MustUseReturnValue
-        await indexReader.ReadExactlyAsync(buffer.AsMemory(0, indexSize));
+        await indexReader.ReadExactlyAsync(buffer.AsMemory(0, indexSize), token);
         var offset = indexSize switch
         {
             sizeof(byte) => buffer[0],
@@ -156,7 +156,7 @@ public partial class ArchiveStore<T>(string basePath, string fileName) : IArchiv
             return null;
         using var textReader = new StreamReader(FilePath);
         textReader.BaseStream.Seek(offset, SeekOrigin.Begin);
-        var line = await textReader.ReadLineAsync();
+        var line = await textReader.ReadLineAsync(token);
         return line == null ? null : JsonSerializer.Deserialize<T>(line, Constants.JsonSerializerOptions);
     }
 
