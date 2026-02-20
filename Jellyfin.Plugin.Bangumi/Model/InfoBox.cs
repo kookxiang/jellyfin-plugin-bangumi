@@ -58,7 +58,7 @@ public class InfoBox : Dictionary<string, string>
         var line = reader.ReadLine();
         if (line?.StartsWith(StartPattern) != true)
             throw new FormatException("text not begin with defined pattern");
-        while ((line = reader.ReadLine()) != EndPattern)
+        while ((line = reader.ReadLine()) != EndPattern && line != null)
         {
             if (line?.StartsWith('|') != true)
                 continue;
