@@ -55,7 +55,7 @@ public partial class BangumiApi
         if (!string.IsNullOrEmpty(accessToken))
             request.Headers.Authorization = AuthenticationHeaderValue.Parse("Bearer " + accessToken);
         using var response = await httpClient.SendAsync(request, token);
-        if (!response.IsSuccessStatusCode) await HandleHttpException(response);
+        if (!response.IsSuccessStatusCode) await HandleHttpException(response, token);
         return await response.Content.ReadAsStringAsync(token);
     }
 }
