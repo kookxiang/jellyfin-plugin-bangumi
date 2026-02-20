@@ -15,28 +15,38 @@ public partial class BangumiApi
         SizeLimit = 256 * 1024 * 1024
     });
 
-    private Task<string> Send(HttpRequestMessage request, string? accessToken, CancellationToken token, bool useCache = true)
+    private async Task<string> Send(HttpRequestMessage request, string? accessToken, CancellationToken token, bool useCache = true)
     {
         if (!useCache || request.RequestUri == null)
-            return SendWithOutCache(request, accessToken, token);
+            return await SendWithOutCache(request, accessToken, token);
 
         if (request.Method != HttpMethod.Get)
         {
             _cache.Remove(request.RequestUri.ToString());
-            return SendWithOutCache(request, accessToken, token);
+            return await SendWithOutCache(request, accessToken, token);
         }
 
-        return _cache.GetOrCreateAsync<string>(
-            request.RequestUri.ToString(),
-            async entry =>
-            {
-                logger.Info("request api without cache: {url}", request.RequestUri);
-                var response = await SendWithOutCache(request, accessToken, token);
-                entry.Size = response.Length;
-                entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromDays(7);
-                entry.SlidingExpiration = TimeSpan.FromHours(6);
-                return response;
-            })!;
+        var cacheKey = request.RequestUri.ToString();
+
+        // Check if already in cache
+        if (_cache.TryGetValue<string>(cacheKey, out var cachedValue) && cachedValue != null)
+        {
+            return cachedValue;
+        }
+
+        // Not in cache, fetch with cancellation support
+        logger.Info("request api without cache: {url}", request.RequestUri);
+        var response = await SendWithOutCache(request, accessToken, token);
+
+        var cacheEntryOptions = new MemoryCacheEntryOptions
+        {
+            Size = response.Length,
+            AbsoluteExpirationRelativeToNow = TimeSpan.FromDays(7),
+            SlidingExpiration = TimeSpan.FromHours(6)
+        };
+
+        _cache.Set(cacheKey, response, cacheEntryOptions);
+        return response;
     }
 
     private async Task<string> SendWithOutCache(HttpRequestMessage request, string? accessToken, CancellationToken token)

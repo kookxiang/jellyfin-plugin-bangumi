@@ -16,10 +16,10 @@ public partial class BangumiApi(ArchiveData archive, OAuthStore store, Logger<Ba
 {
     private readonly Plugin _plugin = Plugin.Instance!;
 
-    public Task<string> Get(string url, string? accessToken, CancellationToken token, bool useCache = true)
+    public async Task<string> Get(string url, string? accessToken, CancellationToken token, bool useCache = true)
     {
         using var message = new HttpRequestMessage(HttpMethod.Get, url);
-        return Send(message, accessToken, token, useCache);
+        return await Send(message, accessToken, token, useCache);
     }
 
     public async Task<T?> Get<T>(string url, CancellationToken token, bool useCache = true)
