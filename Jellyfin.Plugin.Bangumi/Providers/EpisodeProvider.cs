@@ -76,7 +76,9 @@ public class EpisodeProvider(BangumiApi api, Logger<EpisodeProvider> log, ILibra
 
         result.Item.Name = episode.Name;
         result.Item.OriginalTitle = episode.OriginalName;
-        result.Item.IndexNumber = (int)episode.Order + localConfiguration.Offset;
+        result.Item.IndexNumber = localConfiguration.CorrectIndex ?
+            (int)episode.Order :
+            (int)episode.Order + localConfiguration.Offset;
         result.Item.Overview = string.IsNullOrEmpty(episode.Description) ? null : episode.Description;
         result.Item.ParentIndexNumber = parent is Series ? 1 : info.ParentIndexNumber ?? 1;
 

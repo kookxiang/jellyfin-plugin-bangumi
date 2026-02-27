@@ -481,6 +481,22 @@ public class Episode
     }
 
     [TestMethod]
+    public async Task CorrectIndexSupport()
+    {
+        FakePath.CreateFile("【推しの子】/Season 1 Part 3/bangumi.ini", "[Bangumi]\nID=517057\nOffset=-24\nCorrectIndex=on\n");
+        var episodeData = await _provider.GetMetadata(new EpisodeInfo
+        {
+            IndexNumber = 0,
+            Path = FakePath.CreateFile("【推しの子】/Season 1 Part 3/Oshi no Ko S3 - 01.mkv")
+        },
+            _token);
+        Assert.IsNotNull(episodeData, "episode data should not be null");
+        Assert.IsNotNull(episodeData.Item, "episode data should not be null");
+        Assert.AreEqual(25, episodeData.Item.IndexNumber, "should use original episode index when CorrectIndex is on");
+        Assert.AreEqual("入れ込み", episodeData.Item.Name, "should return the right episode title");
+    }
+
+    [TestMethod]
     public async Task GetEpisodeForSubjectWithSingleEpisode()
     {
         var episodeData = await _provider.GetMetadata(new EpisodeInfo

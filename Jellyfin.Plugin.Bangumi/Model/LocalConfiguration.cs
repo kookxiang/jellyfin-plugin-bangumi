@@ -15,6 +15,8 @@ public class LocalConfiguration
 
     public bool Skip { get; set; } = false;
 
+    public bool CorrectIndex { get; set; } = false;
+
     public static async Task<LocalConfiguration> ForPath(string path)
     {
         var configuration = new LocalConfiguration();
