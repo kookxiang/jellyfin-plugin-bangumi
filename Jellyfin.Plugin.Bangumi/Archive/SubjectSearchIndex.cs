@@ -242,30 +242,24 @@ public class SubjectSearchIndex(ArchiveData archive)
             return SearchInType(type.Value, query, pageSize);
 
         // 未指定类型时聚合所有可用类型索引进行搜索。
-        var readers = new List<IndexReader>();
+        var cachedSearchers = new List<CachedSearcher>();
         foreach (SubjectType t in Enum.GetValues<SubjectType>())
         {
             if (t == SubjectType.None) continue;
             var cached = GetOrLoadSearcher(t);
             if (cached is null) continue;
-            readers.Add(cached.Reader);
+            cachedSearchers.Add(cached);
         }
 
-        if (readers.Count == 0)
+        if (cachedSearchers.Count == 0)
             return [];
 
-        // 只有一个读者时直接搜索，避免 MultiReader 额外开销。
-        if (readers.Count == 1)
-        {
-            var singleSearcher = new IndexSearcher(readers[0])
-            {
-                Similarity = new BM25Similarity()
-            };
-            return SearchAndExtractIds(singleSearcher, query, pageSize);
-        }
+        // 只有一个时直接复用缓存实例，避免不必要的 MultiReader 包装。
+        if (cachedSearchers.Count == 1)
+            return SearchAndExtractIds(cachedSearchers[0].Searcher, query, pageSize);
 
         // 多类型索引通过 MultiReader 合并后统一检索。
-        using var multiReader = new MultiReader(readers.ToArray(), closeSubReaders: false);
+        using var multiReader = new MultiReader([.. cachedSearchers.Select(c => c.Reader)], closeSubReaders: false);
         var searcher = new IndexSearcher(multiReader)
         {
             Similarity = new BM25Similarity()
