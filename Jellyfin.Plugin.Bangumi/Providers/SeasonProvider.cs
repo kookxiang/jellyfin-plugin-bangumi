@@ -376,7 +376,7 @@ public class SeasonProvider(BangumiApi api, Logger<EpisodeProvider> log, ILibrar
             return default;
         }
 
-        return GetValidAnimeTitleAndSeason(folderPath);
+        return FileNameParser.GetValidAnimeTitleAndSeason(folderPath);
     }
 
     /// <summary>
