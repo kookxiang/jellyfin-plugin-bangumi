@@ -126,7 +126,7 @@
 }
 
 .bangumi-plugin-tools-container .bangumi-plugin-tools-title {
-    color: var(--jf-palette-text-primary)
+    color: var(--jf-palette-text-primary);
 }
 
 .bangumi-plugin-tools-container .bangumi-plugin-tools-description {
@@ -153,16 +153,31 @@
     color: #888;
 }
 
-    .bangumi-tab-header-button.active {
-        color: #5fafff;
-        border-bottom: 2px solid #1976d2;
-    }
+.bangumi-tab-header-button.active {
+    color: #5fafff;
+    border-bottom: 2px solid #1976d2;
+}
 
 .bangumi-tab-content {
     display: none;
     padding: 16px 0;
 }
 
-    .bangumi-tab-content.active {
-        display: block;
-    }
+.bangumi-tab-content.active {
+    display: block;
+}
+
+.bangumi-listItem {
+    padding: .5em;
+}
+
+.bangumi-inputContainer {
+    width: 100%;
+    max-width: none;
+}
+
+.bangumi-inputContainer .emby-textarea {
+    width: 100%;
+    box-sizing: border-box;
+    white-space: nowrap;
+}
