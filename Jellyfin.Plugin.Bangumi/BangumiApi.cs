@@ -386,6 +386,98 @@ RequestEpisodeList:
     }
 
     /// <summary>
+    /// 获取前传条目
+    /// </summary>
+    /// <param name="id">Bangumi条目id</param>
+    /// <param name="maxRequestCount">最大查找层数</param>
+    /// <param name="token"></param>
+    /// <returns>
+    /// 返回距离 <paramref name="id"/> 条目最多前 <paramref name="maxRequestCount"/> 季的条目直至第一季，
+    /// <paramref name="id"/> 本身是第一季的话则返回自身，
+    /// 如果 <paramref name="id"/> 条目不存在则返回null
+    /// </returns>
+    public async Task<Subject?> SearchPreviousSubject(int id, int maxRequestCount, CancellationToken token)
+    {
+        var subjects = await SearchPreviousSubjects(id, maxRequestCount, token, true);
+        return subjects.LastOrDefault()?.FirstOrDefault();
+    }
+
+    /// <summary>
+    /// 获取前传条目
+    /// </summary>
+    /// <param name="id">Bangumi条目id</param>
+    /// <param name="maxRequestCount">最大查找层数</param>
+    /// <param name="token"></param>
+    /// <param name="searchOneRelatedOnly">有多个前传时只查询其中一个</param>
+    /// <returns>前传条目列表，第一个数组是 <paramref name="id"/> 的条目，之后每个数组是上一个数组的前传条目集合</returns>
+    public async Task<List<Subject[]>> SearchPreviousSubjects(int id, int maxRequestCount, CancellationToken token, bool searchOneRelatedOnly = false)
+    {
+        if (id <= 0 || maxRequestCount <= 0) return [];
+
+        // 获取当前条目
+        var currentSubject = await GetSubject(id, token);
+        if (currentSubject == null) return [];
+
+        var result = new List<Subject[]> { new Subject[] { currentSubject } };
+
+        for (int i = 0; i < maxRequestCount; i++)
+        {
+            // 获取最上层条目列表
+            Subject[] lastLoopSubjects = result[^1];
+
+            // 对于每个条目，获取其前传条目并加入当前层结果
+            List<Subject> currentLoopResult = [];
+            foreach (var subject in lastLoopSubjects)
+            {
+                await AddPrequelSubjectsFromSubject(subject, currentLoopResult, searchOneRelatedOnly, token);
+            }
+
+            // 找不到更多前传条目，提前结束循环
+            if (currentLoopResult.Count == 0) break;
+
+            result.Add([.. currentLoopResult]);
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// 处理单个条目，提取其前传并补全为 <see cref="Subject"/> 后加入当前层结果。
+    /// </summary>
+    /// <param name="subject">当前待处理条目。</param>
+    /// <param name="currentLoopResult">当前层前传结果集合。</param>
+    /// <param name="searchOneRelatedOnly">有多个前传时是否仅处理一个。</param>
+    /// <param name="token">取消令牌。</param>
+    private async Task AddPrequelSubjectsFromSubject(Subject subject, List<Subject> currentLoopResult, bool searchOneRelatedOnly, CancellationToken token)
+    {
+        // 获取相关条目
+        var relatedSubjects = await GetRelatedSubjects(subject.Id, token);
+        if (relatedSubjects == null) return;
+
+        // 过滤出前传类型的条目
+        var prequels = relatedSubjects.Where(item => item.Relation == SubjectRelation.Prequel).ToArray();
+        if (prequels.Length == 0) return;
+
+        if (searchOneRelatedOnly)
+        {
+            // 默认取最早创建的条目
+            prequels = [.. prequels.OrderBy(item => item.Id).Take(1)];
+        }
+
+        // 获取前传条目id列表，排除已在当前层结果中的条目id
+        var idsToFetch = prequels
+            .Select(item => item.Id)
+            .Where(id => !currentLoopResult.Any(s => s.Id == id))
+            .Distinct()
+            .ToArray();
+
+        if (idsToFetch.Length == 0) return;
+
+        var subjects = await Task.WhenAll(idsToFetch.Select(id => GetSubject(id, token)));
+        currentLoopResult.AddRange(subjects.OfType<Subject>());
+    }
+
+    /// <summary>
     /// 获取此条目的所有关联动画条目
     /// </summary>
     public async Task<List<int>> GetAllAnimeSeriesSubjectIds(int seriesId, CancellationToken token)
