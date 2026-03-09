@@ -51,13 +51,13 @@ public class InfoBox : Dictionary<string, string>
         return infobox;
     }
 
-    public static InfoBox ParseString(string data)
+    public static InfoBox? ParseString(string data)
     {
         var infobox = new InfoBox();
         var reader = new StringReader(data.ReplaceLineEndings("\n"));
         var line = reader.ReadLine();
         if (line?.StartsWith(StartPattern) != true)
-            throw new FormatException("text not begin with defined pattern");
+            return null;
         while ((line = reader.ReadLine()) != EndPattern && line != null)
         {
             if (line?.StartsWith('|') != true)
