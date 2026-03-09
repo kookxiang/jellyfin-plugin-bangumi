@@ -657,4 +657,37 @@ public class Episode
 
         _plugin.Configuration.EpisodeParser = EpisodeParserType.Basic;
     }
+
+    [TestMethod]
+    public async Task SplitCour()
+    {
+        _plugin.Configuration.EpisodeParser = EpisodeParserType.Torrent;
+
+        var basedir = "[DBD-Raws][魔王学院的不适任者 第二季][01-24TV全集][1080P][BDRip][HEVC-10bit][FLAC][MKV]";
+        FakePath.CreateSeries(_libraryManager, basedir);
+
+        var episodeData = await _provider.GetMetadata(new EpisodeInfo
+        {
+            Path = FakePath.CreateFile($"{basedir}/[DBD-Raws][Maou Gakuin no Futekigousha S2][04][1080P][BDRip][HEVC-10bit][FLAC].mkv"),
+            SeasonProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "330054" } }
+        },
+            _token);
+        Assert.IsTrue(episodeData.HasMetadata, "episode data should not be null");
+        Assert.AreEqual(2, episodeData.Item.ParentIndexNumber.GetValueOrDefault(), "should return the right ParentIndexNumber");
+        Assert.AreEqual(4, episodeData.Item.IndexNumber.GetValueOrDefault(), "should return the right IndexNumber");
+        Assert.AreEqual(1156373, int.Parse(episodeData.Item.ProviderIds[Constants.ProviderName]), "should return the right episode id");
+
+        episodeData = await _provider.GetMetadata(new EpisodeInfo
+        {
+            Path = FakePath.CreateFile($"{basedir}/[DBD-Raws][Maou Gakuin no Futekigousha S2][21][1080P][BDRip][HEVC-10bit][FLAC].mkv"),
+            SeasonProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "330054" } }
+        },
+            _token);
+        Assert.IsTrue(episodeData.HasMetadata, "episode data should not be null");
+        Assert.AreEqual(3, episodeData.Item.ParentIndexNumber.GetValueOrDefault(), "should return the right ParentIndexNumber");
+        Assert.AreEqual(21, episodeData.Item.IndexNumber.GetValueOrDefault(), "should return the right IndexNumber");
+        Assert.AreEqual(1306674, int.Parse(episodeData.Item.ProviderIds[Constants.ProviderName]), "should return the right episode id");
+
+        _plugin.Configuration.EpisodeParser = EpisodeParserType.Basic;
+    }
 }
