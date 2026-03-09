@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
@@ -27,24 +27,88 @@ public partial class BangumiApi
             ? "https://api.bgm.tv"
             : Plugin.Instance!.Configuration.BaseServerUrl.TrimEnd('/');
 
-    public Task<IEnumerable<Subject>> SearchSubject(string keyword, CancellationToken token)
+    /// <summary>
+    /// 搜索动画条目信息
+    /// </summary>
+    /// <param name="keyword">搜索关键词，不区分大小写</param>
+    /// <param name="token"></param>
+    /// <param name="seasonNumber">季号，由于季号存在多种格式（如第二季、Season 2、II），直接放到关键词中搜索可能不准确，因此单独传入进行辅助判断
+    ///     <br/>如果为null，仅对关键词进行常规匹配；
+    ///     <br/>如果为0，只匹配OVA、剧场版条目；
+    ///     <br/>如果为其他，则同时匹配候选列表及关键词中的季号，降低不匹配候选项分数
+    ///     <br/><br/>不为null时，需要确保 <paramref name="keyword"/> 不包含季号信息，否则匹配度可能降低
+    /// </param>
+    /// <returns>条目信息集合</returns>
+    public Task<IEnumerable<Subject>> SearchSubject(string keyword, CancellationToken token, int? seasonNumber = null)
     {
-        return SearchSubject(keyword, SubjectType.Anime, token);
+        return SearchSubject(keyword, SubjectType.Anime, token, seasonNumber);
     }
 
-    public async Task<IEnumerable<Subject>> SearchSubject(string keyword, SubjectType? type, CancellationToken token)
+    /// <summary>
+    /// 搜索条目信息
+    /// </summary>
+    /// <param name="keyword">搜索关键词，不区分大小写</param>
+    /// <param name="type">条目类型</param>
+    /// <param name="token"></param>
+    /// <param name="seasonNumber">季号，由于季号存在多种格式（如第二季、Season 2、II），直接放到关键词中搜索可能不准确，因此单独传入进行辅助判断
+    ///     <br/>如果为null，仅对关键词进行常规匹配；
+    ///     <br/>如果为0，只匹配OVA、剧场版条目；
+    ///     <br/>如果为其他，则同时匹配候选列表及关键词中的季号，降低不匹配候选项分数
+    ///     <br/><br/>不为null时，需要确保 <paramref name="keyword"/> 不包含季号信息，否则匹配度可能降低
+    /// </param>
+    /// <returns>条目信息集合</returns>
+    public async Task<IEnumerable<Subject>> SearchSubject(string keyword, SubjectType? type, CancellationToken token, int? seasonNumber = null)
+    {
+        var result = await SearchSubjectSorted(keyword, type, token, seasonNumber);
+
+        return result.Select(s => s.Item1);
+    }
+
+    /// <summary>
+    /// 搜索条目信息
+    /// </summary>
+    /// <param name="keyword">搜索关键词，不区分大小写</param>
+    /// <param name="type">条目类型</param>
+    /// <param name="token"></param>
+    /// <param name="seasonNumber">季号，由于季号存在多种格式（如第二季、Season 2、II），直接放到关键词中搜索可能不准确，因此单独传入进行辅助判断
+    ///     <br/>如果为null，仅对关键词进行常规匹配；
+    ///     <br/>如果为0，只匹配OVA、剧场版条目；
+    ///     <br/>如果为其他，则同时匹配候选列表及关键词中的季号，降低不匹配候选项分数
+    ///     <br/><br/>不为null时，需要确保 <paramref name="keyword"/> 不包含季号信息，否则匹配度可能降低
+    /// </param>
+    /// <returns>条目信息集合</returns>
+    public async Task<IEnumerable<(Subject, int)>> SearchSubjectSorted(string keyword, SubjectType? type, CancellationToken token, int? seasonNumber = null)
+    {
+        var list = await SearchSubjectRaw(keyword, type, token);
+
+        return await SortSubjects(list, keyword, token, seasonNumber);
+    }
+
+    /// <summary>
+    /// 搜索条目信息
+    /// </summary>
+    /// <param name="keyword">搜索关键词</param>
+    /// <param name="type">条目类型</param>
+    /// <param name="token"></param>
+    /// <returns>接口返回的原始条目信息集合</returns>
+    public async Task<List<Subject>> SearchSubjectRaw(string keyword, SubjectType? type, CancellationToken token)
     {
         if (string.IsNullOrEmpty(keyword))
             return [];
+
         try
         {
+            SearchResult<Subject>? searchResult;
+            List<Subject> list;
+
             if (Plugin.Instance!.Configuration.UseTestingSearchApi)
             {
                 var searchParams = new SearchParams { Keyword = keyword };
                 if (type != null)
                     searchParams.Filter.Type = [type.Value];
-                var searchResult = await Post<SearchResult<Subject>>($"{BaseUrl}/v0/search/subjects", new JsonContent(searchParams), token);
-                return searchResult?.Data ?? [];
+
+                searchResult = await Post<SearchResult<Subject>>($"{BaseUrl}/v0/search/subjects", new JsonContent(searchParams), token);
+                list = searchResult?.Data?.ToList() ?? [];
             }
             else
             {
@@ -54,29 +118,74 @@ public partial class BangumiApi
                 var url = $"{BaseUrl}/search/subject/{Uri.EscapeDataString(keyword)}?responseGroup=large";
                 if (type != null)
                     url += $"&type={(int)type}";
-                var searchResult = await Get<SearchResult<Subject>>(url, token);
-                var list = searchResult?.List ?? [];
-
-                if (Plugin.Instance.Configuration.SortByFuzzScore && list.Count() > 1)
-                {
-                    // 仅使用前 5 个条目获取别名并排序
-                    var num = 5;
-                    var tasks = list.Take(num).Select(subject => GetSubject(subject.Id, token));
-                    var subjectWithInfobox = await Task.WhenAll(tasks);
-
-                    var sortedSubjects =
-                        Subject.SortByFuzzScore(subjectWithInfobox.Where(s => s != null).Cast<Subject>().ToList(), keyword);
-                    return sortedSubjects.Concat(list.Skip(num)).ToList();
-                }
-
-                return Subject.SortBySimilarity(list, keyword);
+                searchResult = await Get<SearchResult<Subject>>(url, token);
+                list = searchResult?.List?.ToList() ?? [];
             }
+
+            return list;
         }
         catch (JsonException)
         {
             // 404 Not Found Anime
             return [];
         }
+    }
+
+    /// <summary>
+    /// 对条目搜索结果进行排序
+    /// </summary>
+    /// <param name="list">搜索结果</param>
+    /// <param name="keyword">搜索关键词，不区分大小写</param>
+    /// <param name="token"></param>
+    /// <param name="seasonNumber">季号，由于季号存在多种格式（如第二季、Season 2、II），直接放到关键词中搜索可能不准确，因此单独传入进行辅助判断
+    ///     <br/>如果为null，仅对关键词进行常规匹配；
+    ///     <br/>如果为0，只匹配OVA、剧场版条目；
+    ///     <br/>如果为其他，则同时匹配候选列表及关键词中的季号，降低不匹配候选项分数
+    ///     <br/><br/>不为null时，需要确保 <paramref name="keyword"/> 不包含季号信息，否则匹配度可能降低
+    /// </param>
+    /// <returns>（条目、分数）元组集合，按匹配度由高到低排序。
+    ///     <br/>分数最高为100，表示完全匹配；分数最低为0，表示完全不匹配。
+    /// </returns>
+    public async Task<IEnumerable<(Subject, int)>> SortSubjects(IEnumerable<Subject> list, string keyword, CancellationToken token, int? seasonNumber = null)
+    {
+        Subject[] array = list?.ToArray() ?? [];
+
+        // 仅使用前 5 个条目获取别名用于排序
+        var num = Math.Min(array.Length, 5);
+
+        List<Subject> subjectWithInfobox = [];
+        for (int i = 0; i < num; i++)
+        {
+            var subject = array[i];
+            // 一些条目能搜索到，但是获取详情时会报错
+            try
+            {
+                // 搜索结果不包含别名信息，尝试获取详情补全信息用于排序
+                var s = await GetSubject(subject.Id, token);
+                if (s != null)
+                {
+                    subjectWithInfobox.Add(s);
+                }
+                else
+                {
+                    subjectWithInfobox.Add(subject);
+                }
+            }
+            catch (Exception e)
+            {
+#if EMBY
+                Console.WriteLine($"Failed to get subject {subject.Name}（{subject.Id}） alias info for sorting: {e.Message}");
+#else
+                logger.Error($"Failed to get subject {subject.Name}（{subject.Id}） alias info for sorting: {e.Message}");
+#endif
+                subjectWithInfobox.Add(subject);
+            }
+        }
+
+        // 拼接剩余条目
+        subjectWithInfobox.AddRange(array.Skip(num));
+
+        return Subject.GetSortedScores(subjectWithInfobox, keyword, seasonNumber);
     }
 
     public async Task<Subject?> GetSubject(int id, CancellationToken token)
@@ -125,7 +234,7 @@ public partial class BangumiApi
         var initialResult = result;
         var history = new HashSet<int>();
 
-        RequestEpisodeList:
+RequestEpisodeList:
         if (offset < 0)
             return result.Data;
         if (offset > result.Total)
@@ -234,17 +343,17 @@ public partial class BangumiApi
         return await Get<IEnumerable<RelatedSubject>>($"{BaseUrl}/v0/subjects/{id}/subjects", token);
     }
 
+    public static bool IsOVAOrMovie(Subject subject)
+    {
+        return subject.Platform == SubjectPlatform.Movie
+               || subject.Platform == SubjectPlatform.OVA
+               || subject.GenreTags.Contains("OVA")
+               || subject.GenreTags.Contains("剧场版");
+    }
+
     public async Task<Subject?> SearchNextSubject(int id, CancellationToken token)
     {
         if (id <= 0) return null;
-
-        bool SeriesSequelUnqualified(Subject subject)
-        {
-            return subject.Platform == SubjectPlatform.Movie
-                   || subject.Platform == SubjectPlatform.OVA
-                   || subject.GenreTags.Contains("OVA")
-                   || subject.GenreTags.Contains("剧场版");
-        }
 
         var requestCount = 0;
         //What would happen in Emby if I use `_plugin`?
@@ -256,7 +365,7 @@ public partial class BangumiApi
             var relatedSubject = subjectsQueue.Dequeue();
             var subjectCandidate = await GetSubject(relatedSubject.Id, token);
             requestCount++;
-            if (subjectCandidate != null && SeriesSequelUnqualified(subjectCandidate))
+            if (subjectCandidate != null && IsOVAOrMovie(subjectCandidate))
             {
                 var nextRelatedSubjects = await GetRelatedSubjects(subjectCandidate.Id, token);
                 foreach (var nextRelatedSubject in nextRelatedSubjects?.Where(item => item.Relation == SubjectRelation.Sequel) ?? [])
@@ -400,7 +509,7 @@ public partial class BangumiApi
 
     public async Task<IEnumerable<Person>?> SearchPerson(string keyword, CancellationToken token)
     {
-        var searchResult = await Post<DataList<Person>>($"{BaseUrl}/v0/search/persons", new JsonContent(new SearchParams { Keyword = keyword}), token);
+        var searchResult = await Post<DataList<Person>>($"{BaseUrl}/v0/search/persons", new JsonContent(new SearchParams { Keyword = keyword }), token);
         return searchResult?.Data;
     }
 
