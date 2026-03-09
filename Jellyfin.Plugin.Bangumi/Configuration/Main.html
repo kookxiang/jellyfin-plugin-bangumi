@@ -288,6 +288,7 @@
                         <div class="bangumi-tab-header">
                             <div class="bangumi-tab-header-button active" data-tab="tabSpExcludeRegex">杂项文件排除</div>
                             <div class="bangumi-tab-header-button" data-tab="tabMiscExcludeRegex">特典文件排除</div>
+                            <div class="bangumi-tab-header-button" data-tab="tabExcludeWhitelistRegex">排除白名单</div>
                         </div>
                         <div class="bangumi-tab-content active" data-tab="tabSpExcludeRegex">
                             <div class="paperList">
@@ -369,6 +370,48 @@
                                         </button>
                                         <textarea class="textarea-mono emby-textarea" rows="5" cols="100" style="overflow: auto;" id="SpExcludeRegexFileName"></textarea>
                                         <div class="fieldDescription">通用文件名称匹配，如：<code>PV01.mkv</code></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="bangumi-tab-content" data-tab="tabExcludeWhitelistRegex">
+                            <div class="paperList">
+                                <div class="fieldDescription">
+                                    <p>下列正则用于白名单放行正篇内容，命中后将优先跳过上面的杂项/特典排除规则，继续按正篇参与识别</p>
+                                    <ul>
+                                        <li>一行一条正则表达式</li>
+                                        <li>忽略大小写</li>
+                                        <li>优先于杂项、特典排除规则执行</li>
+                                    </ul>
+                                </div>
+                                <div class="listItem listItem-border">
+                                    <div class="inputContainer">
+                                        <label class="textareaLabel" for="ExcludeWhitelistRegexFullPath">完整路径匹配</label>
+                                        <button id="ExcludeWhitelistRegexFullPathResetBtn" is="paper-icon-button-light" title="重置" type="button" class="paper-icon-button-light">
+                                            <span aria-hidden="true" class="material-icons replay"></span>
+                                        </button>
+                                        <textarea class="textarea-mono emby-textarea" rows="5" cols="100" style="overflow: auto;" id="ExcludeWhitelistRegexFullPath"></textarea>
+                                        <div class="fieldDescription">匹配完整文件路径或目录路径，适合精确放行容易与默认排除规则冲突的内容</div>
+                                    </div>
+                                </div>
+                                <div class="listItem listItem-border">
+                                    <div class="inputContainer">
+                                        <label class="textareaLabel" for="ExcludeWhitelistRegexFolderName">目录名称匹配</label>
+                                        <button id="ExcludeWhitelistRegexFolderNameResetBtn" is="paper-icon-button-light" title="重置" type="button" class="paper-icon-button-light">
+                                            <span aria-hidden="true" class="material-icons replay"></span>
+                                        </button>
+                                        <textarea class="textarea-mono emby-textarea" rows="5" cols="100" style="overflow: auto;" id="ExcludeWhitelistRegexFolderName"></textarea>
+                                        <div class="fieldDescription">匹配文件所在目录或季目录名称，例如目录名含有 OVA、SP 但实际仍为正篇时可在此放行</div>
+                                    </div>
+                                </div>
+                                <div class="listItem listItem-border">
+                                    <div class="inputContainer">
+                                        <label class="textareaLabel" for="ExcludeWhitelistRegexFileName">文件名匹配</label>
+                                        <button id="ExcludeWhitelistRegexFileNameResetBtn" is="paper-icon-button-light" title="重置" type="button" class="paper-icon-button-light">
+                                            <span aria-hidden="true" class="material-icons replay"></span>
+                                        </button>
+                                        <textarea class="textarea-mono emby-textarea" rows="5" cols="100" style="overflow: auto;" id="ExcludeWhitelistRegexFileName"></textarea>
+                                        <div class="fieldDescription">匹配文件名，适合放行会被默认杂项/特典规则误判的正篇文件</div>
                                     </div>
                                 </div>
                             </div>

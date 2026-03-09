@@ -66,6 +66,42 @@ public class PluginConfiguration : BasePluginConfiguration
 
     public bool UseOriginalTitleFirst { get; set; }
 
+    public string DefaultExcludeWhitelistRegexFullPath => "";
+
+    public string DefaultExcludeWhitelistRegexFolderName => "";
+
+    public string DefaultExcludeWhitelistRegexFileName => "";
+
+    private string _excludeWhitelistRegexFullPath;
+    public string ExcludeWhitelistRegexFullPath
+    {
+        get => _excludeWhitelistRegexFullPath;
+        set
+        {
+            _excludeWhitelistRegexFullPath = CheckRegexes(value);
+        }
+    }
+
+    private string _excludeWhitelistRegexFolderName;
+    public string ExcludeWhitelistRegexFolderName
+    {
+        get => _excludeWhitelistRegexFolderName;
+        set
+        {
+            _excludeWhitelistRegexFolderName = CheckRegexes(value);
+        }
+    }
+
+    private string _excludeWhitelistRegexFileName;
+    public string ExcludeWhitelistRegexFileName
+    {
+        get => _excludeWhitelistRegexFileName;
+        set
+        {
+            _excludeWhitelistRegexFileName = CheckRegexes(value);
+        }
+    }
+
     public string DefaultSpExcludeRegexFullPath => "";
 
     public string DefaultSpExcludeRegexFolderName => @"(\b|_)(SPs?|Specials?|OVA|OAD)(\b|_)
@@ -144,6 +180,10 @@ NCOP|NCED|ノンテロップ\s*OP|ノンテロップ\s*ED|メニュー画面\s*\
 
     public PluginConfiguration()
     {
+        _excludeWhitelistRegexFullPath = CheckRegexes(DefaultExcludeWhitelistRegexFullPath);
+        _excludeWhitelistRegexFolderName = CheckRegexes(DefaultExcludeWhitelistRegexFolderName);
+        _excludeWhitelistRegexFileName = CheckRegexes(DefaultExcludeWhitelistRegexFileName);
+
         _spExcludeRegexFullPath = CheckRegexes(DefaultSpExcludeRegexFullPath);
         _spExcludeRegexFolderName = CheckRegexes(DefaultSpExcludeRegexFolderName);
         _spExcludeRegexFileName = CheckRegexes(DefaultSpExcludeRegexFileName);

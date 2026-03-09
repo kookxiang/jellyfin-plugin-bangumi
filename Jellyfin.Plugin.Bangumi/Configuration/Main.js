@@ -238,6 +238,21 @@
         container.querySelector('#MiscExcludeRegexFileName').value = configuration['DefaultMiscExcludeRegexFileName'];
     });
 
+    container.querySelector('#ExcludeWhitelistRegexFullPathResetBtn').addEventListener('click', function (e) {
+        e.preventDefault();
+        container.querySelector('#ExcludeWhitelistRegexFullPath').value = configuration['DefaultExcludeWhitelistRegexFullPath'];
+    });
+
+    container.querySelector('#ExcludeWhitelistRegexFolderNameResetBtn').addEventListener('click', function (e) {
+        e.preventDefault();
+        container.querySelector('#ExcludeWhitelistRegexFolderName').value = configuration['DefaultExcludeWhitelistRegexFolderName'];
+    });
+
+    container.querySelector('#ExcludeWhitelistRegexFileNameResetBtn').addEventListener('click', function (e) {
+        e.preventDefault();
+        container.querySelector('#ExcludeWhitelistRegexFileName').value = configuration['DefaultExcludeWhitelistRegexFileName'];
+    });
+
     container.querySelectorAll('.bangumi-tab-container').forEach(tabContainer => {
         tabContainer.querySelectorAll('.bangumi-tab-header-button').forEach(btn => {
             btn.addEventListener('click', function () {
