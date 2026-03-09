@@ -1,5 +1,4 @@
 using System.Linq;
-using System.Text.RegularExpressions;
 using System;
 using MediaBrowser.Model.Plugins;
 
@@ -207,33 +206,5 @@ NCOP|NCED|ノンテロップ\s*OP|ノンテロップ\s*ED|メニュー画面\s*\
 
         return string.Join("\n", regexArray.Select(r => r.Trim())
             .Where(r => r.Length > 0));
-    }
-
-    /// <summary>
-    /// 文件排除正则表达式匹配
-    /// </summary>
-    /// <param name="patterns">正则表达式配置</param>
-    /// <param name="input">要匹配的文本</param>
-    /// <param name="failedCallback">匹配报错回调，参数：当前匹配的正则表达式、异常对象</param>
-    /// <returns>是否匹配到任意一个正则表达式</returns>
-    public static bool MatchExcludeRegexes(string patterns, string input, Action<string, Exception>? failedCallback = null)
-    {
-        var patternFullPath = patterns?.Split("\n") ?? [];
-        foreach (var item in patternFullPath)
-        {
-            if (string.IsNullOrEmpty(item)) continue;
-
-            try
-            {
-                Regex regex = new Regex(item, RegexOptions.IgnoreCase);
-                if (regex.IsMatch(input)) return true;
-            }
-            catch (Exception e)
-            {
-                failedCallback?.Invoke(item, e);
-            }
-        }
-
-        return false;
     }
 }
