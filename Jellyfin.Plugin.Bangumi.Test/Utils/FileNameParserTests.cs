@@ -48,6 +48,10 @@ namespace Jellyfin.Plugin.Bangumi.Utils.Tests
             result = FileNameParser.SplitAnimeTitleAndEpisode("[Snow-Raws] 這いよれ! ニャル子さんW 第01話 (BD 1920x1080 HEVC-YUV420P10 FLACx2).mkv");
             Assert.AreEqual("[Snow-Raws] 這いよれ! ニャル子さんW  (BD 1920x1080 HEVC-YUV420P10 FLACx2).mkv", result.Item1);
             Assert.AreEqual(1, result.Item2);
+
+            result = FileNameParser.SplitAnimeTitleAndEpisode("[VCB-Studio] Sword Art Online II [14.5][Ma10p_1080p][x265_flac].mkv");
+            Assert.AreEqual("[VCB-Studio] Sword Art Online II [Ma10p_1080p][x265_flac].mkv", result.Item1);
+            Assert.AreEqual(14.5, result.Item2);
         }
 
         [TestMethod()]
