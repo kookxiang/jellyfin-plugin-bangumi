@@ -690,4 +690,32 @@ public class Episode
 
         _plugin.Configuration.EpisodeParser = EpisodeParserType.Basic;
     }
+
+    [TestMethod]
+    public async Task NonMainStoryWithContinuousEpisodeNumber()
+    {
+        _plugin.Configuration.EpisodeParser = EpisodeParserType.Torrent;
+
+        const string SeriesDir = "Clannad+Clannad After Story [BD 1920x1080 HEVC-10bit AAC]";
+        const string SeasonDir = "S2";
+        const string EpisodeFile = "Clannad After Story 23 [BD 1920x1080 HEVC-10bit AAC ASSx2].mkv";
+
+        FakePath.CreateSeries(_libraryManager, SeriesDir);
+
+        var season = FakePath.CreateSeason(_libraryManager, $"{SeriesDir}/{SeasonDir}");
+        season.ProviderIds.Add(Constants.ProviderName, "876");
+        season.ProviderIds.Add(Constants.SeasonNumberProviderName, "2");
+        var episodeData = await _provider.GetMetadata(new EpisodeInfo
+        {
+            Path = FakePath.CreateFile($"{SeriesDir}/{SeasonDir}/{EpisodeFile}")
+        },
+            _token);
+
+        Assert.IsTrue(episodeData.HasMetadata, "episode data should not be null");
+        Assert.AreEqual(2, episodeData.Item.ParentIndexNumber.GetValueOrDefault(), "should return the right ParentIndexNumber");
+        Assert.AreEqual(23, episodeData.Item.IndexNumber.GetValueOrDefault(), "should return the right IndexNumber");
+        Assert.AreEqual(7542, int.Parse(episodeData.Item.ProviderIds[Constants.ProviderName]), "should return the right episode id");
+
+        _plugin.Configuration.EpisodeParser = EpisodeParserType.Basic;
+    }
 }
