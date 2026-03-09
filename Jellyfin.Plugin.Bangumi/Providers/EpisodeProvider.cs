@@ -58,6 +58,7 @@ public class EpisodeProvider(BangumiApi api, Logger<EpisodeProvider> log, ILibra
             result.Item = new Episode();
             result.HasMetadata = true;
 
+            FillFallbackTitle(result.Item);
             return result;
         }
 
@@ -96,14 +97,10 @@ public class EpisodeProvider(BangumiApi api, Logger<EpisodeProvider> log, ILibra
             result.Item.ParentIndexNumber = (int?)episode.SeasonNumber ?? 1;
         }
 
+        FillFallbackTitle(result.Item);
+
         if (episode.Type == EpisodeType.Normal && result.Item.ParentIndexNumber > 0)
             return result;
-
-        // 无法刮削到剧集信息时，使用原文件名作为剧集标题
-        if (string.IsNullOrEmpty(result.Item.Name))
-            result.Item.Name = Path.GetFileNameWithoutExtension(info.Path);
-        if (string.IsNullOrEmpty(result.Item.OriginalTitle))
-            result.Item.OriginalTitle = Path.GetFileNameWithoutExtension(info.Path);
 
         // 获取特典季号用于排序
         var seasonNumber = 1;
@@ -136,6 +133,15 @@ public class EpisodeProvider(BangumiApi api, Logger<EpisodeProvider> log, ILibra
             result.Item.AirsAfterSeasonNumber = seasonNumber;
 
         return result;
+
+        // 无法刮削到剧集信息时，使用原文件名作为剧集标题
+        void FillFallbackTitle(Episode item)
+        {
+            if (string.IsNullOrEmpty(item.Name))
+                item.Name = Path.GetFileNameWithoutExtension(info.Path);
+            if (string.IsNullOrEmpty(item.OriginalTitle))
+                item.OriginalTitle = Path.GetFileNameWithoutExtension(info.Path);
+        }
     }
 
     public Task<IEnumerable<RemoteSearchResult>> GetSearchResults(EpisodeInfo searchInfo, CancellationToken cancellationToken)
