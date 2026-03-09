@@ -179,6 +179,13 @@ public partial class BangumiApi
             // 一些条目能搜索到，但是获取详情时会报错
             try
             {
+                // 缓存通常已经包含别名
+                if (subject.Alias?.Any() ?? false)
+                {
+                    subjectWithInfobox.Add(subject);
+                    continue;
+                }
+
                 // 搜索结果不包含别名信息，尝试获取详情补全信息用于排序
                 var s = await GetSubject(subject.Id, token);
                 if (s != null)
