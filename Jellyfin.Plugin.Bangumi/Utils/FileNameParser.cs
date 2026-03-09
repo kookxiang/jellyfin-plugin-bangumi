@@ -16,7 +16,9 @@ namespace Jellyfin.Plugin.Bangumi.Utils
             // 01-12, 1 - 12
             new Regex(@"\d+\s*-\s*\d+", RegexOptions.IgnoreCase | RegexOptions.Compiled),
             // 10-Bit
-            new Regex(@"\b\d{1,2}-Bit\b", RegexOptions.IgnoreCase | RegexOptions.Compiled)
+            new Regex(@"\b\d{1,2}-Bit\b", RegexOptions.IgnoreCase | RegexOptions.Compiled),
+            // AT-X（会误识别为罗马数字X）
+            new Regex(@"\bAT-X\b", RegexOptions.IgnoreCase | RegexOptions.Compiled)
         ];
 
         /// <summary>

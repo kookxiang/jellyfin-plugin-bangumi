@@ -71,7 +71,7 @@ public class PluginConfiguration : BasePluginConfiguration
     public string DefaultSpExcludeRegexFolderName => @"(\b|_)(SPs?|Specials?|OVA|OAD)(\b|_)
 特典";
 
-    public string DefaultSpExcludeRegexFileName => @"(\b|_)(SPs?|Specials?|OVA|OAD)(\b|_)
+    public string DefaultSpExcludeRegexFileName => @"(\b|_)(SPs?\d*|Specials?|OVA\d*|OAD\d*)(\b|_)
 特典";
 
     private string _spExcludeRegexFullPath;
@@ -106,10 +106,10 @@ public class PluginConfiguration : BasePluginConfiguration
 
     public string DefaultMiscExcludeRegexFullPath => @"(\b|_)(特典CD|CDs?)(\b|_)";
 
-    public string DefaultMiscExcludeRegexFolderName => @"(\b|_)(PVs?|Previews?|Scans?|menus?|Fonts?|Extras?|CDs?|bonus|Music|Subs?|Subtitles?|漫画|特别漫画|特典CD)(\b|_)
+    public string DefaultMiscExcludeRegexFolderName => @"(\b|_)(PVs?|Previews?|Scans?|menus?|Fonts?|Extras?|CDs?|bonus|Music|Subs?|Subtitles?|其他|漫画|特别漫画|特典CD)(\b|_)
 NCOP|NCED";
 
-    public string DefaultMiscExcludeRegexFileName => @"(\b|_)(WEB予告|NCOP\d*|OP\d*|NCED\d*|ED\d*|menu\d*\w*|PV\d*|Preview\d*|CM集?\d*|IV\d*)(\b|_)
+    public string DefaultMiscExcludeRegexFileName => @"(\b|_)(WEB予告|次回予告|NCOP\d*|OP\d*|NCED\d*|ED\d*|menu\d*\w*|PV\d*|Preview\d*|CM集?\d*|IV\d*)(\b|_)
 NCOP|NCED|ノンテロップ\s*OP|ノンテロップ\s*ED|メニュー画面\s*\d+";
 
     private string _miscExcludeRegexFullPath;
