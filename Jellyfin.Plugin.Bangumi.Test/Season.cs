@@ -48,9 +48,6 @@ public class Season
         var subject = await _api.SearchNextSubject(135275, _token);
         Assert.AreEqual(174043, subject?.Id, "can guess next season by subject id");
 
-        subject = await _api.SearchNextSubject(152091, _token);
-        Assert.AreEqual(283643, subject?.Id, "Can guess next TV season with BFS");
-
         subject = await _api.SearchNextSubject(174043, _token);
         Assert.AreNotEqual(220631, subject?.Id, "should skip movie");
         Assert.AreEqual(342667, subject?.Id, "can guess next season by subject id");
@@ -59,6 +56,21 @@ public class Season
         Assert.AreNotEqual(99796, subject?.Id, "should skip OVA");
         Assert.AreNotEqual(136311, subject?.Id, "should skip OVA but with wrong metadata in Bangumi");
         Assert.AreEqual(127573, subject?.Id, "can guess next season by subject id");
+    }
+
+    [TestMethod]
+    public async Task GuessNextSeason2()
+    {
+        var count = _plugin.Configuration.SeasonGuessMaxSearchCount;
+        _plugin.Configuration.SeasonGuessMaxSearchCount = 2;
+        var subject = await _api.SearchNextSubject(152091, _token);
+        Assert.IsNull(subject?.Id, "Can not guess next TV season with BFS");
+
+        _plugin.Configuration.SeasonGuessMaxSearchCount = 3;
+        subject = await _api.SearchNextSubject(152091, _token);
+        Assert.AreEqual(283643, subject?.Id, "Can guess next TV season with BFS");
+
+        _plugin.Configuration.SeasonGuessMaxSearchCount = count;
     }
 
     [TestMethod]

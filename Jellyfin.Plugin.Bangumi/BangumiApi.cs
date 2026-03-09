@@ -351,37 +351,47 @@ RequestEpisodeList:
                || subject.GenreTags.Contains("剧场版");
     }
 
+    /// <summary>
+    /// 获取续集条目
+    /// </summary>
+    /// <param name="id">Bangumi条目id</param>
+    /// <param name="token"></param>
+    /// <returns>返回下一季正篇条目，找不到则返回null</returns>
     public async Task<Subject?> SearchNextSubject(int id, CancellationToken token)
     {
         if (id <= 0) return null;
 
-        var requestCount = 0;
         //What would happen in Emby if I use `_plugin`?
         var maxRequestCount = Plugin.Instance?.Configuration?.SeasonGuessMaxSearchCount ?? 2;
         var relatedSubjects = await GetRelatedSubjects(id, token);
-        var subjectsQueue = new Queue<RelatedSubject>(relatedSubjects?.Where(item => item.Relation == SubjectRelation.Sequel) ?? []);
-        while (subjectsQueue.Count > 0 && requestCount < maxRequestCount)
+        var currentLevel = relatedSubjects?.Where(item => item.Relation == SubjectRelation.Sequel).ToArray() ?? [];
+
+        for (int i = 0; i < maxRequestCount && currentLevel.Length > 0; i++)
         {
-            var relatedSubject = subjectsQueue.Dequeue();
-            var subjectCandidate = await GetSubject(relatedSubject.Id, token);
-            requestCount++;
-            if (subjectCandidate != null && IsOVAOrMovie(subjectCandidate))
+            // 获取所有续集条目
+            var subjects = await Task.WhenAll(currentLevel.Select(rs => GetSubject(rs.Id, token)));
+            var validSubjects = subjects.OfType<Subject>().ToArray();
+
+            // 如果有正篇则直接返回
+            var candidate = validSubjects.FirstOrDefault(s => !IsOVAOrMovie(s));
+            if (candidate != null)
             {
-                var nextRelatedSubjects = await GetRelatedSubjects(subjectCandidate.Id, token);
-                foreach (var nextRelatedSubject in nextRelatedSubjects?.Where(item => item.Relation == SubjectRelation.Sequel) ?? [])
-                {
-                    subjectsQueue.Enqueue(nextRelatedSubject);
+                Console.WriteLine($"BangumiApi: Season guess of id #{id} end at level {i + 1}");
+                return candidate;
                 }
-            }
-            else
+
+            // 如果续集都非正篇，则继续往下一层查询，示例：https://bangumi.tv/subject/152091
+            var nextLevel = new List<RelatedSubject>();
+            foreach (var subject in validSubjects)
             {
-                // BFS until meets criteria
-                Console.WriteLine($"BangumiApi: Season guess of id #{id} end with {requestCount} searches");
-                return subjectCandidate;
+                var nextRelated = await GetRelatedSubjects(subject.Id, token);
+                if (nextRelated != null)
+                    nextLevel.AddRange(nextRelated.Where(rs => rs.Relation == SubjectRelation.Sequel));
             }
+            currentLevel = [.. nextLevel];
         }
 
-        Console.WriteLine($"BangumiApi: Season guess of id #{id} failed with {requestCount} searches");
+        Console.WriteLine($"BangumiApi: Season guess of id #{id} failed after {maxRequestCount} levels");
         return null;
     }
 
