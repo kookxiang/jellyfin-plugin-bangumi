@@ -230,7 +230,7 @@ namespace Jellyfin.Plugin.Bangumi.Parser.TorrentParser
                     // 尝试搜索上一季
                     log.Warn("episode index {index} is less than minimum episode index {MinIndex} in current season, searching nearby seasons", episodeIndex, minOrder);
                     var prev = await context.Api.SearchPreviousSubject(subjectId, 1, context.Token);
-                    if (prev != null)
+                    if (prev != null && prev.Id != subjectId)
                     {
                         var prevEpisode = await SearchEpisodes(context, log, type, prev.Id, episodeIndex);
                         if (prevEpisode != null)
