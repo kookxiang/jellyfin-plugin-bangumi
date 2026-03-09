@@ -106,9 +106,6 @@ public partial class BasicEpisodeParser(EpisodeParserContext context, Logger<Bas
         // 从文件路径中提取集数编号
         double episodeIndex = ExtractEpisodeNumberFromPath(context, log);
 
-        // 应用本地配置中的集数偏移量
-        LocalConfigurationHelper.ApplyEpisodeOffset(ref episodeIndex, context.LocalConfiguration);
-
         // 优先通过已有的 Bangumi 条目 ID 获取剧集，如果未找到则通过搜索剧集列表匹配
         var result = await GetEpisodeFromProviderId(context, log, subjectId, episodeIndex)
             ?? await SearchEpisodes(context, log, type, subjectId, episodeIndex);
