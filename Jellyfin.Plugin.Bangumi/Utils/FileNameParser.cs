@@ -1,11 +1,24 @@
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
+using Jellyfin.Plugin.Bangumi.Parser.AnitomyParser;
 
 namespace Jellyfin.Plugin.Bangumi.Utils
 {
     public static partial class FileNameParser
     {
+        /// <summary>
+        /// 季号预处理正则，删除文件名中容易干扰季号识别的数字
+        /// </summary>
+        private static readonly Regex[] _seasonNumberPreprocessRegexes =
+        [
+            // 01-12, 1 - 12
+            new Regex(@"\d+\s*-\s*\d+", RegexOptions.IgnoreCase | RegexOptions.Compiled),
+            // 10-Bit
+            new Regex(@"\b\d{1,2}-Bit\b", RegexOptions.IgnoreCase | RegexOptions.Compiled)
+        ];
+
         /// <summary>
         /// 季号匹配正则
         /// </summary>
@@ -201,6 +214,14 @@ namespace Jellyfin.Plugin.Bangumi.Utils
             // 匹配正则
             filename = filename.Trim();
             Match? match = null;
+
+            // 预处理，删除容易干扰季号识别的数字
+            foreach (var regex in _seasonNumberPreprocessRegexes)
+            {
+                filename = regex.Replace(filename, "");
+            }
+
+            // 匹配季号
             foreach (var regex in _seasonNumberRegexes)
             {
                 match = regex.Match(filename);
@@ -292,6 +313,30 @@ namespace Jellyfin.Plugin.Bangumi.Utils
         {
             var (_, episodeNum) = SplitAnimeTitleAndEpisode(filename);
             return episodeNum;
+        }
+
+        /// <summary>
+        /// 从文件夹路径获取有效的番剧名称用于搜索，包含季号
+        /// </summary>
+        /// <param name="folderPath">文件夹路径</param>
+        /// <returns></returns>
+        public static (string?, int?) GetValidAnimeTitleAndSeason(string folderPath)
+        {
+            var folderName = Path.GetFileName(folderPath);
+
+            // Anitomy 只能获取部分数字季号，使用其他方法获取季号
+            var split = SplitAnimeTitleAndSeason(folderName, false);
+            var result = ((string?)split.Item1, (int?)split.Item2);
+
+            var anitomy = new Anitomy(result.Item1 ?? folderName);
+            // 使用 Anitomy 清理文件名
+            result.Item1 = anitomy.ExtractAnimeTitle();
+
+            // 纠正季号，避免降低匹配度
+            if (result.Item2 != null && result.Item2 < 1)
+                result.Item2 = null;
+
+            return result;
         }
     }
 }

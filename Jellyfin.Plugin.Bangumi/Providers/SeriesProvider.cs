@@ -7,11 +7,11 @@ using System.Threading;
 using System.Threading.Tasks;
 using Jellyfin.Plugin.Bangumi.Configuration;
 using Jellyfin.Plugin.Bangumi.Model;
+using Jellyfin.Plugin.Bangumi.Utils;
 using MediaBrowser.Controller.Entities.TV;
 using MediaBrowser.Controller.Providers;
 using MediaBrowser.Model.Entities;
 using MediaBrowser.Model.Providers;
-using Jellyfin.Plugin.Bangumi.Parser.AnitomyParser;
 
 namespace Jellyfin.Plugin.Bangumi.Providers;
 
@@ -33,8 +33,18 @@ public class SeriesProvider(BangumiApi api, Logger<SeriesProvider> log)
     /// <returns>第一个匹配的条目ID，若未找到则返回0</returns>
     private async Task<int> SearchSubjectId(string name, int? year, CancellationToken cancellationToken)
     {
-        log.Info("Searching {Name} in bgm.tv", name);
-        var searchResult = await api.SearchSubject(name, cancellationToken);
+        string? searchName = null;
+        int? season = null;
+
+        // 尝试使用AnitomySharp解析标题和季数
+        if (Configuration.AlwaysGetTitleByAnitomySharp)
+        {
+            (searchName, season) = FileNameParser.GetValidAnimeTitleAndSeason(name);
+        }
+        searchName ??= name;
+
+        log.Info("Searching {Name} in bgm.tv, season: {Season}, original name: {OriginalName}", searchName, season, name);
+        var searchResult = await api.SearchSubject(searchName, cancellationToken, season);
         if (year != null)
             searchResult = searchResult.Where(x => x.ProductionYear == null || x.ProductionYear == year.Value.ToString());
 
@@ -58,19 +68,10 @@ public class SeriesProvider(BangumiApi api, Logger<SeriesProvider> log)
         else
             _ = int.TryParse(info.ProviderIds.GetOrDefault(Constants.ProviderName), out subjectId);
 
-        // AnitomySharp解析标题匹配率较高，优先使用
-        if (subjectId == 0 && Configuration.AlwaysGetTitleByAnitomySharp)
+        // 使用目录名称进行搜索
+        if (subjectId == 0)
         {
-            var anitomy = new Anitomy(baseName);
-            var searchName = anitomy.ExtractAnimeTitle() ?? info.Name;
-            if (int.TryParse(anitomy.ExtractAnimeSeason(), out var season)
-                || int.TryParse(anitomy.ExtractEpisodeNumber(), out season)) // 有时会解析成集号，如：[VCB-Studio] Log Horizon 2 [Ma10p_1080p]
-            {
-                searchName = $"{searchName} {season}";
-            }
-
-            if (!string.IsNullOrEmpty(searchName))
-                subjectId = await SearchSubjectId(searchName, info.Year, cancellationToken);
+            subjectId = await SearchSubjectId(baseName, info.Year, cancellationToken);
         }
 
         // 使用原始标题和中文标题进行搜索，根据配置决定搜索顺序

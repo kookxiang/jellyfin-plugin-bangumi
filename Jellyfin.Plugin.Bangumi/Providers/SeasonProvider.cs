@@ -376,33 +376,7 @@ public class SeasonProvider(BangumiApi api, Logger<EpisodeProvider> log, ILibrar
             return default;
         }
 
-        var anitomy = new Anitomy(folderName);
-        // 使用 Anitomy 清理文件名
-        var searchName = anitomy.ExtractAnimeTitle();
-
-        (string?, int?) result;
-        if (int.TryParse(anitomy.ExtractAnimeSeason(), out var season))
-        {
-            // 如果包含季号，直接返回
-            result = (searchName, season);
-        }
-        else if (int.TryParse(anitomy.ExtractEpisodeNumber(), out season))
-        {
-            // 有时会解析成集号，如：[VCB-Studio] Log Horizon 2 [Ma10p_1080p]
-            result = (searchName, season);
-        }
-        else
-        {
-            // Anitomy只能获取部分数字季号，使用其他方法再次尝试获取季号
-            var split = FileNameParser.SplitAnimeTitleAndSeason(searchName ?? folderName, false);
-            result = (split.Item1, (int?)split.Item2);
-        }
-
-        if (result.Item2 != null && result.Item2 < 1)
-            // 纠正季号，避免降低匹配度
-            return (folderName, null);
-        else
-            return result;
+        return GetValidAnimeTitleAndSeason(folderPath);
     }
 
     /// <summary>
