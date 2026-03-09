@@ -75,6 +75,7 @@ public class Episode
         Assert.IsNotNull(episodeData, "episode data should not be null");
         Assert.IsNotNull(episodeData.Item, "episode data should not be null");
         Assert.AreEqual("WHITE ALBUM", episodeData.Item.Name, "should return the right episode title");
+        Assert.AreEqual(1, episodeData.Item.IndexNumber, "should fix episode index automatically");
 
         episodeData = await _provider.GetMetadata(new EpisodeInfo
         {
