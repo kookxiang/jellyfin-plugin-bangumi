@@ -96,6 +96,25 @@ public partial class BangumiApi
         if (string.IsNullOrEmpty(keyword))
             return [];
 
+#if !EMBY
+        if (archive.SubjectSearchIndex.AnyExists())
+        {
+            var candidateIds = archive.SubjectSearchIndex.Search(keyword, type, PageSize);
+
+            var results = new List<Subject>();
+            foreach (var id in candidateIds)
+            {
+                var s = await archive.Subject.FindById(id, token);
+                if (s == null) continue;
+
+                results.Add(s.ToSubject());
+            }
+
+            if (results.Count > 0 || !_plugin.Configuration.FallbackToOnlineWhenArchiveMiss)
+                return results;
+        }
+#endif
+
         try
         {
             SearchResult<Subject>? searchResult;

@@ -33,4 +33,6 @@ public class ArchiveData(IApplicationPaths paths)
     public SubjectEpisodeRelation SubjectEpisodeRelation => new(this);
 
     public SubjectPersonRelation SubjectPersonRelation => new(this);
+
+    public SubjectSearchIndex SubjectSearchIndex => new(this);
 }
