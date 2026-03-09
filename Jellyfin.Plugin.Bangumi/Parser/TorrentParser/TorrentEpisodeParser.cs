@@ -62,9 +62,24 @@ namespace Jellyfin.Plugin.Bangumi.Parser.TorrentParser
             if (subjectId <= 0) return result;
 
             var episodeIndexNumber = ExtractEpisodeNumberFromPath(context, log) ?? 0;
-            // 获取剧集信息
-            result = await BasicEpisodeParser.GetEpisodeFromProviderId(context, log, subjectId, episodeIndexNumber)
-                ?? await BasicEpisodeParser.SearchEpisodes(context, log, type, subjectId, episodeIndexNumber, false, false);
+
+            // 先置空，方便后面判断是否成功获取到元数据
+            result = null;
+            // 如果勾选了“始终根据配置的 Bangumi ID 获取元数据”则优先使用已记录的剧集 ID
+            if (context.Configuration.TrustExistedBangumiId)
+            {
+                if (int.TryParse(context.Info.ProviderIds?.GetValueOrDefault(Constants.ProviderName), out var episodeId))
+                {
+                    // 已保存的剧集 ID 存在，尝试直接获取剧集信息
+                    log.Info("fetching episode info using saved id: {EpisodeId}", episodeId);
+
+                    // 通过 API 获取剧集详情
+                    result = await context.Api.GetEpisode(episodeId, context.Token);
+                }
+            }
+            // 找不到时，通过集号匹配
+            result ??= await BasicEpisodeParser.SearchEpisodes(context, log, type, subjectId, episodeIndexNumber, false, false);
+
             if (result != null)
             {
                 if (type == EpisodeType.Special || result.Type == EpisodeType.Special)

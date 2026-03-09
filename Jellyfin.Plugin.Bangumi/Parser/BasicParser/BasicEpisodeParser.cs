@@ -185,6 +185,7 @@ public partial class BasicEpisodeParser(EpisodeParserContext context, Logger<Bas
                 return episode;
             }
 
+            // 部分目录名称可能会造成误判，例如：XXX （TV + OVA）
             // 特别篇（SP/OP/ED/PV）直接返回，无需校验集数匹配
             if (episode.Type != EpisodeType.Normal || _allSpecialEpisodeFileNameRegex.Any(x => x.IsMatch(context.Info.Path)))
             {
