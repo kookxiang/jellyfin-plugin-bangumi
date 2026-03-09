@@ -295,4 +295,21 @@ public class Season
         Assert.AreEqual(289906, int.Parse(result.Item.ProviderIds.GetOrDefault(Constants.ProviderName) ?? ""), "should return the right season id");
         Assert.AreEqual(2, int.Parse(result.Item.ProviderIds.GetOrDefault(Constants.SeasonNumberProviderName) ?? ""), "should return the right season number");
     }
+
+    [TestMethod]
+    public async Task SearchSubjectByFolderPath_MergeSeriesNameAndSeasonNumber()
+    {
+        string seriesFolderName = "[neoDESU] By the Grace of the Gods [Season 1-2] [BD 1080p x265 HEVC OPUS AAC] [Dual Audio]";
+
+        FakePath.CreateSeries(_libraryManager, seriesFolderName);
+
+        var result = await _provider.GetMetadata(new SeasonInfo
+        {
+            Path = FakePath.Create($"{seriesFolderName}/Season 2")
+        }, _token);
+
+        Assert.IsTrue(result.HasMetadata, "should return metadata when using parent folder name and current folder season number");
+        Assert.AreEqual(338150, int.Parse(result.Item.ProviderIds.GetOrDefault(Constants.ProviderName) ?? ""), "should return the expected season id");
+        Assert.AreEqual(2, int.Parse(result.Item.ProviderIds.GetOrDefault(Constants.SeasonNumberProviderName) ?? ""), "should return the expected season number");
+    }
 }

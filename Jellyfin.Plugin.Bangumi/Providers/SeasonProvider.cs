@@ -292,15 +292,31 @@ public class SeasonProvider(BangumiApi api, Logger<EpisodeProvider> log, ILibrar
     /// <returns>条目信息，找不到则为null</returns>
     private async Task<Subject?> SearchSubjectByFolderPath(string folderPath, CancellationToken cancellationToken)
     {
-        var searchNameSeason = GetValidAnimeTitleAndSeason(folderPath);
-        if (searchNameSeason == default)
+        var seasonPathNameSeason = GetValidAnimeTitleAndSeason(folderPath);
+        var searchName = seasonPathNameSeason.Item1;
+        var searchSeason = seasonPathNameSeason.Item2;
+
+        // Season没有标题，可能只包含季号，尝试从Series获取标题
+        if (string.IsNullOrWhiteSpace(searchName))
+        {
+            log.Info($"Failed to extract season title from folder path: {folderPath}, trying to get title from series");
+            var seriesPath = Path.GetDirectoryName(folderPath);
+            var seriesPathNameSeason = string.IsNullOrEmpty(seriesPath)
+                ? default
+                : GetValidAnimeTitleAndSeason(seriesPath);
+
+            // Season目录名只有季号通常是多季度合集，Series目录名可能含有类似 1+2 的信息，不好确认季号，这里只提取标题
+            searchName = seriesPathNameSeason.Item1;
+        }
+
+        if (string.IsNullOrWhiteSpace(searchName))
         {
             log.Error($"Failed to extract anime title from folder path: {folderPath}");
             return null;
         }
 
-        log.Info($"Search subject by folder path: {folderPath}, name: {searchNameSeason.Item1}, season: {searchNameSeason.Item2}");
-        var subjects = await api.SearchSubject(searchNameSeason.Item1, cancellationToken, searchNameSeason.Item2);
+        log.Info($"Search subject by folder path: {folderPath}, name: {searchName}, season: {searchSeason}");
+        var subjects = await api.SearchSubject(searchName, cancellationToken, searchSeason);
 
         return subjects?.FirstOrDefault();
     }
@@ -310,7 +326,7 @@ public class SeasonProvider(BangumiApi api, Logger<EpisodeProvider> log, ILibrar
     /// </summary>
     /// <param name="folderPath">文件夹路径</param>
     /// <returns></returns>
-    private static (string, int?) GetValidAnimeTitleAndSeason(string folderPath)
+    private static (string?, int?) GetValidAnimeTitleAndSeason(string folderPath)
     {
         var folderName = Path.GetFileName(folderPath);
 
@@ -324,12 +340,8 @@ public class SeasonProvider(BangumiApi api, Logger<EpisodeProvider> log, ILibrar
         var anitomy = new Anitomy(folderName);
         // 使用 Anitomy 清理文件名
         var searchName = anitomy.ExtractAnimeTitle();
-        if (string.IsNullOrEmpty(searchName))
-        {
-            return default;
-        }
 
-        (string, int?) result;
+        (string?, int?) result;
         if (int.TryParse(anitomy.ExtractAnimeSeason(), out var season))
         {
             // 如果包含季号，直接返回
@@ -343,7 +355,7 @@ public class SeasonProvider(BangumiApi api, Logger<EpisodeProvider> log, ILibrar
         else
         {
             // Anitomy只能获取部分数字季号，使用其他方法再次尝试获取季号
-            var split = FileNameParser.SplitAnimeTitleAndSeason(searchName, false);
+            var split = FileNameParser.SplitAnimeTitleAndSeason(searchName ?? folderName, false);
             result = (split.Item1, (int?)split.Item2);
         }
 
