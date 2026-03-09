@@ -46,7 +46,7 @@ public class SeasonProvider(BangumiApi api, Logger<EpisodeProvider> log, ILibrar
         Subject? subject = null;
 
         if (string.IsNullOrEmpty(info.Path))
-            return new MetadataResult<Season>();
+            return await GetMetadataForVirtualSeason(info, cancellationToken);
 
         var baseName = Path.GetFileName(info.Path);
         var result = new MetadataResult<Season> { ResultLanguage = Constants.Language };
@@ -164,36 +164,9 @@ public class SeasonProvider(BangumiApi api, Logger<EpisodeProvider> log, ILibrar
         if (subject == null)
             return result;
 
-        result.Item = new Season();
-        result.HasMetadata = true;
+        FillSeasonMetadata(result, subject);
+
         result.Item.IndexNumber = info.IndexNumber;
-
-        result.Item.ProviderIds.Add(Constants.ProviderName, subject.Id.ToString());
-        result.Item.CommunityRating = subject.Rating?.Score;
-        if (Configuration.UseBangumiSeasonTitle)
-        {
-            result.Item.Name = subject.Name;
-            result.Item.OriginalTitle = subject.OriginalName;
-        }
-
-        result.Item.Overview = string.IsNullOrEmpty(subject.Summary) ? null : subject.Summary;
-        result.Item.Tags = subject.PopularTags.ToArray();
-        result.Item.Genres = subject.GenreTags.ToArray();
-
-        if (DateTime.TryParse(subject.AirDate, out var airDate))
-        {
-            result.Item.PremiereDate = airDate;
-            result.Item.ProductionYear = airDate.Year;
-        }
-
-        if (subject.ProductionYear?.Length == 4)
-            result.Item.ProductionYear = int.Parse(subject.ProductionYear);
-
-        result.Item.HomePageUrl = subject.OfficialWebSite;
-        result.Item.EndDate = subject.EndDate;
-
-        if (subject.IsNSFW)
-            result.Item.OfficialRating = "X";
 
         // 获取到的季号可能不准确（例如fsn在Bangumi中前作是fz，但实际上季号一般是独立计算的），因此只在没有设置季号时尝试猜测
         if (int.TryParse(info.ProviderIds.GetOrDefault(Constants.SeasonNumberProviderName), out var seasonNumber))
@@ -221,6 +194,72 @@ public class SeasonProvider(BangumiApi api, Logger<EpisodeProvider> log, ILibrar
 
         (await api.GetSubjectPersonInfos(subject.Id, cancellationToken)).ToList().ForEach(result.AddPerson);
         (await api.GetSubjectCharacters(subject.Id, cancellationToken)).ToList().ForEach(result.AddPerson);
+
+        return result;
+    }
+
+    /// <summary>
+    /// 从条目信息中填充季目录元数据
+    /// </summary>
+    /// <param name="result">季目录对象</param>
+    /// <param name="subject">条目信息对象</param>
+    private static void FillSeasonMetadata(MetadataResult<Season> result, Subject? subject)
+    {
+        if (subject == null) return;
+
+        result.HasMetadata = true;
+        result.Item = new Season();
+
+        result.Item.ProviderIds.Add(Constants.ProviderName, subject.Id.ToString());
+        result.Item.CommunityRating = subject.Rating?.Score;
+        if (Configuration.UseBangumiSeasonTitle)
+        {
+            result.Item.Name = subject.Name;
+            result.Item.OriginalTitle = subject.OriginalName;
+        }
+
+        result.Item.Overview = string.IsNullOrEmpty(subject.Summary) ? null : subject.Summary;
+        result.Item.Tags = subject.PopularTags.ToArray();
+        result.Item.Genres = subject.GenreTags.ToArray();
+
+        if (DateTime.TryParse(subject.AirDate, out var airDate))
+        {
+            result.Item.PremiereDate = airDate;
+            result.Item.ProductionYear = airDate.Year;
+        }
+
+        if (subject.ProductionYear?.Length == 4)
+            result.Item.ProductionYear = int.Parse(subject.ProductionYear);
+
+        result.Item.HomePageUrl = subject.OfficialWebSite;
+        result.Item.EndDate = subject.EndDate;
+
+        if (subject.IsNSFW)
+            result.Item.OfficialRating = "X";
+    }
+
+    /// <summary>
+    /// 获取虚拟季目录元数据
+    /// </summary>
+    private async Task<MetadataResult<Season>> GetMetadataForVirtualSeason(SeasonInfo info, CancellationToken cancellationToken)
+    {
+        var result = new MetadataResult<Season>
+        {
+            ResultLanguage = Constants.Language,
+            HasMetadata = true
+        };
+
+        // 未设置条目id时清空已获取元数据
+        if (!int.TryParse(info.ProviderIds.GetOrDefault(Constants.ProviderName), out var subjectId))
+        {
+            result.Item = new Season();
+            return result;
+        }
+
+        var subject = await api.GetSubject(subjectId, cancellationToken);
+        FillSeasonMetadata(result, subject);
+        // 虚拟目录由Jellyfin管理，保持季号不变
+        result.Item.IndexNumber = info.IndexNumber;
 
         return result;
     }
