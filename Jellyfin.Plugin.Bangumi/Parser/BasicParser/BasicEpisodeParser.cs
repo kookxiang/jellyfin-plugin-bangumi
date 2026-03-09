@@ -220,7 +220,7 @@ public partial class BasicEpisodeParser(EpisodeParserContext context, Logger<Bas
         var episodeListData = await context.Api.GetSubjectEpisodeList(subjectId, type, episodeIndex, context.Token);
 
         // OVA独立一个条目页面时 API 返回的剧集类型可能为0（正篇内容），导致按特典类型筛选不到结果，此时尝试按正篇类型重新查询
-        if ((episodeListData?.Any() ?? false)
+        if ((episodeListData == null || !episodeListData.Any())
             && type == EpisodeType.Special)
         {
             var subject = await context.Api.GetSubject(subjectId, context.Token);
