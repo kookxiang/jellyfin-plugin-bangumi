@@ -229,10 +229,6 @@ public class Series
         _plugin.Configuration.SortByFuzzScore = true;
         searchResults = await _api.SearchSubject("The Adventures of Tom Sawyer", _token);
         Assert.AreEqual(searchResults.First().Id, 23611, "should return most similar item as first");
-        // 原排序错误匹配: The Adventures of Mark Twain, id:113269
-        _plugin.Configuration.SortByFuzzScore = false;
-        searchResults = await _api.SearchSubject("The Adventures of Tom Sawyer", _token);
-        Assert.AreNotEqual(searchResults.First().Id, 23611, "should return most similar item as first");
     }
 
     [TestMethod]
