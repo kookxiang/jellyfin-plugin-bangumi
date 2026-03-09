@@ -130,6 +130,15 @@
                         离线数据库更新后自动更新所有已关联 Bangumi 词条项目的评分（注意可能覆盖其他元数据插件的评分）。
                     </div>
                 </div>
+                <div class="checkboxContainer checkboxContainer-withDescription">
+                    <label class="emby-checkbox-label">
+                        <input id="FallbackToOnlineWhenArchiveMiss" is="emby-checkbox" type="checkbox" />
+                        <span>离线数据库查询不到时使用在线查询</span>
+                    </label>
+                    <div class="fieldDescription">
+                        当离线数据库中找不到对应条目时，自动回退到在线接口进行查询。
+                    </div>
+                </div>
                 <div class="verticalSection">
                     <div class="sectionTitleContainer flex align-items-center">
                         <h2 class="sectionTitle">网络</h2>
@@ -232,7 +241,7 @@
                 </div>
                 <div class="checkboxContainer checkboxContainer-withDescription">
                     <label class="emby-checkbox-label">
-                        <input id="UseOriginalTitleFirst" is="emby-checkbox" type="checkbox"/>
+                        <input id="UseOriginalTitleFirst" is="emby-checkbox" type="checkbox" />
                         <span>优先使用原标题搜索</span>
                     </label>
                     <div class="fieldDescription">当存在原标题(OriginalTitle)时，优先使用原标题进行搜索，而不是使用翻译后的名称。这可以提高跨平台信息匹配的准确性，特别是对于不同平台翻译不一致的情况。</div>

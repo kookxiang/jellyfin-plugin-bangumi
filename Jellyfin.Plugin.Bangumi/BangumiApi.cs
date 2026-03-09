@@ -195,6 +195,8 @@ public partial class BangumiApi
         var subject = await archive.Subject.FindById(id, token);
         if (subject != null)
             return subject.ToSubject();
+        if (!_plugin.Configuration.FallbackToOnlineWhenArchiveMiss)
+            return null;
 #endif
         return await Get<Subject>($"{BaseUrl}/v0/subjects/{id}", token);
     }
@@ -218,6 +220,8 @@ public partial class BangumiApi
             .Where(x => x.Type == type || type == null)
             .Select(x => x.ToEpisode());
         if (episodeList.Any()) return episodeList;
+        if (!_plugin.Configuration.FallbackToOnlineWhenArchiveMiss)
+            return episodeList;
 #endif
 
         var result = await GetSubjectEpisodeListWithOffset(id, type, 0, token);
@@ -340,6 +344,8 @@ RequestEpisodeList:
 #if !EMBY
         var relations = await archive.SubjectRelations.Get(id, token);
         if (relations.Any())
+            return relations;
+        if (!_plugin.Configuration.FallbackToOnlineWhenArchiveMiss)
             return relations;
 #endif
         return await Get<IEnumerable<RelatedSubject>>($"{BaseUrl}/v0/subjects/{id}/subjects", token);
@@ -565,6 +571,8 @@ RequestEpisodeList:
         var relatedPerson = await archive.SubjectPersonRelation.Get(id, token);
         if (relatedPerson.Any())
             return relatedPerson;
+        if (!_plugin.Configuration.FallbackToOnlineWhenArchiveMiss)
+            return relatedPerson;
 #endif
         return await Get<IEnumerable<RelatedPerson>>($"{BaseUrl}/v0/subjects/{id}/persons", token);
     }
@@ -585,6 +593,9 @@ RequestEpisodeList:
             if (_plugin.Configuration.DaysBeforeUsingArchiveData == 0 ||
                 airDate < DateTime.Now.Subtract(TimeSpan.FromDays(_plugin.Configuration.DaysBeforeUsingArchiveData)))
                 return episode.ToEpisode();
+        if (!_plugin.Configuration.FallbackToOnlineWhenArchiveMiss)
+            return episode?.ToEpisode();
+
 #endif
         return await Get<Episode>($"{BaseUrl}/v0/episodes/{id}", token);
     }
@@ -596,6 +607,8 @@ RequestEpisodeList:
         var person = await archive.Person.FindById(id, token);
         if (person != null)
             return person.ToPersonDetail();
+        if (!_plugin.Configuration.FallbackToOnlineWhenArchiveMiss)
+            return null;
 #endif
         return await Get<PersonDetail>($"{BaseUrl}/v0/persons/{id}", token);
     }
