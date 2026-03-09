@@ -36,7 +36,7 @@ public class EpisodeProvider(BangumiApi api, Logger<EpisodeProvider> log, ILibra
 
         Model.Episode? episode = null;
 
-        // throw execption will cause the episode to not show up anywhere
+        // throw exception will cause the episode to not show up anywhere
         try
         {
             episode = await parser.GetEpisode();
@@ -54,12 +54,9 @@ public class EpisodeProvider(BangumiApi api, Logger<EpisodeProvider> log, ILibra
 
         if (episode == null)
         {
-            // remove season number
-            if (BasicEpisodeParser.IsSpecial(info.Path, context.LibraryManager, true))
-            {
-                result.HasMetadata = true;
-                result.Item = new Episode { ParentIndexNumber = 0 };
-            }
+            // 清除已有的元数据
+            result.Item = new Episode();
+            result.HasMetadata = true;
 
             return result;
         }
@@ -81,37 +78,58 @@ public class EpisodeProvider(BangumiApi api, Logger<EpisodeProvider> log, ILibra
             (int)episode.Order :
             (int)episode.Order + localConfiguration.Offset;
         result.Item.Overview = string.IsNullOrEmpty(episode.Description) ? null : episode.Description;
-        result.Item.ParentIndexNumber = parent is Series ? 1 : info.ParentIndexNumber ?? 1;
 
-        if (BasicEpisodeParser.IsSpecial(info.Path, context.LibraryManager, true) || episode.Type == EpisodeType.Special || (parent is not Series && info.ParentIndexNumber == 0))
-        {
-            result.Item.ParentIndexNumber = 0;
-        }
-        else if (parent is Season season)
+        // 通过目录的季id更新季号
+        if (parent is Season season)
         {
             result.Item.SeasonId = season.Id;
-            if (season.IndexNumber != null)
-                result.Item.ParentIndexNumber = season.IndexNumber;
+            if (season.ProviderIds.TryGetValue(Constants.SeasonNumberProviderName, out var seasonNum)
+                && int.TryParse(seasonNum, out var num))
+            {
+                result.Item.ParentIndexNumber = num;
+            }
+        }
+
+        // 如果季号为空则使用通过剧集猜测的季号
+        if (!result.Item.ParentIndexNumber.HasValue)
+        {
+            result.Item.ParentIndexNumber = (int?)episode.SeasonNumber ?? 1;
         }
 
         if (episode.Type == EpisodeType.Normal && result.Item.ParentIndexNumber > 0)
             return result;
 
-        // mark episode as special
-        result.Item.ParentIndexNumber = 0;
+        // 无法刮削到剧集信息时，使用原文件名作为剧集标题
+        if (string.IsNullOrEmpty(result.Item.Name))
+            result.Item.Name = Path.GetFileNameWithoutExtension(info.Path);
+        if (string.IsNullOrEmpty(result.Item.OriginalTitle))
+            result.Item.OriginalTitle = Path.GetFileNameWithoutExtension(info.Path);
+
+        // 获取特典季号用于排序
+        var seasonNumber = 1;
+        while (parent != null && parent is not Series)
+        {
+            // 多季度合集中，sp可能位于更深层的目录中，Jellyfin只识别到二级目录
+            if (parent is not Season)
+            {
+                var parentPath = Path.GetDirectoryName(parent!.Path);
+                if (string.IsNullOrEmpty(parentPath)) break;
+                parent = libraryManager.FindByPath(parentPath, true);
+                continue;
+            }
+
+            if (parent.ProviderIds.TryGetValue(Constants.SeasonNumberProviderName, out var seasonNum))
+            {
+                _ = int.TryParse(seasonNum, out seasonNumber);
+            }
+            break;
+        }
+
 
         // use title and overview from special episode subject if episode data is empty
         var series = await api.GetSubject(episode.ParentId, cancellationToken);
         if (series == null)
             return result;
-
-        // use title from special episode subject if episode data is empty
-        if (string.IsNullOrEmpty(result.Item.Name))
-            result.Item.Name = series.Name;
-        if (string.IsNullOrEmpty(result.Item.OriginalTitle))
-            result.Item.OriginalTitle = series.OriginalName;
-
-        var seasonNumber = parent is Season ? parent.IndexNumber : 1;
         if (!string.IsNullOrEmpty(episode.AirDate) && string.Compare(episode.AirDate, series.AirDate, StringComparison.Ordinal) < 0)
             result.Item.AirsBeforeEpisodeNumber = seasonNumber;
         else
