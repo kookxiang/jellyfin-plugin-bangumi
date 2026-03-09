@@ -32,12 +32,9 @@ namespace Jellyfin.Plugin.Bangumi.Parser.TorrentParser
             // 如果是特典文件，固定季号为0
             if (type == EpisodeType.Special)
             {
-                result.SeasonNumber = 0;
+                seasonNumber = 0;
             }
-            else
-            {
-                result.SeasonNumber = seasonNumber;
-            }
+            result.SeasonNumber = seasonNumber;
 
             var fileName = Path.GetFileName(context.Info.Path);
             if (string.IsNullOrEmpty(fileName))
