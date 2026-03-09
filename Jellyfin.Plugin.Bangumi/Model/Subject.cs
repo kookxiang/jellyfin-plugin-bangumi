@@ -240,7 +240,12 @@ public class Subject
             var score = instance.DistanceFrom(candidate);
 
             // 转换 Levenshtein 距离
-            float percent = (1 - ((float)score / keyword.Length)) * 100;
+            var maxLen = Math.Max(candidate.Length, keyword.Length);
+            float percent = maxLen == 0
+                ? 100
+                : (1f - (float)score / maxLen) * 100f;
+
+            percent = Math.Clamp(percent, 0f, 100f);
 
             return percent;
         }).OrderByDescending(s => s)
