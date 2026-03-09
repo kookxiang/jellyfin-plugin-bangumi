@@ -78,7 +78,7 @@ namespace Jellyfin.Plugin.Bangumi.Parser.TorrentParser
                 }
             }
             // 找不到时，通过集号匹配
-            result ??= await BasicEpisodeParser.SearchEpisodes(context, log, type, subjectId, episodeIndexNumber, false, false);
+            result ??= await SearchEpisodes(context, log, type, subjectId, episodeIndexNumber);
 
             if (result != null)
             {
@@ -88,7 +88,17 @@ namespace Jellyfin.Plugin.Bangumi.Parser.TorrentParser
                 }
                 else
                 {
-                    result.SeasonNumber = seasonNumber;
+                    // 此处的季号为偏移值，需要求和
+                    if (result.SeasonNumber.HasValue)
+                    {
+                        result.SeasonNumber = result.SeasonNumber.Value + seasonNumber.GetValueOrDefault(0);
+                        // 避免季号小于1
+                        result.SeasonNumber = Math.Max(1, result.SeasonNumber.Value);
+                    }
+                    else
+                    {
+                        result.SeasonNumber = seasonNumber;
+                    }
                 }
             }
 
@@ -157,6 +167,105 @@ namespace Jellyfin.Plugin.Bangumi.Parser.TorrentParser
                 ?? BasicEpisodeParser.ExtractEpisodeNumberFromPath(context, log);
 
             return num;
+        }
+
+        /// <summary>
+        /// 在指定系列的剧集列表中搜索匹配的剧集。
+        /// </summary>
+        /// <param name="context">剧集解析上下文</param>
+        /// <param name="log">日志记录器</param>
+        /// <param name="type">剧集类型过滤条件，为 null 表示不限类型</param>
+        /// <param name="subjectId">所属系列的 Bangumi 条目 ID</param>
+        /// <param name="episodeIndex">期望的集号</param>
+        /// <returns>匹配的剧集信息，未找到时返回 null</returns>
+        public static async Task<Model.Episode?> SearchEpisodes<T>(EpisodeParserContext context, Logger<T> log, EpisodeType? type, int subjectId, double episodeIndex)
+        {
+            var fileName = Path.GetFileName(context.Info.Path);
+
+            // 从 API 获取指定条目的剧集列表，并过滤类型（如果指定了类型）
+            log.Info("searching episode in series episode list");
+            var episodeListData = await context.Api.GetSubjectEpisodeList(subjectId, type, episodeIndex, context.Token);
+
+            // OVA独立一个条目页面时 API 返回的剧集类型可能为0（正篇内容），导致按特典类型筛选不到结果，此时尝试按正篇类型重新查询
+            if ((episodeListData == null || !episodeListData.Any())
+                && type == EpisodeType.Special)
+            {
+                var subject = await context.Api.GetSubject(subjectId, context.Token);
+                // 如果条目是OVA类型，尝试按正篇类型重新查询
+                if (subject != null &&
+                    (subject.Platform == SubjectPlatform.OVA || subject.GenreTags.Contains("OVA")))
+                {
+                    episodeListData = await context.Api.GetSubjectEpisodeList(subjectId, EpisodeType.Normal, episodeIndex, context.Token);
+                }
+            }
+
+            if (episodeListData == null)
+            {
+                log.Warn("search failed: no episode found in episode");
+                return null;
+            }
+
+            // 如果仅有一集且为正篇内容，直接返回
+            if (episodeListData.Count() == 1 && type is null or EpisodeType.Normal)
+            {
+                log.Info("only one episode found");
+                return episodeListData.First();
+            }
+
+            try
+            {
+                // 按类型排序后查找匹配集数的剧集，优先匹配正篇
+                var episode = episodeListData.OrderBy(x => x.Type).FirstOrDefault(x => x.Order.Equals(episodeIndex));
+                if (episode != null && (type is null || type == episode?.Type))
+                {
+                    log.Info("found matching episode {index} with type {type}", episodeIndex, type);
+                    return episode;
+                }
+
+                var minOrder = episodeListData.Min(x => x.Order);
+                var maxOrder = episodeListData.Max(x => x.Order);
+                // 如果集号不在剧集列表的范围内，可能是分割放送
+                if (type is null or EpisodeType.Normal && episodeIndex < minOrder)
+                {
+                    // 尝试搜索上一季
+                    log.Warn("episode index {index} is less than minimum episode index {MinIndex} in current season, searching nearby seasons", episodeIndex, minOrder);
+                    var prev = await context.Api.SearchPreviousSubject(subjectId, 1, context.Token);
+                    if (prev != null)
+                    {
+                        var prevEpisode = await SearchEpisodes(context, log, type, prev.Id, episodeIndex);
+                        if (prevEpisode != null)
+                        {
+                            // 记录季号偏移，用于后续校正
+                            prevEpisode.SeasonNumber = prevEpisode.SeasonNumber.GetValueOrDefault(0) - 1;
+
+                            return prevEpisode;
+                        }
+                    }
+                }
+                else if (type is null or EpisodeType.Normal && episodeIndex > maxOrder)
+                {
+                    // 尝试搜索下一季
+                    log.Warn("episode index {index} is greater than maximum episode index {MaxIndex} in current season, searching nearby seasons", episodeIndex, maxOrder);
+                    var next = await context.Api.SearchNextSubject(subjectId, context.Token);
+                    if (next != null)
+                    {
+                        var nextEpisode = await SearchEpisodes(context, log, type, next.Id, episodeIndex);
+                        if (nextEpisode != null)
+                        {
+                            // 记录季号偏移，用于后续校正
+                            nextEpisode.SeasonNumber = nextEpisode.SeasonNumber.GetValueOrDefault(0) + 1;
+
+                            return nextEpisode;
+                        }
+                    }
+                }
+
+                return episode;
+            }
+            catch (InvalidOperationException)
+            {
+                return null;
+            }
         }
 
         public static string? ExtractAnimeTitleFromPath<T>(EpisodeParserContext context, Logger<T> log)
