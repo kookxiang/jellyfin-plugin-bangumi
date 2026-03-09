@@ -9,6 +9,7 @@ using MediaBrowser.Controller.Entities.TV;
 using MediaBrowser.Controller.Library;
 
 namespace Jellyfin.Plugin.Bangumi.Parser.BasicParser;
+
 public partial class BasicEpisodeParser(EpisodeParserContext context, Logger<BasicEpisodeParser> log) : IEpisodeParser
 {
     private static readonly Regex[] _nonEpisodeFileNameRegex =
@@ -210,8 +211,9 @@ public partial class BasicEpisodeParser(EpisodeParserContext context, Logger<Bas
     /// <param name="subjectId">所属系列的 Bangumi 条目 ID</param>
     /// <param name="episodeIndex">期望的集号</param>
     /// <param name="guessEpisodeNumber">是否尝试重新猜测集号</param>
+    /// <param name="fallback">指定类型未找到匹配时，是否回退到不限类型重新搜索</param>
     /// <returns>匹配的剧集信息，未找到时返回 null</returns>
-    public static async Task<Model.Episode?> SearchEpisodes<T>(EpisodeParserContext context, Logger<T> log, EpisodeType? type, int subjectId, double episodeIndex, bool guessEpisodeNumber = true)
+    public static async Task<Model.Episode?> SearchEpisodes<T>(EpisodeParserContext context, Logger<T> log, EpisodeType? type, int subjectId, double episodeIndex, bool guessEpisodeNumber = true, bool fallback = true)
     {
         var fileName = Path.GetFileName(context.Info.Path);
 
@@ -268,9 +270,16 @@ public partial class BasicEpisodeParser(EpisodeParserContext context, Logger<Bas
                 return episode;
             }
 
-            // 指定类型未找到匹配，回退到不限类型重新搜索
-            log.Warn("cannot find episode {index} with type {type}, searching all types", episodeIndex, type);
-            return await SearchEpisodes(context, log, null, subjectId, episodeIndex);
+            if (fallback)
+            {
+                // 指定类型未找到匹配，回退到不限类型重新搜索
+                log.Warn("cannot find episode {index} with type {type}, searching all types", episodeIndex, type);
+                return await SearchEpisodes(context, log, null, subjectId, episodeIndex);
+            }
+            else
+            {
+                return episode;
+            }
         }
         catch (InvalidOperationException)
         {

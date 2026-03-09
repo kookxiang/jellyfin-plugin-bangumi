@@ -64,7 +64,7 @@ namespace Jellyfin.Plugin.Bangumi.Parser.TorrentParser
             var episodeIndexNumber = ExtractEpisodeNumberFromPath(context, log) ?? 0;
             // 获取剧集信息
             result = await BasicEpisodeParser.GetEpisodeFromProviderId(context, log, subjectId, episodeIndexNumber)
-                ?? await BasicEpisodeParser.SearchEpisodes(context, log, type, subjectId, episodeIndexNumber, false);
+                ?? await BasicEpisodeParser.SearchEpisodes(context, log, type, subjectId, episodeIndexNumber, false, false);
             if (result != null)
             {
                 if (type == EpisodeType.Special || result.Type == EpisodeType.Special)
