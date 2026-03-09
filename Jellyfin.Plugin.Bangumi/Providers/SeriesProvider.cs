@@ -24,6 +24,23 @@ public class SeriesProvider(BangumiApi api, Logger<SeriesProvider> log)
 
     public string Name => Constants.ProviderName;
 
+    /// <summary>
+    /// 获取搜索结果并返回第一个匹配的条目ID
+    /// </summary>
+    /// <param name="name">搜索关键词</param>
+    /// <param name="year">筛选年份</param>
+    /// <param name="cancellationToken"></param>
+    /// <returns>第一个匹配的条目ID，若未找到则返回0</returns>
+    private async Task<int> SearchSubjectId(string name, int? year, CancellationToken cancellationToken)
+    {
+        log.Info("Searching {Name} in bgm.tv", name);
+        var searchResult = await api.SearchSubject(name, cancellationToken);
+        if (year != null)
+            searchResult = searchResult.Where(x => x.ProductionYear == null || x.ProductionYear == year.Value.ToString());
+
+        return searchResult.FirstOrDefault()?.Id ?? 0;
+    }
+
     public async Task<MetadataResult<Series>> GetMetadata(SeriesInfo info, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
@@ -41,6 +58,22 @@ public class SeriesProvider(BangumiApi api, Logger<SeriesProvider> log)
         else
             _ = int.TryParse(info.ProviderIds.GetOrDefault(Constants.ProviderName), out subjectId);
 
+        // AnitomySharp解析标题匹配率较高，优先使用
+        if (subjectId == 0 && Configuration.AlwaysGetTitleByAnitomySharp)
+        {
+            var anitomy = new Anitomy(baseName);
+            var searchName = anitomy.ExtractAnimeTitle() ?? info.Name;
+            if (int.TryParse(anitomy.ExtractAnimeSeason(), out var season)
+                || int.TryParse(anitomy.ExtractEpisodeNumber(), out season)) // 有时会解析成集号，如：[VCB-Studio] Log Horizon 2 [Ma10p_1080p]
+            {
+                searchName = $"{searchName} {season}";
+            }
+
+            if (!string.IsNullOrEmpty(searchName))
+                subjectId = await SearchSubjectId(searchName, info.Year, cancellationToken);
+        }
+
+        // 使用原始标题和中文标题进行搜索，根据配置决定搜索顺序
         if (subjectId == 0)
         {
             // Determine search order based on configuration
@@ -49,40 +82,14 @@ public class SeriesProvider(BangumiApi api, Logger<SeriesProvider> log)
 
             // First search attempt
             if (firstSearch != null)
-            {
-                log.Info("Searching {Name} in bgm.tv", firstSearch);
-                var searchResult = await api.SearchSubject(firstSearch, cancellationToken);
-                if (info.Year != null)
-                    searchResult = searchResult.Where(x => x.ProductionYear == null || x.ProductionYear == info.Year?.ToString());
-                if (searchResult.Any())
-                    subjectId = searchResult.First().Id;
-            }
+                subjectId = await SearchSubjectId(firstSearch, info.Year, cancellationToken);
 
             // Second search attempt (if first failed and titles are different)
             if (subjectId == 0 && secondSearch != null && !string.Equals(firstSearch, secondSearch, StringComparison.Ordinal))
-            {
-                log.Info("Searching {Name} in bgm.tv", secondSearch);
-                var searchResult = await api.SearchSubject(secondSearch, cancellationToken);
-                if (info.Year != null)
-                    searchResult = searchResult.Where(x => x.ProductionYear == null || x.ProductionYear == info.Year?.ToString());
-                if (searchResult.Any())
-                    subjectId = searchResult.First().Id;
-            }
+                subjectId = await SearchSubjectId(secondSearch, info.Year, cancellationToken);
         }
 
-        if (subjectId == 0 && Configuration.AlwaysGetTitleByAnitomySharp)
-        {
-            var anitomy = new Anitomy(baseName);
-            var searchName = anitomy.ExtractAnimeTitle() ?? info.Name;
-            log.Info("Searching {Name} in bgm.tv", searchName);
-            // 不保证使用非原名或中文进行查询时返回正确结果
-            var searchResult = await api.SearchSubject(searchName, cancellationToken);
-            if (info.Year != null)
-                searchResult = searchResult.Where(x => x.ProductionYear == null || x.ProductionYear == info.Year?.ToString());
-            if (searchResult.Any())
-                subjectId = searchResult.First().Id;
-        }
-
+        // 找不到合适的条目
         if (subjectId == 0)
             return result;
 
