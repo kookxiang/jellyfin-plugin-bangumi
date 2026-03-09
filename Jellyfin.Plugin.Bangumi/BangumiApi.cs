@@ -290,18 +290,20 @@ RequestEpisodeList:
         if (legacyResult?.Eps == null || legacyResult.Eps.Count == 0)
             return result;
 
-        var eps = legacyResult.Eps.Select(ep => new Episode
-        {
-            Id = ep.Id,
-            ParentId = id,
-            Type = ep.Type,
-            OriginalNameRaw = ep.Name,
-            ChineseNameRaw = ep.NameCn,
-            Order = ep.Sort,
-            Disc = ep.Disc,
-            AirDate = ep.AirDate,
-            DescriptionRaw = ep.Desc
-        }).ToList();
+        var eps = legacyResult.Eps
+            .Where(ep => type == null || ep.Type == type)
+            .Select(ep => new Episode
+            {
+                Id = ep.Id,
+                ParentId = id,
+                Type = ep.Type,
+                OriginalNameRaw = ep.Name,
+                ChineseNameRaw = ep.NameCn,
+                Order = ep.Sort,
+                Disc = ep.Disc,
+                AirDate = ep.AirDate,
+                DescriptionRaw = ep.Desc
+            }).ToList();
 
         return new DataList<Episode>
         {
