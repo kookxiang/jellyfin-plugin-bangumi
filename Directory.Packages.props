@@ -7,6 +7,8 @@
     <PackageVersion Include="Fastenshtein" Version="1.0.10" />
     <PackageVersion Include="FuzzySharp" Version="2.0.2" />
     <PackageVersion Include="Jellyfin.Controller" Version="10.11.0" />
+    <PackageVersion Include="Lucene.Net" Version="4.8.0-beta00017" />
+    <PackageVersion Include="Lucene.Net.Analysis.Common" Version="4.8.0-beta00017" />
     <PackageVersion Include="MediaBrowser.Server.Core" Version="4.9.1.90" />
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="16.11.0" />
     <PackageVersion Include="MSTest.TestAdapter" Version="3.3.1" />
