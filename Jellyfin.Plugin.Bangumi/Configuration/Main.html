@@ -260,6 +260,7 @@
                         <div class="bangumi-tab-header-button active" data-tab="tabSpExcludeRegex">杂项文件排除</div>
                         <div class="bangumi-tab-header-button" data-tab="tabMiscExcludeRegex">特典文件排除</div>
                         <div class="bangumi-tab-header-button" data-tab="tabExcludeWhitelistRegex">排除白名单</div>
+                        <div class="bangumi-tab-header-button" data-tab="tabRegexTools">常用工具</div>
                     </div>
                     <div class="bangumi-tab-content active" data-tab="tabSpExcludeRegex">
                         <div class="paperList">
@@ -348,7 +349,7 @@
                     <div class="bangumi-tab-content" data-tab="tabExcludeWhitelistRegex">
                         <div class="paperList">
                             <div class="fieldDescription">
-                                <p>下列正则用于白名单放行正篇内容，命中后将优先跳过上面的杂项/特典排除规则，继续按正篇参与识别</p>
+                                <p>下列正则用于白名单放行正篇内容，命中后将跳过杂项/特典排除规则，继续按正篇参与识别</p>
                                 <ul>
                                     <li>一行一条正则表达式</li>
                                     <li>忽略大小写</li>
@@ -383,6 +384,60 @@
                                     </button>
                                     <textarea class="textarea-mono emby-textarea" rows="5" style="overflow: auto" id="ExcludeWhitelistRegexFileName"></textarea>
                                     <div class="fieldDescription">匹配文件名，适合放行会被默认杂项/特典规则误判的正篇文件</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bangumi-tab-content" data-tab="tabRegexTools">
+                        <div class="paperList bangumi-regex-tools">
+                            <div class="fieldDescription">
+                                <p>当前标签页包含一些常用操作，如配置转换、正则测试等。</p>
+                            </div>
+                            <div class="listItem listItem-border bangumi-listItem bangumi-regex-tool-card">
+                                <div class="inputContainer bangumi-inputContainer">
+                                    <h4 class="bangumi-tool-title">普通文本转配置正则</h4>
+                                    <div class="fieldDescription">由于正则表达式的特殊字符需要转义，直接使用普通文本可能会导致匹配错误。此工具可以将普通文本路径转换为可直接用于配置的正则表达式。</div>
+                                    <label class="textareaLabel" for="RegexToolPathInput">普通文本</label>
+                                    <textarea class="textarea-mono emby-textarea" rows="4" style="overflow: auto" id="RegexToolPathInput" data-config-ignore="true">プリンセスコネクト！ Re：Dive Menu10 (BD 1920x1080 HEVC-YUV420P10 FLAC).mkv</textarea>
+                                    <div class="bangumi-tool-actions">
+                                        <button class="raised emby-button" id="RegexToolGenerateBtn" is="emby-button" type="button" data-config-ignore="true">
+                                            <span>生成表达式</span>
+                                        </button>
+                                    </div>
+                                    <label class="textareaLabel" for="RegexToolPatternOutput">正则表达式</label>
+                                    <textarea class="textarea-mono emby-textarea" rows="3" style="overflow: auto" id="RegexToolPatternOutput" data-config-ignore="true" readonly="readonly"></textarea>
+                                    <div class="bangumi-tool-actions">
+                                        <button class="raised emby-button" id="RegexToolCopyPatternBtn" is="emby-button" type="button" data-config-ignore="true">
+                                            <span>复制正则</span>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="listItem listItem-border bangumi-listItem bangumi-regex-tool-card">
+                                <div class="inputContainer bangumi-inputContainer">
+                                    <h4 class="bangumi-tool-title">测试正则命中</h4>
+                                    <div class="fieldDescription">输入待测试文本后，可查看白名单、特典、杂项规则分别命中了哪一条。正则测试基于当前页面内容，未保存的修改也会参与测试。仅用于模拟测试，实际以服务端逻辑为准。</div>
+                                    <div class="selectContainer bangumi-tool-selectContainer">
+                                        <label class="selectLabel" for="RegexToolPathType">输入类型</label>
+                                        <select class="emby-select-withcolor emby-select" id="RegexToolPathType" is="emby-select" data-config-ignore="true">
+                                            <option value="EpisodeFile">剧集文件</option>
+                                            <option value="SeasonFolder">季度目录</option>
+                                        </select>
+                                    </div>
+                                    <label class="textareaLabel" for="RegexToolTestInput">待测试文本</label>
+                                    <textarea class="textarea-mono emby-textarea" rows="4" style="overflow: auto" id="RegexToolTestInput" data-config-ignore="true">プリンセスコネクト！ Re：Dive\プリンセスコネクト！ Re：Dive Menu10 (BD 1920x1080 HEVC-YUV420P10 FLAC).mkv</textarea>
+                                    <div class="bangumi-tool-actions">
+                                        <button class="raised emby-button" id="RegexToolTestBtn" is="emby-button" type="button" data-config-ignore="true">
+                                            <span>测试命中</span>
+                                        </button>
+                                    </div>
+                                    <div class="bangumi-regex-test-meta">
+                                        <div><span class="bangumi-regex-test-meta-label">完整路径</span><span id="RegexToolResolvedFullPath">-</span></div>
+                                        <div><span class="bangumi-regex-test-meta-label">目录名称</span><span id="RegexToolResolvedFolderName">-</span></div>
+                                        <div><span class="bangumi-regex-test-meta-label">文件名</span><span id="RegexToolResolvedFileName">-</span></div>
+                                    </div>
+                                    <div class="bangumi-regex-test-summary" id="RegexToolSummary">尚未开始测试</div>
+                                    <div class="bangumi-regex-test-results" id="RegexToolResults"></div>
                                 </div>
                             </div>
                         </div>

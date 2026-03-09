@@ -101,6 +101,12 @@
         var elements = container.querySelectorAll('input,select,textarea');
         for (var i = 0; i < elements.length; i++) {
             var element = elements[i];
+
+            // 跳过不需要保存的元素
+            if (element.hasAttribute('data-config-ignore')) {
+                continue;
+            }
+
             if (element.type === 'checkbox') {
                 config[element.id] = element.checked;
             } else {
@@ -208,6 +214,341 @@
         });
     }
 
+    /**
+     * 对文本做正则转义，生成可直接匹配原始文本的正则表达式
+     *
+     * @param {string} value 原始文本。
+     * @returns {string} 转义后的正则表达式
+     */
+    function escapeRegex(value) {
+        return (value || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    }
+
+    /**
+     * 归一化输入文本，去除首尾空白字符。
+     *
+     * @param {string} value 用户输入的文本。
+     * @returns {string} 清理后的文本。
+     */
+    function normalizeInputText(value) {
+        return (value || '').trim();
+    }
+
+    /**
+     * 移除路径末尾连续的斜杠或反斜杠。
+     *
+     * @param {string} value 完整路径。
+     * @returns {string} 去除结尾分隔符后的路径。
+     */
+    function trimTrailingSlashes(value) {
+        return value.replace(/[\\/]+$/, '');
+    }
+
+    /**
+     * 将路径按目录分隔符拆分为有效片段。
+     *
+     * @param {string} fullPath 完整路径。
+     * @returns {string[]} 路径片段数组。
+     */
+    function getPathSegments(fullPath) {
+        return fullPath.split(/[\\/]+/).filter(Boolean);
+    }
+
+    /**
+     * 根据路径类型解析完整路径、目录名和文件名输入。
+     *
+     * @param {string} fullPath 用户输入的完整路径。
+     * @param {string} pathType 当前测试的路径类型。
+     * @returns {{fullPath: string, folderName: string, fileName: string}} 解析结果。
+     */
+    function resolvePathInputs(fullPath, pathType) {
+        var normalized = normalizeInputText(fullPath);
+        var trimmed = trimTrailingSlashes(normalized);
+        var segments = getPathSegments(trimmed);
+        var folderName = '';
+        var fileName = '';
+
+        // 按路径类型提取用于匹配的目录名和文件名。
+        if (pathType === 'SeasonFolder') {
+            folderName = segments.length ? segments[segments.length - 1] : '';
+        } else {
+            fileName = segments.length ? segments[segments.length - 1] : '';
+            folderName = segments.length > 1 ? segments[segments.length - 2] : '';
+        }
+
+        return {
+            fullPath: normalized,
+            folderName: folderName,
+            fileName: fileName,
+        };
+    }
+
+    /**
+     * 将多行正则输入拆分为逐行规则，并过滤空行。
+     *
+     * @param {string} value 多行正则文本。
+     * @returns {string[]} 有效的正则规则列表。
+     */
+    function getRegexLines(value) {
+        return (value || '')
+            .split(/\r?\n/)
+            .map(l => l.trim())
+            .filter(Boolean);
+    }
+
+    /**
+     * 逐行测试正则规则，返回首个命中项和无效规则信息。
+     *
+     * @param {string} patternText 多行正则文本。
+     * @param {string} inputValue 待测试的输入值。
+     * @returns {{matched: {lineNumber: number, pattern: string}|null, invalid: {lineNumber: number, pattern: string, message: string}[]}} 测试结果。
+     */
+    function testRegexLines(patternText, inputValue) {
+        var patterns = getRegexLines(patternText);
+        var invalid = [];
+
+        if (!inputValue) {
+            return { matched: null, invalid: invalid };
+        }
+
+        // 按顺序测试规则，并记录所有语法错误的正则。
+        for (var i = 0; i < patterns.length; i++) {
+            var pattern = patterns[i];
+            try {
+                if (new RegExp(pattern, 'i').test(inputValue)) {
+                    return {
+                        matched: { lineNumber: i + 1, pattern: pattern },
+                        invalid: invalid,
+                    };
+                }
+            } catch (error) {
+                invalid.push({
+                    lineNumber: i + 1,
+                    pattern: pattern,
+                    message: error && error.message ? error.message : '无效正则',
+                });
+            }
+        }
+
+        return { matched: null, invalid: invalid };
+    }
+
+    /**
+     * 将用户输入的普通文本转换成正则表达式，并输出到结果面板。
+     *
+     * @returns {boolean} 是否成功生成输出。
+     */
+    function buildRegexToolOutputs() {
+        var source = normalizeInputText(container.querySelector('#RegexToolPathInput').value);
+        var patternOutput = container.querySelector('#RegexToolPatternOutput');
+
+        if (!source) {
+            patternOutput.value = '';
+            return false;
+        }
+
+        var pattern = escapeRegex(source);
+        patternOutput.value = pattern;
+        return true;
+    }
+
+    /**
+     * 复制文本到剪贴板，并在完成后给出提示。
+     *
+     * @param {string} value 要复制的文本。
+     * @param {string} successMessage 复制成功后的提示语。
+     * @returns {Promise<boolean>} 是否复制成功。
+     */
+    function copyText(value, successMessage) {
+        if (!value) {
+            Dashboard.alert('没有可复制的内容');
+            return Promise.resolve(false);
+        }
+
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            return navigator.clipboard.writeText(value).then( () => {
+                Dashboard.alert(successMessage);
+                return true;
+            }, () => {
+                Dashboard.alert('复制失败，请手动复制');
+                return false;
+            });
+        }
+
+        Dashboard.alert('复制失败，请手动复制');
+        return Promise.resolve(false);
+    }
+
+    /**
+     * 将结果文本数组格式化为结果面板的 HTML 片段。
+     *
+     * @param {string[]} lines 结果文本列表。
+     * @returns {string} 拼接后的 HTML 字符串。
+     */
+    function formatResultLines(lines) {
+        var frag = document.createDocumentFragment();
+        (lines || []).forEach(line => {
+            var div = document.createElement('div');
+            div.className = 'bangumi-regex-test-result-line';
+            div.textContent = String(line ?? '');
+            frag.appendChild(div);
+        });
+        return frag;
+    }
+
+    /**
+     * 渲染正则测试结果列表。
+     *
+     * @param {{title: string, state: string, lines: string[]}[]} items 待渲染的结果项。
+     * @returns {void}
+     */
+    function renderRegexToolResults(items) {
+        var results = container.querySelector('#RegexToolResults');
+        results.innerHTML = '';
+        (items || []).forEach(item => {
+            var wrapper = document.createElement('div');
+            wrapper.className = 'bangumi-regex-test-result ' + (item.state || '');
+
+            var title = document.createElement('div');
+            title.className = 'bangumi-regex-test-result-title';
+            title.textContent = item.title || '';
+            wrapper.appendChild(title);
+
+            wrapper.appendChild(formatResultLines(item.lines));
+
+            results.appendChild(wrapper);
+        });
+    }
+
+    /**
+     * 运行正则工具测试，并将命中情况渲染到界面。
+     *
+     * @returns {void}
+     */
+    function runRegexToolTest() {
+        var pathType = container.querySelector('#RegexToolPathType').value;
+        var input = normalizeInputText(container.querySelector('#RegexToolTestInput').value);
+        var resolvedFullPath = container.querySelector('#RegexToolResolvedFullPath');
+        var resolvedFolderName = container.querySelector('#RegexToolResolvedFolderName');
+        var resolvedFileName = container.querySelector('#RegexToolResolvedFileName');
+        var summary = container.querySelector('#RegexToolSummary');
+        var resultItems = [];
+
+        // 设置拆分后的路径信息
+        var resolved = resolvePathInputs(input, pathType);
+        resolvedFullPath.textContent = resolved.fullPath || '-';
+        resolvedFolderName.textContent = resolved.folderName || '-';
+        resolvedFileName.textContent = resolved.fileName || '-';
+
+        // 没有输入时直接显示空状态，避免继续执行后续测试逻辑。
+        if (!input) {
+            summary.textContent = '请输入待测试文本';
+            renderRegexToolResults([{ title: '测试结果', state: 'miss', lines: ['当前没有输入任何文本'] }]);
+            return;
+        }
+
+        // 获取相关正则配置，并构建测试项列表
+        var episodeFileName = pathType === 'EpisodeFile' ? resolved.fileName : '';
+        var groups = [
+            {
+                title: '排除白名单',
+                inputs: [
+                    { label: '完整路径', value: resolved.fullPath, patterns: container.querySelector('#ExcludeWhitelistRegexFullPath').value },
+                    { label: '目录名称', value: resolved.folderName, patterns: container.querySelector('#ExcludeWhitelistRegexFolderName').value },
+                    { label: '文件名', value: episodeFileName, patterns: container.querySelector('#ExcludeWhitelistRegexFileName').value },
+                ],
+            },
+            {
+                title: '特典文件排除',
+                inputs: [
+                    { label: '完整路径', value: resolved.fullPath, patterns: container.querySelector('#SpExcludeRegexFullPath').value },
+                    { label: '目录名称', value: resolved.folderName, patterns: container.querySelector('#SpExcludeRegexFolderName').value },
+                    { label: '文件名', value: episodeFileName, patterns: container.querySelector('#SpExcludeRegexFileName').value },
+                ],
+            },
+            {
+                title: '杂项文件排除',
+                inputs: [
+                    { label: '完整路径', value: resolved.fullPath, patterns: container.querySelector('#MiscExcludeRegexFullPath').value },
+                    { label: '目录名称', value: resolved.folderName, patterns: container.querySelector('#MiscExcludeRegexFolderName').value },
+                    { label: '文件名', value: episodeFileName, patterns: container.querySelector('#MiscExcludeRegexFileName').value },
+                ],
+            },
+        ];
+
+        // 是否命中
+        var whitelistMatched = false;
+        var specialMatched = false;
+        var miscMatched = false;
+
+        // 汇总每个正则组的命中结果和无效正则
+        groups.forEach(group => {
+            var matchedLine = null;
+            var invalidLines = [];
+            var lines = [];
+
+            // 逐条测试输入项，记录命中和无效正则
+            group.inputs.forEach(item => {
+                var testResult = testRegexLines(item.patterns, item.value);
+
+                // 记录无效正则
+                invalidLines = invalidLines.concat(testResult.invalid.map(invalidItem => {
+                    return item.label + ' 第 ' + invalidItem.lineNumber + ' 行无效: ' + invalidItem.pattern + ' (' + invalidItem.message + ')';
+                }));
+
+                // 记录首个命中正则
+                if (!matchedLine && testResult.matched) {
+                    matchedLine = item.label + ' 第 ' + testResult.matched.lineNumber + ' 行命中: ' + testResult.matched.pattern;
+                }
+            });
+
+            if (matchedLine) {
+                lines.push(matchedLine);
+            } else {
+                lines.push('未命中任何正则');
+            }
+
+            if (invalidLines.length) {
+                lines = lines.concat(invalidLines);
+            }
+
+            // 记录命中的正则类型
+            if (group.title === '排除白名单' && matchedLine) {
+                whitelistMatched = true;
+            }
+            if (group.title === '特典文件排除' && matchedLine) {
+                specialMatched = true;
+            }
+            if (group.title === '杂项文件排除' && matchedLine) {
+                miscMatched = true;
+            }
+
+            resultItems.push({
+                title: group.title,
+                state: matchedLine ? 'hit' : (invalidLines.length ? 'invalid' : 'miss'),
+                lines: lines,
+            });
+        });
+
+        // 根据各组命中情况生成摘要。
+        var matchTypes = [];
+        if (whitelistMatched) {
+            matchTypes.push('白名单');
+        }
+        if (specialMatched) {
+            matchTypes.push('特典');
+        }
+        if (miscMatched) {
+            matchTypes.push('杂项');
+        }
+        if(matchTypes.length == 0) {
+            matchTypes.push('无');
+        }
+        summary.textContent = '命中类型: ' + matchTypes.join(', ');
+
+        renderRegexToolResults(resultItems);
+    }
+
     container.querySelector('#SpExcludeRegexFullPathResetBtn').addEventListener('click', function (e) {
         e.preventDefault();
         container.querySelector('#SpExcludeRegexFullPath').value = configuration['DefaultSpExcludeRegexFullPath'];
@@ -251,6 +592,25 @@
     container.querySelector('#ExcludeWhitelistRegexFileNameResetBtn').addEventListener('click', function (e) {
         e.preventDefault();
         container.querySelector('#ExcludeWhitelistRegexFileName').value = configuration['DefaultExcludeWhitelistRegexFileName'];
+    });
+
+    container.querySelector('#RegexToolGenerateBtn').addEventListener('click', function (e) {
+        e.preventDefault();
+        if (!buildRegexToolOutputs()) {
+            Dashboard.alert('请先输入路径');
+        }
+    });
+
+    container.querySelector('#RegexToolCopyPatternBtn').addEventListener('click', function (e) {
+        e.preventDefault();
+        if (buildRegexToolOutputs()) {
+            copyText(container.querySelector('#RegexToolPatternOutput').value, '正则已复制');
+        }
+    });
+
+    container.querySelector('#RegexToolTestBtn').addEventListener('click', function (e) {
+        e.preventDefault();
+        runRegexToolTest();
     });
 
     container.querySelectorAll('.bangumi-tab-container').forEach(tabContainer => {
