@@ -128,9 +128,15 @@ public class EpisodeProvider(BangumiApi api, Logger<EpisodeProvider> log, ILibra
         if (series == null)
             return result;
         if (!string.IsNullOrEmpty(episode.AirDate) && string.Compare(episode.AirDate, series.AirDate, StringComparison.Ordinal) < 0)
-            result.Item.AirsBeforeEpisodeNumber = seasonNumber;
+            result.Item.AirsBeforeSeasonNumber = seasonNumber;
         else
             result.Item.AirsAfterSeasonNumber = seasonNumber;
+
+        // 小数集号
+        if (episode.Order % 1 != 0)
+        {
+            result.Item.AirsBeforeEpisodeNumber = ((int)Math.Ceiling(episode.Order));
+        }
 
         return result;
 
