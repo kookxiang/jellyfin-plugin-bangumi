@@ -1,4 +1,6 @@
+using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using Jellyfin.Plugin.Bangumi.Configuration;
@@ -16,6 +18,8 @@ public class Episode
     private readonly Bangumi.Plugin _plugin = ServiceLocator.GetService<Bangumi.Plugin>();
     private readonly EpisodeProvider _provider = ServiceLocator.GetService<EpisodeProvider>();
     private readonly ILibraryManager _libraryManager = ServiceLocator.GetService<ILibraryManager>();
+
+    private readonly IMediaSourceManager _mediaSourceManager = ServiceLocator.GetService<IMediaSourceManager>();
 
     private readonly CancellationToken _token = new();
 
@@ -434,7 +438,6 @@ public class Episode
     }
 
     [TestMethod]
-    [Ignore("AnitomyEpisodeParser is still under development and unavailable")]
     public async Task GetEpisodeByAnitomySharp()
     {
         _plugin.Configuration.EpisodeParser = EpisodeParserType.AnitomySharp;
@@ -450,6 +453,147 @@ public class Episode
         Assert.IsNotNull(episodeData.Item, "episode data should not be null");
         Assert.AreEqual(5, episodeData.Item.IndexNumber, "should fix episode index automatically");
         Assert.AreEqual("Tools for outsoucers", episodeData.Item.Name, "should return the right episode title");
+    }
+
+    [TestMethod]
+    public async Task GetEpisodeByAnitomySharpWithEpisodeNumberAlt()
+    {
+        _plugin.Configuration.EpisodeParser = EpisodeParserType.AnitomySharp;
+        var episodeData = await _provider.GetMetadata(new EpisodeInfo
+        {
+            IndexNumber = 0,
+            Path = FakePath.CreateFile("銀河英雄伝説 Die Neue These 策謀 第3章/Legend of the Galactic Heroes - Die Neue These 12 (48).mkv"),
+            SeriesProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "381842" } }
+        },
+            _token);
+        _plugin.Configuration.EpisodeParser = EpisodeParserType.Basic;
+        Assert.IsNotNull(episodeData, "episode data should not be null");
+        Assert.IsNotNull(episodeData.Item, "episode data should not be null");
+        Assert.AreEqual(48, episodeData.Item.IndexNumber, "should fix episode index automatically");
+        Assert.AreEqual("フェザーン占領", episodeData.Item.Name, "should return the right episode title");
+    }
+
+    [TestMethod]
+    public async Task GetEpisodeByAnitomySharpWithMovieEpisode()
+    {
+        _plugin.Configuration.EpisodeParser = EpisodeParserType.AnitomySharp;
+        _plugin.Configuration.MovieEpisodeDetectionByAnitomySharp = true;
+
+        var filePath = FakePath.CreateFile("少女与战车 这次是真正的安齐奥战！/[VCB-Studio] GIRLS und PANZER Kore ga Hontou no Anzio-sen Desu! [Ma10p_1080p][x265_flac].mkv");
+        var baseItem = new MediaBrowser.Controller.Entities.TV.Episode
+        {
+            Path = filePath
+        };
+        _libraryManager.CreateItem(baseItem, null);
+        var mediaSourceManager = (Mock.MockedMediaSourceManager)_mediaSourceManager;
+        mediaSourceManager.SetFileMediaInfo(filePath, 2000 * 1024 * 1024, TimeSpan.FromMinutes(37));
+
+        var episodeData = await _provider.GetMetadata(new EpisodeInfo
+        {
+            IndexNumber = 0,
+            Path = filePath,
+            SeriesProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "96130" } }
+        },
+            _token);
+        _plugin.Configuration.EpisodeParser = EpisodeParserType.Basic;
+        _plugin.Configuration.MovieEpisodeDetectionByAnitomySharp = false;
+        Assert.IsNotNull(episodeData, "episode data should not be null");
+        Assert.IsNotNull(episodeData.Item, "episode data should not be null");
+        Assert.AreEqual(1, episodeData.Item.IndexNumber, "should fix episode index automatically");
+        Assert.AreEqual("これが本当のアンツィオ戦です!", episodeData.Item.Name, "should return the right episode title");
+    }
+
+    [TestMethod]
+    public async Task GetEpisodeByAnitomySharpWithProcessMultiSeasonFolder()
+    {
+        _plugin.Configuration.EpisodeParser = EpisodeParserType.AnitomySharp;
+        _plugin.Configuration.ProcessMultiSeasonFolderByAnitomySharp = true;
+
+        var filePath = FakePath.CreateFile("战姬绝唱SYMPHOGEAR/戦姫絶唱シンフォギアXV/[VCB-Studio] Senki Zesshou Symphogear XV [01][Ma10p_1080p][x265_flac].mkv");
+        var parentPath = Path.GetDirectoryName(filePath);
+        var parentFolder = new MediaBrowser.Controller.Entities.Folder
+        {
+            Path = parentPath,
+            Name = Path.GetFileName(parentPath)
+        };
+        _libraryManager.CreateItem(parentFolder, null);
+
+        var episodeData = await _provider.GetMetadata(new EpisodeInfo
+        {
+            IndexNumber = 0,
+            Path = filePath,
+            SeriesProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "25834" } } //第一季
+        },
+            _token);
+        _plugin.Configuration.EpisodeParser = EpisodeParserType.Basic;
+        _plugin.Configuration.ProcessMultiSeasonFolderByAnitomySharp = false;
+        Assert.IsNotNull(episodeData, "episode data should not be null");
+        Assert.IsNotNull(episodeData.Item, "episode data should not be null");
+        Assert.AreEqual(1, episodeData.Item.IndexNumber, "should fix episode index automatically");
+        Assert.AreEqual("人類史の彼方から", episodeData.Item.Name, "should return the right episode title");
+    }
+
+
+    [TestMethod]
+    public async Task GetEpisodeByAnitomySharpWithProcessMultiSeasonWithConsecutiveIndex()
+    {
+        _plugin.Configuration.EpisodeParser = EpisodeParserType.AnitomySharp;
+        _plugin.Configuration.ProcessMultiSeasonFolderByAnitomySharp = true;
+
+        // 如：「機動戦士ガンダム00」分为两季，每季序号均从1开始，但本地文件命名为 1-50
+        var filePath = FakePath.CreateFile("機動戦士ガンダム00/[VCB-Studio] Mobile Suit Gundam 00 [30][Ma10p_1080p][x265_flac].mkv");
+        var parentPath = Path.GetDirectoryName(filePath);
+        var parentFolder = new MediaBrowser.Controller.Entities.Folder
+        {
+            Path = parentPath,
+            Name = Path.GetFileName(parentPath)
+        };
+        _libraryManager.CreateItem(parentFolder, null);
+
+        var episodeData = await _provider.GetMetadata(new EpisodeInfo
+        {
+            IndexNumber = 0,
+            Path = filePath,
+            SeriesProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "286" } } //第一季
+        },
+            _token);
+        _plugin.Configuration.EpisodeParser = EpisodeParserType.Basic;
+        _plugin.Configuration.ProcessMultiSeasonFolderByAnitomySharp = false;
+        Assert.IsNotNull(episodeData, "episode data should not be null");
+        Assert.IsNotNull(episodeData.Item, "episode data should not be null");
+        Assert.AreEqual(30, episodeData.Item.IndexNumber, "should fix episode index automatically");
+        Assert.AreEqual("故国燃ゆ", episodeData.Item.Name, "should return the right episode title");
+    }
+
+    [TestMethod]
+    public async Task GetEpisodeByAnitomySharpWithProcessMultiSeasonWithConsecutiveIndex2()
+    {
+        _plugin.Configuration.EpisodeParser = EpisodeParserType.AnitomySharp;
+        _plugin.Configuration.ProcessMultiSeasonFolderByAnitomySharp = true;
+
+        // 如：「らんま1/2」分为两季，第二季序号接第一季顺序，但本地文件命名为 1-161
+        var filePath = FakePath.CreateFile("乱马/らんま½ 第083話 シャンプーの赤い糸 (1080p x265 Ma10p FLAC).mkv");
+        var parentPath = Path.GetDirectoryName(filePath);
+        var parentFolder = new MediaBrowser.Controller.Entities.Folder
+        {
+            Path = parentPath,
+            Name = Path.GetFileName(parentPath)
+        };
+        _libraryManager.CreateItem(parentFolder, null);
+
+        var episodeData = await _provider.GetMetadata(new EpisodeInfo
+        {
+            IndexNumber = 0,
+            Path = filePath,
+            SeriesProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "2789" } } //第一季
+        },
+            _token);
+        _plugin.Configuration.EpisodeParser = EpisodeParserType.Basic;
+        _plugin.Configuration.ProcessMultiSeasonFolderByAnitomySharp = false;
+        Assert.IsNotNull(episodeData, "episode data should not be null");
+        Assert.IsNotNull(episodeData.Item, "episode data should not be null");
+        Assert.AreEqual(83, episodeData.Item.IndexNumber, "should fix episode index automatically");
+        Assert.AreEqual("シャンプーの赤い糸", episodeData.Item.Name, "should return the right episode title");
     }
 
     [TestMethod]
