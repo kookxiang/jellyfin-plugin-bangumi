@@ -12,7 +12,7 @@ public static class AnitomyEpisodeTypeMapping
     // 存在先后顺序的关键词集合，映射时优先返回最前面那个
     private static readonly HashSet<string> _normal = new(StringComparer.OrdinalIgnoreCase) { "TV", "GEKIJOUBAN", "MOVIE" };
     private static readonly HashSet<string> _special = new(StringComparer.OrdinalIgnoreCase) { "OAD", "OAV", "ONA", "OVA", "番外編", "總集編", "DRAMA" };
-    private static readonly HashSet<string> _specialOther = new(StringComparer.OrdinalIgnoreCase) { "映像特典", "特典", "特典アニメ", "特報", "SPECIAL", "SPECIALS", "SP", "SPs" };
+    public static readonly HashSet<string> SpecialOther = new(StringComparer.OrdinalIgnoreCase) { "映像特典", "特典", "特典アニメ", "特報", "SPECIAL", "SPECIALS", "SP", "SPs" };
     private static readonly HashSet<string> _opening = new(StringComparer.OrdinalIgnoreCase) { "NCOP", "OP", "OPENING" };
     private static readonly HashSet<string> _ending = new(StringComparer.OrdinalIgnoreCase) { "NCED", "ED", "ENDING" };
     // 同类型可能被误匹配，如 CM01 匹配上了 PV01 的元数据
@@ -32,7 +32,7 @@ public static class AnitomyEpisodeTypeMapping
         (_special, EpisodeType.Special),
         // 命名时 Special 常和其他特典关键词混用
         // 而 AnitomySharp 会识别出所有关键词，因此放在后面判断
-        (_specialOther, EpisodeType.Other),
+        (SpecialOther, EpisodeType.Other),
         (_normal, EpisodeType.Normal)
     };
 
