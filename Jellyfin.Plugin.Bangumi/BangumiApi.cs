@@ -57,7 +57,10 @@ public partial class BangumiApi
                 var searchResult = await Get<SearchResult<Subject>>(url, token);
                 var list = searchResult?.List ?? [];
 
-                if (Plugin.Instance.Configuration.SortByFuzzScore && list.Count() > 1)
+                if (list.Count() <= 1)
+                    return list;
+
+                if (Plugin.Instance.Configuration.SortByFuzzScore)
                 {
                     // 仅使用前 5 个条目获取别名并排序
                     var num = 5;
