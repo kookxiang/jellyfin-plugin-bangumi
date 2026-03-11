@@ -4,6 +4,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Jellyfin.Plugin.Bangumi.Providers;
 using Jellyfin.Plugin.Bangumi.Test.Util;
+using MediaBrowser.Controller.Library;
 using MediaBrowser.Controller.Providers;
 using MediaBrowser.Model.Entities;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
@@ -16,6 +17,7 @@ public class Season
     private readonly BangumiApi _api = ServiceLocator.GetService<BangumiApi>();
     private readonly SubjectImageProvider _imageProvider = ServiceLocator.GetService<SubjectImageProvider>();
     private readonly SeasonProvider _provider = ServiceLocator.GetService<SeasonProvider>();
+    private readonly ILibraryManager _libraryManager = ServiceLocator.GetService<ILibraryManager>();
 
     private readonly CancellationToken _token = new();
 
@@ -30,10 +32,10 @@ public class Season
     public async Task WithSeasonFolder()
     {
         var result = await _provider.GetMetadata(new SeasonInfo
-            {
-                Path = FakePath.Create("White Album 2/Season 1"),
-                ProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "69496" } }
-            },
+        {
+            Path = FakePath.Create("White Album 2/Season 1"),
+            ProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "69496" } }
+        },
             _token);
         Assert.IsTrue(result.HasMetadata, "should return metadata when folder name contains season");
     }
@@ -67,5 +69,59 @@ public class Season
         Assert.AreEqual(ImageType.Primary, _imageProvider.GetSupportedImages(season).First(), "should support primary image");
         var imgList = await _imageProvider.GetImages(new MediaBrowser.Controller.Entities.TV.Season { ProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "69496" } } }, _token);
         Assert.IsTrue(imgList.Any(), "should return at least one image");
+    }
+
+    [TestMethod]
+    public async Task HeadlessSeason()
+    {
+        var seriesPath = FakePath.Create("打了300年的史莱姆，不知不觉就练到了满级");
+        var season2Path = FakePath.Create("打了300年的史莱姆，不知不觉就练到了满级/Season 2");
+
+        var series = new MediaBrowser.Controller.Entities.TV.Series
+        {
+            Path = seriesPath,
+            Name = "打了300年的史莱姆，不知不觉就练到了满级"
+        };
+        _libraryManager.CreateItem(series, null);
+
+        _libraryManager.CreateItem(new MediaBrowser.Controller.Entities.TV.Season
+        {
+            Path = season2Path,
+        }, series);
+
+        var result = await _provider.GetMetadata(new SeasonInfo
+        {
+            Path = season2Path,
+        },
+            _token);
+        Assert.IsTrue(result.HasMetadata, "should return metadata when folder name contains season");
+        Assert.IsNotNull(result.Item, "data should not be null");
+        Assert.AreEqual("スライム倒して300年、知らないうちにレベルMAXになってました ～そのに～", result.Item.Name, "should return the right title");
+    }
+    [TestMethod]
+    public async Task HeadlessSeasonWithOtherFolder()
+    {
+        var seriesPath = FakePath.Create("打了300年的史莱姆，不知不觉就练到了满级");
+        var season1Path = FakePath.Create("打了300年的史莱姆，不知不觉就练到了满级/CDs");
+
+        var series = new MediaBrowser.Controller.Entities.TV.Series
+        {
+            Path = seriesPath,
+            Name = "打了300年的史莱姆，不知不觉就练到了满级",
+            ProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "292969" } } //第一季
+        };
+        _libraryManager.CreateItem(series, null);
+
+        _libraryManager.CreateItem(new MediaBrowser.Controller.Entities.TV.Season
+        {
+            Path = season1Path,
+        }, series);
+
+        var result = await _provider.GetMetadata(new SeasonInfo
+        {
+            Path = season1Path,
+        },
+            _token);
+        Assert.IsFalse(result.HasMetadata, "should return metadata when folder name contains season");
     }
 }
