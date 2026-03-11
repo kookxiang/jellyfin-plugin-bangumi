@@ -371,10 +371,10 @@ public class SeasonProvider(BangumiApi api, Logger<EpisodeProvider> log, ILibrar
         if (subjects.Count == maxRequestCount + 1)
         {
             Subject earliest = subjects[^1].OrderBy(s => s.Id).First();
-            var prev = api.SearchPreviousSubject(earliest.Id, 1, cancellationToken);
+            var prev = await api.SearchPreviousSubject(earliest.Id, 1, cancellationToken);
 
             // 还能继续查找前传条目，超出最大请求次数，无法判断季号
-            if (prev.Id != earliest.Id) return null;
+            if (prev != null && prev.Id != earliest.Id) return null;
         }
 
         // 根据前传数量判断季号
