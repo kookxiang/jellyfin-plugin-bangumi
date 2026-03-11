@@ -79,6 +79,7 @@ public partial class BangumiApi
     /// <returns>条目信息集合</returns>
     public async Task<IEnumerable<(Subject, int)>> SearchSubjectSorted(string keyword, SubjectType? type, CancellationToken token, int? seasonNumber = null)
     {
+#if !EMBY
         // 优先使用离线数据库查询
         var offlineList = await SearchSubjectRaw(keyword, type, token, true);
         var offlineSorted = await SortSubjects(offlineList, keyword, token, seasonNumber);
@@ -87,6 +88,10 @@ public partial class BangumiApi
         var offlineMatched = offlineSorted.Where(item => item.Item2 >= 80).ToArray();
         if (offlineMatched.Length > 0)
             return offlineMatched;
+
+        if (!_plugin.Configuration.FallbackToOnlineWhenArchiveMiss)
+            return offlineMatched;
+#endif
 
         // 使用在线API查询并排序
         var onlineList = await SearchSubjectRaw(keyword, type, token, false);
