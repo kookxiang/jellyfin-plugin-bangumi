@@ -144,7 +144,7 @@ public class Subject
 
         foreach (var candidate in candidateList)
         {
-            result.Add(GeSubjectScore(candidate, keyword, seasonNumber));
+            result.Add(GetSubjectScore(candidate, keyword, seasonNumber));
         }
 
         // 按最匹配顺序排序
@@ -165,7 +165,7 @@ public class Subject
     /// <returns>（条目、分数）元组。
     ///     <br/>分数最高为100，表示完全匹配；分数最低为0，表示完全不匹配。
     /// </returns>
-    private static (Subject, int) GeSubjectScore(Subject subject, string keyword, int? seasonNumber)
+    private static (Subject, int) GetSubjectScore(Subject subject, string keyword, int? seasonNumber)
     {
         // 类型不匹配，跳过分数计算步骤
         if (seasonNumber == 0 && !BangumiApi.IsOVAOrMovie(subject))
