@@ -70,7 +70,7 @@ public class SeasonProvider(BangumiApi api, Logger<EpisodeProvider> log, ILibrar
         {
             subjectId = subjectIdFromParent;
         }
-        else if (seasonPath is not null && libraryManager.FindByPath(seasonPath, true) is Series series)
+        else if (seasonPath is not null && libraryManager.FindByPath(seasonPath, true) is Series series && info.IndexNumber is not null)
         {
             var children = libraryManager.GetItemList(new MediaBrowser.Controller.Entities.InternalItemsQuery
             {

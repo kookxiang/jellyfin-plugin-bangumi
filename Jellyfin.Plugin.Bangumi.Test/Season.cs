@@ -87,11 +87,13 @@ public class Season
         _libraryManager.CreateItem(new MediaBrowser.Controller.Entities.TV.Season
         {
             Path = season2Path,
+            IndexNumber = 2
         }, series);
 
         var result = await _provider.GetMetadata(new SeasonInfo
         {
             Path = season2Path,
+            IndexNumber = 2
         },
             _token);
         Assert.IsTrue(result.HasMetadata, "should return metadata when folder name contains season");
