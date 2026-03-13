@@ -189,7 +189,18 @@ public class MockedLibraryManager : ILibraryManager
 
     public Task UpdateItemAsync(BaseItem item, BaseItem parent, ItemUpdateType updateReason, CancellationToken cancellationToken)
     {
-        throw new NotImplementedException();
+        var path = item.Path.Replace(Path.AltDirectorySeparatorChar, Path.DirectorySeparatorChar);
+
+        _items[path] = item;
+
+        ItemUpdated?.Invoke(this, new ItemChangeEventArgs
+        {
+            Item = item,
+            Parent = parent,
+            UpdateReason = updateReason
+        });
+
+        return Task.CompletedTask;
     }
 
     public BaseItem RetrieveItem(Guid id)
