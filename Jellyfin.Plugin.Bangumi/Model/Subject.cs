@@ -158,7 +158,7 @@ public class Subject
                     Score = maxScore
                 };
             })
-            .Where(pair => pair.Score > minScore)
+            .Where(pair => pair.Score >= minScore)
             .OrderByDescending(pair => pair.Score)
             .Select(pair => pair.Subject);
 
