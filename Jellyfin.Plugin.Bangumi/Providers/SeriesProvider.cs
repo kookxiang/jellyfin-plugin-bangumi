@@ -41,6 +41,19 @@ public class SeriesProvider(BangumiApi api, Logger<SeriesProvider> log)
         else
             _ = int.TryParse(info.ProviderIds.GetOrDefault(Constants.ProviderName), out subjectId);
 
+        if (subjectId == 0 && Configuration.AlwaysGetTitleByAnitomySharp)
+        {
+            var anitomy = new Anitomy(baseName);
+            var searchName = anitomy.ExtractAnimeTitle() ?? info.Name;
+            log.Info("Searching {Name} in bgm.tv with AnitomySharp", searchName);
+            // 不保证使用非原名或中文进行查询时返回正确结果
+            var searchResult = await api.SearchSubject(searchName, cancellationToken);
+            if (info.Year != null)
+                searchResult = searchResult.Where(x => x.ProductionYear == null || x.ProductionYear == info.Year?.ToString());
+            if (searchResult.Any())
+                subjectId = searchResult.First().Id;
+        }
+
         if (subjectId == 0)
         {
             // Determine search order based on configuration
@@ -68,19 +81,6 @@ public class SeriesProvider(BangumiApi api, Logger<SeriesProvider> log)
                 if (searchResult.Any())
                     subjectId = searchResult.First().Id;
             }
-        }
-
-        if (subjectId == 0 && Configuration.AlwaysGetTitleByAnitomySharp)
-        {
-            var anitomy = new Anitomy(baseName);
-            var searchName = anitomy.ExtractAnimeTitle() ?? info.Name;
-            log.Info("Searching {Name} in bgm.tv", searchName);
-            // 不保证使用非原名或中文进行查询时返回正确结果
-            var searchResult = await api.SearchSubject(searchName, cancellationToken);
-            if (info.Year != null)
-                searchResult = searchResult.Where(x => x.ProductionYear == null || x.ProductionYear == info.Year?.ToString());
-            if (searchResult.Any())
-                subjectId = searchResult.First().Id;
         }
 
         if (subjectId == 0)

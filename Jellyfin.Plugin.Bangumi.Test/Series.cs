@@ -133,15 +133,16 @@ public class Series
     }
 
     [TestMethod]
-    [Ignore("旧搜索 API 遇到带空格的会直接 404，先临时跳过")]
     public async Task SearchByNewApi()
     {
+        _plugin.Configuration.UseTestingSearchApi = true;
         var searchResults = await _provider.GetSearchResults(new SeriesInfo
             {
                 Name = "命运-奇异赝品 黎明低语",
                 Path = FakePath.Create("Fate Strange Fake Whispers of Dawn")
             },
             _token);
+        _plugin.Configuration.UseTestingSearchApi = false;
         Assert.IsTrue(searchResults.Any(x => x.ProviderIds[Constants.ProviderName].Equals("402128")), "should have correct search result");
     }
 

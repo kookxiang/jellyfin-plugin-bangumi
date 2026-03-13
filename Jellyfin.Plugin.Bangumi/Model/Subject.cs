@@ -135,7 +135,7 @@ public class Subject
 #endif
     }
 
-    public static IEnumerable<Subject> SortByFuzzScore(IEnumerable<Subject> list, string keyword)
+    public static IEnumerable<Subject> SortByFuzzScore(IEnumerable<Subject> list, string keyword, int minScore = 0)
     {
 #if EMBY
         return list;
@@ -158,6 +158,7 @@ public class Subject
                     Score = maxScore
                 };
             })
+            .Where(pair => pair.Score >= minScore)
             .OrderByDescending(pair => pair.Score)
             .Select(pair => pair.Subject);
 
