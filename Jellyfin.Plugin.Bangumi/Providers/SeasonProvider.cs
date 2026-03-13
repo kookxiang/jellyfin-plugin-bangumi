@@ -70,13 +70,20 @@ public class SeasonProvider(BangumiApi api, Logger<EpisodeProvider> log, ILibrar
         {
             subjectId = subjectIdFromParent;
         }
-        else if (seasonPath is not null && libraryManager.FindByPath(seasonPath, true) is Series series)
+        else if (seasonPath is not null && libraryManager.FindByPath(seasonPath, true) is Series series && info.IndexNumber is not null)
         {
-            var previousSeason = series.Children
+            var children = libraryManager.GetItemList(new MediaBrowser.Controller.Entities.InternalItemsQuery
+            {
+                Parent = series,
+                IncludeItemTypes = new[] { Data.Enums.BaseItemKind.Season }
+            });
+            var previousSeason = children
                 // Search "Season 2" for "Season 1" and "Season 2 Part X"
                 .Where(x => x.IndexNumber == info.IndexNumber - 1 || x.IndexNumber == info.IndexNumber)
                 .MaxBy(x => int.Parse(x.GetProviderId(Constants.ProviderName) ?? "0"));
-            if (previousSeason?.Path == info.Path)
+
+            var infoPath = info.Path.Replace(Path.AltDirectorySeparatorChar, Path.DirectorySeparatorChar);
+            if (previousSeason?.Path == infoPath)
             {
                 try
                 {
