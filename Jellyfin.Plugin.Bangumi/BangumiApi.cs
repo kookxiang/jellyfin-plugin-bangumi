@@ -328,7 +328,7 @@ public partial class BangumiApi
         return allSubjectIds.ToList();
     }
 
-    public async Task<IEnumerable<PersonInfo>> GetSubjectCharacters(int id, CancellationToken token)
+    private async Task<IEnumerable<RelatedCharacter>> FetchSubjectCharactersInternal(int id, CancellationToken token)
     {
         if (id <= 0) return [];
 
@@ -341,8 +341,18 @@ public partial class BangumiApi
                 "配角" => 1,
                 "客串" => 2,
                 _ => 3
-            })
-            .SelectMany(character => character.ToPersonInfos()) ?? [];
+            }) ?? Enumerable.Empty<RelatedCharacter>();
+    }
+
+    public async Task<IEnumerable<PersonInfo>> GetSubjectCharacters(int id, CancellationToken token)
+    {
+        var characters = await FetchSubjectCharactersInternal(id, token);
+        return characters.SelectMany(c => c.ToPersonInfos());
+    }
+    public async Task<IEnumerable<PersonInfo>> GetSubjectVirtualCharacters(int id, CancellationToken token)
+    {
+        var characters = await FetchSubjectCharactersInternal(id, token);
+        return characters.SelectMany(c => c.ToCharacterInfos());
     }
 
     public async Task<IEnumerable<RelatedPerson>?> GetSubjectPersons(int id, CancellationToken token)
@@ -398,9 +408,35 @@ public partial class BangumiApi
         return person?.DefaultImage;
     }
 
+    public async Task<PersonDetail?> GetCharacter(int id, CancellationToken token)
+    {
+        if (id <= 0) return null;
+#if !EMBY
+        var character = await archive.Character.FindById(id, token);
+        if (character != null)
+            return character.ToPersonDetail();
+#endif
+        return await Get<PersonDetail>($"{BaseUrl}/v0/characters/{id}", token);
+    }
+    public Task<string?> GetCharacterImage(int id, CancellationToken token)
+    {
+        return GetCharacterImage(id, "large", token);
+    }
+
+    public async Task<string?> GetCharacterImage(int id, string type, CancellationToken token)
+    {
+        var character = await Get<PersonDetail>($"{BaseUrl}/v0/characters/{id}", token);
+        return character?.DefaultImage;
+    }
+
     public async Task<IEnumerable<Person>?> SearchPerson(string keyword, CancellationToken token)
     {
-        var searchResult = await Post<DataList<Person>>($"{BaseUrl}/v0/search/persons", new JsonContent(new SearchParams { Keyword = keyword}), token);
+        var searchResult = await Post<DataList<Person>>($"{BaseUrl}/v0/search/persons", new JsonContent(new SearchParams { Keyword = keyword }), token);
+        return searchResult?.Data;
+    }
+    public async Task<IEnumerable<Person>?> SearchCharacter(string keyword, CancellationToken token)
+    {
+        var searchResult = await Post<DataList<Person>>($"{BaseUrl}/v0/search/characters", new JsonContent(new SearchParams { Keyword = keyword }), token);
         return searchResult?.Data;
     }
 

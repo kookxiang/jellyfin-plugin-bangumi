@@ -36,6 +36,18 @@ public class Person
         Assert.AreEqual("上坂堇", result.Item.Name, "should return translated name");
         Assert.IsNotNull(result.Item.ProviderIds[Constants.ProviderName], "should have plugin provider id");
     }
+    [TestMethod]
+    public async Task GetCharacterById()
+    {
+        Bangumi.Plugin.Instance!.Configuration.PersonTranslationPreference = TranslationPreferenceType.Chinese;
+        Bangumi.Plugin.Instance!.Configuration.AddCharacterToPerson = true;
+        var result = await _provider.GetMetadata(new PersonLookupInfo { ProviderIds = new Dictionary<string, string> { { Constants.ProviderName, $"{Constants.CharacterIdPrefix}17672" } } }, _token);
+        Bangumi.Plugin.Instance!.Configuration.AddCharacterToPerson = false;
+        Assert.IsNotNull(result.Item, "person info should not be null");
+        Assert.AreEqual("星宮いちご", result.Item.OriginalTitle, "should return correct name");
+        Assert.AreEqual("星宫莓", result.Item.Name, "should return translated name");
+        Assert.IsNotNull(result.Item.ProviderIds[Constants.ProviderName], "should have plugin provider id");
+    }
 
     [TestMethod]
     public async Task LineBreaksConversion()
