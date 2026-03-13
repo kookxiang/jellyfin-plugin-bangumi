@@ -347,12 +347,86 @@ public partial class BangumiApi
     public async Task<IEnumerable<PersonInfo>> GetSubjectCharacters(int id, CancellationToken token)
     {
         var characters = await FetchSubjectCharactersInternal(id, token);
+#if !EMBY
+        if (_plugin.Configuration.PersonTranslationPreference == Configuration.TranslationPreferenceType.Original)
+            return characters.SelectMany(c => c.ToPersonInfos());
+        using var semaphore = new SemaphoreSlim(3);
+        var tasks = characters.Select(async c =>
+        {
+            await semaphore.WaitAsync();
+            try
+            {
+                var characterDetail = await GetCharacter(c.Id, token);
+                if (c.Actors == null)
+                    return c.ToPersonInfos();
+                var actorTasks = c.Actors.Select(async actor =>
+                {
+                    var actorDetail = await GetPerson(actor.Id, token);
+                    var info = new PersonInfo
+                    {
+                        Name = actorDetail?.TranslatedName ?? actor.Name,
+                        Role = characterDetail?.TranslatedName ?? c.Name,
+                        ImageUrl = actor.DefaultImage,
+                        Type = Jellyfin.Data.Enums.PersonKind.Actor
+                    };
+                    info.ProviderIds.Add(Constants.ProviderName, $"{actor.Id}");
+                    return info;
+                });
+                return await Task.WhenAll(actorTasks);
+            }
+            finally
+            {
+                semaphore.Release();
+            }
+        });
+        var results = await Task.WhenAll(tasks);
+        return results.SelectMany(r => r).Where(r => r!=null);
+#else
         return characters.SelectMany(c => c.ToPersonInfos());
+#endif
     }
     public async Task<IEnumerable<PersonInfo>> GetSubjectVirtualCharacters(int id, CancellationToken token)
     {
         var characters = await FetchSubjectCharactersInternal(id, token);
+#if !EMBY
+        if (_plugin.Configuration.PersonTranslationPreference == Configuration.TranslationPreferenceType.Original)
+            return characters.SelectMany(c => c.ToCharacterInfos());
+        using var semaphore = new SemaphoreSlim(3);
+        var tasks = characters.Select(async c =>
+        {
+            await semaphore.WaitAsync();
+            try
+            {
+                var characterDetail = await GetCharacter(c.Id, token);
+                var actorNames = new List<string>();
+                if (c.Actors is not null && c.Actors.Any())
+                {
+                    var actorTasks = c.Actors.Select(async actor =>
+                    {
+                        return (await GetPerson(actor.Id, token))?.TranslatedName ?? actor.Name;
+                    });
+                    actorNames = (await Task.WhenAll(actorTasks)).Where(a => !string.IsNullOrEmpty(a)).ToList();
+                }
+                var info = new PersonInfo
+                {
+                    Name = characterDetail?.TranslatedName ?? c.Name,
+                    Role = string.Join(", ", Enumerable.Reverse(actorNames)),
+                    ImageUrl = c.DefaultImage ?? characterDetail?.DefaultImage,
+                    Type = Jellyfin.Data.Enums.PersonKind.Actor
+                };
+                info.ProviderIds.Add(Constants.ProviderName, $"{Constants.CharacterIdPrefix}{c.Id}");
+                return info;
+            }
+            finally
+            {
+                semaphore.Release();
+            }
+        });
+        var results = await Task.WhenAll(tasks);
+        return results.Where(r => r!=null);
+#else
         return characters.SelectMany(c => c.ToCharacterInfos());
+#endif
     }
 
     public async Task<IEnumerable<RelatedPerson>?> GetSubjectPersons(int id, CancellationToken token)
