@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Jellyfin.Plugin.Bangumi.Model;
 using MediaBrowser.Controller.Library;
@@ -69,7 +70,7 @@ public class AnitomyEpisodeParser : IEpisodeParser
                 Order = episodeIndex,
                 OriginalNameRaw = TitleOfSpecialEpisode(anitomyEpisodeType)
             };
-            _log.Info("Set OriginalName: {OriginalNameRaw} for {fileName}", sp.OriginalNameRaw, _fileName);
+            _log.Debug("Set OriginalName: {OriginalNameRaw} for {fileName}", sp.OriginalNameRaw, _fileName);
             return sp;
         }
         catch (InvalidOperationException e)
@@ -171,7 +172,7 @@ public class AnitomyEpisodeParser : IEpisodeParser
             LocalConfigurationHelper.ApplyEpisodeOffset(ref episodeIndex, _context.LocalConfiguration);
         }
 
-        _log.Info("Use episode number: {episodeIndex} for {fileName}", episodeIndex, _fileName);
+        _log.Debug("Use episode number: {episodeIndex} for {fileName}", episodeIndex, _fileName);
 
         return episodeIndex;
     }
@@ -233,6 +234,18 @@ public class AnitomyEpisodeParser : IEpisodeParser
     /// <returns></returns>
     private async Task<Episode?> ProcessMultiSeasonWithConsecutiveIndex(int seriesId, double episodeIndex)
     {
+        // 限制运用范围
+        // 检查 seriesId 是否为第一季，不然容易错位
+        // FIXME 存在续集先出，前传后出的情况，这里只能先忽略
+        var checkSeriesRelation = await _context.Api.GetRelatedSubjects(seriesId, _context.Token);
+        if (checkSeriesRelation is null)
+            return null;
+        if (checkSeriesRelation.Any(r => r.Type == SubjectType.Anime && r.Relation == SubjectRelation.Prequel))
+        {
+            _log.Info("ProcessMultiSeasonWithConsecutiveIndex, Not first season, skip");
+            return null;
+        }
+
         var episodeIndexAlt = double.Parse(_anitomy.ExtractEpisodeNumberAlt() ?? "-1");
         // 获取剧集元数据
         var episodeListData = await _context.Api.GetSubjectEpisodeList(seriesId, EpisodeType.Normal, episodeIndex, _context.Token) ?? new List<Episode>();
@@ -245,12 +258,12 @@ nextSeason:
         var results = await _context.Api.GetRelatedSubjects(seriesId, _context.Token);
         if (results is null)
             return null;
-        foreach (var result in results)
+        foreach (var result in results.Where(r => r.Type == SubjectType.Anime))
         {
             if (result.Relation == SubjectRelation.Sequel)
             {
                 subjectId = result.Id;
-                _log.Info("use sequel: {sequel} for episode", subjectId);
+                _log.Info("Use sequel: {sequel} for episode", subjectId);
                 break;
             }
         }
@@ -318,33 +331,58 @@ nextSeason:
     /// <returns></returns>
     private async Task<int> ProcessMultiSeasonFolder(int seriesId)
     {
-        // 使用此媒体文件的父目录获取名称
+        // 获取此媒体文件的父目录
         var parent = _context.LibraryManager.FindByPath(Path.GetDirectoryName(_context.Info.Path)!, true);
         _log.Debug("Jellyfin parent name: {parent}", parent);
 
-        // 配置可跳过处理的文件夹名称
-        var skipFolders = new HashSet<string>(
-            AnitomyEpisodeTypeMapping.SpecialOther,
-            StringComparer.OrdinalIgnoreCase
-        );
-        skipFolders.UnionWith(["CDs", "Scans", "Bonus"]);
-        // 检查是否应跳过处理
-        bool shouldSkipFolder = skipFolders.Contains(parent!.Name, StringComparer.OrdinalIgnoreCase) ||
-                          parent.Name.Contains('第', StringComparison.OrdinalIgnoreCase) ||
-                          parent.Name.Contains("SEASON", StringComparison.OrdinalIgnoreCase);
-        if (shouldSkipFolder) return seriesId;
+        // 限制 parent 类型
+        switch (parent)
+        {
+            // parent 是 Series 类型
+            case MediaBrowser.Controller.Entities.TV.Series series:
+                _log.Debug("{parent} is Series Folder", parent);
+                break;
+
+            // parent 是 Season 类型
+            case MediaBrowser.Controller.Entities.TV.Season season:
+                _log.Debug("{parent} is Season Folder", parent);
+                break;
+
+            // parent 是普通文件夹，但其父级是 Series（应视为 Season）
+            case MediaBrowser.Controller.Entities.Folder folder
+                when folder.GetParent() is MediaBrowser.Controller.Entities.TV.Series:
+                _log.Debug("{parent} is a folder under a Series, treating as Season", parent);
+                break;
+
+            // 其他类型或不符合条件，跳过
+            // 比如多层嵌套（other）：series/season/other
+            default:
+                _log.Debug("{parent} is not a recognized type or not under Series, skip", parent);
+                return seriesId;
+        }
 
         // 如果在 Jellyfin 中已配置，则直接返回此配置值
-        var subjectId = 0;
-        _ = int.TryParse(parent.ProviderIds.GetOrDefault(Constants.ProviderName), out subjectId);
+        _ = int.TryParse(parent!.ProviderIds.GetOrDefault(Constants.ProviderName), out var subjectId);
         if (subjectId > 0)
         {
-            _log.Info("Multi season folder, use exist id: {subjectId}", subjectId);
+            _log.Debug("Multi season folder, use exist id: {subjectId}", subjectId);
             return subjectId;
         }
 
+        // 检查是否应跳过处理
+        // 虚拟季度刷新不会触发 EpisodeProvider，也就不会触发此代码，因此没必要跳过「第X季」
+        if (ShouldSkipFolder(parent.Name) || parent.IsVirtualItem)
+        {
+            _log.Debug("Skip folder, use exist id: {seriesId}", seriesId);
+            return seriesId;
+        }
+
         // 搜索
-        var anitomyParent = new Anitomy(parent.Name);
+        var parentForAnitomy = parent.Name;
+        if (IsSeasonNameFolder(parent.Name))
+            // 路径名
+            parentForAnitomy = parent.FileNameWithoutExtension;
+        var anitomyParent = new Anitomy(parentForAnitomy);
         var searchName = anitomyParent.ExtractAnimeTitle();
         if (searchName is null) return seriesId;
         _log.Info("Multi season folder, Searching {Name} in bgm.tv", searchName);
@@ -355,16 +393,55 @@ nextSeason:
         if (searchResult.Any())
         {
             subjectId = searchResult.First().Id;
-            _log.Debug("Multi season folder, Use subject id: {id}", subjectId);
+            // 检查与旧 seriesId 的关联性，如果无联系则说明可能匹配错误
+            // 获取此 id 对应的系列所有 id
+            var bangumiSeriesIds = await _context.Api.GetAllAnimeSeriesSubjectIds(seriesId, _context.Token);
+            if (bangumiSeriesIds.Any(id => id == subjectId))
+                _log.Info("Multi season folder, Use subject id: {id}", subjectId);
+            else
+                return seriesId;
 
             parent.ProviderIds.Add(Constants.ProviderName, subjectId.ToString());
+            // 纠正季度
+            // 季号如果重复则无法生成对应季度的虚拟目录
+            // var seasonNumber = _anitomy.ExtractAnimeSeason();
+            // if (!string.IsNullOrEmpty(seasonNumber))
+            // {
+            //     parent.ParentIndexNumber = int.Parse(seasonNumber);
+            //     _log.Info("Multi season folder, Use Season {seasonNumber} for {parent}", seasonNumber, parent);
+            // }
+            // FIXME 没有全自动，需要再次手动执行「刷新元数据」才会更新 Season 数据
             await _context.LibraryManager.UpdateItemAsync(parent, parent, ItemUpdateType.MetadataEdit, _context.Token);
 
-            // #FIXME 检查与旧 seriesId 的关联性，如果无联系则说明可能匹配错误
             return subjectId;
         }
 
         return seriesId;
+    }
+
+    private static readonly Regex _chineseSeasonRegex = new Regex(
+    @"第\s*[0-9一二三四五六七八九十百千]+\s*季",
+    RegexOptions.Compiled | RegexOptions.IgnoreCase
+);
+
+    private static readonly Regex _englishSeasonRegex = new Regex(
+        @"season\s*\d+",
+        RegexOptions.Compiled | RegexOptions.IgnoreCase
+    );
+
+    private static bool ShouldSkipFolder(string folderName)
+    {
+        if (AnitomyEpisodeTypeMapping.SkipWords.Any(keyword => folderName.Contains(keyword, StringComparison.OrdinalIgnoreCase)))
+            return true;
+        return false;
+    }
+    private static bool IsSeasonNameFolder(string folderName)
+    {
+        if (_chineseSeasonRegex.IsMatch(folderName))
+            return true;
+        if (_englishSeasonRegex.IsMatch(folderName))
+            return true;
+        return false;
     }
 
 }
