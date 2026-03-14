@@ -3,7 +3,6 @@
   <PropertyGroup>
     <TargetFramework>net9.0</TargetFramework>
     <RootNamespace>Jellyfin.Plugin.Bangumi</RootNamespace>
-    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
   </PropertyGroup>
 
   <ItemGroup>
@@ -11,8 +10,6 @@
     <PackageReference Include="Fastenshtein" />
     <PackageReference Include="FuzzySharp" />
     <PackageReference Include="Jellyfin.Controller" IncludeAssets="compile" />
-    <PackageReference Include="Lucene.Net" />
-    <PackageReference Include="Lucene.Net.Analysis.Common" />
     <PackageReference Include="Newtonsoft.Json" IncludeAssets="compile" />
   </ItemGroup>
 
