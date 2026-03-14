@@ -193,7 +193,7 @@ public class Season
         Assert.IsTrue(result.HasMetadata, "should return metadata when folder name contains season");
         Assert.AreEqual("冴えない彼女の育てかた", result.Item.OriginalTitle, "should return the right season title");
         Assert.AreEqual(100403, int.Parse(result.Item.ProviderIds.GetOrDefault(Constants.ProviderName) ?? ""), "should return the right season id");
-        Assert.AreEqual(1, int.Parse(result.Item.ProviderIds.GetOrDefault(Constants.SeasonNumberProviderName) ?? ""), "should return the right season number");
+        Assert.AreEqual(1, result.Item.IndexNumber, "should return the right season number");
 
         result = await _provider.GetMetadata(new SeasonInfo
         {
@@ -202,7 +202,7 @@ public class Season
         Assert.IsTrue(result.HasMetadata, "should return metadata when folder name contains season");
         Assert.AreEqual("冴えない彼女の育てかた ♭", result.Item.OriginalTitle, "should return the right season title");
         Assert.AreEqual(132734, int.Parse(result.Item.ProviderIds.GetOrDefault(Constants.ProviderName) ?? ""), "should return the right season id");
-        Assert.AreEqual(2, int.Parse(result.Item.ProviderIds.GetOrDefault(Constants.SeasonNumberProviderName) ?? ""), "should return the right season number");
+        Assert.AreEqual(2, result.Item.IndexNumber, "should return the right season number");
 
         // default api does not support fuzzy search
         _plugin.Configuration.UseTestingSearchApi = true;
@@ -213,7 +213,7 @@ public class Season
         Assert.IsTrue(result.HasMetadata, "should return metadata when folder name contains season");
         Assert.AreEqual("冴えない彼女の育てかた Fine", result.Item.OriginalTitle, "should return the right season title");
         Assert.AreEqual(231497, int.Parse(result.Item.ProviderIds.GetOrDefault(Constants.ProviderName) ?? ""), "should return the right season id");
-        Assert.AreEqual(0, int.Parse(result.Item.ProviderIds.GetOrDefault(Constants.SeasonNumberProviderName) ?? ""), "should return the right season number");
+        Assert.AreEqual(0, result.Item.IndexNumber, "should return the right season number");
     }
 
     [TestMethod]
@@ -228,7 +228,7 @@ public class Season
         Assert.IsTrue(result.HasMetadata, "should return metadata when folder name contains season");
         Assert.AreEqual("ハイスクールD×D", result.Item.OriginalTitle, "should return the right season title");
         Assert.AreEqual(15910, int.Parse(result.Item.ProviderIds.GetOrDefault(Constants.ProviderName) ?? ""), "should return the right season id");
-        Assert.AreEqual(1, int.Parse(result.Item.ProviderIds.GetOrDefault(Constants.SeasonNumberProviderName) ?? ""), "should return the right season number");
+        Assert.AreEqual(1, result.Item.IndexNumber, "should return the right season number");
 
         result = await _provider.GetMetadata(new SeasonInfo
         {
@@ -237,7 +237,7 @@ public class Season
         Assert.IsTrue(result.HasMetadata, "should return metadata when folder name contains season");
         Assert.AreEqual("ハイスクールD×D NEW", result.Item.OriginalTitle, "should return the right season title");
         Assert.AreEqual(48700, int.Parse(result.Item.ProviderIds.GetOrDefault(Constants.ProviderName) ?? ""), "should return the right season id");
-        Assert.AreEqual(2, int.Parse(result.Item.ProviderIds.GetOrDefault(Constants.SeasonNumberProviderName) ?? ""), "should return the right season number");
+        Assert.AreEqual(2, result.Item.IndexNumber, "should return the right season number");
 
         result = await _provider.GetMetadata(new SeasonInfo
         {
@@ -246,7 +246,7 @@ public class Season
         Assert.IsTrue(result.HasMetadata, "should return metadata when folder name contains season");
         Assert.AreEqual("ハイスクールD×D BorN", result.Item.OriginalTitle, "should return the right season title");
         Assert.AreEqual(106212, int.Parse(result.Item.ProviderIds.GetOrDefault(Constants.ProviderName) ?? ""), "should return the right season id");
-        Assert.AreEqual(3, int.Parse(result.Item.ProviderIds.GetOrDefault(Constants.SeasonNumberProviderName) ?? ""), "should return the right season number");
+        Assert.AreEqual(3, result.Item.IndexNumber, "should return the right season number");
 
         result = await _provider.GetMetadata(new SeasonInfo
         {
@@ -255,7 +255,7 @@ public class Season
         Assert.IsTrue(result.HasMetadata, "should return metadata when folder name contains season");
         Assert.AreEqual("ハイスクールD×D HERO", result.Item.OriginalTitle, "should return the right season title");
         Assert.AreEqual(195845, int.Parse(result.Item.ProviderIds.GetOrDefault(Constants.ProviderName) ?? ""), "should return the right season id");
-        Assert.AreEqual(4, int.Parse(result.Item.ProviderIds.GetOrDefault(Constants.SeasonNumberProviderName) ?? ""), "should return the right season number");
+        Assert.AreEqual(4, result.Item.IndexNumber, "should return the right season number");
 
         result = await _provider.GetMetadata(new SeasonInfo
         {
@@ -264,7 +264,7 @@ public class Season
         Assert.IsTrue(result.HasMetadata, "should return metadata when folder name contains season");
         Assert.AreEqual("ハイスクールD×D OAD", result.Item.OriginalTitle, "should return the right season title");
         Assert.AreEqual(46010, int.Parse(result.Item.ProviderIds.GetOrDefault(Constants.ProviderName) ?? ""), "should return the right season id");
-        Assert.AreEqual(0, int.Parse(result.Item.ProviderIds.GetOrDefault(Constants.SeasonNumberProviderName) ?? ""), "should return the right season number");
+        Assert.AreEqual(0, result.Item.IndexNumber, "should return the right season number");
 
         result = await _provider.GetMetadata(new SeasonInfo
         {
@@ -273,7 +273,7 @@ public class Season
         Assert.IsTrue(result.HasMetadata, "should return metadata when folder name contains season");
         Assert.AreEqual("ハイスクールD×D DX OAD", result.Item.OriginalTitle, "should return the right season title");
         Assert.AreEqual(127827, int.Parse(result.Item.ProviderIds.GetOrDefault(Constants.ProviderName) ?? ""), "should return the right season id");
-        Assert.AreEqual(0, int.Parse(result.Item.ProviderIds.GetOrDefault(Constants.SeasonNumberProviderName) ?? ""), "should return the right season number");
+        Assert.AreEqual(0, result.Item.IndexNumber, "should return the right season number");
     }
 
     [TestMethod]
@@ -351,7 +351,7 @@ public class Season
         }, _token);
         Assert.IsTrue(result.HasMetadata, "should return metadata when folder name contains season");
         Assert.AreEqual(289906, int.Parse(result.Item.ProviderIds.GetOrDefault(Constants.ProviderName) ?? ""), "should return the right season id");
-        Assert.AreEqual(2, int.Parse(result.Item.ProviderIds.GetOrDefault(Constants.SeasonNumberProviderName) ?? ""), "should return the right season number");
+        Assert.AreEqual(2, result.Item.IndexNumber, "should return the right season number");
     }
 
     [TestMethod]
@@ -368,6 +368,6 @@ public class Season
 
         Assert.IsTrue(result.HasMetadata, "should return metadata when using parent folder name and current folder season number");
         Assert.AreEqual(338150, int.Parse(result.Item.ProviderIds.GetOrDefault(Constants.ProviderName) ?? ""), "should return the expected season id");
-        Assert.AreEqual(2, int.Parse(result.Item.ProviderIds.GetOrDefault(Constants.SeasonNumberProviderName) ?? ""), "should return the expected season number");
+        Assert.AreEqual(2, result.Item.IndexNumber, "should return the expected season number");
     }
 }

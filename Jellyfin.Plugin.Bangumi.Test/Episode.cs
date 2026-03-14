@@ -655,7 +655,7 @@ public class Episode
 
         var season = FakePath.CreateSeason(_libraryManager, "恶魔高校D×D/恶魔高校D×D");
         season.ProviderIds.Add(Constants.ProviderName, "15910");
-        season.ProviderIds.Add(Constants.SeasonNumberProviderName, "1");
+        season.IndexNumber = 1;
         var episodeData = await _provider.GetMetadata(new EpisodeInfo
         {
             Path = FakePath.CreateFile("恶魔高校D×D/恶魔高校D×D/1.mkv")
@@ -663,10 +663,11 @@ public class Episode
             _token);
         Assert.IsTrue(episodeData.HasMetadata, "episode data should not be null");
         Assert.AreEqual(135870, int.Parse(episodeData.Item.ProviderIds[Constants.ProviderName]), "should return the right episode id");
+        Assert.AreEqual(1, episodeData.Item.ParentIndexNumber, "should return the right season number");
 
         season = FakePath.CreateSeason(_libraryManager, "恶魔高校D×D/恶魔高校D×D NEW");
         season.ProviderIds.Add(Constants.ProviderName, "48700");
-        season.ProviderIds.Add(Constants.SeasonNumberProviderName, "2");
+        season.IndexNumber = 2;
         episodeData = await _provider.GetMetadata(new EpisodeInfo
         {
             Path = FakePath.CreateFile("恶魔高校D×D/恶魔高校D×D NEW/2.mkv")
@@ -674,10 +675,11 @@ public class Episode
             _token);
         Assert.IsTrue(episodeData.HasMetadata, "episode data should not be null");
         Assert.AreEqual(288943, int.Parse(episodeData.Item.ProviderIds[Constants.ProviderName]), "should return the right episode id");
+        Assert.AreEqual(2, episodeData.Item.ParentIndexNumber, "should return the right season number");
 
         season = FakePath.CreateSeason(_libraryManager, "恶魔高校D×D/恶魔高校D×D BorN");
         season.ProviderIds.Add(Constants.ProviderName, "106212");
-        season.ProviderIds.Add(Constants.SeasonNumberProviderName, "3");
+        season.IndexNumber = 3;
         episodeData = await _provider.GetMetadata(new EpisodeInfo
         {
             Path = FakePath.CreateFile("恶魔高校D×D/恶魔高校D×D BorN/3.mkv")
@@ -685,10 +687,11 @@ public class Episode
             _token);
         Assert.IsTrue(episodeData.HasMetadata, "episode data should not be null");
         Assert.AreEqual(512723, int.Parse(episodeData.Item.ProviderIds[Constants.ProviderName]), "should return the right episode id");
+        Assert.AreEqual(3, episodeData.Item.ParentIndexNumber, "should return the right season number");
 
         season = FakePath.CreateSeason(_libraryManager, "恶魔高校D×D/恶魔高校D×D HERO");
         season.ProviderIds.Add(Constants.ProviderName, "195845");
-        season.ProviderIds.Add(Constants.SeasonNumberProviderName, "4");
+        season.IndexNumber = 4;
         episodeData = await _provider.GetMetadata(new EpisodeInfo
         {
             Path = FakePath.CreateFile("恶魔高校D×D/恶魔高校D×D HERO/4.mkv")
@@ -696,6 +699,7 @@ public class Episode
             _token);
         Assert.IsTrue(episodeData.HasMetadata, "episode data should not be null");
         Assert.AreEqual(786876, int.Parse(episodeData.Item.ProviderIds[Constants.ProviderName]), "should return the right episode id");
+        Assert.AreEqual(4, episodeData.Item.ParentIndexNumber, "should return the right season number");
 
         // 条目页面集号顺延自本篇，需要手动设置偏移
         FakePath.CreateLocalConfiguration("恶魔高校D×D/恶魔高校D×D OAD", new Model.LocalConfiguration
@@ -704,7 +708,6 @@ public class Episode
         });
         season = FakePath.CreateSeason(_libraryManager, "恶魔高校D×D/恶魔高校D×D OAD");
         season.ProviderIds.Add(Constants.ProviderName, "46010");
-        season.ProviderIds.Add(Constants.SeasonNumberProviderName, "0");
         episodeData = await _provider.GetMetadata(new EpisodeInfo
         {
             Path = FakePath.CreateFile("恶魔高校D×D/恶魔高校D×D OAD/1.mkv")
@@ -712,10 +715,10 @@ public class Episode
             _token);
         Assert.IsTrue(episodeData.HasMetadata, "episode data should not be null");
         Assert.AreEqual(189392, int.Parse(episodeData.Item.ProviderIds[Constants.ProviderName]), "should return the right episode id");
+        Assert.AreEqual(0, episodeData.Item.ParentIndexNumber, "should return the right season number");
 
         season = FakePath.CreateSeason(_libraryManager, "恶魔高校D×D/恶魔高校D×D DX OAD");
         season.ProviderIds.Add(Constants.ProviderName, "127827");
-        season.ProviderIds.Add(Constants.SeasonNumberProviderName, "0");
         episodeData = await _provider.GetMetadata(new EpisodeInfo
         {
             Path = FakePath.CreateFile("恶魔高校D×D/恶魔高校D×D DX OAD/2.mkv")
@@ -723,6 +726,7 @@ public class Episode
             _token);
         Assert.IsTrue(episodeData.HasMetadata, "episode data should not be null");
         Assert.AreEqual(503689, int.Parse(episodeData.Item.ProviderIds[Constants.ProviderName]), "should return the right episode id");
+        Assert.AreEqual(0, episodeData.Item.ParentIndexNumber, "should return the right season number");
     }
 
     [TestMethod]
@@ -848,7 +852,7 @@ public class Episode
 
         var season = FakePath.CreateSeason(_libraryManager, $"{SeriesDir}/{SeasonDir}");
         season.ProviderIds.Add(Constants.ProviderName, "876");
-        season.ProviderIds.Add(Constants.SeasonNumberProviderName, "2");
+        season.IndexNumber = 2;
         var episodeData = await _provider.GetMetadata(new EpisodeInfo
         {
             Path = FakePath.CreateFile($"{SeriesDir}/{SeasonDir}/{EpisodeFile}")
@@ -856,7 +860,7 @@ public class Episode
             _token);
 
         Assert.IsTrue(episodeData.HasMetadata, "episode data should not be null");
-        Assert.AreEqual(2, episodeData.Item.ParentIndexNumber.GetValueOrDefault(), "should return the right ParentIndexNumber");
+        Assert.AreEqual(0, episodeData.Item.ParentIndexNumber.GetValueOrDefault(), "should return the right ParentIndexNumber");
         Assert.AreEqual(23, episodeData.Item.IndexNumber.GetValueOrDefault(), "should return the right IndexNumber");
         Assert.AreEqual(7542, int.Parse(episodeData.Item.ProviderIds[Constants.ProviderName]), "should return the right episode id");
 
