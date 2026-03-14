@@ -9,6 +9,7 @@ using Jellyfin.Plugin.Bangumi.Model;
 using Jellyfin.Plugin.Bangumi.Parser;
 using Jellyfin.Plugin.Bangumi.Parser.AnitomyParser;
 using Jellyfin.Plugin.Bangumi.Parser.BasicParser;
+using Jellyfin.Plugin.Bangumi.Parser.TorrentParser;
 using MediaBrowser.Controller.Entities.TV;
 using MediaBrowser.Controller.Library;
 using MediaBrowser.Controller.Providers;
@@ -17,7 +18,7 @@ using Episode = MediaBrowser.Controller.Entities.TV.Episode;
 
 namespace Jellyfin.Plugin.Bangumi.Providers;
 
-public class EpisodeProvider(BangumiApi api, Logger<EpisodeProvider> log, ILibraryManager libraryManager, IMediaSourceManager mediaSourceManager, Logger<AnitomyEpisodeParser> anitomyLogger, Logger<BasicEpisodeParser> basicLogger)
+public class EpisodeProvider(BangumiApi api, Logger<EpisodeProvider> log, ILibraryManager libraryManager, IMediaSourceManager mediaSourceManager, Logger<AnitomyEpisodeParser> anitomyLogger, Logger<BasicEpisodeParser> basicLogger, Logger<TorrentEpisodeParser> torrentLogger)
     : IRemoteMetadataProvider<Episode, EpisodeInfo>, IHasOrder
 {
     private static PluginConfiguration Configuration => Plugin.Instance!.Configuration;
@@ -31,11 +32,11 @@ public class EpisodeProvider(BangumiApi api, Logger<EpisodeProvider> log, ILibra
         var localConfiguration = await LocalConfiguration.ForPath(info.Path);
 
         var context = new EpisodeParserContext(api, libraryManager, info, mediaSourceManager, Configuration, localConfiguration, cancellationToken);
-        var parser = EpisodeParserFactory.CreateParser(Configuration, context, anitomyLogger, basicLogger);
+        var parser = EpisodeParserFactory.CreateParser(Configuration, context, anitomyLogger, basicLogger, torrentLogger);
 
         Model.Episode? episode = null;
 
-        // throw execption will cause the episode to not show up anywhere
+        // throw exception will cause the episode to not show up anywhere
         try
         {
             episode = await parser.GetEpisode();
@@ -53,13 +54,11 @@ public class EpisodeProvider(BangumiApi api, Logger<EpisodeProvider> log, ILibra
 
         if (episode == null)
         {
-            // remove season number
-            if (BasicEpisodeParser.IsSpecial(info.Path, context.LibraryManager, true))
-            {
-                result.HasMetadata = true;
-                result.Item = new Episode { ParentIndexNumber = 0 };
-            }
+            // 清除已有的元数据
+            result.Item = new Episode();
+            result.HasMetadata = true;
 
+            FillFallbackTitle(result.Item);
             return result;
         }
 
@@ -83,43 +82,74 @@ public class EpisodeProvider(BangumiApi api, Logger<EpisodeProvider> log, ILibra
             (int)episode.Order :
             (int)episode.Order + localConfiguration.Offset;
         result.Item.Overview = string.IsNullOrEmpty(episode.Description) ? null : episode.Description;
-        result.Item.ParentIndexNumber = parent is Series ? 1 : info.ParentIndexNumber ?? 1;
 
-        if (BasicEpisodeParser.IsSpecial(info.Path, context.LibraryManager, true) || episode.Type == EpisodeType.Special || (parent is not Series && info.ParentIndexNumber == 0))
-        {
-            result.Item.ParentIndexNumber = 0;
-        }
-        else if (parent is Season season)
+        // 优先使用通过剧集猜测的季号，用于修正多季剧集放在同个目录的情况
+        result.Item.ParentIndexNumber = (int?)episode.SeasonNumber;
+
+        // 通过目录的季id更新季号
+        if (parent is Season season)
         {
             result.Item.SeasonId = season.Id;
-            if (season.IndexNumber != null)
-                result.Item.ParentIndexNumber = season.IndexNumber;
+
+            if (!result.Item.ParentIndexNumber.HasValue)
+            {
+                result.Item.ParentIndexNumber = parent.IndexNumber;
+            }
         }
+        else if (parent is Series)
+        {
+            if (!result.Item.ParentIndexNumber.HasValue)
+            {
+                result.Item.ParentIndexNumber =1 ;
+            }
+        }
+
+        FillFallbackTitle(result.Item);
 
         if (episode.Type == EpisodeType.Normal && result.Item.ParentIndexNumber > 0)
             return result;
 
-        // mark episode as special
-        result.Item.ParentIndexNumber = 0;
+        // 获取特典季号用于排序
+        var seasonNumber = 1;
+        while (parent != null && parent is not Series)
+        {
+            // 多季度合集中，sp可能位于更深层的目录中，Jellyfin只识别到二级目录
+            if (parent is not Season)
+            {
+                var parentPath = Path.GetDirectoryName(parent!.Path);
+                if (string.IsNullOrEmpty(parentPath)) break;
+                parent = libraryManager.FindByPath(parentPath, true);
+                continue;
+            }
+            break;
+        }
+
 
         // use title and overview from special episode subject if episode data is empty
         var series = await api.GetSubject(episode.ParentId, cancellationToken);
         if (series == null)
             return result;
-
-        // use title from special episode subject if episode data is empty
-        if (string.IsNullOrEmpty(result.Item.Name))
-            result.Item.Name = series.Name;
-        if (string.IsNullOrEmpty(result.Item.OriginalTitle))
-            result.Item.OriginalTitle = series.OriginalName;
-
-        var seasonNumber = parent is Season ? parent.IndexNumber : 1;
         if (!string.IsNullOrEmpty(episode.AirDate) && string.Compare(episode.AirDate, series.AirDate, StringComparison.Ordinal) < 0)
-            result.Item.AirsBeforeEpisodeNumber = seasonNumber;
+            result.Item.AirsBeforeSeasonNumber = seasonNumber;
         else
             result.Item.AirsAfterSeasonNumber = seasonNumber;
 
+        // 小数集号
+        if (episode.Order % 1 != 0)
+        {
+            result.Item.AirsBeforeEpisodeNumber = ((int)Math.Ceiling(episode.Order));
+        }
+
         return result;
+
+        // 无法刮削到剧集信息时，使用原文件名作为剧集标题
+        void FillFallbackTitle(Episode item)
+        {
+            if (string.IsNullOrEmpty(item.Name))
+                item.Name = Path.GetFileNameWithoutExtension(info.Path);
+            if (string.IsNullOrEmpty(item.OriginalTitle))
+                item.OriginalTitle = Path.GetFileNameWithoutExtension(info.Path);
+        }
     }
 
     public Task<IEnumerable<RemoteSearchResult>> GetSearchResults(EpisodeInfo searchInfo, CancellationToken cancellationToken)

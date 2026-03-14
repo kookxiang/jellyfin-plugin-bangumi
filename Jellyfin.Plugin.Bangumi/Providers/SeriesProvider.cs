@@ -7,11 +7,11 @@ using System.Threading;
 using System.Threading.Tasks;
 using Jellyfin.Plugin.Bangumi.Configuration;
 using Jellyfin.Plugin.Bangumi.Model;
+using Jellyfin.Plugin.Bangumi.Utils;
 using MediaBrowser.Controller.Entities.TV;
 using MediaBrowser.Controller.Providers;
 using MediaBrowser.Model.Entities;
 using MediaBrowser.Model.Providers;
-using Jellyfin.Plugin.Bangumi.Parser.AnitomyParser;
 
 namespace Jellyfin.Plugin.Bangumi.Providers;
 
@@ -23,6 +23,34 @@ public class SeriesProvider(BangumiApi api, Logger<SeriesProvider> log)
     public int Order => -5;
 
     public string Name => Constants.ProviderName;
+
+    /// <summary>
+    /// 获取搜索结果并返回第一个匹配的条目ID
+    /// </summary>
+    /// <param name="name">搜索关键词</param>
+    /// <param name="year">筛选年份</param>
+    /// <param name="cancellationToken"></param>
+    /// <param name="checkAnitomySharp">是否根据配置使用 AnitomySharp 解析标题</param>
+    /// <returns>第一个匹配的条目ID，若未找到则返回0</returns>
+    private async Task<int> SearchSubjectId(string name, int? year, CancellationToken cancellationToken, bool checkAnitomySharp = false)
+    {
+        string? searchName = null;
+        int? season = null;
+
+        // 尝试使用AnitomySharp解析标题和季数
+        if (checkAnitomySharp && Configuration.AlwaysGetTitleByAnitomySharp)
+        {
+            (searchName, season) = FileNameParser.GetValidAnimeTitleAndSeason(name);
+        }
+        searchName ??= name;
+
+        log.Info("Searching {Name} in bgm.tv, season: {Season}, original name: {OriginalName}", searchName, season, name);
+        var searchResult = await api.SearchSubject(searchName, cancellationToken, season);
+        if (year != null)
+            searchResult = searchResult.Where(x => x.ProductionYear == null || x.ProductionYear == year.Value.ToString());
+
+        return searchResult.FirstOrDefault()?.Id ?? 0;
+    }
 
     public async Task<MetadataResult<Series>> GetMetadata(SeriesInfo info, CancellationToken cancellationToken)
     {
@@ -41,19 +69,13 @@ public class SeriesProvider(BangumiApi api, Logger<SeriesProvider> log)
         else
             _ = int.TryParse(info.ProviderIds.GetOrDefault(Constants.ProviderName), out subjectId);
 
-        if (subjectId == 0 && Configuration.AlwaysGetTitleByAnitomySharp)
+        // 使用目录名称进行搜索
+        if (subjectId == 0)
         {
-            var anitomy = new Anitomy(baseName);
-            var searchName = anitomy.ExtractAnimeTitle() ?? info.Name;
-            log.Info("Searching {Name} in bgm.tv with AnitomySharp", searchName);
-            // 不保证使用非原名或中文进行查询时返回正确结果
-            var searchResult = await api.SearchSubject(searchName, cancellationToken);
-            if (info.Year != null)
-                searchResult = searchResult.Where(x => x.ProductionYear == null || x.ProductionYear == info.Year?.ToString());
-            if (searchResult.Any())
-                subjectId = searchResult.First().Id;
+            subjectId = await SearchSubjectId(baseName, info.Year, cancellationToken, true);
         }
 
+        // 使用原始标题和中文标题进行搜索，根据配置决定搜索顺序
         if (subjectId == 0)
         {
             // Determine search order based on configuration
@@ -62,27 +84,14 @@ public class SeriesProvider(BangumiApi api, Logger<SeriesProvider> log)
 
             // First search attempt
             if (firstSearch != null)
-            {
-                log.Info("Searching {Name} in bgm.tv", firstSearch);
-                var searchResult = await api.SearchSubject(firstSearch, cancellationToken);
-                if (info.Year != null)
-                    searchResult = searchResult.Where(x => x.ProductionYear == null || x.ProductionYear == info.Year?.ToString());
-                if (searchResult.Any())
-                    subjectId = searchResult.First().Id;
-            }
+                subjectId = await SearchSubjectId(firstSearch, info.Year, cancellationToken);
 
             // Second search attempt (if first failed and titles are different)
             if (subjectId == 0 && secondSearch != null && !string.Equals(firstSearch, secondSearch, StringComparison.Ordinal))
-            {
-                log.Info("Searching {Name} in bgm.tv", secondSearch);
-                var searchResult = await api.SearchSubject(secondSearch, cancellationToken);
-                if (info.Year != null)
-                    searchResult = searchResult.Where(x => x.ProductionYear == null || x.ProductionYear == info.Year?.ToString());
-                if (searchResult.Any())
-                    subjectId = searchResult.First().Id;
-            }
+                subjectId = await SearchSubjectId(secondSearch, info.Year, cancellationToken);
         }
 
+        // 找不到合适的条目
         if (subjectId == 0)
             return result;
 
