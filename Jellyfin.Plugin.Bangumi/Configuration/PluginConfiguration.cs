@@ -61,4 +61,6 @@ public class PluginConfiguration : BasePluginConfiguration
     public string? ProxyServerUrl { get; set; }
 
     public bool UseOriginalTitleFirst { get; set; }
+
+    public bool AddCharacterToPerson { get; set; } = false;
 }

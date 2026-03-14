@@ -334,7 +334,7 @@ public partial class BangumiApi
         return allSubjectIds.ToList();
     }
 
-    public async Task<IEnumerable<PersonInfo>> GetSubjectCharacters(int id, CancellationToken token)
+    private async Task<IEnumerable<RelatedCharacter>> FetchSubjectCharactersInternal(int id, CancellationToken token)
     {
         if (id <= 0) return [];
 
@@ -347,8 +347,92 @@ public partial class BangumiApi
                 "配角" => 1,
                 "客串" => 2,
                 _ => 3
-            })
-            .SelectMany(character => character.ToPersonInfos()) ?? [];
+            }) ?? Enumerable.Empty<RelatedCharacter>();
+    }
+
+    public async Task<IEnumerable<PersonInfo>> GetSubjectCharacters(int id, CancellationToken token)
+    {
+        var characters = await FetchSubjectCharactersInternal(id, token);
+#if !EMBY
+        if (_plugin.Configuration.PersonTranslationPreference == Configuration.TranslationPreferenceType.Original)
+            return characters.SelectMany(c => c.ToPersonInfos());
+        using var semaphore = new SemaphoreSlim(3);
+        var tasks = characters.Select(async c =>
+        {
+            await semaphore.WaitAsync();
+            try
+            {
+                var characterDetail = await GetCharacter(c.Id, token);
+                if (c.Actors == null)
+                    return c.ToPersonInfos();
+                var actorTasks = c.Actors.Select(async actor =>
+                {
+                    var actorDetail = await GetPerson(actor.Id, token);
+                    var info = new PersonInfo
+                    {
+                        Name = actorDetail?.TranslatedName ?? actor.Name,
+                        Role = characterDetail?.TranslatedName ?? c.Name,
+                        ImageUrl = actor.DefaultImage,
+                        Type = Jellyfin.Data.Enums.PersonKind.Actor
+                    };
+                    info.ProviderIds.Add(Constants.ProviderName, $"{actor.Id}");
+                    return info;
+                });
+                return await Task.WhenAll(actorTasks);
+            }
+            finally
+            {
+                semaphore.Release();
+            }
+        });
+        var results = await Task.WhenAll(tasks);
+        return results.SelectMany(r => r).Where(r => r != null && !string.IsNullOrEmpty(r.Name));
+#else
+        return characters.SelectMany(c => c.ToPersonInfos());
+#endif
+    }
+    public async Task<IEnumerable<PersonInfo>> GetSubjectVirtualCharacters(int id, CancellationToken token)
+    {
+        var characters = await FetchSubjectCharactersInternal(id, token);
+#if !EMBY
+        if (_plugin.Configuration.PersonTranslationPreference == Configuration.TranslationPreferenceType.Original)
+            return characters.SelectMany(c => c.ToCharacterInfos());
+        using var semaphore = new SemaphoreSlim(3);
+        var tasks = characters.Select(async c =>
+        {
+            await semaphore.WaitAsync();
+            try
+            {
+                var characterDetail = await GetCharacter(c.Id, token);
+                var actorNames = new List<string>();
+                if (c.Actors is not null && c.Actors.Any())
+                {
+                    var actorTasks = c.Actors.Select(async actor =>
+                    {
+                        return (await GetPerson(actor.Id, token))?.TranslatedName ?? actor.Name;
+                    });
+                    actorNames = (await Task.WhenAll(actorTasks)).Where(a => !string.IsNullOrEmpty(a)).ToList();
+                }
+                var info = new PersonInfo
+                {
+                    Name = characterDetail?.TranslatedName ?? c.Name,
+                    Role = string.Join(", ", Enumerable.Reverse(actorNames)),
+                    ImageUrl = c.DefaultImage ?? characterDetail?.DefaultImage,
+                    Type = Jellyfin.Data.Enums.PersonKind.Actor
+                };
+                info.ProviderIds.Add(Constants.ProviderName, $"{Constants.CharacterIdPrefix}{c.Id}");
+                return info;
+            }
+            finally
+            {
+                semaphore.Release();
+            }
+        });
+        var results = await Task.WhenAll(tasks);
+        return results.Where(r => r != null && !string.IsNullOrEmpty(r.Name));
+#else
+        return characters.SelectMany(c => c.ToCharacterInfos());
+#endif
     }
 
     public async Task<IEnumerable<RelatedPerson>?> GetSubjectPersons(int id, CancellationToken token)
@@ -404,9 +488,35 @@ public partial class BangumiApi
         return person?.DefaultImage;
     }
 
+    public async Task<PersonDetail?> GetCharacter(int id, CancellationToken token)
+    {
+        if (id <= 0) return null;
+#if !EMBY
+        var character = await archive.Character.FindById(id, token);
+        if (character != null)
+            return character.ToPersonDetail();
+#endif
+        return await Get<PersonDetail>($"{BaseUrl}/v0/characters/{id}", token);
+    }
+    public Task<string?> GetCharacterImage(int id, CancellationToken token)
+    {
+        return GetCharacterImage(id, "large", token);
+    }
+
+    public async Task<string?> GetCharacterImage(int id, string type, CancellationToken token)
+    {
+        var character = await Get<PersonDetail>($"{BaseUrl}/v0/characters/{id}", token);
+        return character?.DefaultImage;
+    }
+
     public async Task<IEnumerable<Person>?> SearchPerson(string keyword, CancellationToken token)
     {
-        var searchResult = await Post<DataList<Person>>($"{BaseUrl}/v0/search/persons", new JsonContent(new SearchParams { Keyword = keyword}), token);
+        var searchResult = await Post<DataList<Person>>($"{BaseUrl}/v0/search/persons", new JsonContent(new SearchParams { Keyword = keyword }), token);
+        return searchResult?.Data;
+    }
+    public async Task<IEnumerable<Person>?> SearchCharacter(string keyword, CancellationToken token)
+    {
+        var searchResult = await Post<DataList<Person>>($"{BaseUrl}/v0/search/characters", new JsonContent(new SearchParams { Keyword = keyword }), token);
         return searchResult?.Data;
     }
 

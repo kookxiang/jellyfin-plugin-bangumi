@@ -48,4 +48,23 @@ public class RelatedCharacter
             return info;
         });
     }
+    public IEnumerable<PersonInfo> ToCharacterInfos()
+    {
+        if (Actors == null)
+            return [];
+        string roles = string.Join(", ", Actors.Select(actor => actor.Name));
+        var info = new PersonInfo
+        {
+            Name = Name,
+            Role = roles,
+            ImageUrl = DefaultImage,
+#if EMBY
+            Type = PersonEntityType.Actor
+#else
+            Type = PersonKind.Actor
+#endif
+        };
+        info.ProviderIds.Add(Constants.ProviderName, $"{Constants.CharacterIdPrefix}{Id}");
+        return [info];
+    }
 }
