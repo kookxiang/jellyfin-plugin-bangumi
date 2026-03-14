@@ -138,7 +138,9 @@ public class Season
             Path = season1Path,
         },
             _token);
-        Assert.IsFalse(result.HasMetadata, "should return metadata when folder name contains season");
+        Assert.IsTrue(result.HasMetadata, "should be true to trigger metadata overwrite");
+        Assert.IsNull(result.Item.OriginalTitle, "should not return any metadata");
+        Assert.IsNull(result.Item.ProviderIds.GetOrDefault(Constants.ProviderName), "should not return any metadata");
     }
 
     [TestMethod()]
