@@ -173,30 +173,17 @@ public class SeasonProvider(BangumiApi api, Logger<EpisodeProvider> log, ILibrar
 
         FillSeasonMetadata(result, subject);
 
-        result.Item.IndexNumber = info.IndexNumber;
 
-        // 获取到的季号可能不准确（例如fsn在Bangumi中前作是fz，但实际上季号一般是独立计算的），因此只在没有设置季号时尝试猜测
-        if (int.TryParse(info.ProviderIds.GetOrDefault(Constants.SeasonNumberProviderName), out var seasonNumber))
+        if (IsSpecialFolder(info.Path))
         {
-            // 如果已经有季号了，直接使用，不再尝试猜测
-            result.Item.ProviderIds.Add(Constants.SeasonNumberProviderName, seasonNumber.ToString());
+            // OVA、剧场版等特典通常没有明确的季号，直接设置为0
+            result.Item.IndexNumber = 0;
         }
         else
         {
-            if (IsSpecialFolder(info.Path))
-            {
-                // OVA、剧场版等特典通常没有明确的季号，直接设置为0
-                result.Item.ProviderIds.Add(Constants.SeasonNumberProviderName, "0");
-            }
-            else
-            {
-                // 尝试猜测季号
-                var num = await GuessSeasonNumber(subject, cancellationToken);
-                if (num.HasValue)
-                {
-                    result.Item.ProviderIds.Add(Constants.SeasonNumberProviderName, num.ToString());
-                }
-            }
+            // 尝试猜测季号
+            var num = await GuessSeasonNumber(subject, cancellationToken);
+            result.Item.IndexNumber = num ?? info.IndexNumber;
         }
 
         (await api.GetSubjectPersonInfos(subject.Id, cancellationToken)).ToList().ForEach(result.AddPerson);
