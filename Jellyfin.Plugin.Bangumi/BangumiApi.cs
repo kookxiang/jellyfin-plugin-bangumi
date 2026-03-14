@@ -380,7 +380,7 @@ public partial class BangumiApi
             }
         });
         var results = await Task.WhenAll(tasks);
-        return results.SelectMany(r => r).Where(r => r!=null);
+        return results.SelectMany(r => r).Where(r => r != null && !string.IsNullOrEmpty(r.Name));
 #else
         return characters.SelectMany(c => c.ToPersonInfos());
 #endif
@@ -423,7 +423,7 @@ public partial class BangumiApi
             }
         });
         var results = await Task.WhenAll(tasks);
-        return results.Where(r => r!=null);
+        return results.Where(r => r != null && !string.IsNullOrEmpty(r.Name));
 #else
         return characters.SelectMany(c => c.ToCharacterInfos());
 #endif
