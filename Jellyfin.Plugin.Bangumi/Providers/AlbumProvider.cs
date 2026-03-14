@@ -63,6 +63,7 @@ public class AlbumProvider(BangumiApi api, Logger<AlbumProvider> log)
             }
         }
 
+        // FIXME 不清楚 AnitomySharp 是否对音乐格式有效
         if (subjectId == 0 && Configuration.AlwaysGetTitleByAnitomySharp)
         {
             var anitomy = new Anitomy(baseName);

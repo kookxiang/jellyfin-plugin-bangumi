@@ -243,13 +243,28 @@
                         <div class="fieldDescription">用于修正 Jellyfin 自动识别集号错误的情况，由插件重新按文件名判断并纠正。少数情况下插件可能识别错误。</div>
                     </div>
                 </div>
-                <div class="episode-parser-options" episode-parser="AnitomySharp" style="display: none">
+                <div class="episode-parser-options" episode-parser="AnitomySharp" style="display:none;">
+                    <div class="checkboxContainer checkboxContainer-withDescription">
+                        <label class="emby-checkbox-label">
+                            <input id="MovieEpisodeDetectionByAnitomySharp" is="emby-checkbox" type="checkbox" />
+                            <span>根据文件大小及时长判断集数</span>
+                        </label>
+                        <div class="fieldDescription">
+                            通常电影文件命名中并未包含集数，因此当媒体库中节目和电影混合时推荐开启，可辅助电影剧集匹配到元数据
+                            <br>判断条件：媒体文件时长大于 10 分钟且大小大于 100MB
+                            <br>默认集数为 1。可能误判
+                        </div>
+                    </div>
                     <div class="checkboxContainer checkboxContainer-withDescription">
                         <label class="emby-checkbox-label">
                             <input id="ProcessMultiSeasonFolderByAnitomySharp" is="emby-checkbox" type="checkbox" />
-                            <span>使用 AnitomySharp 搜索多季度目录</span>
+                            <span>处理多季度目录</span>
                         </label>
-                        <div class="fieldDescription">用于剧集，建议搭配「使用 Bangumi 词条作为季名称」使用。准确率一般，开发中……</div>
+                        <div class="fieldDescription">
+                            当存在目录嵌套时可以选择启用
+                            <br>如："战姬绝唱SYMPHOGEAR/戦姫絶唱シンフォギアXV/Senki Zesshou Symphogear XV [01].mkv"。启用后将搜索"戦姫絶唱シンフォギアXV"并将其作为剧集的关联条目
+                            <br>建议搭配「使用 Bangumi 词条作为季名称」使用。可能误判
+                        </div>
                     </div>
                 </div>
                 <div class="bangumi-tab-container">
@@ -451,7 +466,7 @@
                 <div class="checkboxContainer checkboxContainer-withDescription">
                     <label class="emby-checkbox-label">
                         <input id="AlwaysGetTitleByAnitomySharp" is="emby-checkbox" type="checkbox" />
-                        <span>使用 AnitomySharp 猜测动画名</span>
+                        <span>优先使用 AnitomySharp 猜测动画名</span>
                     </label>
                 </div>
                 <div class="verticalSection">

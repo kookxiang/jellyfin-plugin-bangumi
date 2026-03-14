@@ -30,14 +30,15 @@ public class SeriesProvider(BangumiApi api, Logger<SeriesProvider> log)
     /// <param name="name">搜索关键词</param>
     /// <param name="year">筛选年份</param>
     /// <param name="cancellationToken"></param>
+    /// <param name="checkAnitomySharp">是否根据配置使用 AnitomySharp 解析标题</param>
     /// <returns>第一个匹配的条目ID，若未找到则返回0</returns>
-    private async Task<int> SearchSubjectId(string name, int? year, CancellationToken cancellationToken)
+    private async Task<int> SearchSubjectId(string name, int? year, CancellationToken cancellationToken, bool checkAnitomySharp = false)
     {
         string? searchName = null;
         int? season = null;
 
         // 尝试使用AnitomySharp解析标题和季数
-        if (Configuration.AlwaysGetTitleByAnitomySharp)
+        if (checkAnitomySharp && Configuration.AlwaysGetTitleByAnitomySharp)
         {
             (searchName, season) = FileNameParser.GetValidAnimeTitleAndSeason(name);
         }
@@ -71,7 +72,7 @@ public class SeriesProvider(BangumiApi api, Logger<SeriesProvider> log)
         // 使用目录名称进行搜索
         if (subjectId == 0)
         {
-            subjectId = await SearchSubjectId(baseName, info.Year, cancellationToken);
+            subjectId = await SearchSubjectId(baseName, info.Year, cancellationToken, true);
         }
 
         // 使用原始标题和中文标题进行搜索，根据配置决定搜索顺序

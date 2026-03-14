@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
@@ -348,7 +348,8 @@ RequestEpisodeList:
                 Disc = ep.Disc,
                 AirDate = ep.AirDate,
                 DescriptionRaw = ep.Desc
-            }).ToList();
+            })
+            .ToList();
 
         return new DataList<Episode>
         {

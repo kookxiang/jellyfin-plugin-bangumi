@@ -64,7 +64,10 @@ public class EpisodeProvider(BangumiApi api, Logger<EpisodeProvider> log, ILibra
 
         result.Item = new Episode();
         result.HasMetadata = true;
-        result.Item.ProviderIds.Add(Constants.ProviderName, $"{episode.Id}");
+
+        // 去掉默认值 0，仅添加有效剧集 ID
+        if (episode.Id != 0)
+            result.Item.ProviderIds.Add(Constants.ProviderName, $"{episode.Id}");
 
         if (DateTime.TryParse(episode.AirDate, out var airDate))
             result.Item.PremiereDate = airDate;

@@ -85,6 +85,62 @@ public class Season
         Assert.IsTrue(imgList.Any(), "should return at least one image");
     }
 
+    [TestMethod]
+    public async Task HeadlessSeason()
+    {
+        var seriesPath = FakePath.Create("打了300年的史莱姆，不知不觉就练到了满级");
+        var season2Path = FakePath.Create("打了300年的史莱姆，不知不觉就练到了满级/Season 2");
+
+        var series = new MediaBrowser.Controller.Entities.TV.Series
+        {
+            Path = seriesPath,
+            Name = "打了300年的史莱姆，不知不觉就练到了满级"
+        };
+        _libraryManager.CreateItem(series, null);
+
+        _libraryManager.CreateItem(new MediaBrowser.Controller.Entities.TV.Season
+        {
+            Path = season2Path,
+            IndexNumber = 2
+        }, series);
+
+        var result = await _provider.GetMetadata(new SeasonInfo
+        {
+            Path = season2Path,
+            IndexNumber = 2
+        },
+            _token);
+        Assert.IsTrue(result.HasMetadata, "should return metadata when folder name contains season");
+        Assert.IsNotNull(result.Item, "data should not be null");
+        Assert.AreEqual("スライム倒して300年、知らないうちにレベルMAXになってました ～そのに～", result.Item.Name, "should return the right title");
+    }
+    [TestMethod]
+    public async Task HeadlessSeasonWithOtherFolder()
+    {
+        var seriesPath = FakePath.Create("打了300年的史莱姆，不知不觉就练到了满级");
+        var season1Path = FakePath.Create("打了300年的史莱姆，不知不觉就练到了满级/CDs");
+
+        var series = new MediaBrowser.Controller.Entities.TV.Series
+        {
+            Path = seriesPath,
+            Name = "打了300年的史莱姆，不知不觉就练到了满级",
+            ProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "292969" } } //第一季
+        };
+        _libraryManager.CreateItem(series, null);
+
+        _libraryManager.CreateItem(new MediaBrowser.Controller.Entities.TV.Season
+        {
+            Path = season1Path,
+        }, series);
+
+        var result = await _provider.GetMetadata(new SeasonInfo
+        {
+            Path = season1Path,
+        },
+            _token);
+        Assert.IsFalse(result.HasMetadata, "should return metadata when folder name contains season");
+    }
+
     [TestMethod()]
     public void OnlySeasonNumberRegexTest()
     {

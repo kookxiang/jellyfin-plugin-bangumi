@@ -261,17 +261,15 @@ public class Subject
     /// <param name="candidateList">候选名称集合</param>
     /// <param name="keyword">关键词</param>
     /// <returns>分数最高为100，表示完全匹配；分数最低为0，表示完全不匹配。</returns>
-    public static int GetSortedScoresByFuzz(IEnumerable<string> candidateList, string keyword)
+    public static int GetSortedScoresByFuzz(IEnumerable<string> candidateList, string keyword, int minScore = 0)
     {
 #if EMBY
         return 100;
 #else
-        var maxScore = candidateList.Select(candidate =>
-        {
-            var score = Fuzz.Ratio(candidate, keyword);
-
-            return score;
-        }).OrderByDescending(s => s)
+        var maxScore = candidateList
+        .Select(candidate => Fuzz.Ratio(candidate, keyword))
+        .Where(score => score >= minScore)
+        .OrderByDescending(s => s)
         .First();
 
         return maxScore;
