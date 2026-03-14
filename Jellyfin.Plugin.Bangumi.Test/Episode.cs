@@ -848,6 +848,7 @@ public class Episode
 
         var season = FakePath.CreateSeason(_libraryManager, $"{SeriesDir}/{SeasonDir}");
         season.ProviderIds.Add(Constants.ProviderName, "876");
+        season.IndexNumber = 2;
         var episodeData = await _provider.GetMetadata(new EpisodeInfo
         {
             Path = FakePath.CreateFile($"{SeriesDir}/{SeasonDir}/{EpisodeFile}")
@@ -855,7 +856,7 @@ public class Episode
             _token);
 
         Assert.IsTrue(episodeData.HasMetadata, "episode data should not be null");
-        Assert.AreEqual(2, episodeData.Item.ParentIndexNumber.GetValueOrDefault(), "should return the right ParentIndexNumber");
+        Assert.AreEqual(0, episodeData.Item.ParentIndexNumber.GetValueOrDefault(), "should return the right ParentIndexNumber");
         Assert.AreEqual(23, episodeData.Item.IndexNumber.GetValueOrDefault(), "should return the right IndexNumber");
         Assert.AreEqual(7542, int.Parse(episodeData.Item.ProviderIds[Constants.ProviderName]), "should return the right episode id");
 

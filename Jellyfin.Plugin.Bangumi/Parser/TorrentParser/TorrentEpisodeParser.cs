@@ -146,8 +146,7 @@ namespace Jellyfin.Plugin.Bangumi.Parser.TorrentParser
         public static double? ExtractSeasonNumberFromPath<T>(EpisodeParserContext context, Logger<T> log)
         {
             return FileNameParser.ExtractAnimeSeason(Path.GetFileName(context.Info.Path), true)
-                ?? AnitomyEpisodeParser.ExtractSeasonNumberFromPath(context, log)
-                ?? 1;
+                ?? AnitomyEpisodeParser.ExtractSeasonNumberFromPath(context, log);
         }
 
         public static double? ExtractEpisodeNumberFromPath<T>(EpisodeParserContext context, Logger<T> log)
