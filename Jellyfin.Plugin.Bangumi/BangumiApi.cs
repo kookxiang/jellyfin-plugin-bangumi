@@ -79,23 +79,9 @@ public partial class BangumiApi
     /// <returns>条目信息集合</returns>
     public async Task<IEnumerable<(Subject, int)>> SearchSubjectSorted(string keyword, SubjectType? type, CancellationToken token, int? seasonNumber = null)
     {
-#if !EMBY
-        // 优先使用离线数据库查询
-        var offlineList = await SearchSubjectRaw(keyword, type, token, true);
-        var offlineSorted = await SortSubjects(offlineList, keyword, token, seasonNumber);
+        var list = await SearchSubjectRaw(keyword, type, token);
 
-        // 由于离线数据库在用罗马音查询没有对应别名的条目时会有较多误报，因此只返回匹配度较高的结果
-        var offlineMatched = offlineSorted.Where(item => item.Item2 >= 80).ToArray();
-        if (offlineMatched.Length > 0)
-            return offlineMatched;
-
-        if (!_plugin.Configuration.FallbackToOnlineWhenArchiveMiss)
-            return offlineMatched;
-#endif
-
-        // 使用在线API查询并排序
-        var onlineList = await SearchSubjectRaw(keyword, type, token, false);
-        return await SortSubjects(onlineList, keyword, token, seasonNumber);
+        return await SortSubjects(list, keyword, token, seasonNumber);
     }
 
     /// <summary>
@@ -104,31 +90,11 @@ public partial class BangumiApi
     /// <param name="keyword">搜索关键词</param>
     /// <param name="type">条目类型</param>
     /// <param name="token"></param>
-    /// <param name="useOfflineDatabase">是否使用离线数据库进行查询</param>
     /// <returns>接口返回的原始条目信息集合</returns>
-    public async Task<List<Subject>> SearchSubjectRaw(string keyword, SubjectType? type, CancellationToken token, bool useOfflineDatabase = true)
+    public async Task<List<Subject>> SearchSubjectRaw(string keyword, SubjectType? type, CancellationToken token)
     {
         if (string.IsNullOrEmpty(keyword))
             return [];
-
-#if !EMBY
-        if (useOfflineDatabase && archive.SubjectSearchIndex.AnyExists())
-        {
-            var candidateIds = archive.SubjectSearchIndex.Search(keyword, type, PageSize);
-
-            var results = new List<Subject>();
-            foreach (var id in candidateIds)
-            {
-                var s = await archive.Subject.FindById(id, token);
-                if (s == null) continue;
-
-                results.Add(s.ToSubject());
-            }
-
-            if (results.Count > 0 || !_plugin.Configuration.FallbackToOnlineWhenArchiveMiss)
-                return results;
-        }
-#endif
 
         try
         {
@@ -236,8 +202,6 @@ public partial class BangumiApi
         var subject = await archive.Subject.FindById(id, token);
         if (subject != null)
             return subject.ToSubject();
-        if (!_plugin.Configuration.FallbackToOnlineWhenArchiveMiss)
-            return null;
 #endif
         return await Get<Subject>($"{BaseUrl}/v0/subjects/{id}", token);
     }
@@ -261,8 +225,6 @@ public partial class BangumiApi
             .Where(x => x.Type == type || type == null)
             .Select(x => x.ToEpisode());
         if (episodeList.Any()) return episodeList;
-        if (!_plugin.Configuration.FallbackToOnlineWhenArchiveMiss)
-            return episodeList;
 #endif
 
         var result = await GetSubjectEpisodeListWithOffset(id, type, 0, token);
@@ -386,8 +348,6 @@ RequestEpisodeList:
 #if !EMBY
         var relations = await archive.SubjectRelations.Get(id, token);
         if (relations.Any())
-            return relations;
-        if (!_plugin.Configuration.FallbackToOnlineWhenArchiveMiss)
             return relations;
 #endif
         return await Get<IEnumerable<RelatedSubject>>($"{BaseUrl}/v0/subjects/{id}/subjects", token);
@@ -613,8 +573,6 @@ RequestEpisodeList:
         var relatedPerson = await archive.SubjectPersonRelation.Get(id, token);
         if (relatedPerson.Any())
             return relatedPerson;
-        if (!_plugin.Configuration.FallbackToOnlineWhenArchiveMiss)
-            return relatedPerson;
 #endif
         return await Get<IEnumerable<RelatedPerson>>($"{BaseUrl}/v0/subjects/{id}/persons", token);
     }
@@ -635,9 +593,6 @@ RequestEpisodeList:
             if (_plugin.Configuration.DaysBeforeUsingArchiveData == 0 ||
                 airDate < DateTime.Now.Subtract(TimeSpan.FromDays(_plugin.Configuration.DaysBeforeUsingArchiveData)))
                 return episode.ToEpisode();
-        if (!_plugin.Configuration.FallbackToOnlineWhenArchiveMiss)
-            return episode?.ToEpisode();
-
 #endif
         return await Get<Episode>($"{BaseUrl}/v0/episodes/{id}", token);
     }
@@ -649,8 +604,6 @@ RequestEpisodeList:
         var person = await archive.Person.FindById(id, token);
         if (person != null)
             return person.ToPersonDetail();
-        if (!_plugin.Configuration.FallbackToOnlineWhenArchiveMiss)
-            return null;
 #endif
         return await Get<PersonDetail>($"{BaseUrl}/v0/persons/{id}", token);
     }

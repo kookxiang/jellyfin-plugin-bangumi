@@ -92,7 +92,6 @@ public class ArchiveDownloadTask(BangumiApi api, ArchiveData archive, ITaskManag
         await archive.SubjectRelations.GenerateIndex(zipStream, cancellationToken);
         await archive.SubjectEpisodeRelation.GenerateIndex(cancellationToken);
         await archive.SubjectPersonRelation.GenerateIndex(zipStream, cancellationToken);
-        await archive.SubjectSearchIndex.GenerateIndex(cancellationToken);
 
         log.Info("update completed. cleaning up temp files");
         Directory.Delete(archive.TempPath, true);
