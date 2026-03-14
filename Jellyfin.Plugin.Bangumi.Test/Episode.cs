@@ -655,6 +655,7 @@ public class Episode
 
         var season = FakePath.CreateSeason(_libraryManager, "恶魔高校D×D/恶魔高校D×D");
         season.ProviderIds.Add(Constants.ProviderName, "15910");
+        season.IndexNumber = 1;
         var episodeData = await _provider.GetMetadata(new EpisodeInfo
         {
             Path = FakePath.CreateFile("恶魔高校D×D/恶魔高校D×D/1.mkv")
@@ -666,6 +667,7 @@ public class Episode
 
         season = FakePath.CreateSeason(_libraryManager, "恶魔高校D×D/恶魔高校D×D NEW");
         season.ProviderIds.Add(Constants.ProviderName, "48700");
+        season.IndexNumber = 2;
         episodeData = await _provider.GetMetadata(new EpisodeInfo
         {
             Path = FakePath.CreateFile("恶魔高校D×D/恶魔高校D×D NEW/2.mkv")
@@ -677,6 +679,7 @@ public class Episode
 
         season = FakePath.CreateSeason(_libraryManager, "恶魔高校D×D/恶魔高校D×D BorN");
         season.ProviderIds.Add(Constants.ProviderName, "106212");
+        season.IndexNumber = 3;
         episodeData = await _provider.GetMetadata(new EpisodeInfo
         {
             Path = FakePath.CreateFile("恶魔高校D×D/恶魔高校D×D BorN/3.mkv")
@@ -688,6 +691,7 @@ public class Episode
 
         season = FakePath.CreateSeason(_libraryManager, "恶魔高校D×D/恶魔高校D×D HERO");
         season.ProviderIds.Add(Constants.ProviderName, "195845");
+        season.IndexNumber = 4;
         episodeData = await _provider.GetMetadata(new EpisodeInfo
         {
             Path = FakePath.CreateFile("恶魔高校D×D/恶魔高校D×D HERO/4.mkv")
