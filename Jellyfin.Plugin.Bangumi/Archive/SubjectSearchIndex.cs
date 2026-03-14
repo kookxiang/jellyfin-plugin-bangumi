@@ -24,7 +24,7 @@ namespace Jellyfin.Plugin.Bangumi.Archive;
 /// </summary>
 public class SubjectSearchIndex(ArchiveData archive)
 {
-    private const LuceneVersion LuceneVer = LuceneVersion.LUCENE_48;
+    private const LuceneVersion LuceneVersion = LuceneVersion.LUCENE_48;
     private const string IdField = "id";
     private const string NameField = "name";
 
@@ -155,7 +155,7 @@ public class SubjectSearchIndex(ArchiveData archive)
         IoDirectory.CreateDirectory(path);
 
         var directory = FSDirectory.Open(path);
-        var config = new IndexWriterConfig(LuceneVer, CreateAnalyzer())
+        var config = new IndexWriterConfig(LuceneVersion, CreateAnalyzer())
         {
             OpenMode = OpenMode.CREATE,
             Similarity = new BM25Similarity()
@@ -172,7 +172,7 @@ public class SubjectSearchIndex(ArchiveData archive)
     /// <returns><see cref="Analyzer"/> 实例</returns>
     private static Analyzer CreateAnalyzer()
     {
-        return new CJKAnalyzer(LuceneVer);
+        return new CJKAnalyzer(LuceneVersion);
     }
 
     /// <summary>
