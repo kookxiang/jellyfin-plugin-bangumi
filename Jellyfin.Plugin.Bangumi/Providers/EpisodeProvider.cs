@@ -83,7 +83,8 @@ public class EpisodeProvider(BangumiApi api, Logger<EpisodeProvider> log, ILibra
             (int)episode.Order :
             (int)episode.Order + localConfiguration.Offset;
         result.Item.Overview = string.IsNullOrEmpty(episode.Description) ? null : episode.Description;
-        result.Item.ParentIndexNumber = parent is Series ? 1 : info.ParentIndexNumber ?? 1;
+
+        result.Item.ParentIndexNumber = episode.SeasonNumber ?? info.ParentIndexNumber ?? 1;
 
         if (BasicEpisodeParser.IsSpecial(info.Path, context.LibraryManager, true) || episode.Type == EpisodeType.Special || (parent is not Series && info.ParentIndexNumber == 0))
         {
