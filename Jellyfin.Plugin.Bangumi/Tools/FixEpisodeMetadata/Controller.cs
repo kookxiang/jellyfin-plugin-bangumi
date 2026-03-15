@@ -1,6 +1,5 @@
 using System;
 using System.Linq;
-using System.Threading;
 using System.Threading.Tasks;
 using Jellyfin.Data.Enums;
 using Jellyfin.Database.Implementations.Enums;
@@ -29,32 +28,40 @@ public class Controller(Logger<Controller> log, ILibraryManager library, IAuthor
         if (user?.Permissions.FirstOrDefault(x => x.Kind == PermissionKind.EnableContentDeletion)?.Value != true)
             return Forbid();
 
-        var result = new FixResult();
+        log.Info("开始修正剧集元数据任务……");
 
-        var itemIds = library.GetItemIds(new InternalItemsQuery
+        var episodes = library.GetItemList(new InternalItemsQuery
         {
             IncludeItemTypes = [BaseItemKind.Episode],
-        });
-        foreach (var itemId in itemIds)
-        {
-            // add a small delay to reduce resource usage
-            await Task.Delay(TimeSpan.FromMilliseconds(50), HttpContext.RequestAborted);
+        }).ToList();
 
-            // obtain library item
-            var item = library.GetItemById(itemId);
-            if (item == null) continue;
+        var result = new FixResult()
+        {
+            TotalCount = episodes.Count,
+        };
+
+        log.Info("共找到 {Count} 个剧集", result.TotalCount);
+
+        foreach (var episode in episodes)
+        {
+            if (HttpContext.RequestAborted.IsCancellationRequested)
+            {
+                log.Warn("用户取消任务，已处理 {Processed} 个剧集", result.RemovedCount + result.ValidCount + result.NoIdCount);
+                break;
+            }
 
             // obtain bangumi episode id
-            var bangumiId = item.GetProviderId(Constants.ProviderName);
+            var bangumiId = episode.GetProviderId(Constants.ProviderName);
 
             // update episode metadata
             if (bangumiId == "0")
             {
-                item.ProviderIds.Remove(Constants.ProviderName);
-                log.Info("remove ProviderId #{id} for episode {Name}", bangumiId, item.Name);
+                episode.ProviderIds.Remove(Constants.ProviderName);
+                log.Info("移除剧集 {Name} 的无效 ID #{id}", episode.Name, bangumiId);
 
                 // save episode metadata to library
-                await library.UpdateItemAsync(item, item.GetParent(), ItemUpdateType.MetadataEdit, CancellationToken.None);
+                await library.UpdateItemAsync(episode, episode.GetParent(), ItemUpdateType.MetadataEdit, HttpContext.RequestAborted);
+                await Task.Delay(TimeSpan.FromMilliseconds(50), HttpContext.RequestAborted);
                 result.RemovedCount++;
             }
             else if (!string.IsNullOrEmpty(bangumiId))
@@ -66,8 +73,8 @@ public class Controller(Logger<Controller> log, ILibraryManager library, IAuthor
                 result.NoIdCount++;
             }
         }
+        log.Info("剧集元数据修正完成。总共: {Total}, 移除无效 ID: {Removed}, 有效 ID: {Valid}, 无 ID: {NoId}", result.TotalCount, result.RemovedCount, result.ValidCount, result.NoIdCount);
 
-        result.TotalCount = itemIds.Count;
         return Ok(result);
     }
 }
