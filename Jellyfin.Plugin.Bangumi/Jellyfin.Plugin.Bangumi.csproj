@@ -20,12 +20,14 @@
     <None Remove="Tools\DuplicatedEpisodesDetector\Index.html"/>
     <None Remove="Tools\DuplicatedEpisodesDetector\Script.js"/>
     <None Remove="Tools\DuplicatedEpisodesDetector\Style.css"/>
+    <None Remove="Tools\FixEpisodeMetadata\Index.html"/>
     <EmbeddedResource Include="Configuration\Style.css"/>
     <EmbeddedResource Include="Configuration\Main.html"/>
     <EmbeddedResource Include="Configuration\Main.js"/>
     <EmbeddedResource Include="Tools\DuplicatedEpisodesDetector\Index.html"/>
     <EmbeddedResource Include="Tools\DuplicatedEpisodesDetector\Script.js"/>
     <EmbeddedResource Include="Tools\DuplicatedEpisodesDetector\Style.css"/>
+    <EmbeddedResource Include="Tools\FixEpisodeMetadata\Index.html"/>
   </ItemGroup>
 
   <ItemGroup>
