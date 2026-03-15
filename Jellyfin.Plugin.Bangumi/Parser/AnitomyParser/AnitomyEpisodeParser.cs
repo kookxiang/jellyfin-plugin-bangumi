@@ -156,7 +156,7 @@ public class AnitomyEpisodeParser : IEpisodeParser
                 if (mediaTime > MIN_MEDIA_TIME && mediaSize > MIN_MEDIA_SIZE)
                 {
                     // 当媒体库中节目和电影混合时，可辅助电影剧集匹配到元数据
-                    // 媒体文件时长大于 100 分钟，大小大于 100MB 的可能是 Movie 等类型
+                    // 媒体文件时长大于 10 分钟，大小大于 100MB 的可能是 Movie 等类型
                     // 存在误判的可能性，导致被识别为第一集。配合 SP 文件夹判断可降低误判的副作用
                     episodeIndex = 1;
                     _log.Debug("Use episode number: {episodeIndex} for {fileName}, because file size is {size} MB", episodeIndex, _fileName, mediaSize);
