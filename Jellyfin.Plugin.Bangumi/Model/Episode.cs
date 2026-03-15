@@ -61,4 +61,6 @@ public class Episode
     {
         return $"<Bangumi Episode #{Id}: {OriginalName}>";
     }
+
+    public int? SeasonNumber { get; set; }
 }
