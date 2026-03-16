@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Jellyfin.Plugin.Bangumi.Model;
+using MediaBrowser.Model.Entities;
 
 namespace Jellyfin.Plugin.Bangumi.Parser.AnitomyParser;
 
@@ -61,6 +62,40 @@ public static class AnitomyEpisodeTypeMapping
         }
         
         return (null, null);
+    }
+
+    public static ExtraType? MapToExtraType(string? anitomyKeyword)
+    {
+        if (string.IsNullOrEmpty(anitomyKeyword))
+            return null;
+
+        if (_opening.Contains(anitomyKeyword) || _ending.Contains(anitomyKeyword))
+            return ExtraType.ThemeSong;
+        if (_preview.Contains(anitomyKeyword))
+            return ExtraType.Trailer;
+        if (_madness.Contains(anitomyKeyword))
+            return ExtraType.ThemeVideo;
+        if ("INTERVIEW".Contains(anitomyKeyword, StringComparison.OrdinalIgnoreCase))
+            return ExtraType.Interview;
+        if (_other.Contains(anitomyKeyword) || _specialOther.Contains(anitomyKeyword))
+            return ExtraType.Unknown;
+
+        return null;
+    }
+    public static ExtraType? MapToExtraType(EpisodeType? bangumiType)
+    {
+        if (!bangumiType.HasValue)
+            return null;
+
+        return bangumiType.Value switch
+        {
+            EpisodeType.Opening => ExtraType.ThemeSong,
+            EpisodeType.Ending => ExtraType.ThemeSong,
+            EpisodeType.Preview => ExtraType.Trailer,
+            EpisodeType.Madness => ExtraType.ThemeVideo,
+            EpisodeType.Other => ExtraType.Unknown,
+            _ => null
+        };
     }
 }
 
