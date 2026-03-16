@@ -2,11 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
-using Jellyfin.Plugin.Bangumi.Configuration;
 using Jellyfin.Plugin.Bangumi.Model;
-using Jellyfin.Plugin.Bangumi.Parser.AnitomyParser;
 using Jellyfin.Plugin.Bangumi.Parser.BasicParser;
 using Jellyfin.Plugin.Bangumi.Utils;
 using MediaBrowser.Controller.Entities.TV;
@@ -146,7 +143,7 @@ namespace Jellyfin.Plugin.Bangumi.Parser.TorrentParser
         public static double? ExtractSeasonNumberFromPath<T>(EpisodeParserContext context, Logger<T> log)
         {
             return FileNameParser.ExtractAnimeSeason(Path.GetFileName(context.Info.Path), true)
-                ?? AnitomyEpisodeParser.ExtractSeasonNumberFromPath(context, log);
+                ?? AnitomyUtil.ExtractSeasonNumberFromPath(context, log);
         }
 
         public static double? ExtractEpisodeNumberFromPath<T>(EpisodeParserContext context, Logger<T> log)
@@ -159,7 +156,7 @@ namespace Jellyfin.Plugin.Bangumi.Parser.TorrentParser
                 return episodeNumber;
             }
 
-            num = AnitomyEpisodeParser.ExtractEpisodeNumberFromPath(context, log)
+            num = AnitomyUtil.ExtractEpisodeNumberFromPath(context, log)
                 ?? BasicEpisodeParser.ExtractEpisodeNumberFromPath(context, log);
 
             return num;
@@ -291,7 +288,7 @@ namespace Jellyfin.Plugin.Bangumi.Parser.TorrentParser
 
         public static string? ExtractAnimeTitleFromPath<T>(EpisodeParserContext context, Logger<T> log)
         {
-            return AnitomyEpisodeParser.ExtractAnimeTitleFromPath(context, log);
+            return AnitomyUtil.ExtractAnimeTitleFromPath(context, log);
         }
 
         public static EpisodeType? ExtractEpisodeTypeFromPath<T>(EpisodeParserContext context, Logger<T> log)
