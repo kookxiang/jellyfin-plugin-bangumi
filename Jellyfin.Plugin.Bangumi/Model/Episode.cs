@@ -41,10 +41,18 @@ public class Episode
     public int Disc { get; set; }
 
     /// <summary>
-    ///     条目内的集数, 从1开始。非本篇剧集的此字段无意义
+    /// 条目内的集数, 从1开始。非本篇剧集的此字段无意义
     /// </summary>
     [JsonPropertyName("ep")]
     public double Index { get; set; }
+
+    /// <summary>
+    /// 季号
+    /// </summary>
+    /// <remarks>
+    /// 仅靠目录来判断季号可能不准确，例如存在多季剧集放在同个目录的情况，通过该字段辅助修正
+    /// </remarks>
+    public double? SeasonNumber { get; set; }
 
     [JsonPropertyName("airdate")]
     public string AirDate { get; set; } = "";
