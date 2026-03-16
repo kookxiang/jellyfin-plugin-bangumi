@@ -78,14 +78,17 @@ public class MoveSpecialToExtraTask(ILibraryManager libraryManager, Logger<MoveS
             episode.OwnerId = parent.Id;
             log.Info("parent.Id: {parent.Id}", parent.Id);
 
-            // FIXME 以下字段不清楚是否必需
+            // 从文件夹隐藏，内容类型变为继承
             episode.ParentId = new Guid();
             episode.SeasonId = new Guid();
             episode.SeasonName = null;
-            episode.SeriesId = new Guid();
-            episode.SeriesName = null;
-            episode.SeriesPresentationUniqueKey = null;
-            episode.ParentIndexNumber = null;
+
+            // FIXME 以下字段不清楚是否必需
+            // episode.SeriesId = new Guid();
+            // episode.SeriesName = null;
+            // episode.SeriesPresentationUniqueKey = null;
+            // episode.ParentIndexNumber = null;
+            // episode.IsLocked = true;
 
             // 跳过没有 ExtraType 的剧集
             if (episode.ExtraType == null)
