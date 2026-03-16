@@ -30,6 +30,7 @@ public class AnitomyEpisodeParser : IEpisodeParser
 
         var (anitomyEpisodeType, bangumiEpisodeType) = GetEpisodeType();
         var episodeIndex = GetEpisodeIndex();
+        var seasonNumber = _anitomy.ExtractAnimeSeason();
 
         // 获取 seriesId
         var seriesId = LocalConfigurationHelper.GetSeriesId(_context.LocalConfiguration, _context.Info, _context.LibraryManager);
@@ -58,6 +59,10 @@ public class AnitomyEpisodeParser : IEpisodeParser
                 {
                     episode.OriginalNameRaw = TitleOfSpecialEpisode(anitomyEpisodeType);
                 }
+                if (!string.IsNullOrEmpty(seasonNumber))
+                {
+                    episode.SeasonNumber = double.Parse(seasonNumber);
+                }
                 return episode;
             }
 
@@ -68,6 +73,10 @@ public class AnitomyEpisodeParser : IEpisodeParser
                 Order = episodeIndex,
                 OriginalNameRaw = TitleOfSpecialEpisode(anitomyEpisodeType)
             };
+            if (!string.IsNullOrEmpty(seasonNumber))
+            {
+                sp.SeasonNumber = double.Parse(seasonNumber);
+            }
             _log.Info("Set OriginalName: {OriginalNameRaw} for {fileName}", sp.OriginalNameRaw, _fileName);
             return sp;
         }
@@ -357,7 +366,7 @@ nextSeason:
             _log.Debug("Multi season folder, Use subject id: {id}", subjectId);
 
             parent.ProviderIds.Add(Constants.ProviderName, subjectId.ToString());
-            await _context.LibraryManager.UpdateItemAsync(parent, parent, ItemUpdateType.MetadataEdit, _context.Token);
+            await _context.LibraryManager.UpdateItemAsync(parent, parent.GetParent(), ItemUpdateType.MetadataEdit, _context.Token);
 
             // #FIXME 检查与旧 seriesId 的关联性，如果无联系则说明可能匹配错误
             return subjectId;

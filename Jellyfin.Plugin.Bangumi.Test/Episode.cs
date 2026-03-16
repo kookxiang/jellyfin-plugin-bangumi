@@ -590,6 +590,31 @@ public class Episode
     }
 
     [TestMethod]
+    public async Task GetEpisodeSeasonByAnitomySharp()
+    {
+        _plugin.Configuration.EpisodeParser = EpisodeParserType.AnitomySharp;
+
+        var filePath = FakePath.CreateFile("剑来.Sword.Of.Coming.2025.S02.2160p.WEB-DL.H265.AAC/Sword.Of.Coming.2025.S02E01.2160p.WEB-DL.H265.AAC.mp4");
+        var parentPath = Path.GetDirectoryName(filePath);
+        var parentFolder = new MediaBrowser.Controller.Entities.TV.Series
+        {
+            Path = parentPath,
+            Name = Path.GetFileName(parentPath)
+        };
+        _libraryManager.CreateItem(parentFolder, null);
+        var episodeData = await _provider.GetMetadata(new EpisodeInfo
+        {
+            Path = filePath,
+            SeriesProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "520300" } }
+        },
+            _token);
+        _plugin.Configuration.EpisodeParser = EpisodeParserType.Basic;
+        Assert.IsNotNull(episodeData, "episode data should not be null");
+        Assert.IsNotNull(episodeData.Item, "episode data should not be null");
+        Assert.AreEqual(2, episodeData.Item.ParentIndexNumber, "should return the right episode season");
+    }
+
+    [TestMethod]
     public async Task EpisodeOffsetSupport()
     {
         FakePath.CreateFile("Kimetsu no Yaiba/Season 2/bangumi.ini", "[Bangumi]\nID=350764\nOffset=26\n");
