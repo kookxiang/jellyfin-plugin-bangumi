@@ -55,12 +55,12 @@ public class MusicSongProvider(BangumiApi api, ILibraryManager libraryManager, L
             var persons = await api.GetSubjectPersons(albumId, cancellationToken);
             if (persons != null)
             {
-                var artists = persons.Where(p => p.Type is 1).Select(p => p.Name).ToList();
-                var albumArtists = persons.Where(p => p.Type is 1 or 2 or 3).Select(p => p.Name).ToList();
+                var artists = persons.Where(p => p.Type is 1).Select(p => p.Name).Distinct().ToList();
                 if (artists.Count > 0)
+                {
                     result.Item.Artists = artists;
-                if (albumArtists.Count > 0)
-                    result.Item.AlbumArtists = albumArtists;
+                    result.Item.AlbumArtists = artists;
+                }
             }
         }
 
