@@ -26,7 +26,7 @@ public class MusicSongProvider(BangumiApi api, ILibraryManager libraryManager, L
     public async Task<MetadataResult<Audio>> GetMetadata(SongInfo info, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        var episode = await GetSong(info, cancellationToken);
+        var (episode, albumId) = await GetSongWithAlbumId(info, cancellationToken);
 
         log.Info("metadata for {FilePath}: {EpisodeInfo}", Path.GetFileName(info.Path), episode);
 
@@ -48,6 +48,21 @@ public class MusicSongProvider(BangumiApi api, ILibraryManager libraryManager, L
         result.Item.IndexNumber = (int)episode.Order;
         result.Item.ParentIndexNumber = episode.Disc;
         result.Item.Overview = string.IsNullOrEmpty(episode.Description) ? null : episode.Description;
+
+        // 从专辑获取艺术家信息填充到单曲
+        if (albumId > 0)
+        {
+            var persons = await api.GetSubjectPersons(albumId, cancellationToken);
+            if (persons != null)
+            {
+                var artists = persons.Where(p => p.Type is 1).Select(p => p.Name).ToList();
+                var albumArtists = persons.Where(p => p.Type is 1 or 2 or 3).Select(p => p.Name).ToList();
+                if (artists.Count > 0)
+                    result.Item.Artists = artists;
+                if (albumArtists.Count > 0)
+                    result.Item.AlbumArtists = albumArtists;
+            }
+        }
 
         return result;
     }
@@ -112,12 +127,36 @@ public class MusicSongProvider(BangumiApi api, ILibraryManager libraryManager, L
         }
     }
 
+    private async Task<(Episode? episode, int albumId)> GetSongWithAlbumId(SongInfo info, CancellationToken token)
+    {
+        // 优先从已刮削的父专辑获取 Bangumi ID
+        var album = libraryManager.FindByPath(info.Path, false)?.FindParent<MusicAlbum>();
+        if (album != null && int.TryParse(album.ProviderIds.GetValueOrDefault(Constants.ProviderName), out var albumId))
+        {
+            var song = await GetSong(info, albumId, token);
+            return (song, albumId);
+        }
+
+        // 回退：用专辑名称搜索 Bangumi（解决子先于父的时序问题）
+        var albumName = info.Album;
+        if (!string.IsNullOrEmpty(albumName))
+        {
+            log.Info("Album not yet scraped, searching by album name: {AlbumName}", albumName);
+            var searchResult = await api.SearchSubject(albumName, SubjectType.Music, token);
+            var subject = searchResult.FirstOrDefault();
+            if (subject != null)
+            {
+                var song = await GetSong(info, subject.Id, token);
+                return (song, subject.Id);
+            }
+        }
+
+        return (null, 0);
+    }
+
     private async Task<Episode?> GetSong(SongInfo info, CancellationToken token)
     {
-        var album = libraryManager.FindByPath(info.Path, false)?.FindParent<MusicAlbum>();
-        if (album == null || !int.TryParse(album.ProviderIds.GetValueOrDefault(Constants.ProviderName), out var albumId))
-            return null;
-
-        return await GetSong(info, albumId, token);
+        var (episode, _) = await GetSongWithAlbumId(info, token);
+        return episode;
     }
 }
