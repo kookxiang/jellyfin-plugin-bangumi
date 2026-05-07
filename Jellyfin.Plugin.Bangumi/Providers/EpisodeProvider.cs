@@ -9,6 +9,7 @@ using Jellyfin.Plugin.Bangumi.Model;
 using Jellyfin.Plugin.Bangumi.Parser;
 using Jellyfin.Plugin.Bangumi.Parser.AnitomyParser;
 using Jellyfin.Plugin.Bangumi.Parser.BasicParser;
+using Jellyfin.Plugin.Bangumi.Parser.TorrentParser;
 using MediaBrowser.Controller.Entities.TV;
 using MediaBrowser.Controller.Library;
 using MediaBrowser.Controller.Providers;
@@ -17,7 +18,7 @@ using Episode = MediaBrowser.Controller.Entities.TV.Episode;
 
 namespace Jellyfin.Plugin.Bangumi.Providers;
 
-public class EpisodeProvider(BangumiApi api, Logger<EpisodeProvider> log, ILibraryManager libraryManager, IMediaSourceManager mediaSourceManager, Logger<AnitomyEpisodeParser> anitomyLogger, Logger<BasicEpisodeParser> basicLogger)
+public class EpisodeProvider(BangumiApi api, Logger<EpisodeProvider> log, ILibraryManager libraryManager, IMediaSourceManager mediaSourceManager, Logger<AnitomyEpisodeParser> anitomyLogger, Logger<BasicEpisodeParser> basicLogger, Logger<TorrentEpisodeParser> torrentLogger)
     : IRemoteMetadataProvider<Episode, EpisodeInfo>, IHasOrder
 {
     private static PluginConfiguration Configuration => Plugin.Instance!.Configuration;
@@ -31,7 +32,7 @@ public class EpisodeProvider(BangumiApi api, Logger<EpisodeProvider> log, ILibra
         var localConfiguration = await LocalConfiguration.ForPath(info.Path);
 
         var context = new EpisodeParserContext(api, libraryManager, info, mediaSourceManager, Configuration, localConfiguration, cancellationToken);
-        var parser = EpisodeParserFactory.CreateParser(Configuration, context, anitomyLogger, basicLogger);
+        var parser = EpisodeParserFactory.CreateParser(Configuration, context, anitomyLogger, basicLogger, torrentLogger);
 
         Model.Episode? episode = null;
 
@@ -65,8 +66,6 @@ public class EpisodeProvider(BangumiApi api, Logger<EpisodeProvider> log, ILibra
 
         result.Item = new Episode();
         result.HasMetadata = true;
-
-        // 去掉默认值 0，仅添加有效剧集 ID
         if (episode.Id != 0)
             result.Item.ProviderIds.Add(Constants.ProviderName, $"{episode.Id}");
 
@@ -83,7 +82,7 @@ public class EpisodeProvider(BangumiApi api, Logger<EpisodeProvider> log, ILibra
             (int)episode.Order :
             (int)episode.Order + localConfiguration.Offset;
         result.Item.Overview = string.IsNullOrEmpty(episode.Description) ? null : episode.Description;
-        result.Item.ParentIndexNumber = parent is Series ? 1 : info.ParentIndexNumber ?? 1;
+        result.Item.ParentIndexNumber = (int?)episode.SeasonNumber ?? (parent is Series ? 1 : info.ParentIndexNumber ?? 1);
 
         if (BasicEpisodeParser.IsSpecial(info.Path, context.LibraryManager, true) || episode.Type == EpisodeType.Special || (parent is not Series && info.ParentIndexNumber == 0))
         {
@@ -95,6 +94,8 @@ public class EpisodeProvider(BangumiApi api, Logger<EpisodeProvider> log, ILibra
             if (season.IndexNumber != null)
                 result.Item.ParentIndexNumber = season.IndexNumber;
         }
+
+        FillFallbackTitle(result.Item);
 
         if (episode.Type == EpisodeType.Normal && result.Item.ParentIndexNumber > 0)
             return result;
@@ -115,11 +116,22 @@ public class EpisodeProvider(BangumiApi api, Logger<EpisodeProvider> log, ILibra
 
         var seasonNumber = parent is Season ? parent.IndexNumber : 1;
         if (!string.IsNullOrEmpty(episode.AirDate) && string.Compare(episode.AirDate, series.AirDate, StringComparison.Ordinal) < 0)
-            result.Item.AirsBeforeEpisodeNumber = seasonNumber;
+            result.Item.AirsBeforeSeasonNumber = seasonNumber;
         else
             result.Item.AirsAfterSeasonNumber = seasonNumber;
 
+        if (episode.Order % 1 != 0)
+            result.Item.AirsBeforeEpisodeNumber = (int)Math.Ceiling(episode.Order);
+
         return result;
+
+        void FillFallbackTitle(Episode item)
+        {
+            if (string.IsNullOrEmpty(item.Name))
+                item.Name = Path.GetFileNameWithoutExtension(info.Path);
+            if (string.IsNullOrEmpty(item.OriginalTitle))
+                item.OriginalTitle = Path.GetFileNameWithoutExtension(info.Path);
+        }
     }
 
     public Task<IEnumerable<RemoteSearchResult>> GetSearchResults(EpisodeInfo searchInfo, CancellationToken cancellationToken)
