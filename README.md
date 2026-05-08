@@ -6,7 +6,7 @@ Jellyfin bgm.tv 数据源插件，用于拉取中文番剧信息及图片。
 
 支持将播放进度同步至 bgm.tv
 
-![后台配置](https://user-images.githubusercontent.com/2725379/158064318-98a82a79-a783-4552-abaa-af18724ad9bf.png)
+![后台配置](https://github.com/user-attachments/assets/1d1bdfd9-a932-4bf5-9b0a-ec15a1aed3a0)
 
 # 下载
 
