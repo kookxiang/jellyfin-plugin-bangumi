@@ -504,7 +504,7 @@ public class Episode
 
         var filePath = FakePath.CreateFile("战姬绝唱SYMPHOGEAR/戦姫絶唱シンフォギアXV/[VCB-Studio] Senki Zesshou Symphogear XV [01][Ma10p_1080p][x265_flac].mkv");
         var parentPath = Path.GetDirectoryName(filePath);
-        var parentFolder = new MediaBrowser.Controller.Entities.Folder
+        var parentFolder = new MediaBrowser.Controller.Entities.TV.Season
         {
             Path = parentPath,
             Name = Path.GetFileName(parentPath)
