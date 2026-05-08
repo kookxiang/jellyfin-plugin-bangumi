@@ -3,6 +3,40 @@
     var container = document.querySelector('#bangumiConfigurationPage:not(.hide)');
     var configuration = {};
 
+    function getAvailableModules() {
+        return Array.from(container.querySelectorAll('.bangumi-settings-nav-item'))
+            .map(function (button) {
+                return button.getAttribute('data-target');
+            })
+            .filter(Boolean);
+    }
+
+    function getDefaultModule() {
+        var activeButton = container.querySelector('.bangumi-settings-nav-item.active');
+        return activeButton ? activeButton.getAttribute('data-target') : 'account';
+    }
+
+    function getModuleFromHash() {
+        var hash = window.location.hash || '';
+        var queryIndex = hash.indexOf('?');
+        if (queryIndex === -1) {
+            return '';
+        }
+
+        var search = hash.substring(queryIndex + 1);
+        var params = new URLSearchParams(search);
+        return params.get('module') || '';
+    }
+
+    function getResolvedModule(module) {
+        var availableModules = getAvailableModules();
+        return availableModules.indexOf(module) !== -1 ? module : getDefaultModule();
+    }
+
+    function applyModuleFromHash() {
+        switchSettingsSection(getResolvedModule(getModuleFromHash()), false);
+    }
+
     function windowMessageHandler(e) {
         if (e.data === 'BANGUMI-OAUTH-COMPLETE') {
             wrapLoading(loadOAuthState());
@@ -119,11 +153,14 @@
 
     function onLoad() {
         window.addEventListener("message", windowMessageHandler);
+        window.addEventListener('hashchange', applyModuleFromHash);
+        applyModuleFromHash();
         wrapLoading(Promise.all([loadConfiguration(), loadArchiveState(), loadOAuthState(),]));
     }
 
     function onUnload() {
         window.removeEventListener("message", windowMessageHandler);
+        window.removeEventListener('hashchange', applyModuleFromHash);
     }
 
     function wrapLoading(promise) {
@@ -206,6 +243,22 @@
         e.preventDefault();
         updateEpisodeParserDisplay();
     });
+
+    function switchSettingsSection(target) {
+        if (!target) {
+            return;
+        }
+
+        var resolvedTarget = getResolvedModule(target);
+
+        container.querySelectorAll('.bangumi-settings-nav-item').forEach(function (button) {
+            button.classList.toggle('active', button.getAttribute('data-target') === resolvedTarget);
+        });
+
+        container.querySelectorAll('.bangumi-settings-panel').forEach(function (panel) {
+            panel.classList.toggle('active', panel.getAttribute('data-section') === resolvedTarget);
+        });
+    }
 
     function updateEpisodeParserDisplay() {
         const parser = container.querySelector('#EpisodeParser').value;
@@ -632,6 +685,24 @@
                     }
                 });
             });
+        });
+    });
+
+    container.querySelectorAll('.bangumi-settings-nav-item').forEach(function (button) {
+        button.addEventListener('click', function (e) {
+            e.preventDefault();
+            switchSettingsSection(getResolvedModule(button.getAttribute('data-target')), false);
+        });
+    });
+
+    container.querySelectorAll('.bangumi-plugin-tools').forEach(function (link) {
+        link.addEventListener('click', function (e) {
+            e.preventDefault();
+            var href = link.getAttribute('href');
+            if (!href) {
+                return;
+            }
+            Dashboard.navigate(href.replace(/^#/, ''));
         });
     });
 })();

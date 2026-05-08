@@ -3,479 +3,501 @@
     <div data-role="content">
         <div class="content-primary">
             <form id="bangumiConfigurationForm">
-                <div class="verticalSection">
-                    <div class="sectionTitleContainer flex align-items-center">
-                        <h2 class="sectionTitle">账号授权</h2>
-                    </div>
-                </div>
-                <div id="bangumi-oauth-container">
-                    <div class="bangumi-user-info">
-                        <div class="user-info">
-                            <div class="user-avatar">
-                                <span class="material-icons person"></span>
-                            </div>
-                            <div class="user-name">未登录</div>
-                            <a class="profile-link fab" href="https://bgm.tv/" target="_blank">
-                                <span class="material-icons open_in_new"></span>
-                            </a>
-                        </div>
-                    </div>
-                    <div class="bangumi-oauth-status"></div>
-                    <button class="raised emby-button" id="bangumi-oauth-refresh" is="emby-button" style="display: none" type="button">
-                        <span>延长授权时间</span>
-                    </button>
-                    <button class="raised emby-button" id="bangumi-oauth-btn" is="emby-button" type="button">
-                        <span>授权登录 Bangumi</span>
-                    </button>
-                    <button class="emby-button button-link" id="bangumi-oauth-manual-btn" is="emby-button" type="button">
-                        <span>手动填写</span>
-                    </button>
-                    <button class="raised emby-button" id="bangumi-oauth-delete" is="emby-button" style="display: none" type="button">
-                        <span>取消授权</span>
-                    </button>
-                </div>
-                <div class="selectContainer">
-                    <div class="checkboxContainer checkboxContainer-withDescription">
-                        <label class="emby-checkbox-label">
-                            <input id="ReportPlaybackStatusToBangumi" is="emby-checkbox" type="checkbox" />
-                            <span>同步播放进度到 Bangumi</span>
-                        </label>
-                    </div>
-                </div>
-                <div class="selectContainer">
-                    <div class="checkboxContainer checkboxContainer-withDescription">
-                        <label class="emby-checkbox-label">
-                            <input id="ReportManualStatusChangeToBangumi" is="emby-checkbox" type="checkbox" />
-                            <span>同步手动更新后的播放状态到 Bangumi</span>
-                        </label>
-                    </div>
-                </div>
-                <div class="selectContainer">
-                    <div class="checkboxContainer checkboxContainer-withDescription">
-                        <label class="emby-checkbox-label">
-                            <input id="SkipNSFWPlaybackReport" is="emby-checkbox" type="checkbox" />
-                            <span>忽略被标记为 NSFW 的内容</span>
-                        </label>
-                    </div>
-                </div>
-                <div class="verticalSection">
-                    <div class="sectionTitleContainer flex align-items-center">
-                        <h2 class="sectionTitle">离线数据库 (Beta)</h2>
-                        <a class="raised button-alt headerHelpButton emby-button" id="archive-update-schedule-link" is="emby-linkbutton" style="display: none"> 更新设置 </a>
-                    </div>
-                    <div class="fieldDescription">
-                        离线数据库默认每周更新一次，当存在离线数据库时，插件会优先查询离线数据库的数据。<br />
-                        如果需要禁用离线数据库，请关闭计划任务并清理本地文件。
-                    </div>
-                </div>
-                <div class="paperList" id="bangumi-archive-container">
-                    <div class="listItem listItem-border">
-                        <div class="listItemBody two-line">
-                            <div class="listItemBodyText secondary" style="margin: 0">目录</div>
-                            <div class="listItemBodyText" id="archive-folder">-</div>
-                        </div>
-                    </div>
-                    <div class="listItem listItem-border archive-data-required">
-                        <div class="listItemBody two-line">
-                            <div class="listItemBodyText secondary" style="margin: 0">大小</div>
-                            <div class="listItemBodyText" id="archive-size">0</div>
-                        </div>
-                        <button id="delete-archive-data" is="paper-icon-button-light" title="删除离线数据库" type="button">
-                            <span aria-hidden="true" class="material-icons delete"></span>
-                        </button>
-                    </div>
-                    <div class="listItem listItem-border archive-data-required">
-                        <div class="listItemBody two-line">
-                            <div class="listItemBodyText secondary" style="margin: 0">上次更新时间</div>
-                            <div class="listItemBodyText" id="archive-update-time">-</div>
-                        </div>
-                        <button id="config-archive-update-task" is="paper-icon-button-light" title="计划任务设置" type="button">
-                            <span aria-hidden="true" class="material-icons settings"></span>
-                        </button>
-                    </div>
-                </div>
-                <div class="selectContainer">
-                    <label class="selectLabel" for="DaysBeforeUsingArchiveData">针对近期放送的剧集始终使用在线接口</label>
-                    <select class="emby-select-withcolor emby-select" id="DaysBeforeUsingArchiveData" is="emby-select">
-                        <option value="0">始终使用离线数据</option>
-                        <option value="7">为 7 日前放送的剧集使用离线数据</option>
-                        <option value="14">为 14 日前放送的剧集使用离线数据（推荐）</option>
-                        <option value="30">为 30 日前放送的剧集使用离线数据</option>
-                    </select>
-                    <div class="fieldDescription">对于近期放送的条目离线数据库更新可能不及时，可通过更换在线接口缓解。</div>
-                </div>
-                <div class="checkboxContainer checkboxContainer-withDescription">
-                    <label class="emby-checkbox-label">
-                        <input id="RefreshRecentEpisodeWhenArchiveUpdate" is="emby-checkbox" type="checkbox" />
-                        <span>当离线数据库更新时更新近期放送番剧的元数据</span>
-                    </label>
-                    <div class="fieldDescription">更新时不受元数据优先级影响强制覆盖，当默认元数据不是 Bangumi 时不建议启用。</div>
-                </div>
-                <div class="checkboxContainer checkboxContainer-withDescription">
-                    <label class="emby-checkbox-label">
-                        <input id="RefreshRatingWhenArchiveUpdate" is="emby-checkbox" type="checkbox" />
-                        <span>当离线数据库更新时更新番剧评分</span>
-                    </label>
-                    <div class="fieldDescription">离线数据库更新后自动更新所有已关联 Bangumi 词条项目的评分（注意可能覆盖其他元数据插件的评分）。</div>
-                </div>
-                <div class="verticalSection">
-                    <div class="sectionTitleContainer flex align-items-center">
-                        <h2 class="sectionTitle">网络</h2>
-                    </div>
-                </div>
-                <div class="inputContainer">
-                    <label class="inputLabel inputLabelUnfocused" for="ProxyServerUrl">代理服务器地址</label>
-                    <input class="emby-input" id="ProxyServerUrl" placeholder="http://127.0.0.1:7890" />
-                </div>
-                <div class="inputContainer">
-                    <label class="inputLabel inputLabelUnfocused" for="BaseServerUrl">Bangumi API 地址</label>
-                    <input class="emby-input" id="BaseServerUrl" type="url" />
-                    <div class="fieldDescription">官方 API 部署在海外，请确保 Jellyfin 上能够稳定访问或配置反代站点。</div>
-                </div>
-                <div class="selectContainer">
-                    <label class="selectLabel" for="RequestTimeout">请求超时时间</label>
-                    <select class="emby-select-withcolor emby-select" id="RequestTimeout" is="emby-select">
-                        <option value="5000">5 秒</option>
-                        <option value="10000">10 秒</option>
-                        <option value="30000">30 秒</option>
-                        <option value="60000">1 分钟</option>
-                    </select>
-                    <div class="fieldDescription">只能缓解国内访问不稳定的情况，要确保国内能稳定访问请配置代理。</div>
-                </div>
-                <div class="selectContainer">
-                    <label class="selectLabel" for="SeasonGuessMaxSearchCount">季度搜索最大请求数</label>
-                    <select class="emby-select-withcolor emby-select" id="SeasonGuessMaxSearchCount" is="emby-select">
-                        <option value="1">1</option>
-                        <option value="2">2</option>
-                        <option value="5">5</option>
-                        <option value="10">10</option>
-                    </select>
-                    <div class="fieldDescription">本插件使用遍历搜索关联条目的方式匹配TV动画季度。大部分情况下只需一次搜索即可完成，但某些条目可能需要多次搜索才能匹配到下一季。默认最多搜索两次，如果某些季度匹配错误，您可以尝试增加最大搜索次数。</div>
-                </div>
-                <div class="selectContainer">
-                    <label class="selectLabel" for="RatingUpdateMinInterval">更新评分频率</label>
-                    <select class="emby-select-withcolor emby-select" id="RatingUpdateMinInterval" is="emby-select">
-                        <option value="3">3天</option>
-                        <option value="7">7天</option>
-                        <option value="14">14天</option>
-                        <option value="30">30天</option>
-                    </select>
-                    <div class="fieldDescription">默认不更新14天内已更新过的评分。如果评分频繁变化，可以选择更短的时间间隔以确保每次执行更新评分时都能覆盖旧的评分。</div>
-                </div>
-                <div class="verticalSection">
-                    <div class="sectionTitleContainer flex align-items-center">
-                        <h2 class="sectionTitle">元数据</h2>
-                    </div>
-                </div>
-                <div class="selectContainer">
-                    <label class="selectLabel" for="TranslationPreference">标题翻译</label>
-                    <select class="emby-select-withcolor emby-select" id="TranslationPreference" is="emby-select">
-                        <option value="Original">优先使用日文</option>
-                        <option value="Chinese">优先使用中文翻译</option>
-                    </select>
-                </div>
-                <div class="selectContainer">
-                    <label class="selectLabel" for="PersonTranslationPreference">人物名称翻译</label>
-                    <select class="emby-select-withcolor emby-select" id="PersonTranslationPreference" is="emby-select">
-                        <option value="Original">优先使用日文</option>
-                        <option value="Chinese">优先使用中文</option>
-                    </select>
-                </div>
-                <div class="checkboxContainer checkboxContainer-withDescription">
-                    <label class="emby-checkbox-label">
-                        <input id="UseBangumiSeasonTitle" is="emby-checkbox" type="checkbox" />
-                        <span>使用 Bangumi 词条作为季名称</span>
-                    </label>
-                    <div class="fieldDescription">会将默认的“第 * 季”替换为对应条目的标题，如 ***** ** 篇。</div>
-                </div>
-                <div class="checkboxContainer checkboxContainer-withDescription">
-                    <label class="emby-checkbox-label">
-                        <input id="TrustExistedBangumiId" is="emby-checkbox" type="checkbox" />
-                        <span>始终根据配置的 Bangumi ID 获取元数据</span>
-                    </label>
-                    <div class="fieldDescription">
-                        默认情况下会判断 ID 是否属当前的季度，当修改系列 / 季度后可自动更新下面的剧集信息；<br />
-                        启用后不再更新，直到剧集元数据中的 ID 被清除才会查询。
-                    </div>
-                </div>
-                <div class="checkboxContainer checkboxContainer-withDescription">
-                    <label class="emby-checkbox-label">
-                        <input id="UseTestingSearchApi" is="emby-checkbox" type="checkbox" />
-                        <span>使用测试版 Bangumi 搜索接口</span>
-                    </label>
-                    <div class="fieldDescription">注：搜索结果不一定更准确。</div>
-                </div>
-                <div class="checkboxContainer checkboxContainer-withDescription">
-                    <label class="emby-checkbox-label">
-                        <input id="SortByFuzzScore" is="emby-checkbox" type="checkbox" />
-                        <span>使用 FuzzyWuzzy 算法对匹配结果排序</span>
-                    </label>
-                    <div class="fieldDescription">排序时会加入条目别名，提高首个条目匹配率。测试接口未启用此算法</div>
-                </div>
-                <div class="checkboxContainer checkboxContainer-withDescription">
-                    <label class="emby-checkbox-label">
-                        <input id="UseOriginalTitleFirst" is="emby-checkbox" type="checkbox"/>
-                        <span>优先使用原标题搜索</span>
-                    </label>
-                    <div class="fieldDescription">当存在原标题(OriginalTitle)时，优先使用原标题进行搜索，而不是使用翻译后的名称。这可以提高跨平台信息匹配的准确性，特别是对于不同平台翻译不一致的情况。</div>
-                </div>
-                <div class="selectContainer">
-                    <label class="selectLabel" for="EpisodeParser">剧集解析器</label>
-                    <select class="emby-select-withcolor emby-select" id="EpisodeParser" is="emby-select">
-                        <option value="Basic">基础剧集解析器</option>
-                        <option value="AnitomySharp">AnitomySharp 剧集解析器</option>
-                        <option value="Torrent">混合剧集解析器</option>
-                    </select>
-                </div>
-                <div class="episode-parser-options" episode-parser="Basic" style="display: none">
-                    <div class="checkboxContainer checkboxContainer-withDescription">
-                        <label class="emby-checkbox-label">
-                            <input id="AlwaysReplaceEpisodeNumber" is="emby-checkbox" type="checkbox" />
-                            <span>始终根据文件名猜测集数</span>
-                        </label>
-                        <div class="fieldDescription">用于修正 Jellyfin 自动识别集号错误的情况，由插件重新按文件名判断并纠正。少数情况下插件可能识别错误。</div>
-                    </div>
-                </div>
-                <div class="episode-parser-options" episode-parser="AnitomySharp" style="display:none;">
-                    <div class="fieldDescription">
-                        AnitomySharp 能够解析包含特典信息的动画文件名，适用于整理拥有特典的系列
-                    </div>
-                    <div class="checkboxContainer checkboxContainer-withDescription">
-                        <label class="emby-checkbox-label">
-                            <input id="MovieEpisodeDetectionByAnitomySharp" is="emby-checkbox" type="checkbox" />
-                            <span>根据文件大小及时长判断集数</span>
-                        </label>
-                        <div class="fieldDescription">
-                            通常电影文件命名中并未包含集数，因此当媒体库中节目和电影混合时推荐开启，可辅助电影剧集匹配到元数据
-                            <br>判断条件：媒体文件时长大于 10 分钟且大小大于 100MB
-                            <br>默认集数为 1。可能误判
-                        </div>
-                    </div>
-                    <div class="checkboxContainer checkboxContainer-withDescription">
-                        <label class="emby-checkbox-label">
-                            <input id="ProcessMultiSeasonFolderByAnitomySharp" is="emby-checkbox" type="checkbox" />
-                            <span>处理多季度目录</span>
-                        </label>
-                        <div class="fieldDescription">
-                            当存在目录嵌套时可以选择启用
-                            <br>如："战姬绝唱SYMPHOGEAR/戦姫絶唱シンフォギアXV/Senki Zesshou Symphogear XV [01].mkv"。启用后将搜索"戦姫絶唱シンフォギアXV"并将其作为剧集的关联条目
-                            <br>建议搭配「使用 Bangumi 词条作为季名称」使用。可能误判
-                        </div>
-                    </div>
-                </div>
-                <div class="episode-parser-options" episode-parser="Torrent" style="display:none;">
-                    <div class="bangumi-tab-container">
-                    <h3 class="bangumi-tool-title">文件排除正则表达式</h3>
-                    <div class="fieldDescription">下列正则用于在获取元数据时匹配或排除指定的文件（夹），以便提高准确性，减少不必要的搜索，目前文件名匹配仅适用于混合剧集解析器</div>
-                    <p />
-                    <div class="bangumi-tab-header">
-                        <div class="bangumi-tab-header-button active" data-tab="tabSpExcludeRegex">杂项文件排除</div>
-                        <div class="bangumi-tab-header-button" data-tab="tabMiscExcludeRegex">特典文件排除</div>
-                        <div class="bangumi-tab-header-button" data-tab="tabExcludeWhitelistRegex">排除白名单</div>
-                        <div class="bangumi-tab-header-button" data-tab="tabRegexTools">常用工具</div>
-                    </div>
-                    <div class="bangumi-tab-content active" data-tab="tabSpExcludeRegex">
-                        <div class="fieldDescription">
-                            <p>下列正则用于排除杂项内容，如CM、PV、Menu、NCOP、NCED等类型文件，将其季号固定为null</p>
-                            <ul>
-                                <li>一行一条正则表达式</li>
-                                <li>忽略大小写</li>
-                                <li>从上往下按顺序执行匹配，直到匹配成功或全部失败</li>
-                            </ul>
-                        </div>
-                        <div class="bangumi-setting-block">
-                            <div class="inputContainer bangumi-inputContainer">
-                                <label class="textareaLabel" for="MiscExcludeRegexFullPath">完整路径匹配</label>
-                                <button id="MiscExcludeRegexFullPathResetBtn" is="paper-icon-button-light" title="重置" type="button" class="paper-icon-button-light">
-                                    <span aria-hidden="true" class="material-icons replay"></span>
-                                </button>
-                                <textarea class="textarea-mono emby-textarea" rows="5" style="overflow: auto" id="MiscExcludeRegexFullPath"></textarea>
-                                <div class="fieldDescription">匹配完整文件路径，通常用于排除特定番剧目录内容，如：<code>E:\libs\animation\冴えない彼女の育てかた\SP\PV01.mkv</code></div>
-                            </div>
-                        </div>
-                        <div class="bangumi-setting-block">
-                            <div class="inputContainer bangumi-inputContainer">
-                                <label class="textareaLabel" for="MiscExcludeRegexFolderName">目录名称匹配</label>
-                                <button id="MiscExcludeRegexFolderNameResetBtn" is="paper-icon-button-light" title="重置" type="button" class="paper-icon-button-light">
-                                    <span aria-hidden="true" class="material-icons replay"></span>
-                                </button>
-                                <textarea class="textarea-mono emby-textarea" rows="5" style="overflow: auto" id="MiscExcludeRegexFolderName"></textarea>
-                                <div class="fieldDescription">通用文件目录名称匹配，只匹配文件所在目录，如：<code>SP</code></div>
-                            </div>
-                        </div>
-                        <div class="bangumi-setting-block">
-                            <div class="inputContainer bangumi-inputContainer">
-                                <label class="textareaLabel" for="MiscExcludeRegexFileName">文件名匹配</label>
-                                <button id="MiscExcludeRegexFileNameResetBtn" is="paper-icon-button-light" title="重置" type="button" class="paper-icon-button-light">
-                                    <span aria-hidden="true" class="material-icons replay"></span>
-                                </button>
-                                <textarea class="textarea-mono emby-textarea" rows="5" style="overflow: auto" id="MiscExcludeRegexFileName"></textarea>
-                                <div class="fieldDescription">通用文件名称匹配，如：<code>PV01.mkv</code></div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="bangumi-tab-content" data-tab="tabMiscExcludeRegex">
-                        <div class="fieldDescription">
-                            <p>下列正则用于排除特典内容，如SP、OVA、剧场版等类型文件，将其季号固定为0</p>
-                            <ul>
-                                <li>一行一条正则表达式</li>
-                                <li>忽略大小写</li>
-                                <li>从上往下按顺序执行匹配，直到匹配成功或全部失败</li>
-                            </ul>
-                        </div>
-                        <div class="bangumi-setting-block">
-                            <div class="inputContainer bangumi-inputContainer">
-                                <label class="textareaLabel" for="SpExcludeRegexFullPath">完整路径匹配</label>
-                                <button id="SpExcludeRegexFullPathResetBtn" is="paper-icon-button-light" title="重置" type="button" class="paper-icon-button-light">
-                                    <span aria-hidden="true" class="material-icons replay"></span>
-                                </button>
-                                <textarea class="textarea-mono emby-textarea" rows="5" style="overflow: auto" id="SpExcludeRegexFullPath"></textarea>
-                                <div class="fieldDescription">匹配完整文件路径，通常用于排除特定番剧目录内容，如：<code>E:\libs\animation\冴えない彼女の育てかた\SP\PV01.mkv</code></div>
-                            </div>
-                        </div>
-                        <div class="bangumi-setting-block">
-                            <div class="inputContainer bangumi-inputContainer">
-                                <label class="textareaLabel" for="SpExcludeRegexFolderName">目录名称匹配</label>
-                                <button id="SpExcludeRegexFolderNameResetBtn" is="paper-icon-button-light" title="重置" type="button" class="paper-icon-button-light">
-                                    <span aria-hidden="true" class="material-icons replay"></span>
-                                </button>
-                                <textarea class="textarea-mono emby-textarea" rows="5" style="overflow: auto" id="SpExcludeRegexFolderName"></textarea>
-                                <div class="fieldDescription">通用文件目录名称匹配，只匹配文件所在目录，如：<code>SP</code></div>
-                            </div>
-                        </div>
-                        <div class="bangumi-setting-block">
-                            <div class="inputContainer bangumi-inputContainer">
-                                <label class="textareaLabel" for="SpExcludeRegexFileName">文件名匹配</label>
-                                <button id="SpExcludeRegexFileNameResetBtn" is="paper-icon-button-light" title="重置" type="button" class="paper-icon-button-light">
-                                    <span aria-hidden="true" class="material-icons replay"></span>
-                                </button>
-                                <textarea class="textarea-mono emby-textarea" rows="5" style="overflow: auto" id="SpExcludeRegexFileName"></textarea>
-                                <div class="fieldDescription">通用文件名称匹配，如：<code>PV01.mkv</code></div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="bangumi-tab-content" data-tab="tabExcludeWhitelistRegex">
-                        <div class="fieldDescription">
-                            <p>下列正则用于白名单放行正篇内容，命中后将跳过杂项/特典排除规则，继续按正篇参与识别</p>
-                            <ul>
-                                <li>一行一条正则表达式</li>
-                                <li>忽略大小写</li>
-                                <li>优先于杂项、特典排除规则执行</li>
-                            </ul>
-                        </div>
-                        <div class="bangumi-setting-block">
-                            <div class="inputContainer bangumi-inputContainer">
-                                <label class="textareaLabel" for="ExcludeWhitelistRegexFullPath">完整路径匹配</label>
-                                <button id="ExcludeWhitelistRegexFullPathResetBtn" is="paper-icon-button-light" title="重置" type="button" class="paper-icon-button-light">
-                                    <span aria-hidden="true" class="material-icons replay"></span>
-                                </button>
-                                <textarea class="textarea-mono emby-textarea" rows="5" style="overflow: auto" id="ExcludeWhitelistRegexFullPath"></textarea>
-                                <div class="fieldDescription">匹配完整文件路径或目录路径，适合精确放行容易与默认排除规则冲突的内容</div>
-                            </div>
-                        </div>
-                        <div class="bangumi-setting-block">
-                            <div class="inputContainer bangumi-inputContainer">
-                                <label class="textareaLabel" for="ExcludeWhitelistRegexFolderName">目录名称匹配</label>
-                                <button id="ExcludeWhitelistRegexFolderNameResetBtn" is="paper-icon-button-light" title="重置" type="button" class="paper-icon-button-light">
-                                    <span aria-hidden="true" class="material-icons replay"></span>
-                                </button>
-                                <textarea class="textarea-mono emby-textarea" rows="5" style="overflow: auto" id="ExcludeWhitelistRegexFolderName"></textarea>
-                                <div class="fieldDescription">匹配文件所在目录或季目录名称，例如目录名含有 OVA、SP 但实际仍为正篇时可在此放行</div>
-                            </div>
-                        </div>
-                        <div class="bangumi-setting-block">
-                            <div class="inputContainer bangumi-inputContainer">
-                                <label class="textareaLabel" for="ExcludeWhitelistRegexFileName">文件名匹配</label>
-                                <button id="ExcludeWhitelistRegexFileNameResetBtn" is="paper-icon-button-light" title="重置" type="button" class="paper-icon-button-light">
-                                    <span aria-hidden="true" class="material-icons replay"></span>
-                                </button>
-                                <textarea class="textarea-mono emby-textarea" rows="5" style="overflow: auto" id="ExcludeWhitelistRegexFileName"></textarea>
-                                <div class="fieldDescription">匹配文件名，适合放行会被默认杂项/特典规则误判的正篇文件</div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="bangumi-tab-content" data-tab="tabRegexTools">
-                        <div class="fieldDescription">
-                            <p>当前标签页包含一些常用操作，如配置转换、正则测试等。</p>
-                        </div>
-                        <div class="bangumi-setting-block bangumi-regex-tool-card">
-                            <div class="inputContainer bangumi-inputContainer">
-                                <h4 class="bangumi-tool-title">普通文本转配置正则</h4>
-                                <div class="fieldDescription">由于正则表达式的特殊字符需要转义，直接使用普通文本可能会导致匹配错误。此工具可以将普通文本路径转换为可直接用于配置的正则表达式。</div>
-                                <label class="textareaLabel" for="RegexToolPathInput">普通文本</label>
-                                <textarea class="textarea-mono emby-textarea" rows="4" style="overflow: auto" id="RegexToolPathInput" data-config-ignore="true">プリンセスコネクト！ Re：Dive Menu10 (BD 1920x1080 HEVC-YUV420P10 FLAC).mkv</textarea>
-                                <div class="bangumi-tool-actions">
-                                    <button class="raised emby-button" id="RegexToolGenerateBtn" is="emby-button" type="button" data-config-ignore="true">
-                                        <span>生成表达式</span>
+                <div class="bangumi-settings-layout">
+                    <aside class="bangumi-settings-nav" aria-label="设置导航">
+                        <button class="bangumi-settings-nav-item active" data-target="account" type="button">账号</button>
+                        <button class="bangumi-settings-nav-item" data-target="network" type="button">网络</button>
+                        <button class="bangumi-settings-nav-item" data-target="metadata" type="button">元数据</button>
+                        <button class="bangumi-settings-nav-item" data-target="episode-parser" type="button">剧集解析</button>
+                        <button class="bangumi-settings-nav-item" data-target="archive" type="button">离线数据库</button>
+                        <button class="bangumi-settings-nav-item" data-target="tools" type="button">工具</button>
+                    </aside>
+                    <div class="bangumi-settings-content">
+                        <div class="bangumi-settings-panel active" data-section="account">
+                            <div class="bangumi-settings-module">
+                                <h2 class="bangumi-settings-heading">账号授权</h2>
+                                <div id="bangumi-oauth-container">
+                                    <div class="bangumi-user-info">
+                                        <div class="user-info">
+                                            <div class="user-avatar">
+                                                <span class="material-icons person"></span>
+                                            </div>
+                                            <div class="user-name">未登录</div>
+                                            <a class="profile-link fab" href="https://bgm.tv/" target="_blank">
+                                                <span class="material-icons open_in_new"></span>
+                                            </a>
+                                        </div>
+                                    </div>
+                                    <div class="bangumi-oauth-status"></div>
+                                    <button class="raised emby-button" id="bangumi-oauth-refresh" is="emby-button" style="display: none" type="button">
+                                        <span>延长授权时间</span>
+                                    </button>
+                                    <button class="raised emby-button" id="bangumi-oauth-btn" is="emby-button" type="button">
+                                        <span>授权登录 Bangumi</span>
+                                    </button>
+                                    <button class="emby-button button-link" id="bangumi-oauth-manual-btn" is="emby-button" type="button">
+                                        <span>手动填写</span>
+                                    </button>
+                                    <button class="raised emby-button" id="bangumi-oauth-delete" is="emby-button" style="display: none" type="button">
+                                        <span>取消授权</span>
                                     </button>
                                 </div>
-                                <label class="textareaLabel" for="RegexToolPatternOutput">正则表达式</label>
-                                <textarea class="textarea-mono emby-textarea" rows="3" style="overflow: auto" id="RegexToolPatternOutput" data-config-ignore="true" readonly="readonly"></textarea>
-                                <div class="bangumi-tool-actions">
-                                    <button class="raised emby-button" id="RegexToolCopyPatternBtn" is="emby-button" type="button" data-config-ignore="true">
-                                        <span>复制正则</span>
-                                    </button>
+                                <div class="selectContainer">
+                                    <div class="checkboxContainer checkboxContainer-withDescription">
+                                        <label class="emby-checkbox-label">
+                                            <input id="ReportPlaybackStatusToBangumi" is="emby-checkbox" type="checkbox" />
+                                            <span>同步播放进度到 Bangumi</span>
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="selectContainer">
+                                    <div class="checkboxContainer checkboxContainer-withDescription">
+                                        <label class="emby-checkbox-label">
+                                            <input id="ReportManualStatusChangeToBangumi" is="emby-checkbox" type="checkbox" />
+                                            <span>同步手动更新后的播放状态到 Bangumi</span>
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="selectContainer">
+                                    <div class="checkboxContainer checkboxContainer-withDescription">
+                                        <label class="emby-checkbox-label">
+                                            <input id="SkipNSFWPlaybackReport" is="emby-checkbox" type="checkbox" />
+                                            <span>忽略被标记为 NSFW 的内容</span>
+                                        </label>
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                        <div class="bangumi-setting-block bangumi-regex-tool-card">
-                            <div class="inputContainer bangumi-inputContainer">
-                                <h4 class="bangumi-tool-title">测试正则命中</h4>
-                                <div class="fieldDescription">输入待测试文本后，可查看白名单、特典、杂项规则分别命中了哪一条。正则测试基于当前页面内容，未保存的修改也会参与测试。仅用于模拟测试，实际以服务端逻辑为准。</div>
-                                <div class="selectContainer bangumi-tool-selectContainer">
-                                    <label class="selectLabel" for="RegexToolPathType">输入类型</label>
-                                    <select class="emby-select-withcolor emby-select" id="RegexToolPathType" is="emby-select" data-config-ignore="true">
-                                        <option value="EpisodeFile">剧集文件</option>
-                                        <option value="SeasonFolder">季度目录</option>
+                        <div class="bangumi-settings-panel" data-section="network">
+                            <div class="bangumi-settings-module">
+                                <h2 class="bangumi-settings-heading">网络</h2>
+                                <div class="inputContainer">
+                                    <label class="inputLabel inputLabelUnfocused" for="ProxyServerUrl">代理服务器地址</label>
+                                    <input class="emby-input" id="ProxyServerUrl" placeholder="http://127.0.0.1:7890" />
+                                </div>
+                                <div class="inputContainer">
+                                    <label class="inputLabel inputLabelUnfocused" for="BaseServerUrl">Bangumi API 地址</label>
+                                    <input class="emby-input" id="BaseServerUrl" type="url" />
+                                    <div class="fieldDescription">官方 API 部署在海外，请确保 Jellyfin 上能够稳定访问或配置反代站点。</div>
+                                </div>
+                                <div class="selectContainer">
+                                    <label class="selectLabel" for="RequestTimeout">请求超时时间</label>
+                                    <select class="emby-select-withcolor emby-select" id="RequestTimeout" is="emby-select">
+                                        <option value="5000">5 秒</option>
+                                        <option value="10000">10 秒</option>
+                                        <option value="30000">30 秒</option>
+                                        <option value="60000">1 分钟</option>
+                                    </select>
+                                    <div class="fieldDescription">只能缓解国内访问不稳定的情况，要确保国内能稳定访问请配置代理。</div>
+                                </div>
+                                <div class="selectContainer">
+                                    <label class="selectLabel" for="SeasonGuessMaxSearchCount">季度搜索最大请求数</label>
+                                    <select class="emby-select-withcolor emby-select" id="SeasonGuessMaxSearchCount" is="emby-select">
+                                        <option value="1">1</option>
+                                        <option value="2">2</option>
+                                        <option value="5">5</option>
+                                        <option value="10">10</option>
+                                    </select>
+                                    <div class="fieldDescription">本插件使用遍历搜索关联条目的方式匹配TV动画季度。大部分情况下只需一次搜索即可完成，但某些条目可能需要多次搜索才能匹配到下一季。默认最多搜索两次，如果某些季度匹配错误，您可以尝试增加最大搜索次数。</div>
+                                </div>
+                                <div class="selectContainer">
+                                    <label class="selectLabel" for="RatingUpdateMinInterval">更新评分频率</label>
+                                    <select class="emby-select-withcolor emby-select" id="RatingUpdateMinInterval" is="emby-select">
+                                        <option value="3">3天</option>
+                                        <option value="7">7天</option>
+                                        <option value="14">14天</option>
+                                        <option value="30">30天</option>
+                                    </select>
+                                    <div class="fieldDescription">默认不更新14天内已更新过的评分。如果评分频繁变化，可以选择更短的时间间隔以确保每次执行更新评分时都能覆盖旧的评分。</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="bangumi-settings-panel" data-section="metadata">
+                            <div class="bangumi-settings-module">
+                                <h2 class="bangumi-settings-heading">元数据</h2>
+                                <div class="selectContainer">
+                                    <label class="selectLabel" for="TranslationPreference">标题翻译</label>
+                                    <select class="emby-select-withcolor emby-select" id="TranslationPreference" is="emby-select">
+                                        <option value="Original">优先使用日文</option>
+                                        <option value="Chinese">优先使用中文翻译</option>
                                     </select>
                                 </div>
-                                <label class="textareaLabel" for="RegexToolTestInput">待测试文本</label>
-                                <textarea class="textarea-mono emby-textarea" rows="4" style="overflow: auto" id="RegexToolTestInput" data-config-ignore="true">プリンセスコネクト！ Re：Dive\プリンセスコネクト！ Re：Dive Menu10 (BD 1920x1080 HEVC-YUV420P10 FLAC).mkv</textarea>
-                                <div class="bangumi-tool-actions">
-                                    <button class="raised emby-button" id="RegexToolTestBtn" is="emby-button" type="button" data-config-ignore="true">
-                                        <span>测试命中</span>
-                                    </button>
+                                <div class="selectContainer">
+                                    <label class="selectLabel" for="PersonTranslationPreference">人物名称翻译</label>
+                                    <select class="emby-select-withcolor emby-select" id="PersonTranslationPreference" is="emby-select">
+                                        <option value="Original">优先使用日文</option>
+                                        <option value="Chinese">优先使用中文</option>
+                                    </select>
                                 </div>
-                                <div class="bangumi-regex-test-meta">
-                                    <div><span class="bangumi-regex-test-meta-label">完整路径</span><span id="RegexToolResolvedFullPath">-</span></div>
-                                    <div><span class="bangumi-regex-test-meta-label">目录名称</span><span id="RegexToolResolvedFolderName">-</span></div>
-                                    <div><span class="bangumi-regex-test-meta-label">文件名</span><span id="RegexToolResolvedFileName">-</span></div>
+                                <div class="checkboxContainer checkboxContainer-withDescription">
+                                    <label class="emby-checkbox-label">
+                                        <input id="UseBangumiSeasonTitle" is="emby-checkbox" type="checkbox" />
+                                        <span>使用 Bangumi 词条作为季名称</span>
+                                    </label>
+                                    <div class="fieldDescription">会将默认的“第 * 季”替换为对应条目的标题，如 ***** ** 篇。</div>
                                 </div>
-                                <div class="bangumi-regex-test-summary" id="RegexToolSummary">尚未开始测试</div>
-                                <div class="bangumi-regex-test-results" id="RegexToolResults"></div>
+                                <div class="checkboxContainer checkboxContainer-withDescription">
+                                    <label class="emby-checkbox-label">
+                                        <input id="TrustExistedBangumiId" is="emby-checkbox" type="checkbox" />
+                                        <span>始终根据配置的 Bangumi ID 获取元数据</span>
+                                    </label>
+                                    <div class="fieldDescription">
+                                        默认情况下会判断 ID 是否属当前的季度，当修改系列 / 季度后可自动更新下面的剧集信息；<br />
+                                        启用后不再更新，直到剧集元数据中的 ID 被清除才会查询。
+                                    </div>
+                                </div>
+                                <div class="checkboxContainer checkboxContainer-withDescription">
+                                    <label class="emby-checkbox-label">
+                                        <input id="UseTestingSearchApi" is="emby-checkbox" type="checkbox" />
+                                        <span>使用测试版 Bangumi 搜索接口</span>
+                                    </label>
+                                    <div class="fieldDescription">注：搜索结果不一定更准确。</div>
+                                </div>
+                                <div class="checkboxContainer checkboxContainer-withDescription">
+                                    <label class="emby-checkbox-label">
+                                        <input id="SortByFuzzScore" is="emby-checkbox" type="checkbox" />
+                                        <span>使用 FuzzyWuzzy 算法对匹配结果排序</span>
+                                    </label>
+                                    <div class="fieldDescription">排序时会加入条目别名，提高首个条目匹配率。测试接口未启用此算法</div>
+                                </div>
+                                <div class="checkboxContainer checkboxContainer-withDescription">
+                                    <label class="emby-checkbox-label">
+                                        <input id="UseOriginalTitleFirst" is="emby-checkbox" type="checkbox"/>
+                                        <span>优先使用原标题搜索</span>
+                                    </label>
+                                    <div class="fieldDescription">当存在原标题(OriginalTitle)时，优先使用原标题进行搜索，而不是使用翻译后的名称。这可以提高跨平台信息匹配的准确性，特别是对于不同平台翻译不一致的情况。</div>
+                                </div>
+                                <h2 class="bangumi-settings-subheading">AnitomySharp</h2>
+                                <div class="checkboxContainer checkboxContainer-withDescription">
+                                    <label class="emby-checkbox-label">
+                                        <input id="AlwaysGetTitleByAnitomySharp" is="emby-checkbox" type="checkbox" />
+                                        <span>优先使用 AnitomySharp 猜测动画名</span>
+                                    </label>
+                                </div>
                             </div>
                         </div>
+                        <div class="bangumi-settings-panel" data-section="episode-parser">
+                            <div class="bangumi-settings-module">
+                                <h2 class="bangumi-settings-heading">剧集解析</h2>
+                                <div class="selectContainer">
+                                    <label class="selectLabel" for="EpisodeParser">剧集解析器</label>
+                                    <select class="emby-select-withcolor emby-select" id="EpisodeParser" is="emby-select">
+                                        <option value="Basic">基础剧集解析器</option>
+                                        <option value="AnitomySharp">AnitomySharp 剧集解析器</option>
+                                        <option value="Torrent">混合剧集解析器</option>
+                                    </select>
+                                </div>
+                                <div class="episode-parser-options" episode-parser="Basic" style="display: none">
+                                    <div class="checkboxContainer checkboxContainer-withDescription">
+                                        <label class="emby-checkbox-label">
+                                            <input id="AlwaysReplaceEpisodeNumber" is="emby-checkbox" type="checkbox" />
+                                            <span>始终根据文件名猜测集数</span>
+                                        </label>
+                                        <div class="fieldDescription">用于修正 Jellyfin 自动识别集号错误的情况，由插件重新按文件名判断并纠正。少数情况下插件可能识别错误。</div>
+                                    </div>
+                                </div>
+                                <div class="episode-parser-options" episode-parser="AnitomySharp" style="display:none;">
+                                    <div class="fieldDescription">
+                                        AnitomySharp 能够解析包含特典信息的动画文件名，适用于整理拥有特典的系列
+                                    </div>
+                                    <div class="checkboxContainer checkboxContainer-withDescription">
+                                        <label class="emby-checkbox-label">
+                                            <input id="MovieEpisodeDetectionByAnitomySharp" is="emby-checkbox" type="checkbox" />
+                                            <span>根据文件大小及时长判断集数</span>
+                                        </label>
+                                        <div class="fieldDescription">
+                                            通常电影文件命名中并未包含集数，因此当媒体库中节目和电影混合时推荐开启，可辅助电影剧集匹配到元数据
+                                            <br>判断条件：媒体文件时长大于 10 分钟且大小大于 100MB
+                                            <br>默认集数为 1。可能误判
+                                        </div>
+                                    </div>
+                                    <div class="checkboxContainer checkboxContainer-withDescription">
+                                        <label class="emby-checkbox-label">
+                                            <input id="ProcessMultiSeasonFolderByAnitomySharp" is="emby-checkbox" type="checkbox" />
+                                            <span>处理多季度目录</span>
+                                        </label>
+                                        <div class="fieldDescription">
+                                            当存在目录嵌套时可以选择启用
+                                            <br>如："战姬绝唱SYMPHOGEAR/戦姫絶唱シンフォギアXV/Senki Zesshou Symphogear XV [01].mkv"。启用后将搜索"戦姫絶唱シンフォギアXV"并将其作为剧集的关联条目
+                                            <br>建议搭配「使用 Bangumi 词条作为季名称」使用。可能误判
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="episode-parser-options" episode-parser="Torrent" style="display:none;">
+                                    <div class="bangumi-tab-container">
+                                        <h3 class="bangumi-tool-title">文件排除正则表达式</h3>
+                                        <div class="fieldDescription">下列正则用于在获取元数据时匹配或排除指定的文件（夹），以便提高准确性，减少不必要的搜索，目前文件名匹配仅适用于混合剧集解析器</div>
+                                        <p />
+                                        <div class="bangumi-tab-header">
+                                            <div class="bangumi-tab-header-button active" data-tab="tabSpExcludeRegex">杂项文件排除</div>
+                                            <div class="bangumi-tab-header-button" data-tab="tabMiscExcludeRegex">特典文件排除</div>
+                                            <div class="bangumi-tab-header-button" data-tab="tabExcludeWhitelistRegex">排除白名单</div>
+                                            <div class="bangumi-tab-header-button" data-tab="tabRegexTools">常用工具</div>
+                                        </div>
+                                        <div class="bangumi-tab-content active" data-tab="tabSpExcludeRegex">
+                                            <div class="fieldDescription">
+                                                <p>下列正则用于排除杂项内容，如CM、PV、Menu、NCOP、NCED等类型文件，将其季号固定为null</p>
+                                                <ul>
+                                                    <li>一行一条正则表达式</li>
+                                                    <li>忽略大小写</li>
+                                                    <li>从上往下按顺序执行匹配，直到匹配成功或全部失败</li>
+                                                </ul>
+                                            </div>
+                                            <div class="bangumi-setting-block">
+                                                <div class="inputContainer bangumi-inputContainer">
+                                                    <label class="textareaLabel" for="MiscExcludeRegexFullPath">完整路径匹配</label>
+                                                    <button id="MiscExcludeRegexFullPathResetBtn" is="paper-icon-button-light" title="重置" type="button" class="paper-icon-button-light">
+                                                        <span aria-hidden="true" class="material-icons replay"></span>
+                                                    </button>
+                                                    <textarea class="textarea-mono emby-textarea" rows="5" style="overflow: auto" id="MiscExcludeRegexFullPath"></textarea>
+                                                    <div class="fieldDescription">匹配完整文件路径，通常用于排除特定番剧目录内容，如：<code>E:\libs\animation\冴えない彼女の育てかた\SP\PV01.mkv</code></div>
+                                                </div>
+                                            </div>
+                                            <div class="bangumi-setting-block">
+                                                <div class="inputContainer bangumi-inputContainer">
+                                                    <label class="textareaLabel" for="MiscExcludeRegexFolderName">目录名称匹配</label>
+                                                    <button id="MiscExcludeRegexFolderNameResetBtn" is="paper-icon-button-light" title="重置" type="button" class="paper-icon-button-light">
+                                                        <span aria-hidden="true" class="material-icons replay"></span>
+                                                    </button>
+                                                    <textarea class="textarea-mono emby-textarea" rows="5" style="overflow: auto" id="MiscExcludeRegexFolderName"></textarea>
+                                                    <div class="fieldDescription">通用文件目录名称匹配，只匹配文件所在目录，如：<code>SP</code></div>
+                                                </div>
+                                            </div>
+                                            <div class="bangumi-setting-block">
+                                                <div class="inputContainer bangumi-inputContainer">
+                                                    <label class="textareaLabel" for="MiscExcludeRegexFileName">文件名匹配</label>
+                                                    <button id="MiscExcludeRegexFileNameResetBtn" is="paper-icon-button-light" title="重置" type="button" class="paper-icon-button-light">
+                                                        <span aria-hidden="true" class="material-icons replay"></span>
+                                                    </button>
+                                                    <textarea class="textarea-mono emby-textarea" rows="5" style="overflow: auto" id="MiscExcludeRegexFileName"></textarea>
+                                                    <div class="fieldDescription">通用文件名称匹配，如：<code>PV01.mkv</code></div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="bangumi-tab-content" data-tab="tabMiscExcludeRegex">
+                                            <div class="fieldDescription">
+                                                <p>下列正则用于排除特典内容，如SP、OVA、剧场版等类型文件，将其季号固定为0</p>
+                                                <ul>
+                                                    <li>一行一条正则表达式</li>
+                                                    <li>忽略大小写</li>
+                                                    <li>从上往下按顺序执行匹配，直到匹配成功或全部失败</li>
+                                                </ul>
+                                            </div>
+                                            <div class="bangumi-setting-block">
+                                                <div class="inputContainer bangumi-inputContainer">
+                                                    <label class="textareaLabel" for="SpExcludeRegexFullPath">完整路径匹配</label>
+                                                    <button id="SpExcludeRegexFullPathResetBtn" is="paper-icon-button-light" title="重置" type="button" class="paper-icon-button-light">
+                                                        <span aria-hidden="true" class="material-icons replay"></span>
+                                                    </button>
+                                                    <textarea class="textarea-mono emby-textarea" rows="5" style="overflow: auto" id="SpExcludeRegexFullPath"></textarea>
+                                                    <div class="fieldDescription">匹配完整文件路径，通常用于排除特定番剧目录内容，如：<code>E:\libs\animation\冴えない彼女の育てかた\SP\PV01.mkv</code></div>
+                                                </div>
+                                            </div>
+                                            <div class="bangumi-setting-block">
+                                                <div class="inputContainer bangumi-inputContainer">
+                                                    <label class="textareaLabel" for="SpExcludeRegexFolderName">目录名称匹配</label>
+                                                    <button id="SpExcludeRegexFolderNameResetBtn" is="paper-icon-button-light" title="重置" type="button" class="paper-icon-button-light">
+                                                        <span aria-hidden="true" class="material-icons replay"></span>
+                                                    </button>
+                                                    <textarea class="textarea-mono emby-textarea" rows="5" style="overflow: auto" id="SpExcludeRegexFolderName"></textarea>
+                                                    <div class="fieldDescription">通用文件目录名称匹配，只匹配文件所在目录，如：<code>SP</code></div>
+                                                </div>
+                                            </div>
+                                            <div class="bangumi-setting-block">
+                                                <div class="inputContainer bangumi-inputContainer">
+                                                    <label class="textareaLabel" for="SpExcludeRegexFileName">文件名匹配</label>
+                                                    <button id="SpExcludeRegexFileNameResetBtn" is="paper-icon-button-light" title="重置" type="button" class="paper-icon-button-light">
+                                                        <span aria-hidden="true" class="material-icons replay"></span>
+                                                    </button>
+                                                    <textarea class="textarea-mono emby-textarea" rows="5" style="overflow: auto" id="SpExcludeRegexFileName"></textarea>
+                                                    <div class="fieldDescription">通用文件名称匹配，如：<code>PV01.mkv</code></div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="bangumi-tab-content" data-tab="tabExcludeWhitelistRegex">
+                                            <div class="fieldDescription">
+                                                <p>下列正则用于白名单放行正篇内容，命中后将跳过杂项/特典排除规则，继续按正篇参与识别</p>
+                                                <ul>
+                                                    <li>一行一条正则表达式</li>
+                                                    <li>忽略大小写</li>
+                                                    <li>优先于杂项、特典排除规则执行</li>
+                                                </ul>
+                                            </div>
+                                            <div class="bangumi-setting-block">
+                                                <div class="inputContainer bangumi-inputContainer">
+                                                    <label class="textareaLabel" for="ExcludeWhitelistRegexFullPath">完整路径匹配</label>
+                                                    <button id="ExcludeWhitelistRegexFullPathResetBtn" is="paper-icon-button-light" title="重置" type="button" class="paper-icon-button-light">
+                                                        <span aria-hidden="true" class="material-icons replay"></span>
+                                                    </button>
+                                                    <textarea class="textarea-mono emby-textarea" rows="5" style="overflow: auto" id="ExcludeWhitelistRegexFullPath"></textarea>
+                                                    <div class="fieldDescription">匹配完整文件路径或目录路径，适合精确放行容易与默认排除规则冲突的内容</div>
+                                                </div>
+                                            </div>
+                                            <div class="bangumi-setting-block">
+                                                <div class="inputContainer bangumi-inputContainer">
+                                                    <label class="textareaLabel" for="ExcludeWhitelistRegexFolderName">目录名称匹配</label>
+                                                    <button id="ExcludeWhitelistRegexFolderNameResetBtn" is="paper-icon-button-light" title="重置" type="button" class="paper-icon-button-light">
+                                                        <span aria-hidden="true" class="material-icons replay"></span>
+                                                    </button>
+                                                    <textarea class="textarea-mono emby-textarea" rows="5" style="overflow: auto" id="ExcludeWhitelistRegexFolderName"></textarea>
+                                                    <div class="fieldDescription">匹配文件所在目录或季目录名称，例如目录名含有 OVA、SP 但实际仍为正篇时可在此放行</div>
+                                                </div>
+                                            </div>
+                                            <div class="bangumi-setting-block">
+                                                <div class="inputContainer bangumi-inputContainer">
+                                                    <label class="textareaLabel" for="ExcludeWhitelistRegexFileName">文件名匹配</label>
+                                                    <button id="ExcludeWhitelistRegexFileNameResetBtn" is="paper-icon-button-light" title="重置" type="button" class="paper-icon-button-light">
+                                                        <span aria-hidden="true" class="material-icons replay"></span>
+                                                    </button>
+                                                    <textarea class="textarea-mono emby-textarea" rows="5" style="overflow: auto" id="ExcludeWhitelistRegexFileName"></textarea>
+                                                    <div class="fieldDescription">匹配文件名，适合放行会被默认杂项/特典规则误判的正篇文件</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="bangumi-tab-content" data-tab="tabRegexTools">
+                                            <div class="fieldDescription">
+                                                <p>当前标签页包含一些常用操作，如配置转换、正则测试等。</p>
+                                            </div>
+                                            <div class="bangumi-setting-block bangumi-regex-tool-card">
+                                                <div class="inputContainer bangumi-inputContainer">
+                                                    <h4 class="bangumi-tool-title">普通文本转配置正则</h4>
+                                                    <div class="fieldDescription">由于正则表达式的特殊字符需要转义，直接使用普通文本可能会导致匹配错误。此工具可以将普通文本路径转换为可直接用于配置的正则表达式。</div>
+                                                    <label class="textareaLabel" for="RegexToolPathInput">普通文本</label>
+                                                    <textarea class="textarea-mono emby-textarea" rows="4" style="overflow: auto" id="RegexToolPathInput" data-config-ignore="true">プリンセスコネクト！ Re：Dive Menu10 (BD 1920x1080 HEVC-YUV420P10 FLAC).mkv</textarea>
+                                                    <div class="bangumi-tool-actions">
+                                                        <button class="raised emby-button" id="RegexToolGenerateBtn" is="emby-button" type="button" data-config-ignore="true">
+                                                            <span>生成表达式</span>
+                                                        </button>
+                                                    </div>
+                                                    <label class="textareaLabel" for="RegexToolPatternOutput">正则表达式</label>
+                                                    <textarea class="textarea-mono emby-textarea" rows="3" style="overflow: auto" id="RegexToolPatternOutput" data-config-ignore="true" readonly="readonly"></textarea>
+                                                    <div class="bangumi-tool-actions">
+                                                        <button class="raised emby-button" id="RegexToolCopyPatternBtn" is="emby-button" type="button" data-config-ignore="true">
+                                                            <span>复制正则</span>
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="bangumi-setting-block bangumi-regex-tool-card">
+                                                <div class="inputContainer bangumi-inputContainer">
+                                                    <h4 class="bangumi-tool-title">测试正则命中</h4>
+                                                    <div class="fieldDescription">输入待测试文本后，可查看白名单、特典、杂项规则分别命中了哪一条。正则测试基于当前页面内容，未保存的修改也会参与测试。仅用于模拟测试，实际以服务端逻辑为准。</div>
+                                                    <div class="selectContainer bangumi-tool-selectContainer">
+                                                        <label class="selectLabel" for="RegexToolPathType">输入类型</label>
+                                                        <select class="emby-select-withcolor emby-select" id="RegexToolPathType" is="emby-select" data-config-ignore="true">
+                                                            <option value="EpisodeFile">剧集文件</option>
+                                                            <option value="SeasonFolder">季度目录</option>
+                                                        </select>
+                                                    </div>
+                                                    <label class="textareaLabel" for="RegexToolTestInput">待测试文本</label>
+                                                    <textarea class="textarea-mono emby-textarea" rows="4" style="overflow: auto" id="RegexToolTestInput" data-config-ignore="true">プリンセスコネクト！ Re：Dive\プリンセスコネクト！ Re：Dive Menu10 (BD 1920x1080 HEVC-YUV420P10 FLAC).mkv</textarea>
+                                                    <div class="bangumi-tool-actions">
+                                                        <button class="raised emby-button" id="RegexToolTestBtn" is="emby-button" type="button" data-config-ignore="true">
+                                                            <span>测试命中</span>
+                                                        </button>
+                                                    </div>
+                                                    <div class="bangumi-regex-test-meta">
+                                                        <div><span class="bangumi-regex-test-meta-label">完整路径</span><span id="RegexToolResolvedFullPath">-</span></div>
+                                                        <div><span class="bangumi-regex-test-meta-label">目录名称</span><span id="RegexToolResolvedFolderName">-</span></div>
+                                                        <div><span class="bangumi-regex-test-meta-label">文件名</span><span id="RegexToolResolvedFileName">-</span></div>
+                                                    </div>
+                                                    <div class="bangumi-regex-test-summary" id="RegexToolSummary">尚未开始测试</div>
+                                                    <div class="bangumi-regex-test-results" id="RegexToolResults"></div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="bangumi-settings-panel" data-section="archive">
+                            <div class="bangumi-settings-module">
+                                <div class="bangumi-settings-heading-row">
+                                    <h2 class="bangumi-settings-heading">离线数据库 (Beta)</h2>
+                                </div>
+                                <div class="fieldDescription">
+                                    离线数据库默认每周更新一次，当存在离线数据库时，插件会优先查询离线数据库的数据。<br />
+                                    如果需要禁用离线数据库，请关闭计划任务并清理本地文件。
+                                </div>
+                                <div class="paperList" id="bangumi-archive-container">
+                                    <div class="listItem listItem-border">
+                                        <div class="listItemBody two-line">
+                                            <div class="listItemBodyText secondary" style="margin: 0">目录</div>
+                                            <div class="listItemBodyText" id="archive-folder">-</div>
+                                        </div>
+                                    </div>
+                                    <div class="listItem listItem-border archive-data-required">
+                                        <div class="listItemBody two-line">
+                                            <div class="listItemBodyText secondary" style="margin: 0">大小</div>
+                                            <div class="listItemBodyText" id="archive-size">0</div>
+                                        </div>
+                                        <button id="delete-archive-data" is="paper-icon-button-light" title="删除离线数据库" type="button">
+                                            <span aria-hidden="true" class="material-icons delete"></span>
+                                        </button>
+                                    </div>
+                                    <div class="listItem listItem-border archive-data-required">
+                                        <div class="listItemBody two-line">
+                                            <div class="listItemBodyText secondary" style="margin: 0">上次更新时间</div>
+                                            <div class="listItemBodyText" id="archive-update-time">-</div>
+                                        </div>
+                                        <button id="config-archive-update-task" is="paper-icon-button-light" title="计划任务设置" type="button">
+                                            <span aria-hidden="true" class="material-icons settings"></span>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="selectContainer">
+                                    <label class="selectLabel" for="DaysBeforeUsingArchiveData">针对近期放送的剧集始终使用在线接口</label>
+                                    <select class="emby-select-withcolor emby-select" id="DaysBeforeUsingArchiveData" is="emby-select">
+                                        <option value="0">始终使用离线数据</option>
+                                        <option value="7">为 7 日前放送的剧集使用离线数据</option>
+                                        <option value="14">为 14 日前放送的剧集使用离线数据（推荐）</option>
+                                        <option value="30">为 30 日前放送的剧集使用离线数据</option>
+                                    </select>
+                                    <div class="fieldDescription">对于近期放送的条目离线数据库更新可能不及时，可通过更换在线接口缓解。</div>
+                                </div>
+                                <div class="checkboxContainer checkboxContainer-withDescription">
+                                    <label class="emby-checkbox-label">
+                                        <input id="RefreshRecentEpisodeWhenArchiveUpdate" is="emby-checkbox" type="checkbox" />
+                                        <span>当离线数据库更新时更新近期放送番剧的元数据</span>
+                                    </label>
+                                    <div class="fieldDescription">更新时不受元数据优先级影响强制覆盖，当默认元数据不是 Bangumi 时不建议启用。</div>
+                                </div>
+                                <div class="checkboxContainer checkboxContainer-withDescription">
+                                    <label class="emby-checkbox-label">
+                                        <input id="RefreshRatingWhenArchiveUpdate" is="emby-checkbox" type="checkbox" />
+                                        <span>当离线数据库更新时更新番剧评分</span>
+                                    </label>
+                                    <div class="fieldDescription">离线数据库更新后自动更新所有已关联 Bangumi 词条项目的评分（注意可能覆盖其他元数据插件的评分）。</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="bangumi-settings-panel without-save-button" data-section="tools">
+                            <div class="bangumi-settings-module">
+                                <h2 class="bangumi-settings-heading">附加工具</h2>
+                                <div class="bangumi-plugin-tools-container">
+                                    <a href="#/configurationpage?name=Plugin.Bangumi.Tools.DuplicatedEpisodesDetector" class="bangumi-plugin-tools">
+                                        <i class="material-icons handyman"></i>
+                                        <div class="bangumi-plugin-tools-title">重复剧集检测</div>
+                                        <div class="bangumi-plugin-tools-description">检测并删除重复的剧集文件</div>
+                                        <i class="material-icons navigate_next"></i>
+                                    </a>
+                                </div>
+                                <div class="bangumi-plugin-tools-container">
+                                    <a href="#/configurationpage?name=Plugin.Bangumi.Tools.FixEpisodeMetadata" class="bangumi-plugin-tools">
+                                        <i class="material-icons handyman"></i>
+                                        <div class="bangumi-plugin-tools-title">修正错误的剧集元数据</div>
+                                        <div class="bangumi-plugin-tools-description">当前功能：移除剧集中为 0 的 Bangumi ID</div>
+                                        <i class="material-icons navigate_next"></i>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="submit-button-container">
+                            <button class="raised button-submit block emby-button" is="emby-button" type="submit">
+                                <span>保存</span>
+                            </button>
+                        </div>
                     </div>
-                    </div>
-                </div>
-                <div class="verticalSection">
-                    <div class="sectionTitleContainer flex align-items-center">
-                        <h2 class="sectionTitle">AnitomySharp</h2>
-                    </div>
-                </div>
-                <div class="checkboxContainer checkboxContainer-withDescription">
-                    <label class="emby-checkbox-label">
-                        <input id="AlwaysGetTitleByAnitomySharp" is="emby-checkbox" type="checkbox" />
-                        <span>优先使用 AnitomySharp 猜测动画名</span>
-                    </label>
-                </div>
-                <div class="verticalSection">
-                    <div class="sectionTitleContainer flex align-items-center">
-                        <h2 class="sectionTitle">附加工具</h2>
-                    </div>
-                </div>
-                <div class="bangumi-plugin-tools-container">
-                    <a href="#/configurationpage?name=Plugin.Bangumi.Tools.DuplicatedEpisodesDetector" class="bangumi-plugin-tools">
-                        <i class="material-icons handyman"></i>
-                        <div class="bangumi-plugin-tools-title">重复剧集检测</div>
-                        <div class="bangumi-plugin-tools-description">检测并删除重复的剧集文件</div>
-                        <i class="material-icons navigate_next"></i>
-                    </a>
-                </div>
-                <div class="submit-button-container">
-                    <button class="raised button-submit block emby-button" is="emby-button" type="submit">
-                        <span>保存</span>
-                    </button>
                 </div>
             </form>
         </div>
