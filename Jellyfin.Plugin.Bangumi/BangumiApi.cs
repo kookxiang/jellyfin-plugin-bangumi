@@ -240,46 +240,107 @@ public partial class BangumiApi
         return await Get<IEnumerable<RelatedSubject>>($"{BaseUrl}/v0/subjects/{id}/subjects", token);
     }
 
+    public static bool IsOVAOrMovie(Subject subject)
+    {
+        return subject.Platform == SubjectPlatform.Movie
+               || subject.Platform == SubjectPlatform.OVA
+               || subject.GenreTags.Contains("OVA")
+               || subject.GenreTags.Contains("剧场版");
+    }
+
     public async Task<Subject?> SearchNextSubject(int id, CancellationToken token)
     {
         if (id <= 0) return null;
 
-        bool SeriesSequelUnqualified(Subject subject)
-        {
-            return subject.Platform == SubjectPlatform.Movie
-                   || subject.Platform == SubjectPlatform.OVA
-                   || subject.GenreTags.Contains("OVA")
-                   || subject.GenreTags.Contains("剧场版");
-        }
-
-        var requestCount = 0;
         //What would happen in Emby if I use `_plugin`?
         var maxRequestCount = Plugin.Instance?.Configuration?.SeasonGuessMaxSearchCount ?? 2;
         var relatedSubjects = await GetRelatedSubjects(id, token);
-        var subjectsQueue = new Queue<RelatedSubject>(relatedSubjects?.Where(item => item.Relation == SubjectRelation.Sequel) ?? []);
-        while (subjectsQueue.Count > 0 && requestCount < maxRequestCount)
+        var currentLevel = relatedSubjects?.Where(item => item.Relation == SubjectRelation.Sequel).ToArray() ?? [];
+
+        for (var i = 0; i < maxRequestCount && currentLevel.Length > 0; i++)
         {
-            var relatedSubject = subjectsQueue.Dequeue();
-            var subjectCandidate = await GetSubject(relatedSubject.Id, token);
-            requestCount++;
-            if (subjectCandidate != null && SeriesSequelUnqualified(subjectCandidate))
+            var subjects = await Task.WhenAll(currentLevel.Select(rs => GetSubject(rs.Id, token)));
+            var validSubjects = subjects.OfType<Subject>().ToArray();
+
+            var candidate = validSubjects.FirstOrDefault(s => !IsOVAOrMovie(s));
+            if (candidate != null)
             {
-                var nextRelatedSubjects = await GetRelatedSubjects(subjectCandidate.Id, token);
-                foreach (var nextRelatedSubject in nextRelatedSubjects?.Where(item => item.Relation == SubjectRelation.Sequel) ?? [])
-                {
-                    subjectsQueue.Enqueue(nextRelatedSubject);
-                }
+                Console.WriteLine($"BangumiApi: Season guess of id #{id} end at level {i + 1}");
+                return candidate;
             }
-            else
+
+            var nextLevel = new List<RelatedSubject>();
+            foreach (var subject in validSubjects)
             {
-                // BFS until meets criteria
-                Console.WriteLine($"BangumiApi: Season guess of id #{id} end with {requestCount} searches");
-                return subjectCandidate;
+                var nextRelatedSubjects = await GetRelatedSubjects(subject.Id, token);
+                if (nextRelatedSubjects != null)
+                    nextLevel.AddRange(nextRelatedSubjects.Where(rs => rs.Relation == SubjectRelation.Sequel));
             }
+
+            currentLevel = [.. nextLevel];
         }
 
-        Console.WriteLine($"BangumiApi: Season guess of id #{id} failed with {requestCount} searches");
+        Console.WriteLine($"BangumiApi: Season guess of id #{id} failed after {maxRequestCount} levels");
         return null;
+    }
+
+    public async Task<Subject?> SearchPreviousSubject(int id, int maxRequestCount, CancellationToken token)
+    {
+        var subjects = await SearchPreviousSubjects(id, maxRequestCount, token);
+        return subjects.LastOrDefault()?.FirstOrDefault();
+    }
+
+    public async Task<List<Subject[]>> SearchPreviousSubjects(int id, int maxRequestCount, CancellationToken token)
+    {
+        if (id <= 0 || maxRequestCount <= 0) return [];
+
+        var currentSubject = await GetSubject(id, token);
+        if (currentSubject == null) return [];
+
+        var result = new List<Subject[]> { new[] { currentSubject } };
+
+        for (int i = 0; i < maxRequestCount; i++)
+        {
+            var lastLoopSubjects = result[^1];
+            List<Subject> currentLoopResult = [];
+            foreach (var subject in lastLoopSubjects)
+            {
+                await AddPrequelSubjectsFromSubject(subject, currentLoopResult, token);
+            }
+
+            if (currentLoopResult.Count == 0) break;
+
+            result.Add([.. currentLoopResult]);
+        }
+
+        return result;
+    }
+
+    private async Task AddPrequelSubjectsFromSubject(Subject subject, List<Subject> currentLoopResult, CancellationToken token)
+    {
+        var relatedSubjects = await GetRelatedSubjects(subject.Id, token);
+        if (relatedSubjects == null) return;
+
+        var prequels = relatedSubjects.Where(item => item.Relation == SubjectRelation.Prequel).ToArray();
+        if (prequels.Length == 0) return;
+
+        var idsToFetch = prequels
+            .Select(item => item.Id)
+            .Where(id => !currentLoopResult.Any(s => s.Id == id))
+            .Distinct()
+            .ToArray();
+
+        if (idsToFetch.Length == 0) return;
+
+        var subjects = await Task.WhenAll(idsToFetch.Select(id => GetSubject(id, token)));
+        var validSubjects = subjects.OfType<Subject>().ToArray();
+
+        if (validSubjects.Any(s => !IsOVAOrMovie(s)))
+        {
+            validSubjects = [.. validSubjects.Where(s => !IsOVAOrMovie(s))];
+        }
+
+        currentLoopResult.AddRange(validSubjects);
     }
 
     /// <summary>

@@ -23,14 +23,6 @@ public class Episode
 
     private readonly CancellationToken _token = new();
 
-    private void CreateSeason(string path)
-    {
-        _libraryManager.CreateItem(new MediaBrowser.Controller.Entities.TV.Season()
-        {
-            Path = FakePath.Create(path)
-        }, null);
-    }
-
     [TestMethod]
     public void ProviderInfo()
     {
@@ -87,6 +79,7 @@ public class Episode
         Assert.IsNotNull(episodeData, "episode data should not be null");
         Assert.IsNotNull(episodeData.Item, "episode data should not be null");
         Assert.AreEqual("WHITE ALBUM", episodeData.Item.Name, "should return the right episode title");
+        Assert.AreEqual(1, episodeData.Item.IndexNumber, "should fix episode index automatically");
 
         episodeData = await _provider.GetMetadata(new EpisodeInfo
         {
@@ -154,7 +147,7 @@ public class Episode
         Assert.AreNotEqual(episodeData.Item.ParentIndexNumber, 0, "should not mark folder as special");
         Assert.AreEqual("167720", episodeData.Item.ProviderIds[Constants.ProviderName], "should return the right episode id");
 
-        CreateSeason("妄想学生会 OVA");
+        FakePath.CreateSeason(_libraryManager, "妄想学生会 OVA");
         episodeData = await _provider.GetMetadata(new EpisodeInfo
         {
             Path = FakePath.CreateFile("妄想学生会 OVA/[VCB-Studio] Seitokai Yakuindomo [16][Ma10p_1080p][x265_flac].mkv"),
@@ -171,7 +164,7 @@ public class Episode
     [TestMethod]
     public async Task SpecialEpisodeFromSubFolder()
     {
-        CreateSeason("とある科学の超電磁砲S/Specials");
+        FakePath.CreateSeason(_libraryManager, "とある科学の超電磁砲S/Specials");
         var episodeData = await _provider.GetMetadata(new EpisodeInfo
         {
             Path = FakePath.CreateFile("とある科学の超電磁砲S/Specials/01.mkv"),
@@ -183,7 +176,7 @@ public class Episode
         Assert.IsNotNull(episodeData.Item, "episode data should not be null");
         Assert.AreEqual("MMR Ⅲ 〜もっとまるっと超電磁砲Ⅲ〜", episodeData.Item.Name, "should return the right episode title");
 
-        CreateSeason("Season 1 OVA");
+        FakePath.CreateSeason(_libraryManager, "Season 1 OVA");
         episodeData = await _provider.GetMetadata(new EpisodeInfo
         {
             Path = FakePath.CreateFile("Season 1 OVA/Seitokai Yakuindomo [16][Ma10p_1080p][x265_flac].mkv"),
@@ -201,16 +194,16 @@ public class Episode
     {
         var episodeData = await _provider.GetMetadata(new EpisodeInfo
         {
-            Path = FakePath.CreateFile("OVA\\Tonikaku Kawaii: Seifuku [WebRip 1080p HEVC-10bit AAC ASSx2].mkv"),
+            Path = FakePath.CreateFile("OVA\\Tonikaku Kawaii: Soushuhen [WebRip 1080p HEVC-10bit AAC ASSx2].mkv"),
             ParentIndexNumber = 0,
-            ProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "1143188" } },
+            ProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "996668" } },
             SeriesProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "301541" } }
         },
             _token);
         Assert.IsNotNull(episodeData, "episode data should not be null");
         Assert.IsNotNull(episodeData.Item, "episode data should not be null");
-        Assert.AreEqual(episodeData.Item.ParentIndexNumber, 0, "this is special episode");
-        Assert.AreEqual("トニカクカワイイ ～制服～", episodeData.Item.Name, "should use subject title as episode title");
+        Assert.AreEqual(0, episodeData.Item.ParentIndexNumber, "this is special episode");
+        Assert.AreEqual("総集編 回想", episodeData.Item.Name, "should use subject title as episode title");
     }
 
     [TestMethod]
@@ -653,5 +646,224 @@ public class Episode
         Assert.IsNotNull(episodeData, "episode data should not be null");
         Assert.IsNotNull(episodeData.Item, "episode data should not be null");
         Assert.AreEqual("だから、思春期は終わらずに、青春は続いていく。", episodeData.Item.Name, "should return the right episode title");
+    }
+
+    [TestMethod]
+    public async Task MultipleSeasonFolderRecognition()
+    {
+        _plugin.Configuration.AlwaysReplaceEpisodeNumber = true;
+
+        var season = FakePath.CreateSeason(_libraryManager, "恶魔高校D×D/恶魔高校D×D");
+        season.ProviderIds.Add(Constants.ProviderName, "15910");
+        season.IndexNumber = 1;
+        var episodeData = await _provider.GetMetadata(new EpisodeInfo
+        {
+            Path = FakePath.CreateFile("恶魔高校D×D/恶魔高校D×D/1.mkv")
+        },
+            _token);
+        Assert.IsTrue(episodeData.HasMetadata, "episode data should not be null");
+        Assert.AreEqual(135870, int.Parse(episodeData.Item.ProviderIds[Constants.ProviderName]), "should return the right episode id");
+        Assert.AreEqual(1, episodeData.Item.ParentIndexNumber, "should return the right season number");
+
+        season = FakePath.CreateSeason(_libraryManager, "恶魔高校D×D/恶魔高校D×D NEW");
+        season.ProviderIds.Add(Constants.ProviderName, "48700");
+        season.IndexNumber = 2;
+        episodeData = await _provider.GetMetadata(new EpisodeInfo
+        {
+            Path = FakePath.CreateFile("恶魔高校D×D/恶魔高校D×D NEW/2.mkv")
+        },
+            _token);
+        Assert.IsTrue(episodeData.HasMetadata, "episode data should not be null");
+        Assert.AreEqual(288943, int.Parse(episodeData.Item.ProviderIds[Constants.ProviderName]), "should return the right episode id");
+        Assert.AreEqual(2, episodeData.Item.ParentIndexNumber, "should return the right season number");
+
+        season = FakePath.CreateSeason(_libraryManager, "恶魔高校D×D/恶魔高校D×D BorN");
+        season.ProviderIds.Add(Constants.ProviderName, "106212");
+        season.IndexNumber = 3;
+        episodeData = await _provider.GetMetadata(new EpisodeInfo
+        {
+            Path = FakePath.CreateFile("恶魔高校D×D/恶魔高校D×D BorN/3.mkv")
+        },
+            _token);
+        Assert.IsTrue(episodeData.HasMetadata, "episode data should not be null");
+        Assert.AreEqual(512723, int.Parse(episodeData.Item.ProviderIds[Constants.ProviderName]), "should return the right episode id");
+        Assert.AreEqual(3, episodeData.Item.ParentIndexNumber, "should return the right season number");
+
+        season = FakePath.CreateSeason(_libraryManager, "恶魔高校D×D/恶魔高校D×D HERO");
+        season.ProviderIds.Add(Constants.ProviderName, "195845");
+        season.IndexNumber = 4;
+        episodeData = await _provider.GetMetadata(new EpisodeInfo
+        {
+            Path = FakePath.CreateFile("恶魔高校D×D/恶魔高校D×D HERO/4.mkv")
+        },
+            _token);
+        Assert.IsTrue(episodeData.HasMetadata, "episode data should not be null");
+        Assert.AreEqual(786876, int.Parse(episodeData.Item.ProviderIds[Constants.ProviderName]), "should return the right episode id");
+        Assert.AreEqual(4, episodeData.Item.ParentIndexNumber, "should return the right season number");
+
+        // 条目页面集号顺延自本篇，需要手动设置偏移
+        FakePath.CreateLocalConfiguration("恶魔高校D×D/恶魔高校D×D OAD", new Model.LocalConfiguration
+        {
+            Offset = -12
+        });
+        season = FakePath.CreateSeason(_libraryManager, "恶魔高校D×D/恶魔高校D×D OAD");
+        season.ProviderIds.Add(Constants.ProviderName, "46010");
+        episodeData = await _provider.GetMetadata(new EpisodeInfo
+        {
+            Path = FakePath.CreateFile("恶魔高校D×D/恶魔高校D×D OAD/1.mkv")
+        },
+            _token);
+        Assert.IsTrue(episodeData.HasMetadata, "episode data should not be null");
+        Assert.AreEqual(189392, int.Parse(episodeData.Item.ProviderIds[Constants.ProviderName]), "should return the right episode id");
+        Assert.AreEqual(0, episodeData.Item.ParentIndexNumber, "should return the right season number");
+
+        season = FakePath.CreateSeason(_libraryManager, "恶魔高校D×D/恶魔高校D×D DX OAD");
+        season.ProviderIds.Add(Constants.ProviderName, "127827");
+        episodeData = await _provider.GetMetadata(new EpisodeInfo
+        {
+            Path = FakePath.CreateFile("恶魔高校D×D/恶魔高校D×D DX OAD/2.mkv")
+        },
+            _token);
+        Assert.IsTrue(episodeData.HasMetadata, "episode data should not be null");
+        Assert.AreEqual(503689, int.Parse(episodeData.Item.ProviderIds[Constants.ProviderName]), "should return the right episode id");
+        Assert.AreEqual(0, episodeData.Item.ParentIndexNumber, "should return the right season number");
+    }
+
+    [TestMethod]
+    public async Task MultipleSeasonEpisodesInSingleFolder()
+    {
+        _plugin.Configuration.EpisodeParser = EpisodeParserType.Torrent;
+
+        var basedir = "[Moozzi2] Nisekoi BD-BOX - S1 + S2 + OAD";
+        FakePath.CreateSeries(_libraryManager, basedir);
+
+        var episodeData = await _provider.GetMetadata(new EpisodeInfo
+        {
+            Path = FakePath.CreateFile($"{basedir}/[Moozzi2] Nisekoi S1 - 04 (BD 1920x1080 x.264-10Bit Flac).mkv"),
+            SeasonProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "74628" } }
+        },
+            _token);
+        Assert.IsTrue(episodeData.HasMetadata, "episode data should not be null");
+        Assert.AreEqual(1, episodeData.Item.ParentIndexNumber.GetValueOrDefault(), "should return the right ParentIndexNumber");
+        Assert.AreEqual(4, episodeData.Item.IndexNumber.GetValueOrDefault(), "should return the right IndexNumber");
+        Assert.AreEqual(350240, int.Parse(episodeData.Item.ProviderIds[Constants.ProviderName]), "should return the right episode id");
+
+        episodeData = await _provider.GetMetadata(new EpisodeInfo
+        {
+            Path = FakePath.CreateFile($"{basedir}/[Moozzi2] Nisekoi S2 - 11 (BD 1920x1080 x.264-10Bit FLACx2).mkv"),
+            SeasonProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "114758" } }
+        },
+            _token);
+        Assert.IsTrue(episodeData.HasMetadata, "episode data should not be null");
+        Assert.AreEqual(2, episodeData.Item.ParentIndexNumber.GetValueOrDefault(), "should return the right ParentIndexNumber");
+        Assert.AreEqual(11, episodeData.Item.IndexNumber.GetValueOrDefault(), "should return the right IndexNumber");
+        Assert.AreEqual(512852, int.Parse(episodeData.Item.ProviderIds[Constants.ProviderName]), "should return the right episode id");
+
+        _plugin.Configuration.EpisodeParser = EpisodeParserType.Basic;
+    }
+
+    [TestMethod]
+    public async Task MultipleSeasonEpisodesInSingleFolder2()
+    {
+        _plugin.Configuration.EpisodeParser = EpisodeParserType.Torrent;
+
+        var basedir = "[アニメ BD] 魔法少女リリカルなのは+A's+StrikerS+劇場版(The MOVIE 1st&2nd A's) 全54話+特典+CDx51+Scans(1920x1080 HEVC 10bit FLAC+DTS-HDMA Sub(chi+eng+jpn) chap)";
+        FakePath.CreateSeries(_libraryManager, basedir);
+
+        var episodeData = await _provider.GetMetadata(new EpisodeInfo
+        {
+            Path = FakePath.CreateFile($"{basedir}/[アニメ BD] 魔法少女リリカルなのは 無印(第1期) 第04話「ライバル！？もうひとりの魔法少女なの！」(1424x1068 HEVC 10bit FLAC softSub(chs+cht+eng) chap).mkv"),
+            SeasonProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "1262" } }
+        },
+            _token);
+        Assert.IsTrue(episodeData.HasMetadata, "episode data should not be null");
+        Assert.AreEqual(1, episodeData.Item.ParentIndexNumber.GetValueOrDefault(), "should return the right ParentIndexNumber");
+        Assert.AreEqual(4, episodeData.Item.IndexNumber.GetValueOrDefault(), "should return the right IndexNumber");
+        Assert.AreEqual(3687, int.Parse(episodeData.Item.ProviderIds[Constants.ProviderName]), "should return the right episode id");
+
+        episodeData = await _provider.GetMetadata(new EpisodeInfo
+        {
+            Path = FakePath.CreateFile($"{basedir}/[アニメ BD] 魔法少女リリカルなのはA's(第2期) 第06話「それは小さな願いなの（後編）」(1416x1068 HEVC 10bit FLAC softSub(chs+cht+eng+jpn) chap).mkv"),
+            SeasonProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "1263" } }
+        },
+            _token);
+        Assert.IsTrue(episodeData.HasMetadata, "episode data should not be null");
+        Assert.AreEqual(2, episodeData.Item.ParentIndexNumber.GetValueOrDefault(), "should return the right ParentIndexNumber");
+        Assert.AreEqual(6, episodeData.Item.IndexNumber.GetValueOrDefault(), "should return the right IndexNumber");
+        Assert.AreEqual(3702, int.Parse(episodeData.Item.ProviderIds[Constants.ProviderName]), "should return the right episode id");
+
+        episodeData = await _provider.GetMetadata(new EpisodeInfo
+        {
+            Path = FakePath.CreateFile($"{basedir}/[アニメ BD] 魔法少女リリカルなのはStrikerS(第3期) 第21話「決戦」(1912x1068 HEVC 10bit FLAC softSub(chs+cht+eng) chap).mkv"),
+            SeasonProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "1264" } }
+        },
+            _token);
+        Assert.IsTrue(episodeData.HasMetadata, "episode data should not be null");
+        Assert.AreEqual(3, episodeData.Item.ParentIndexNumber.GetValueOrDefault(), "should return the right ParentIndexNumber");
+        Assert.AreEqual(21, episodeData.Item.IndexNumber.GetValueOrDefault(), "should return the right IndexNumber");
+        Assert.AreEqual(3730, int.Parse(episodeData.Item.ProviderIds[Constants.ProviderName]), "should return the right episode id");
+
+        _plugin.Configuration.EpisodeParser = EpisodeParserType.Basic;
+    }
+
+    [TestMethod]
+    public async Task SplitCour()
+    {
+        _plugin.Configuration.EpisodeParser = EpisodeParserType.Torrent;
+
+        var basedir = "[DBD-Raws][魔王学院的不适任者 第二季][01-24TV全集][1080P][BDRip][HEVC-10bit][FLAC][MKV]";
+        FakePath.CreateSeries(_libraryManager, basedir);
+
+        var episodeData = await _provider.GetMetadata(new EpisodeInfo
+        {
+            Path = FakePath.CreateFile($"{basedir}/[DBD-Raws][Maou Gakuin no Futekigousha S2][04][1080P][BDRip][HEVC-10bit][FLAC].mkv"),
+            SeasonProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "330054" } }
+        },
+            _token);
+        Assert.IsTrue(episodeData.HasMetadata, "episode data should not be null");
+        Assert.AreEqual(2, episodeData.Item.ParentIndexNumber.GetValueOrDefault(), "should return the right ParentIndexNumber");
+        Assert.AreEqual(4, episodeData.Item.IndexNumber.GetValueOrDefault(), "should return the right IndexNumber");
+        Assert.AreEqual(1156373, int.Parse(episodeData.Item.ProviderIds[Constants.ProviderName]), "should return the right episode id");
+
+        episodeData = await _provider.GetMetadata(new EpisodeInfo
+        {
+            Path = FakePath.CreateFile($"{basedir}/[DBD-Raws][Maou Gakuin no Futekigousha S2][21][1080P][BDRip][HEVC-10bit][FLAC].mkv"),
+            SeasonProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "330054" } }
+        },
+            _token);
+        Assert.IsTrue(episodeData.HasMetadata, "episode data should not be null");
+        Assert.AreEqual(3, episodeData.Item.ParentIndexNumber.GetValueOrDefault(), "should return the right ParentIndexNumber");
+        Assert.AreEqual(21, episodeData.Item.IndexNumber.GetValueOrDefault(), "should return the right IndexNumber");
+        Assert.AreEqual(1306674, int.Parse(episodeData.Item.ProviderIds[Constants.ProviderName]), "should return the right episode id");
+
+        _plugin.Configuration.EpisodeParser = EpisodeParserType.Basic;
+    }
+
+    [TestMethod]
+    public async Task NonMainStoryWithContinuousEpisodeNumber()
+    {
+        _plugin.Configuration.EpisodeParser = EpisodeParserType.Torrent;
+
+        const string SeriesDir = "Clannad+Clannad After Story [BD 1920x1080 HEVC-10bit AAC]";
+        const string SeasonDir = "S2";
+        const string EpisodeFile = "Clannad After Story 23 [BD 1920x1080 HEVC-10bit AAC ASSx2].mkv";
+
+        FakePath.CreateSeries(_libraryManager, SeriesDir);
+
+        var season = FakePath.CreateSeason(_libraryManager, $"{SeriesDir}/{SeasonDir}");
+        season.ProviderIds.Add(Constants.ProviderName, "876");
+        season.IndexNumber = 2;
+        var episodeData = await _provider.GetMetadata(new EpisodeInfo
+        {
+            Path = FakePath.CreateFile($"{SeriesDir}/{SeasonDir}/{EpisodeFile}")
+        },
+            _token);
+
+        Assert.IsTrue(episodeData.HasMetadata, "episode data should not be null");
+        Assert.AreEqual(0, episodeData.Item.ParentIndexNumber.GetValueOrDefault(), "should return the right ParentIndexNumber");
+        Assert.AreEqual(23, episodeData.Item.IndexNumber.GetValueOrDefault(), "should return the right IndexNumber");
+        Assert.AreEqual(7542, int.Parse(episodeData.Item.ProviderIds[Constants.ProviderName]), "should return the right episode id");
+
+        _plugin.Configuration.EpisodeParser = EpisodeParserType.Basic;
     }
 }

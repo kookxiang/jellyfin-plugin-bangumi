@@ -1,4 +1,3 @@
-
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -418,7 +417,6 @@ nextSeason:
 
         return seriesId;
     }
-
     private static readonly Regex _chineseSeasonRegex = new Regex(
     @"第\s*[0-9一二三四五六七八九十百千]+\s*季",
     RegexOptions.Compiled | RegexOptions.IgnoreCase
@@ -443,5 +441,4 @@ nextSeason:
             return true;
         return false;
     }
-
 }
