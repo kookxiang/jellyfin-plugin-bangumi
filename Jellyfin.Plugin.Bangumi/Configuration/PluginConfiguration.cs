@@ -1,4 +1,6 @@
-﻿using MediaBrowser.Model.Plugins;
+using System.Linq;
+using System;
+using MediaBrowser.Model.Plugins;
 
 namespace Jellyfin.Plugin.Bangumi.Configuration;
 
@@ -11,7 +13,8 @@ public enum TranslationPreferenceType
 public enum EpisodeParserType
 {
     Basic,
-    AnitomySharp
+    AnitomySharp,
+    Torrent
 }
 
 public class PluginConfiguration : BasePluginConfiguration
@@ -54,11 +57,156 @@ public class PluginConfiguration : BasePluginConfiguration
 
     public bool AlwaysReplaceEpisodeNumber { get; set; }
 
-    public bool ProcessMultiSeasonFolderByAnitomySharp { get; set; }
+    public bool ProcessMultiSeasonFolderByAnitomySharp { get; set; } = false;
+    
+    public bool MovieEpisodeDetectionByAnitomySharp { get; set; } = false;
 
     public string? ProxyServerUrl { get; set; }
 
     public bool UseOriginalTitleFirst { get; set; }
 
     public bool AddCharacterToPerson { get; set; } = false;
+
+    public string DefaultExcludeWhitelistRegexFullPath => "";
+
+    public string DefaultExcludeWhitelistRegexFolderName => "";
+
+    public string DefaultExcludeWhitelistRegexFileName => "";
+
+    private string _excludeWhitelistRegexFullPath;
+    public string ExcludeWhitelistRegexFullPath
+    {
+        get => _excludeWhitelistRegexFullPath;
+        set
+        {
+            _excludeWhitelistRegexFullPath = CheckRegexes(value);
+        }
+    }
+
+    private string _excludeWhitelistRegexFolderName;
+    public string ExcludeWhitelistRegexFolderName
+    {
+        get => _excludeWhitelistRegexFolderName;
+        set
+        {
+            _excludeWhitelistRegexFolderName = CheckRegexes(value);
+        }
+    }
+
+    private string _excludeWhitelistRegexFileName;
+    public string ExcludeWhitelistRegexFileName
+    {
+        get => _excludeWhitelistRegexFileName;
+        set
+        {
+            _excludeWhitelistRegexFileName = CheckRegexes(value);
+        }
+    }
+
+    public string DefaultSpExcludeRegexFullPath => "";
+
+    public string DefaultSpExcludeRegexFolderName => @"(\b|_)(SPs?|Specials?|OVA|OAD)(\b|_)
+特典";
+
+    public string DefaultSpExcludeRegexFileName => @"(\b|_)(SPs?\d*|Specials?|OVA\d*|OAD\d*)(\b|_)
+特典";
+
+    private string _spExcludeRegexFullPath;
+    public string SpExcludeRegexFullPath
+    {
+        get => _spExcludeRegexFullPath;
+        set
+        {
+            _spExcludeRegexFullPath = CheckRegexes(value);
+        }
+    }
+
+    private string _spExcludeRegexFolderName;
+    public string SpExcludeRegexFolderName
+    {
+        get => _spExcludeRegexFolderName;
+        set
+        {
+            _spExcludeRegexFolderName = CheckRegexes(value);
+        }
+    }
+
+    private string _spExcludeRegexFileName;
+    public string SpExcludeRegexFileName
+    {
+        get => _spExcludeRegexFileName;
+        set
+        {
+            _spExcludeRegexFileName = CheckRegexes(value);
+        }
+    }
+
+    public string DefaultMiscExcludeRegexFullPath => @"(\b|_)(特典CD|CDs?)(\b|_)";
+
+    public string DefaultMiscExcludeRegexFolderName => @"(\b|_)(PVs?|Previews?|Scans?|menus?|Fonts?|Extras?|CDs?|bonus|Music|Subs?|Subtitles?|其他|漫画|特别漫画|特典CD)(\b|_)
+NCOP|NCED";
+
+    public string DefaultMiscExcludeRegexFileName => @"(\b|_)(WEB予告|次回予告|NCOP\d*|OP\d*|NCED\d*|ED\d*|menu\d*\w*|PV\d*|Preview\d*|CM集?\d*|IV\d*)(\b|_)
+NCOP|NCED|ノンテロップ\s*OP|ノンテロップ\s*ED|メニュー画面\s*\d+";
+
+    private string _miscExcludeRegexFullPath;
+    public string MiscExcludeRegexFullPath
+    {
+        get => _miscExcludeRegexFullPath;
+        set
+        {
+            _miscExcludeRegexFullPath = CheckRegexes(value);
+        }
+    }
+
+    private string _miscExcludeRegexFolderName;
+    public string MiscExcludeRegexFolderName
+    {
+        get => _miscExcludeRegexFolderName;
+        set
+        {
+            _miscExcludeRegexFolderName = CheckRegexes(value);
+        }
+    }
+
+    private string _miscExcludeRegexFileName;
+    public string MiscExcludeRegexFileName
+    {
+        get => _miscExcludeRegexFileName;
+        set
+        {
+            _miscExcludeRegexFileName = CheckRegexes(value);
+        }
+    }
+
+    public PluginConfiguration()
+    {
+        _excludeWhitelistRegexFullPath = CheckRegexes(DefaultExcludeWhitelistRegexFullPath);
+        _excludeWhitelistRegexFolderName = CheckRegexes(DefaultExcludeWhitelistRegexFolderName);
+        _excludeWhitelistRegexFileName = CheckRegexes(DefaultExcludeWhitelistRegexFileName);
+
+        _spExcludeRegexFullPath = CheckRegexes(DefaultSpExcludeRegexFullPath);
+        _spExcludeRegexFolderName = CheckRegexes(DefaultSpExcludeRegexFolderName);
+        _spExcludeRegexFileName = CheckRegexes(DefaultSpExcludeRegexFileName);
+
+        _miscExcludeRegexFullPath = CheckRegexes(DefaultMiscExcludeRegexFullPath);
+        _miscExcludeRegexFolderName = CheckRegexes(DefaultMiscExcludeRegexFolderName);
+        _miscExcludeRegexFileName = CheckRegexes(DefaultMiscExcludeRegexFileName);
+    }
+
+    /// <summary>
+    /// 检查保存的正则表达式，去除空行
+    /// </summary>
+    /// <param name="regexes">用户保存内容</param>
+    /// <returns>过滤后的配置</returns>
+    private static string CheckRegexes(string regexes)
+    {
+        if (string.IsNullOrWhiteSpace(regexes))
+            return string.Empty;
+
+        var regexArray = regexes.Split("\n");
+
+        return string.Join("\n", regexArray.Select(r => r.Trim())
+            .Where(r => r.Length > 0));
+    }
 }

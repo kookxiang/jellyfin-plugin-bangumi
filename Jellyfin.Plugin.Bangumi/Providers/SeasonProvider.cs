@@ -44,7 +44,7 @@ public class SeasonProvider(BangumiApi api, Logger<EpisodeProvider> log, ILibrar
         Subject? subject = null;
 
         if (string.IsNullOrEmpty(info.Path))
-            return new MetadataResult<Season>();
+            return await GetMetadataForVirtualSeason(info, cancellationToken);
 
         var baseName = Path.GetFileName(info.Path);
         var result = new MetadataResult<Season> { ResultLanguage = Constants.Language };
@@ -70,13 +70,20 @@ public class SeasonProvider(BangumiApi api, Logger<EpisodeProvider> log, ILibrar
         {
             subjectId = subjectIdFromParent;
         }
-        else if (seasonPath is not null && libraryManager.FindByPath(seasonPath, true) is Series series)
+        else if (seasonPath is not null && libraryManager.FindByPath(seasonPath, true) is Series series && info.IndexNumber is not null)
         {
-            var previousSeason = series.Children
+            var children = libraryManager.GetItemList(new MediaBrowser.Controller.Entities.InternalItemsQuery
+            {
+                Parent = series,
+                IncludeItemTypes = new[] { Data.Enums.BaseItemKind.Season }
+            });
+            var previousSeason = children
                 // Search "Season 2" for "Season 1" and "Season 2 Part X"
                 .Where(x => x.IndexNumber == info.IndexNumber - 1 || x.IndexNumber == info.IndexNumber)
                 .MaxBy(x => int.Parse(x.GetProviderId(Constants.ProviderName) ?? "0"));
-            if (previousSeason?.Path == info.Path)
+
+            var infoPath = info.Path.Replace(Path.AltDirectorySeparatorChar, Path.DirectorySeparatorChar);
+            if (previousSeason?.Path == infoPath)
             {
                 try
                 {
@@ -135,9 +142,19 @@ public class SeasonProvider(BangumiApi api, Logger<EpisodeProvider> log, ILibrar
         if (subject == null)
             return result;
 
+        FillSeasonMetadata(result, subject);
+        result.Item.IndexNumber = info.IndexNumber;
+
+        (await api.GetSubjectPersonInfos(subject.Id, cancellationToken)).ToList().ForEach(result.AddPerson);
+        (await api.GetSubjectCharacters(subject.Id, cancellationToken)).ToList().ForEach(result.AddPerson);
+
+        return result;
+    }
+
+    private static void FillSeasonMetadata(MetadataResult<Season> result, Subject subject)
+    {
         result.Item = new Season();
         result.HasMetadata = true;
-        result.Item.IndexNumber = info.IndexNumber;
 
         result.Item.ProviderIds.Add(Constants.ProviderName, subject.Id.ToString());
         result.Item.CommunityRating = subject.Rating?.Score;
@@ -165,10 +182,20 @@ public class SeasonProvider(BangumiApi api, Logger<EpisodeProvider> log, ILibrar
 
         if (subject.IsNSFW)
             result.Item.OfficialRating = "X";
+    }
 
-        (await api.GetSubjectPersonInfos(subject.Id, cancellationToken)).ToList().ForEach(result.AddPerson);
-        (await api.GetSubjectCharacters(subject.Id, cancellationToken)).ToList().ForEach(result.AddPerson);
+    private async Task<MetadataResult<Season>> GetMetadataForVirtualSeason(SeasonInfo info, CancellationToken cancellationToken)
+    {
+        var result = new MetadataResult<Season> { ResultLanguage = Constants.Language };
+        if (!int.TryParse(info.ProviderIds.GetOrDefault(Constants.ProviderName), out var subjectId))
+            return result;
 
+        var subject = await api.GetSubject(subjectId, cancellationToken);
+        if (subject == null)
+            return result;
+
+        FillSeasonMetadata(result, subject);
+        result.Item.IndexNumber = info.IndexNumber;
         return result;
     }
 

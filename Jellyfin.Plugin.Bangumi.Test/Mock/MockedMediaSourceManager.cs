@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using Jellyfin.Database.Implementations.Entities;
@@ -15,9 +16,30 @@ namespace Jellyfin.Plugin.Bangumi.Test.Mock;
 
 public class MockedMediaSourceManager : IMediaSourceManager
 {
+    private readonly Dictionary<string, (long Size, long RunTimeTicks)> _fileMediaInfo = new();
+
+    public void SetFileMediaInfo(string path, long size, TimeSpan duration)
+    {
+        var normalizedPath = path.Replace(Path.AltDirectorySeparatorChar, Path.DirectorySeparatorChar);
+        _fileMediaInfo[normalizedPath] = (size, duration.Ticks);
+    }
+
     public List<MediaSourceInfo> GetStaticMediaSources(BaseItem item, bool enablePathSubstitution, User? user = null)
     {
-        return [];
+        var list = new List<MediaSourceInfo>();
+        if (item?.Path != null && _fileMediaInfo.TryGetValue(item.Path, out var info))
+        {
+            list.Add(new MediaSourceInfo
+            {
+                Id = item.Id.ToString(),
+                Path = item.Path,
+                Protocol = MediaProtocol.File,
+                Type = MediaSourceType.Default,
+                Size = info.Size,
+                RunTimeTicks = info.RunTimeTicks,
+            });
+        }
+        return list;
     }
 
     public Task<MediaSourceInfo> GetMediaSource(BaseItem item, string mediaSourceId, string liveStreamId, bool enablePathSubstitution, CancellationToken cancellationToken)

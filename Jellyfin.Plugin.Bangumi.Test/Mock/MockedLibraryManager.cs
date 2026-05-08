@@ -26,6 +26,7 @@ namespace Jellyfin.Plugin.Bangumi.Test.Mock;
 public class MockedLibraryManager : ILibraryManager
 {
     private readonly Dictionary<string, BaseItem> _items = [];
+    private readonly Dictionary<Guid, List<BaseItem>> _children = [];
 
     public BaseItem? ResolvePath(FileSystemMetadata fileInfo, Folder? parent = null, IDirectoryService? directoryService = null)
     {
@@ -162,8 +163,18 @@ public class MockedLibraryManager : ILibraryManager
 
     public void CreateItem(BaseItem item, BaseItem? parent)
     {
+        if (item.Id == Guid.Empty)
+            item.Id = Guid.NewGuid();
+
         item.Path = item.Path.Replace(Path.AltDirectorySeparatorChar, Path.DirectorySeparatorChar);
         _items[item.Path] = item;
+
+        if (parent != null)
+        {
+            if (!_children.ContainsKey(parent.Id))
+                _children[parent.Id] = new List<BaseItem>();
+            _children[parent.Id].Add(item);
+        }
     }
 
     public void CreateItems(IReadOnlyList<BaseItem> items, BaseItem? parent, CancellationToken cancellationToken)
@@ -178,7 +189,18 @@ public class MockedLibraryManager : ILibraryManager
 
     public Task UpdateItemAsync(BaseItem item, BaseItem parent, ItemUpdateType updateReason, CancellationToken cancellationToken)
     {
-        throw new NotImplementedException();
+        var path = item.Path.Replace(Path.AltDirectorySeparatorChar, Path.DirectorySeparatorChar);
+
+        _items[path] = item;
+
+        ItemUpdated?.Invoke(this, new ItemChangeEventArgs
+        {
+            Item = item,
+            Parent = parent,
+            UpdateReason = updateReason
+        });
+
+        return Task.CompletedTask;
     }
 
     public BaseItem RetrieveItem(Guid id)
@@ -353,7 +375,9 @@ public class MockedLibraryManager : ILibraryManager
 
     public IReadOnlyList<BaseItem> GetItemList(InternalItemsQuery query)
     {
-        throw new NotImplementedException();
+        if (_children.TryGetValue(query.ParentId, out var children))
+            return children;
+        return Array.Empty<BaseItem>();
     }
 
     public IReadOnlyList<BaseItem> GetItemList(InternalItemsQuery query, bool allowExternalContent)

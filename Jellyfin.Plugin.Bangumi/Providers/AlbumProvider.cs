@@ -63,6 +63,7 @@ public class AlbumProvider(BangumiApi api, Logger<AlbumProvider> log)
             }
         }
 
+        // FIXME 不清楚 AnitomySharp 是否对音乐格式有效
         if (subjectId == 0 && Configuration.AlwaysGetTitleByAnitomySharp)
         {
             var anitomy = new Anitomy(baseName);
@@ -104,7 +105,7 @@ public class AlbumProvider(BangumiApi api, Logger<AlbumProvider> log)
             result.Item.ProductionYear = int.Parse(subject.ProductionYear);
 
         var persons = await api.GetSubjectPersons(subject.Id, cancellationToken);
-        result.Item.AlbumArtists = persons?.Where(person => person.Type is 2 or 3).Select(person => person.Name).ToList();
+        result.Item.AlbumArtists = persons?.Where(person => person.Type is 1).Select(person => person.Name).Distinct().ToList();
 
         return result;
     }

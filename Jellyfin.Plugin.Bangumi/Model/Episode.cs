@@ -46,6 +46,9 @@ public class Episode
     [JsonPropertyName("ep")]
     public double Index { get; set; }
 
+    [JsonIgnore]
+    public double? SeasonNumber { get; set; }
+
     [JsonPropertyName("airdate")]
     public string AirDate { get; set; } = "";
 
