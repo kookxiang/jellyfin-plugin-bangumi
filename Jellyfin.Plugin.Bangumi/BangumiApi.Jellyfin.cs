@@ -106,7 +106,7 @@ public partial class BangumiApi(ArchiveData archive, OAuthStore store, Logger<Ba
             Proxy = !string.IsNullOrEmpty(_plugin.Configuration.ProxyServerUrl) ? new WebProxy(_plugin.Configuration.ProxyServerUrl) : HttpClient.DefaultProxy,
         };
         if (_plugin.Configuration.IgnoreSslErrors)
-            handler.ServerCertificateCustomValidationCallback = IgnoreServerCertificateErrors;
+            handler.ServerCertificateCustomValidationCallback = static (_, _, _, _) => true;
         var httpClient = new HttpClient(handler, true);
 #pragma warning restore CA2000, CA5399
         httpClient.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("Jellyfin.Plugin.Bangumi", _plugin.Version.ToString()));
@@ -116,14 +116,6 @@ public partial class BangumiApi(ArchiveData archive, OAuthStore store, Logger<Ba
         return httpClient;
     }
 
-    private static bool IgnoreServerCertificateErrors(
-        HttpRequestMessage _,
-        X509Certificate2? __,
-        X509Chain? ___,
-        SslPolicyErrors ____)
-    {
-        return true;
-    }
 }
 
 public class JsonContent : StringContent
