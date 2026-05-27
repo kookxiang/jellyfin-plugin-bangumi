@@ -90,6 +90,13 @@
                                     </select>
                                     <div class="fieldDescription">只能缓解国内访问不稳定的情况，要确保国内能稳定访问请配置代理。</div>
                                 </div>
+                                <div class="checkboxContainer checkboxContainer-withDescription">
+                                    <label class="emby-checkbox-label">
+                                        <input id="IgnoreSslErrors" is="emby-checkbox" type="checkbox" />
+                                        <span>忽略 SSL 证书异常（仅在极端情况下启用）</span>
+                                    </label>
+                                    <div class="fieldDescription">这是不安全的兜底选项。仅在证书吊销状态或证书链异常导致无法访问 Bangumi 时临时启用，问题排除后请尽快关闭。</div>
+                                </div>
                                 <div class="selectContainer">
                                     <label class="selectLabel" for="SeasonGuessMaxSearchCount">季度搜索最大请求数</label>
                                     <select class="emby-select-withcolor emby-select" id="SeasonGuessMaxSearchCount" is="emby-select">

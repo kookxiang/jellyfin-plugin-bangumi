@@ -27,6 +27,8 @@ public class PluginConfiguration : BasePluginConfiguration
 
     public string BaseServerUrl { get; set; } = "https://api.bgm.tv";
 
+    public bool IgnoreSslErrors { get; set; } = false;
+
     public bool ReportPlaybackStatusToBangumi { get; set; } = true;
 
     public bool SkipNSFWPlaybackReport { get; set; } = true;

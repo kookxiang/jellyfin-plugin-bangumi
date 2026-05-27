@@ -3,8 +3,10 @@ using System.IO;
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
+using System.Net.Security;
 using System.Text;
 using System.Text.Json;
+using System.Security.Cryptography.X509Certificates;
 using System.Threading;
 using System.Threading.Tasks;
 using Jellyfin.Plugin.Bangumi.Archive;
@@ -103,6 +105,8 @@ public partial class BangumiApi(ArchiveData archive, OAuthStore store, Logger<Ba
             UseProxy = !string.IsNullOrEmpty(_plugin.Configuration.ProxyServerUrl),
             Proxy = !string.IsNullOrEmpty(_plugin.Configuration.ProxyServerUrl) ? new WebProxy(_plugin.Configuration.ProxyServerUrl) : HttpClient.DefaultProxy,
         };
+        if (_plugin.Configuration.IgnoreSslErrors)
+            handler.ServerCertificateCustomValidationCallback = IgnoreServerCertificateErrors;
         var httpClient = new HttpClient(handler, true);
 #pragma warning restore CA2000, CA5399
         httpClient.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("Jellyfin.Plugin.Bangumi", _plugin.Version.ToString()));
@@ -110,6 +114,15 @@ public partial class BangumiApi(ArchiveData archive, OAuthStore store, Logger<Ba
             new ProductInfoHeaderValue("(https://github.com/kookxiang/jellyfin-plugin-bangumi)"));
         httpClient.Timeout = TimeSpan.FromMilliseconds(_plugin.Configuration.RequestTimeout);
         return httpClient;
+    }
+
+    private static bool IgnoreServerCertificateErrors(
+        HttpRequestMessage _,
+        X509Certificate2? __,
+        X509Chain? ___,
+        SslPolicyErrors ____)
+    {
+        return true;
     }
 }
 
