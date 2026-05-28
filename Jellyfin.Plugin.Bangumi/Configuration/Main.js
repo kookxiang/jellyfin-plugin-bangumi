@@ -43,6 +43,11 @@
         }
     }
 
+    function getBaseWebUrl() {
+        var baseWebUrl = ((configuration || {}).BaseWebUrl || '').trim();
+        return (baseWebUrl || 'https://bgm.tv').replace(/\/+$/, '');
+    }
+
     function loadArchiveState() {
         return ApiClient.getJSON(ApiClient.getUrl('/Plugins/Bangumi/Archive/Status')).then(function (data) {
             // size
@@ -183,7 +188,8 @@
 
     container.querySelector('#bangumi-oauth-manual-btn').addEventListener('click', function (e) {
         e.preventDefault();
-        Dashboard.confirm('<div style="text-align: left"><p>仅在自动授权无法工作时推荐，步骤如下</p><ol><li>打开 <a href="https://next.bgm.tv/demo/access-token/create" style="color: inherit">Access Token 生成页面</a></li><li>创建一个 Token 并复制</li><li>点击确定后填写 Token</li></ol><p style="margin-top: 16px">注：此授权方式无法自动续期，建议选择较长有效期</p></div>', '手动授权', function (continued) {
+        var manualTokenUrl = getBaseWebUrl() + '/demo/access-token/create';
+        Dashboard.confirm('<div style="text-align: left"><p>仅在自动授权无法工作时推荐，步骤如下</p><ol><li>打开 <a href="' + manualTokenUrl + '" style="color: inherit">Access Token 生成页面</a></li><li>创建一个 Token 并复制</li><li>点击确定后填写 Token</li></ol><p style="margin-top: 16px">注：此授权方式无法自动续期，建议选择较长有效期</p></div>', '手动授权', function (continued) {
             if (!continued) return;
             const token = prompt('请填写 Access Token');
             if (!token) return;
