@@ -5,6 +5,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Threading;
 using System.Threading.Tasks;
+using Jellyfin.Plugin.Bangumi.Configuration;
 #if EMBY
 using System.IO;
 using System.Net;
@@ -16,6 +17,8 @@ namespace Jellyfin.Plugin.Bangumi.OAuth;
 
 public partial class OAuthUser
 {
+    private static string BaseWebUrl => PluginConfiguration.NormalizeBaseWebUrl(Plugin.Instance?.Configuration?.BaseWebUrl);
+
     public string? Avatar { get; set; }
 
     public string? NickName { get; set; }
@@ -53,7 +56,7 @@ public partial class OAuthUser
 #if EMBY
         var options = new HttpRequestOptions
         {
-            Url = "https://bgm.tv/oauth/access_token",
+            Url = $"{BaseWebUrl}/oauth/access_token",
             RequestHttpContent = formData,
             ThrowOnErrorResponse = false
         };
@@ -62,7 +65,7 @@ public partial class OAuthUser
         var stream = new StreamReader(response.Content);
         var responseBody = await stream.ReadToEndAsync();
 #else
-        var response = await httpClient.PostAsync("https://bgm.tv/oauth/access_token", formData, cancellationToken);
+        var response = await httpClient.PostAsync($"{BaseWebUrl}/oauth/access_token", formData, cancellationToken);
         var isFailed = !response.IsSuccessStatusCode;
         var responseBody = await response.Content.ReadAsStringAsync(cancellationToken);
 #endif

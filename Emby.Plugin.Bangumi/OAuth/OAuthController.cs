@@ -6,6 +6,7 @@ using System.Net.Http;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
+using Jellyfin.Plugin.Bangumi.Configuration;
 using MediaBrowser.Common.Extensions;
 using MediaBrowser.Controller.Net;
 using MediaBrowser.Model.Logging;
@@ -62,6 +63,8 @@ public class OAuthController(BangumiApi api, OAuthStore store, ILogger log, ISes
 
     private static string? _oAuthPath;
 
+    private static string BaseWebUrl => PluginConfiguration.NormalizeBaseWebUrl(Plugin.Instance?.Configuration?.BaseWebUrl);
+
     public IRequest Request { get; set; } = null!;
 
     public async Task<object?> Get(OAuthState oAuthState)
@@ -113,7 +116,7 @@ public class OAuthController(BangumiApi api, OAuthStore store, ILogger log, ISes
     {
         _oAuthPath = $"{redirect.prefix}/Bangumi/OAuth";
         var redirectUri = Uri.EscapeDataString($"{_oAuthPath}?user={redirect.user}");
-        var url = $"https://bgm.tv/oauth/authorize?client_id={ApplicationId}&redirect_uri={redirectUri}&response_type=code";
+        var url = $"{BaseWebUrl}/oauth/authorize?client_id={ApplicationId}&redirect_uri={redirectUri}&response_type=code";
         Request.Response.Redirect(url);
     }
 
@@ -147,7 +150,7 @@ public class OAuthController(BangumiApi api, OAuthStore store, ILogger log, ISes
         ]);
         var options = new HttpRequestOptions
         {
-            Url = "https://bgm.tv/oauth/access_token",
+            Url = $"{BaseWebUrl}/oauth/access_token",
             RequestHttpContent = formData,
             ThrowOnErrorResponse = false
         };

@@ -27,6 +27,8 @@ public class PluginConfiguration : BasePluginConfiguration
 
     public string BaseServerUrl { get; set; } = "https://api.bgm.tv";
 
+    public string BaseWebUrl { get; set; } = "https://bgm.tv";
+
     public bool IgnoreSslErrors { get; set; } = false;
 
     public bool ReportPlaybackStatusToBangumi { get; set; } = true;
@@ -208,5 +210,10 @@ NCOP|NCED|ノンテロップ\s*OP|ノンテロップ\s*ED|メニュー画面\s*\
 
         return string.Join("\n", regexArray.Select(r => r.Trim())
             .Where(r => r.Length > 0));
+    }
+
+    public static string NormalizeBaseWebUrl(string? baseWebUrl)
+    {
+        return string.IsNullOrWhiteSpace(baseWebUrl) ? "https://bgm.tv" : baseWebUrl.TrimEnd('/');
     }
 }
