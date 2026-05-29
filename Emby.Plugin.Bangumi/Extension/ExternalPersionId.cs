@@ -15,7 +15,7 @@ public class ExternalPersonId : IExternalId, IHasWebsite
 
     public string Key => Constants.ProviderName;
 
-    public string UrlFormatString => "https://bgm.tv/person/{0}";
+    public string UrlFormatString => $"{BangumiApi.BaseWebsiteUrl}/person/{{0}}";
     
-    public string Website => "https://bgm.tv";
+    public string Website => BangumiApi.BaseWebsiteUrl;
 }

@@ -29,6 +29,8 @@ public class PluginConfiguration : BasePluginConfiguration
 
     public bool IgnoreSslErrors { get; set; } = false;
 
+    public string BaseWebsiteUrl { get; set; } = "https://bgm.tv";
+
     public bool ReportPlaybackStatusToBangumi { get; set; } = true;
 
     public bool SkipNSFWPlaybackReport { get; set; } = true;
