@@ -80,6 +80,11 @@
                                     <input class="emby-input" id="BaseServerUrl" type="url" />
                                     <div class="fieldDescription">官方 API 部署在海外，请确保 Jellyfin 上能够稳定访问或配置反代站点。</div>
                                 </div>
+                                <div class="inputContainer">
+                                    <label class="inputLabel inputLabelUnfocused" for="BaseWebsiteUrl">Bangumi 官网地址</label>
+                                    <input class="emby-input" id="BaseWebsiteUrl" type="url" />
+                                    <div class="fieldDescription">用于 OAuth 授权、令牌刷新和外部链接。若 bgm.tv 访问不稳定，可填写兼容 Bangumi 官网路径的反代站点。</div>
+                                </div>
                                 <div class="selectContainer">
                                     <label class="selectLabel" for="RequestTimeout">请求超时时间</label>
                                     <select class="emby-select-withcolor emby-select" id="RequestTimeout" is="emby-select">
