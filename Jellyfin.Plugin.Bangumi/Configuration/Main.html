@@ -58,12 +58,23 @@
                                         </label>
                                     </div>
                                 </div>
-                                <div class="selectContainer">
-                                    <div class="checkboxContainer checkboxContainer-withDescription">
-                                        <label class="emby-checkbox-label">
-                                            <input id="SkipNSFWPlaybackReport" is="emby-checkbox" type="checkbox" />
-                                            <span>忽略被标记为 NSFW 的内容</span>
-                                        </label>
+                                <div class="bangumi-sync-subsection">
+                                    <h3 class="bangumi-settings-subheading">NSFW 条目上报</h3>
+                                    <div class="selectContainer">
+                                        <div class="checkboxContainer checkboxContainer-withDescription">
+                                            <label class="emby-checkbox-label">
+                                                <input id="SkipNSFWPlaybackReport" is="emby-checkbox" type="checkbox" />
+                                                <span>禁用上报</span>
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <div class="selectContainer" id="PrivateNSFWPlaybackReportContainer">
+                                        <div class="checkboxContainer checkboxContainer-withDescription">
+                                            <label class="emby-checkbox-label">
+                                                <input id="PrivateNSFWPlaybackReport" is="emby-checkbox" type="checkbox" />
+                                                <span>仅自己可见</span>
+                                            </label>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
