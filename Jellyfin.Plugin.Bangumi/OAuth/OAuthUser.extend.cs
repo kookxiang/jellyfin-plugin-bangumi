@@ -53,7 +53,7 @@ public partial class OAuthUser
 #if EMBY
         var options = new HttpRequestOptions
         {
-            Url = "https://bgm.tv/oauth/access_token",
+            Url = $"{BangumiApi.BaseWebsiteUrl}/oauth/access_token",
             RequestHttpContent = formData,
             ThrowOnErrorResponse = false
         };
@@ -62,7 +62,7 @@ public partial class OAuthUser
         var stream = new StreamReader(response.Content);
         var responseBody = await stream.ReadToEndAsync();
 #else
-        var response = await httpClient.PostAsync("https://bgm.tv/oauth/access_token", formData, cancellationToken);
+        var response = await httpClient.PostAsync($"{BangumiApi.BaseWebsiteUrl}/oauth/access_token", formData, cancellationToken);
         var isFailed = !response.IsSuccessStatusCode;
         var responseBody = await response.Content.ReadAsStringAsync(cancellationToken);
 #endif

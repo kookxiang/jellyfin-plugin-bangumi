@@ -54,16 +54,6 @@ public class Plugin : BasePlugin<PluginConfiguration>, IHasWebPages
             },
             new PluginPageInfo
             {
-                Name = "Plugin.Bangumi.Tools.DuplicatedEpisodesDetector.Script",
-                EmbeddedResourcePath = $"{GetType().Namespace}.Tools.DuplicatedEpisodesDetector.Script.js"
-            },
-            new PluginPageInfo
-            {
-                Name = "Plugin.Bangumi.Tools.DuplicatedEpisodesDetector.Style",
-                EmbeddedResourcePath = $"{GetType().Namespace}.Tools.DuplicatedEpisodesDetector.Style.css"
-            },
-            new PluginPageInfo
-            {
                 Name = "Plugin.Bangumi.Tools.FixEpisodeMetadata",
                 DisplayName = "修正错误的剧集元数据",
                 EmbeddedResourcePath = $"{GetType().Namespace}.Tools.FixEpisodeMetadata.Index.html"
