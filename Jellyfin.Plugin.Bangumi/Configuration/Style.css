@@ -203,6 +203,16 @@
     max-width: none;
 }
 
+.bangumi-sync-subsection {
+    margin-top: 24px;
+    padding-top: 20px;
+    border-top: 1px solid rgba(255, 255, 255, 0.14);
+}
+
+.bangumi-sync-subsection .bangumi-settings-subheading {
+    margin: 0 0 16px;
+}
+
 #bangumi-archive-container {
     margin-bottom: 24px;
 }

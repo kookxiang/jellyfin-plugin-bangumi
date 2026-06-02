@@ -22,10 +22,18 @@ public partial class BangumiApi
     private const int PageSize = 50;
     private const int Offset = 20;
 
-    private static string BaseUrl =>
-        string.IsNullOrEmpty(Plugin.Instance?.Configuration?.BaseServerUrl)
-            ? "https://api.bgm.tv"
-            : Plugin.Instance!.Configuration.BaseServerUrl.TrimEnd('/');
+    internal static string BaseWebsiteUrl => NormalizeBaseUrl(
+        Plugin.Instance?.Configuration?.BaseWebsiteUrl,
+        "https://bgm.tv");
+
+    private static string BaseUrl => NormalizeBaseUrl(
+        Plugin.Instance?.Configuration?.BaseServerUrl,
+        "https://api.bgm.tv");
+
+    private static string NormalizeBaseUrl(string? url, string fallback)
+    {
+        return string.IsNullOrWhiteSpace(url) ? fallback : url.Trim().TrimEnd('/');
+    }
 
     public Task<IEnumerable<Subject>> SearchSubject(string keyword, CancellationToken token)
     {
@@ -591,9 +599,9 @@ public partial class BangumiApi
         return await Get<DataList<EpisodeCollectionInfo>>($"{BaseUrl}/v0/users/-/collections/{subjectId}/episodes?episode_type={episodeType}", accessToken, token, false);
     }
 
-    public async Task UpdateCollectionStatus(string accessToken, int subjectId, CollectionType type, CancellationToken token)
+    public async Task UpdateCollectionStatus(string accessToken, int subjectId, CollectionType type, CancellationToken token, bool isPrivate = false)
     {
-        await Post($"{BaseUrl}/v0/users/-/collections/{subjectId}", new JsonContent(new CollectionStatus { Type = type }), accessToken, token);
+        await Post($"{BaseUrl}/v0/users/-/collections/{subjectId}", new JsonContent(new CollectionStatus { Type = type, Private = isPrivate ? true : null }), accessToken, token);
     }
 
     public async Task<EpisodeCollectionInfo?> GetEpisodeStatus(string accessToken, int episodeId, CancellationToken token)

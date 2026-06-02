@@ -58,12 +58,23 @@
                                         </label>
                                     </div>
                                 </div>
-                                <div class="selectContainer">
-                                    <div class="checkboxContainer checkboxContainer-withDescription">
-                                        <label class="emby-checkbox-label">
-                                            <input id="SkipNSFWPlaybackReport" is="emby-checkbox" type="checkbox" />
-                                            <span>忽略被标记为 NSFW 的内容</span>
-                                        </label>
+                                <div class="bangumi-sync-subsection">
+                                    <h3 class="bangumi-settings-subheading">NSFW 条目上报</h3>
+                                    <div class="selectContainer">
+                                        <div class="checkboxContainer checkboxContainer-withDescription">
+                                            <label class="emby-checkbox-label">
+                                                <input id="SkipNSFWPlaybackReport" is="emby-checkbox" type="checkbox" />
+                                                <span>禁用上报</span>
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <div class="selectContainer" id="PrivateNSFWPlaybackReportContainer">
+                                        <div class="checkboxContainer checkboxContainer-withDescription">
+                                            <label class="emby-checkbox-label">
+                                                <input id="PrivateNSFWPlaybackReport" is="emby-checkbox" type="checkbox" />
+                                                <span>仅自己可见</span>
+                                            </label>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -80,6 +91,11 @@
                                     <input class="emby-input" id="BaseServerUrl" type="url" />
                                     <div class="fieldDescription">官方 API 部署在海外，请确保 Jellyfin 上能够稳定访问或配置反代站点。</div>
                                 </div>
+                                <div class="inputContainer">
+                                    <label class="inputLabel inputLabelUnfocused" for="BaseWebsiteUrl">Bangumi 官网地址</label>
+                                    <input class="emby-input" id="BaseWebsiteUrl" type="url" />
+                                    <div class="fieldDescription">用于 OAuth 授权、令牌刷新和外部链接。若 bgm.tv 访问不稳定，可填写兼容 Bangumi 官网路径的反代站点。</div>
+                                </div>
                                 <div class="selectContainer">
                                     <label class="selectLabel" for="RequestTimeout">请求超时时间</label>
                                     <select class="emby-select-withcolor emby-select" id="RequestTimeout" is="emby-select">
@@ -89,6 +105,13 @@
                                         <option value="60000">1 分钟</option>
                                     </select>
                                     <div class="fieldDescription">只能缓解国内访问不稳定的情况，要确保国内能稳定访问请配置代理。</div>
+                                </div>
+                                <div class="checkboxContainer checkboxContainer-withDescription">
+                                    <label class="emby-checkbox-label">
+                                        <input id="IgnoreSslErrors" is="emby-checkbox" type="checkbox" />
+                                        <span>忽略 SSL 证书异常（仅在极端情况下启用）</span>
+                                    </label>
+                                    <div class="fieldDescription">这是不安全的兜底选项。仅在证书吊销状态或证书链异常导致无法访问 Bangumi 时临时启用，问题排除后请尽快关闭。</div>
                                 </div>
                                 <div class="selectContainer">
                                     <label class="selectLabel" for="SeasonGuessMaxSearchCount">季度搜索最大请求数</label>
@@ -204,6 +227,9 @@
                                     </div>
                                 </div>
                                 <div class="episode-parser-options" episode-parser="AnitomySharp" style="display:none;">
+                                    <div class="fieldDescription">
+                                        AnitomySharp 能够解析包含特典信息的动画文件名，适用于整理拥有特典的系列
+                                    </div>
                                     <div class="checkboxContainer checkboxContainer-withDescription">
                                         <label class="emby-checkbox-label">
                                             <input id="MovieEpisodeDetectionByAnitomySharp" is="emby-checkbox" type="checkbox" />

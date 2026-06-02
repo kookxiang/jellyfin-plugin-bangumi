@@ -15,7 +15,7 @@ public class ExternalEpisodeId : IExternalId, IHasWebsite
 
     public string Key => Constants.ProviderName;
 
-    public string UrlFormatString => "https://bgm.tv/ep/{0}";
+    public string UrlFormatString => $"{BangumiApi.BaseWebsiteUrl}/ep/{{0}}";
     
-    public string Website => "https://bgm.tv";
+    public string Website => BangumiApi.BaseWebsiteUrl;
 }

@@ -113,7 +113,7 @@ public class OAuthController(BangumiApi api, OAuthStore store, ILogger log, ISes
     {
         _oAuthPath = $"{redirect.prefix}/Bangumi/OAuth";
         var redirectUri = Uri.EscapeDataString($"{_oAuthPath}?user={redirect.user}");
-        var url = $"https://bgm.tv/oauth/authorize?client_id={ApplicationId}&redirect_uri={redirectUri}&response_type=code";
+        var url = $"{BangumiApi.BaseWebsiteUrl}/oauth/authorize?client_id={ApplicationId}&redirect_uri={redirectUri}&response_type=code";
         Request.Response.Redirect(url);
     }
 
@@ -147,7 +147,7 @@ public class OAuthController(BangumiApi api, OAuthStore store, ILogger log, ISes
         ]);
         var options = new HttpRequestOptions
         {
-            Url = "https://bgm.tv/oauth/access_token",
+            Url = $"{BangumiApi.BaseWebsiteUrl}/oauth/access_token",
             RequestHttpContent = formData,
             ThrowOnErrorResponse = false
         };
