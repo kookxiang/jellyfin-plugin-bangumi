@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Entities.Audio;
@@ -33,7 +34,12 @@ public class ExternalUrlProvider : IExternalUrlProvider
                 break;
             case Person:
             case MusicArtist:
-                yield return $"{BangumiApi.BaseWebsiteUrl}/person/{id}";
+                if (id.StartsWith(Constants.CharacterIdPrefix, StringComparison.OrdinalIgnoreCase))
+                {
+                    yield return $"{BangumiApi.BaseWebsiteUrl}/character/{id.Substring(Constants.CharacterIdPrefix.Length)}";
+                }
+                else
+                { yield return $"{BangumiApi.BaseWebsiteUrl}/person/{id}"; }
                 break;
             default:
                 yield break;

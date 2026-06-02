@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Net.Http;
 using System.Threading;
@@ -31,10 +32,32 @@ public class PersonImageProvider(BangumiApi api)
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        if (!int.TryParse(item.GetProviderId(Constants.ProviderName), out var id))
-            return [];
+        string? imageUrl;
 
-        var imageUrl = await api.GetPersonImage(id, cancellationToken);
+        var personId = item.GetProviderId(Constants.ProviderName);
+        if (string.IsNullOrEmpty(personId))
+            return [];
+        if (personId.StartsWith(Constants.CharacterIdPrefix, StringComparison.OrdinalIgnoreCase))
+        {
+            if (!int.TryParse(personId.AsSpan(Constants.CharacterIdPrefix.Length), out var id))
+                return [];
+
+            // Bangumi 角色图片部分是长条比例，需要在 Jellyfin 自定义 CSS 中添加：
+            // /* 针对人物卡片图片容器 */
+            // .portraitCard.cardImageContainer,
+            // .personCard .cardImageContainer {
+            //     background-size: cover !important;
+            //     background-position: center top !important;  /* 从顶部开始显示，裁掉底部 */
+            // }
+            imageUrl = await api.GetCharacterImage(id, cancellationToken);
+        }
+        else
+        {
+            if (!int.TryParse(personId, out var id))
+                return [];
+
+            imageUrl = await api.GetPersonImage(id, cancellationToken);
+        }
 
         if (imageUrl != null)
             return new List<RemoteImageInfo>
