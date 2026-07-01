@@ -297,7 +297,7 @@
                         return;
                     }
 
-                    if (!await new Promise(resolve => Dashboard.confirm(`确定要删除已选择的 ${items.length} 个文件吗？此操作无法撤销，请仔细检查`, '删除重复剧集', resolve))) {
+                    if (!await new Promise(resolve => Dashboard.confirm('确定要删除已选择的 ' + items.length + ' 个文件吗？此操作无法撤销，请仔细检查。', '删除重复剧集', resolve))) {
                         return;
                     }
 
