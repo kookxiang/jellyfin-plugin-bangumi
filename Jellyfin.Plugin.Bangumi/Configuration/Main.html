@@ -17,18 +17,53 @@
                             <div class="bangumi-settings-module">
                                 <h2 class="bangumi-settings-heading">账号授权</h2>
                                 <div id="bangumi-oauth-container">
+                                    <div class="bangumi-account-label">Jellyfin 用户</div>
+                                    <div class="bangumi-jellyfin-user-selector">
+                                        <div class="user-avatar" id="bangumi-jellyfin-user-avatar">
+                                            <span class="material-icons person"></span>
+                                        </div>
+                                        <div class="bangumi-jellyfin-user-details">
+                                            <span class="bangumi-jellyfin-user-name">—</span>
+                                        </div>
+                                        <button aria-controls="bangumi-jellyfin-user-menu" aria-expanded="false" aria-label="切换 Jellyfin 用户" class="bangumi-jellyfin-user-switch" id="bangumi-jellyfin-user-switch" title="切换用户" type="button">
+                                            <span class="material-icons swap_horiz"></span>
+                                        </button>
+                                        <input data-config-ignore id="bangumi-jellyfin-user" type="hidden" />
+                                        <div class="bangumi-jellyfin-user-menu" hidden id="bangumi-jellyfin-user-menu">
+                                            <div class="bangumi-jellyfin-user-search">
+                                                <span class="material-icons search"></span>
+                                                <input aria-label="搜索 Jellyfin 用户" autocomplete="off" data-config-ignore id="bangumi-jellyfin-user-search" placeholder="搜索用户" type="search" />
+                                            </div>
+                                            <div aria-label="选择 Jellyfin 用户" class="bangumi-jellyfin-user-menu-list" id="bangumi-jellyfin-user-menu-list" role="listbox"></div>
+                                            <div class="bangumi-jellyfin-user-menu-empty" hidden>没有匹配的用户</div>
+                                        </div>
+                                    </div>
+                                    <div class="bangumi-binding-connector" aria-hidden="true">
+                                        <span class="bangumi-binding-line"></span>
+                                        <span class="material-icons link"></span>
+                                        <span class="bangumi-binding-text">绑定到 Bangumi 账号</span>
+                                        <span class="bangumi-binding-line"></span>
+                                    </div>
                                     <div class="bangumi-user-info">
                                         <div class="user-info">
                                             <div class="user-avatar">
                                                 <span class="material-icons person"></span>
                                             </div>
                                             <div class="user-name">未登录</div>
-                                            <a class="profile-link fab" href="https://bgm.tv/" target="_blank">
-                                                <span class="material-icons open_in_new"></span>
-                                            </a>
+                                            <div class="bangumi-oauth-dates" style="display: none">
+                                                <div class="bangumi-oauth-date">
+                                                    <span class="material-icons schedule"></span>
+                                                    <span class="bangumi-oauth-date-label">授权时间：</span>
+                                                    <span class="bangumi-oauth-date-value" id="bangumi-oauth-effective">—</span>
+                                                </div>
+                                                <div class="bangumi-oauth-date bangumi-oauth-expire-date">
+                                                    <span class="material-icons more_time"></span>
+                                                    <span class="bangumi-oauth-date-label">过期时间：</span>
+                                                    <span class="bangumi-oauth-date-value" id="bangumi-oauth-expire">—</span>
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
-                                    <div class="bangumi-oauth-status"></div>
                                     <button class="raised emby-button" id="bangumi-oauth-refresh" is="emby-button" style="display: none" type="button">
                                         <span>延长授权时间</span>
                                     </button>

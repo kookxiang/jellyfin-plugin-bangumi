@@ -2,6 +2,8 @@
     var pluginId = "41b59f1b-a6cf-474a-b416-785379cbd856";
     var container = document.querySelector('#bangumiConfigurationPage:not(.hide)');
     var configuration = {};
+    var oauthUsers = [];
+    var selectedBangumiUserName = '';
 
     function getAvailableModules() {
         return Array.from(container.querySelectorAll('.bangumi-settings-nav-item'))
@@ -41,6 +43,146 @@
         if (e.data === 'BANGUMI-OAUTH-COMPLETE') {
             wrapLoading(loadOAuthState());
         }
+    }
+
+    function normalizeUserId(userId) {
+        return (userId || '').replace(/-/g, '').toLowerCase();
+    }
+
+    function getSelectedUserId() {
+        return container.querySelector('#bangumi-jellyfin-user').value;
+    }
+
+    function getSelectedUserName() {
+        var selectedUserId = normalizeUserId(getSelectedUserId());
+        var selectedUser = oauthUsers.find(function (user) {
+            return normalizeUserId(user.id) === selectedUserId;
+        });
+        return selectedUser ? selectedUser.name : '';
+    }
+
+    function getOAuthRequestPath(path) {
+        return path + '?userId=' + encodeURIComponent(getSelectedUserId());
+    }
+
+    function getAuthorizationUrl() {
+        return ApiClient.getUrl('/Plugins/Bangumi/Redirect?prefix='
+            + encodeURIComponent(ApiClient.serverAddress())
+            + '&user=' + encodeURIComponent(getSelectedUserId()));
+    }
+
+    function copyText(text) {
+        if (navigator.clipboard && window.isSecureContext) {
+            return navigator.clipboard.writeText(text);
+        }
+
+        var input = document.createElement('textarea');
+        input.value = text;
+        input.style.position = 'fixed';
+        input.style.opacity = '0';
+        document.body.appendChild(input);
+        input.select();
+        var copied = document.execCommand('copy');
+        document.body.removeChild(input);
+        return copied ? Promise.resolve() : Promise.reject(new Error('copy failed'));
+    }
+
+    function loadOAuthUsers() {
+        var userIdInput = container.querySelector('#bangumi-jellyfin-user');
+        var previousUserId = normalizeUserId(userIdInput.value || ApiClient.getCurrentUserId());
+        return ApiClient.getJSON(ApiClient.getUrl('/Plugins/Bangumi/OAuthUsers')).then(function (users) {
+            oauthUsers = users;
+            var selectedUser = users.find(function (user) {
+                return normalizeUserId(user.id) === previousUserId;
+            });
+            userIdInput.value = selectedUser ? selectedUser.id : (users[0] ? users[0].id : '');
+            renderOAuthUserMenu();
+            updateSelectedJellyfinUser();
+            return loadOAuthState();
+        });
+    }
+
+    function renderOAuthUserMenu(query) {
+        var list = container.querySelector('#bangumi-jellyfin-user-menu-list');
+        var empty = container.querySelector('.bangumi-jellyfin-user-menu-empty');
+        var normalizedQuery = (query || '').trim().toLocaleLowerCase();
+        var filteredUsers = oauthUsers.filter(function (user) {
+            return !normalizedQuery || user.name.toLocaleLowerCase().includes(normalizedQuery);
+        });
+        list.innerHTML = '';
+        filteredUsers.forEach(function (user) {
+            var item = document.createElement('button');
+            item.className = 'bangumi-jellyfin-user-menu-item';
+            item.type = 'button';
+            item.setAttribute('role', 'option');
+            item.setAttribute('data-user-id', user.id);
+
+            var avatar = document.createElement('span');
+            avatar.className = 'bangumi-jellyfin-user-menu-avatar';
+            setJellyfinUserAvatar(avatar, user.id);
+
+            var name = document.createElement('span');
+            name.className = 'bangumi-jellyfin-user-menu-name';
+            name.textContent = user.name;
+
+            var check = document.createElement('span');
+            check.className = 'material-icons check bangumi-jellyfin-user-menu-check';
+
+            item.appendChild(avatar);
+            item.appendChild(name);
+            item.appendChild(check);
+            list.appendChild(item);
+        });
+        empty.hidden = filteredUsers.length > 0;
+        updateOAuthUserMenuSelection();
+    }
+
+    function updateOAuthUserMenuSelection() {
+        var selectedUserId = normalizeUserId(getSelectedUserId());
+        container.querySelectorAll('.bangumi-jellyfin-user-menu-item').forEach(function (item) {
+            var selected = normalizeUserId(item.getAttribute('data-user-id')) === selectedUserId;
+            item.classList.toggle('selected', selected);
+            item.setAttribute('aria-selected', selected ? 'true' : 'false');
+        });
+    }
+
+    function setOAuthUserMenuOpen(open) {
+        var button = container.querySelector('#bangumi-jellyfin-user-switch');
+        var menu = container.querySelector('#bangumi-jellyfin-user-menu');
+        button.setAttribute('aria-expanded', open ? 'true' : 'false');
+        menu.hidden = !open;
+        if (open) {
+            var search = container.querySelector('#bangumi-jellyfin-user-search');
+            search.value = '';
+            renderOAuthUserMenu();
+            search.focus();
+        }
+    }
+
+    function documentClickHandler(e) {
+        var selector = container.querySelector('.bangumi-jellyfin-user-selector');
+        if (!selector.contains(e.target)) setOAuthUserMenuOpen(false);
+    }
+
+    function setJellyfinUserAvatar(avatar, userId) {
+        avatar.innerHTML = '<span class="material-icons person"></span>';
+        if (!userId) return;
+
+        var image = document.createElement('img');
+        image.alt = '';
+        image.onload = function () {
+            avatar.innerHTML = '';
+            avatar.appendChild(image);
+        };
+        image.src = ApiClient.getUrl('/Users/' + encodeURIComponent(userId) + '/Images/Primary');
+    }
+
+    function updateSelectedJellyfinUser() {
+        var avatar = container.querySelector('#bangumi-jellyfin-user-avatar');
+        var userId = getSelectedUserId();
+        container.querySelector('.bangumi-jellyfin-user-name').textContent = getSelectedUserName() || '—';
+        setJellyfinUserAvatar(avatar, userId);
+        updateOAuthUserMenuSelection();
     }
 
     function loadArchiveState() {
@@ -87,28 +229,55 @@
     }
 
     function loadOAuthState() {
-        return ApiClient.getJSON(ApiClient.getUrl('/Plugins/Bangumi/OAuthState')).then(function (data) {
+        if (!getSelectedUserId()) return Promise.resolve();
+        return ApiClient.getJSON(ApiClient.getUrl(getOAuthRequestPath('/Plugins/Bangumi/OAuthState'))).then(function (data) {
+            var userInfo = container.querySelector('.bangumi-user-info');
+            var avatar = container.querySelector('.bangumi-user-info .user-avatar');
+            var dates = container.querySelector('.bangumi-oauth-dates');
+            selectedBangumiUserName = '';
             if (!data) {
-                container.querySelector('#bangumi-oauth-btn').textContent = '授权登录 Bangumi';
+                updateOAuthAction(false);
                 container.querySelector('#bangumi-oauth-btn').style.display = '';
                 container.querySelector('#bangumi-oauth-manual-btn').style.display = '';
                 container.querySelector('#bangumi-oauth-refresh').style.display = 'none';
                 container.querySelector('#bangumi-oauth-delete').style.display = 'none';
-                container.querySelector('.bangumi-user-info .user-avatar').innerHTML = '<span class="material-icons person"></span>';
-                container.querySelector('.bangumi-user-info .user-name').textContent = '未登录';
-                container.querySelector('.bangumi-oauth-status').innerHTML = '';
+                avatar.innerHTML = '<span class="material-icons person"></span>';
+                container.querySelector('.bangumi-user-info .user-name').textContent = '尚未绑定';
+                dates.style.display = 'none';
+                userInfo.classList.remove('expired');
                 return;
             }
-            container.querySelector('#bangumi-oauth-btn').textContent = '重新授权';
-            container.querySelector('#bangumi-oauth-btn').style.display = 'none';
+            selectedBangumiUserName = data.nickname || '';
+            updateOAuthAction(true);
+            container.querySelector('#bangumi-oauth-btn').style.display = '';
             container.querySelector('#bangumi-oauth-manual-btn').style.display = 'none';
             container.querySelector('#bangumi-oauth-refresh').style.display = data.autoRefresh ? '' : 'none';
             container.querySelector('#bangumi-oauth-delete').style.display = '';
-            container.querySelector('.bangumi-user-info .user-avatar').innerHTML = '<img src="' + data.avatar + '" />';
+            avatar.innerHTML = data.avatar
+                ? '<img src="' + data.avatar + '" />'
+                : '<span class="material-icons person"></span>';
             container.querySelector('.bangumi-user-info .user-name').textContent = data.nickname;
-            container.querySelector('.bangumi-user-info .profile-link').href = data.url;
-            container.querySelector('.bangumi-oauth-status').innerHTML = '<p><span class="material-icons schedule"></span> 授权时间: ' + new Date(data.effective).toLocaleString() + '</p><p><span class="material-icons more_time"></span> 过期时间: ' + new Date(data.expire).toLocaleString() + '</p>';
+            dates.style.display = 'flex';
+            container.querySelector('#bangumi-oauth-effective').textContent = formatOAuthDate(data.effective);
+            container.querySelector('#bangumi-oauth-expire').textContent = formatOAuthDate(data.expire);
+            userInfo.classList.toggle('expired', data.expired === true);
         });
+    }
+
+    function formatOAuthDate(value) {
+        if (!value) return '—';
+        var date = new Date(value);
+        return Number.isNaN(date.getTime()) ? '—' : date.toLocaleString();
+    }
+
+    function updateOAuthAction(hasBinding) {
+        var isCurrentUser = normalizeUserId(getSelectedUserId()) === normalizeUserId(ApiClient.getCurrentUserId());
+        var button = container.querySelector('#bangumi-oauth-btn');
+        if (isCurrentUser) {
+            button.textContent = hasBinding ? '重新授权' : '授权登录 Bangumi';
+        } else {
+            button.textContent = hasBinding ? '复制重新授权链接' : '复制授权链接';
+        }
     }
 
     function loadConfiguration() {
@@ -164,13 +333,15 @@
     function onLoad() {
         window.addEventListener("message", windowMessageHandler);
         window.addEventListener('hashchange', applyModuleFromHash);
+        document.addEventListener('click', documentClickHandler);
         applyModuleFromHash();
-        wrapLoading(Promise.all([loadConfiguration(), loadArchiveState(), loadOAuthState(),]));
+        wrapLoading(Promise.all([loadConfiguration(), loadArchiveState(), loadOAuthUsers(),]));
     }
 
     function onUnload() {
         window.removeEventListener("message", windowMessageHandler);
         window.removeEventListener('hashchange', applyModuleFromHash);
+        document.removeEventListener('click', documentClickHandler);
     }
 
     function wrapLoading(promise) {
@@ -188,9 +359,47 @@
 
     container.querySelector('#SkipNSFWPlaybackReport').addEventListener('change', updateNSFWReportDisplay);
 
+    container.querySelector('#bangumi-jellyfin-user-switch').addEventListener('click', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        var open = this.getAttribute('aria-expanded') !== 'true';
+        setOAuthUserMenuOpen(open);
+    });
+
+    container.querySelector('#bangumi-jellyfin-user-menu').addEventListener('click', function (e) {
+        e.stopPropagation();
+        var item = e.target.closest('.bangumi-jellyfin-user-menu-item');
+        if (!item) return;
+        container.querySelector('#bangumi-jellyfin-user').value = item.getAttribute('data-user-id');
+        updateSelectedJellyfinUser();
+        setOAuthUserMenuOpen(false);
+        wrapLoading(loadOAuthState());
+    });
+
+    container.querySelector('#bangumi-jellyfin-user-search').addEventListener('input', function () {
+        renderOAuthUserMenu(this.value);
+    });
+
+    container.querySelector('#bangumi-jellyfin-user-menu').addEventListener('keydown', function (e) {
+        if (e.key !== 'Escape') return;
+        setOAuthUserMenuOpen(false);
+        container.querySelector('#bangumi-jellyfin-user-switch').focus();
+    });
+
     container.querySelector('#bangumi-oauth-btn').addEventListener('click', function (e) {
         e.preventDefault();
-        window.open(ApiClient.getUrl('/Plugins/Bangumi/Redirect?prefix=' + encodeURIComponent(ApiClient.serverAddress()) + '&user=' + ApiClient.getCurrentUserId()));
+        var authorizationUrl = getAuthorizationUrl();
+        var isCurrentUser = normalizeUserId(getSelectedUserId()) === normalizeUserId(ApiClient.getCurrentUserId());
+        if (isCurrentUser) {
+            window.open(authorizationUrl);
+            return;
+        }
+
+        copyText(authorizationUrl).then(function () {
+            Dashboard.alert('已复制 ' + getSelectedUserName() + ' 的 Bangumi 授权链接');
+        }, function () {
+            Dashboard.alert({ title: '复制失败', message: '请检查浏览器的剪贴板权限。' });
+        });
     });
 
     container.querySelector('#bangumi-oauth-manual-btn').addEventListener('click', function (e) {
@@ -200,7 +409,7 @@
             const token = prompt('请填写 Access Token');
             if (!token) return;
             wrapLoading(
-                ApiClient.fetch({ url: '/Plugins/Bangumi/AccessToken', type: 'PATCH', data: { token: token } })
+                ApiClient.fetch({ url: getOAuthRequestPath('/Plugins/Bangumi/AccessToken'), type: 'PATCH', data: { token: token } })
                     .then(function () {
                         Dashboard.alert('授权成功');
                         return loadOAuthState();
@@ -214,9 +423,11 @@
 
     container.querySelector('#bangumi-oauth-delete').addEventListener('click', function (e) {
         e.preventDefault();
-        Dashboard.confirm('取消后将断开与 Bangumi 的连接，不再同步播放进度', '取消授权', function (confirmed) {
+        var message = '确定解除 Jellyfin 用户“' + getSelectedUserName() + '”与 Bangumi 用户“'
+            + selectedBangumiUserName + '”的绑定吗？解除后将不再同步该用户的播放进度。';
+        Dashboard.confirm(message, '解除绑定', function (confirmed) {
             if (!confirmed) return;
-            ApiClient.fetch({ url: '/Plugins/Bangumi/OAuth', type: 'DELETE' })
+            ApiClient.fetch({ url: getOAuthRequestPath('/Plugins/Bangumi/OAuth'), type: 'DELETE' })
                 .then(function () {
                     wrapLoading(loadOAuthState());
                 });
@@ -226,7 +437,7 @@
     container.querySelector('#bangumi-oauth-refresh').addEventListener('click', function (e) {
         e.preventDefault();
         wrapLoading(ApiClient.fetch({
-            url: '/Plugins/Bangumi/RefreshOAuthToken', type: 'POST'
+            url: getOAuthRequestPath('/Plugins/Bangumi/RefreshOAuthToken'), type: 'POST'
         })
             .then(function () {
                 loadOAuthState();

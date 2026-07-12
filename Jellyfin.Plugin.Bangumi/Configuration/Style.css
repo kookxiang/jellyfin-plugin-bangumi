@@ -2,8 +2,208 @@
     margin-bottom: 32px;
 }
 
-#bangumi-oauth-container .bangumi-user-info,
-#bangumi-oauth-container .bangumi-oauth-status {
+#bangumi-oauth-container .bangumi-jellyfin-user-selector {
+    position: relative;
+    display: flex;
+    align-items: center;
+    padding: 12px;
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.1);
+}
+
+#bangumi-oauth-container .bangumi-jellyfin-user-details {
+    flex: 1;
+    min-width: 0;
+}
+
+#bangumi-oauth-container .bangumi-jellyfin-user-name {
+    display: block;
+}
+
+#bangumi-oauth-container .bangumi-jellyfin-user-name {
+    font-size: 1rem;
+    line-height: 48px;
+}
+
+#bangumi-oauth-container .bangumi-jellyfin-user-switch {
+    display: flex;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    background: transparent;
+    color: inherit;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+#bangumi-oauth-container .bangumi-jellyfin-user-switch:hover,
+#bangumi-oauth-container .bangumi-jellyfin-user-switch:focus-visible,
+#bangumi-oauth-container .bangumi-jellyfin-user-switch[aria-expanded="true"] {
+    background: rgba(255, 255, 255, 0.1);
+    outline: none;
+}
+
+#bangumi-oauth-container .bangumi-jellyfin-user-switch > .material-icons {
+    font-size: 20px;
+}
+
+#bangumi-oauth-container .bangumi-jellyfin-user-menu {
+    position: absolute;
+    z-index: 20;
+    top: calc(100% + 8px);
+    right: 12px;
+    width: min(320px, calc(100% - 24px));
+    padding: 6px;
+    border: 1px solid var(--jf-palette-divider, rgba(255, 255, 255, 0.14));
+    border-radius: 8px;
+    background: var(--jf-palette-background-paper, #202020);
+    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.35);
+}
+
+#bangumi-oauth-container .bangumi-jellyfin-user-menu[hidden] {
+    display: none;
+}
+
+#bangumi-oauth-container .bangumi-jellyfin-user-search {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 6px;
+    padding: 8px 10px;
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.08);
+}
+
+#bangumi-oauth-container .bangumi-jellyfin-user-search .material-icons {
+    color: var(--jf-palette-text-secondary);
+    font-size: 20px;
+}
+
+#bangumi-oauth-container #bangumi-jellyfin-user-search {
+    flex: 1;
+    min-width: 0;
+    padding: 0;
+    border: 0;
+    outline: 0;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+}
+
+#bangumi-oauth-container #bangumi-jellyfin-user-search::placeholder {
+    color: var(--jf-palette-text-secondary);
+}
+
+#bangumi-oauth-container .bangumi-jellyfin-user-menu-list {
+    max-height: 240px;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+}
+
+#bangumi-oauth-container .bangumi-jellyfin-user-menu-empty {
+    padding: 20px 12px;
+    color: var(--jf-palette-text-secondary);
+    text-align: center;
+}
+
+#bangumi-oauth-container .bangumi-jellyfin-user-menu-empty[hidden] {
+    display: none;
+}
+
+#bangumi-oauth-container .bangumi-jellyfin-user-menu-item {
+    display: flex;
+    width: 100%;
+    align-items: center;
+    padding: 8px;
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    color: inherit;
+    cursor: pointer;
+    text-align: left;
+}
+
+#bangumi-oauth-container .bangumi-jellyfin-user-menu-item:hover,
+#bangumi-oauth-container .bangumi-jellyfin-user-menu-item:focus-visible,
+#bangumi-oauth-container .bangumi-jellyfin-user-menu-item.selected {
+    background: rgba(255, 255, 255, 0.08);
+    outline: none;
+}
+
+#bangumi-oauth-container .bangumi-jellyfin-user-menu-avatar {
+    display: flex;
+    flex: 0 0 36px;
+    width: 36px;
+    height: 36px;
+    align-items: center;
+    justify-content: center;
+    margin-right: 10px;
+    overflow: hidden;
+    border-radius: 50%;
+    background: var(--jf-palette-primary-main);
+}
+
+#bangumi-oauth-container .bangumi-jellyfin-user-menu-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+#bangumi-oauth-container .bangumi-jellyfin-user-menu-name {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+#bangumi-oauth-container .bangumi-jellyfin-user-menu-check {
+    margin-left: 8px;
+    color: var(--jf-palette-primary-main);
+    font-size: 20px;
+    opacity: 0;
+}
+
+#bangumi-oauth-container .bangumi-jellyfin-user-menu-item.selected .bangumi-jellyfin-user-menu-check {
+    opacity: 1;
+}
+
+#bangumi-oauth-container .bangumi-binding-connector {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin: 16px 0;
+    color: var(--jf-palette-text-secondary);
+}
+
+#bangumi-oauth-container .bangumi-binding-line {
+    width: 40px;
+    height: 1px;
+    background: var(--jf-palette-divider, rgba(255, 255, 255, 0.14));
+}
+
+#bangumi-oauth-container .bangumi-binding-connector .material-icons {
+    color: var(--jf-palette-primary-main);
+    font-size: 22px;
+}
+
+#bangumi-oauth-container .bangumi-binding-text {
+    font-size: 0.9rem;
+}
+
+#bangumi-oauth-container .bangumi-account-label {
+    margin-bottom: 8px;
+    color: var(--jf-palette-text-secondary);
+    font-size: 0.9rem;
+}
+
+#bangumi-oauth-container .bangumi-user-info {
     background: rgba(255, 255, 255, 0.1);
     border-radius: 4px;
     padding: 12px;
@@ -14,17 +214,23 @@
     display: flex;
     align-items: center;
     flex-direction: row;
-    line-height: 48px;
 }
 
 #bangumi-oauth-container .user-avatar {
+    display: flex;
+    flex: 0 0 48px;
+    align-items: center;
+    justify-content: center;
     background-color: #202020;
     height: 48px;
     width: 48px;
     margin-right: 8px;
-    text-align: center;
     border-radius: 50%;
     overflow: hidden;
+}
+
+#bangumi-oauth-container #bangumi-jellyfin-user-avatar {
+    background-color: var(--jf-palette-primary-main);
 }
 
 #bangumi-oauth-container .user-avatar img {
@@ -35,29 +241,45 @@
 
 #bangumi-oauth-container .user-name {
     flex: 1;
-}
-
-#bangumi-oauth-container .profile-link {
-    display: block;
-    width: 48px;
-    height: 48px;
-    padding: 0;
     line-height: 48px;
 }
 
-#bangumi-oauth-container .bangumi-oauth-status:empty {
-    display: none;
+#bangumi-oauth-container .bangumi-oauth-dates {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+    margin-left: 24px;
 }
 
-#bangumi-oauth-container .bangumi-oauth-status p {
+#bangumi-oauth-container .bangumi-oauth-date {
     display: flex;
-    margin: 0 8px;
-    line-height: 42px;
+    align-items: center;
+    line-height: 24px;
 }
 
-#bangumi-oauth-container .bangumi-oauth-status .material-icons {
-    margin-right: 8px;
-    vertical-align: middle;
+#bangumi-oauth-container .bangumi-oauth-date-label {
+    color: var(--jf-palette-text-secondary);
+    font-size: 0.85rem;
+}
+
+#bangumi-oauth-container .bangumi-oauth-date-value {
+    font-size: 0.9rem;
+    white-space: nowrap;
+}
+
+#bangumi-oauth-container .bangumi-oauth-date .material-icons {
+    width: 24px;
+    margin-right: 6px;
+    color: var(--jf-palette-text-secondary);
+    font-size: 18px;
+}
+
+#bangumi-oauth-container .bangumi-user-info.expired {
+    border-left: 3px solid #ff9800;
+}
+
+#bangumi-oauth-container .bangumi-user-info.expired .bangumi-oauth-expire-date .bangumi-oauth-date-value {
+    color: #ffb74d;
 }
 
 #bangumi-oauth-container .emby-button {
@@ -413,6 +635,22 @@
 }
 
 @media (max-width: 700px) {
+    #bangumi-oauth-container .user-info {
+        flex-wrap: wrap;
+    }
+
+    #bangumi-oauth-container .bangumi-oauth-dates {
+        flex: 1 0 100%;
+        gap: 4px;
+        margin: 12px 0 0;
+        padding-top: 12px;
+        border-top: 1px solid var(--jf-palette-divider, rgba(255, 255, 255, 0.14));
+    }
+
+    #bangumi-oauth-container .bangumi-oauth-date {
+        min-width: 0;
+    }
+
     .bangumi-tab-header {
         overflow-x: auto;
         white-space: nowrap;
