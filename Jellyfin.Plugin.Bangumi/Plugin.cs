@@ -58,6 +58,12 @@ public class Plugin : BasePlugin<PluginConfiguration>, IHasWebPages
                 DisplayName = "修正错误的剧集元数据",
                 EmbeddedResourcePath = $"{GetType().Namespace}.Tools.FixEpisodeMetadata.Index.html"
             },
+            new PluginPageInfo
+            {
+                Name = "Plugin.Bangumi.Tools.MissingBangumiId",
+                DisplayName = "缺失 Bangumi ID 的视频",
+                EmbeddedResourcePath = $"{GetType().Namespace}.Tools.MissingBangumiId.Index.html"
+            },
         ];
     }
 }

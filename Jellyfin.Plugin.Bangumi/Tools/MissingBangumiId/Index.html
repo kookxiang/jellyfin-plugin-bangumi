@@ -1,0 +1,243 @@
+<div class="page type-interior pluginConfigurationPage" data-require="emby-button" data-role="page"
+    id="missingBangumiIdPage">
+    <style>
+        #missingBangumiIdPage .missing-id-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            margin: 1.5rem 0;
+        }
+
+        #missingBangumiIdPage .missing-id-summary {
+            margin: 1.5rem 0 1rem;
+        }
+
+        #missingBangumiIdPage .missing-id-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        #missingBangumiIdPage .missing-id-item {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            min-width: 0;
+            padding: 1rem 1.25rem;
+            border-radius: 0.25rem;
+            color: inherit;
+            background: var(--jf-palette-background-paper);
+            box-shadow: var(--jf-shadows-2);
+            text-decoration: none;
+            transition: box-shadow 0.2s ease-in-out;
+        }
+
+        #missingBangumiIdPage .missing-id-item:hover {
+            box-shadow: var(--jf-shadows-6);
+        }
+
+        #missingBangumiIdPage .missing-id-item-icon {
+            flex: 0 0 auto;
+            opacity: 0.7;
+        }
+
+        #missingBangumiIdPage .missing-id-item-content {
+            flex: 1 1 auto;
+            min-width: 0;
+        }
+
+        #missingBangumiIdPage .missing-id-item-title,
+        #missingBangumiIdPage .missing-id-item-path {
+            overflow: hidden;
+            white-space: nowrap;
+            text-overflow: ellipsis;
+        }
+
+        #missingBangumiIdPage .missing-id-item-path {
+            margin-top: 0.35rem;
+            color: var(--jf-palette-text-secondary);
+            font-size: 0.85rem;
+            opacity: 0.7;
+        }
+
+        #missingBangumiIdPage .missing-id-item-type {
+            flex: 0 0 auto;
+            color: var(--jf-palette-text-secondary);
+            font-size: 0.85rem;
+            opacity: 0.8;
+        }
+
+        #missingBangumiIdPage .missing-id-empty {
+            display: none;
+            margin-top: 3rem;
+            text-align: center;
+        }
+
+        #missingBangumiIdPage .missing-id-empty .material-icons {
+            display: block;
+            margin-bottom: 1rem;
+            color: var(--jf-palette-success-main);
+            font-size: 4rem;
+        }
+    </style>
+    <div data-role="content">
+        <div class="content-primary">
+            <div class="verticalSection">
+                <div class="sectionTitleContainer flex align-items-center">
+                    <h2 class="sectionTitle">缺失 Bangumi ID 的视频</h2>
+                </div>
+                <div class="fieldDescription">
+                    扫描媒体库中的电影和剧集。批量刷新会使用“替换所有元数据”模式加入 Jellyfin 刷新队列，并覆盖已有元数据。
+                </div>
+            </div>
+
+            <div class="missing-id-actions">
+                <button id="missing-id-scan-button" class="raised emby-button" is="emby-button" type="button">
+                    <span>重新扫描</span>
+                </button>
+                <button id="missing-id-refresh-button" class="raised button-submit emby-button" is="emby-button"
+                    type="button" disabled>
+                    <span>一键批量刷新元数据</span>
+                </button>
+            </div>
+
+            <div id="missing-id-summary" class="missing-id-summary"></div>
+            <div id="missing-id-list" class="missing-id-list"></div>
+            <div id="missing-id-empty" class="missing-id-empty">
+                <i class="material-icons check_circle"></i>
+                <div>所有电影和剧集都已有有效的 Bangumi ID</div>
+            </div>
+
+            <template id="missing-id-item-template">
+                <a class="missing-id-item">
+                    <i class="material-icons missing-id-item-icon"></i>
+                    <div class="missing-id-item-content">
+                        <div class="missing-id-item-title"></div>
+                        <div class="missing-id-item-path"></div>
+                    </div>
+                    <span class="missing-id-item-type"></span>
+                    <i class="material-icons navigate_next"></i>
+                </a>
+            </template>
+        </div>
+    </div>
+    <script>
+        (function () {
+            const container = document.querySelector('#missingBangumiIdPage:not(.hide)');
+            const scanButton = container.querySelector('#missing-id-scan-button');
+            const refreshButton = container.querySelector('#missing-id-refresh-button');
+            const summary = container.querySelector('#missing-id-summary');
+            const list = container.querySelector('#missing-id-list');
+            const empty = container.querySelector('#missing-id-empty');
+            const itemTemplate = container.querySelector('#missing-id-item-template');
+            let refreshQueued = false;
+
+            function setBusy(busy) {
+                scanButton.disabled = busy;
+                refreshButton.disabled = busy || refreshQueued || list.children.length === 0;
+                if (busy) {
+                    Dashboard.showLoadingMsg();
+                } else {
+                    Dashboard.hideLoadingMsg();
+                }
+            }
+
+            function getDisplayName(item) {
+                if (item.Type === 'Episode' && item.SeriesName) {
+                    return item.SeriesName
+                        + (item.SeasonName ? ' · ' + item.SeasonName : '')
+                        + ' · '
+                        + (item.Name || '未命名剧集');
+                }
+
+                return item.Name || '未命名视频';
+            }
+
+            function renderItems(items) {
+                refreshQueued = false;
+                list.replaceChildren();
+
+                for (const item of items) {
+                    const element = itemTemplate.content.cloneNode(true);
+                    const link = element.querySelector('.missing-id-item');
+                    const isEpisode = item.Type === 'Episode';
+
+                    link.href = '#/details?id=' + item.Id;
+                    element.querySelector('.missing-id-item-icon').textContent = isEpisode ? 'live_tv' : 'movie';
+                    element.querySelector('.missing-id-item-title').textContent = getDisplayName(item);
+                    element.querySelector('.missing-id-item-path').textContent = item.Path || '无文件路径';
+                    element.querySelector('.missing-id-item-type').textContent = isEpisode ? '剧集' : '电影';
+                    list.appendChild(element);
+                }
+
+                summary.textContent = items.length
+                    ? '共找到 ' + items.length + ' 个缺失有效 Bangumi ID 的视频'
+                    : '';
+                list.style.display = items.length ? '' : 'none';
+                empty.style.display = items.length ? 'none' : 'block';
+                refreshButton.disabled = items.length === 0;
+            }
+
+            async function scan() {
+                setBusy(true);
+                try {
+                    const response = await ApiClient.fetch({
+                        type: 'GET',
+                        url: '/Plugins/Bangumi/Tools/MissingBangumiId/Items'
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(await response.text());
+                    }
+
+                    renderItems(await response.json());
+                } catch (error) {
+                    Dashboard.alert('扫描失败：' + error.message);
+                } finally {
+                    setBusy(false);
+                }
+            }
+
+            scanButton.addEventListener('click', scan);
+
+            refreshButton.addEventListener('click', async function () {
+                const count = list.children.length;
+                const confirmed = await new Promise(resolve => Dashboard.confirm(
+                    '确定要将这 ' + count + ' 个视频加入元数据刷新队列吗？',
+                    '批量刷新元数据',
+                    resolve));
+
+                if (!confirmed) {
+                    return;
+                }
+
+                setBusy(true);
+                try {
+                    const response = await ApiClient.fetch({
+                        type: 'POST',
+                        url: '/Plugins/Bangumi/Tools/MissingBangumiId/Refresh'
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(await response.text());
+                    }
+
+                    const result = await response.json();
+                    let message = '已将 ' + result.QueuedCount + ' 个视频加入 Jellyfin 元数据刷新队列。';
+                    if (result.FailedCount) {
+                        message += ' 另有 ' + result.FailedCount + ' 个视频加入队列失败，请查看日志。';
+                    }
+
+                    refreshQueued = true;
+                    Dashboard.alert(message);
+                } catch (error) {
+                    Dashboard.alert('批量刷新失败：' + error.message);
+                } finally {
+                    setBusy(false);
+                }
+            });
+
+            scan();
+        })();
+    </script>
+</div>

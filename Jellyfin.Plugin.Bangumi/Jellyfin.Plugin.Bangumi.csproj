@@ -19,11 +19,13 @@
     <None Remove="Configuration\Main.js"/>
     <None Remove="Tools\DuplicatedEpisodesDetector\Index.html"/>
     <None Remove="Tools\FixEpisodeMetadata\Index.html"/>
+    <None Remove="Tools\MissingBangumiId\Index.html"/>
     <EmbeddedResource Include="Configuration\Style.css"/>
     <EmbeddedResource Include="Configuration\Main.html"/>
     <EmbeddedResource Include="Configuration\Main.js"/>
     <EmbeddedResource Include="Tools\DuplicatedEpisodesDetector\Index.html"/>
     <EmbeddedResource Include="Tools\FixEpisodeMetadata\Index.html"/>
+    <EmbeddedResource Include="Tools\MissingBangumiId\Index.html"/>
   </ItemGroup>
 
   <ItemGroup>
