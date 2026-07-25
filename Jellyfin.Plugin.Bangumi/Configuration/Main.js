@@ -103,10 +103,36 @@
         return copied ? Promise.resolve() : Promise.reject(new Error('copy failed'));
     }
 
+    function getCurrentJellyfinUser() {
+        return ApiClient.getCurrentUser().then(function (user) {
+            return user ? [user] : [];
+        });
+    }
+
+    function getJellyfinUsers() {
+        return ApiClient.getUsers().then(function (users) {
+            return users && users.length ? users : getCurrentJellyfinUser();
+        }, function (error) {
+            console.warn('[Bangumi] Failed to load Jellyfin users, falling back to the current user.', error);
+            return getCurrentJellyfinUser();
+        }).then(function (users) {
+            return users.map(function (user) {
+                return {
+                    id: user.Id || user.id || '',
+                    name: user.Name || user.name || user.Username || ''
+                };
+            }).filter(function (user) {
+                return user.id && user.name;
+            }).sort(function (left, right) {
+                return left.name.localeCompare(right.name);
+            });
+        });
+    }
+
     function loadOAuthUsers() {
         var userIdInput = container.querySelector('#bangumi-jellyfin-user');
         var previousUserId = normalizeUserId(userIdInput.value || ApiClient.getCurrentUserId());
-        return ApiClient.getJSON(ApiClient.getUrl('/Plugins/Bangumi/OAuthUsers')).then(function (users) {
+        return getJellyfinUsers().then(function (users) {
             oauthUsers = users;
             var selectedUser = users.find(function (user) {
                 return normalizeUserId(user.id) === previousUserId;
@@ -263,16 +289,18 @@
                 userInfo.classList.remove('expired');
                 return;
             }
-            selectedBangumiUserName = data.nickname || '';
+            var bangumiUserName = data.nickname || 'Bangumi 用户';
+            selectedBangumiUserName = bangumiUserName;
             updateOAuthAction(true);
             container.querySelector('#bangumi-oauth-btn').style.display = '';
             container.querySelector('#bangumi-oauth-manual-btn').style.display = 'none';
-            container.querySelector('#bangumi-oauth-refresh').style.display = data.autoRefresh ? '' : 'none';
+            container.querySelector('#bangumi-oauth-refresh').style.display =
+                data.autoRefresh && data.expired !== true ? '' : 'none';
             container.querySelector('#bangumi-oauth-delete').style.display = '';
             avatar.innerHTML = data.avatar
                 ? '<img src="' + data.avatar + '" />'
                 : '<span class="material-icons person"></span>';
-            container.querySelector('.bangumi-user-info .user-name').textContent = data.nickname;
+            container.querySelector('.bangumi-user-info .user-name').textContent = bangumiUserName;
             dates.style.display = 'flex';
             container.querySelector('#bangumi-oauth-effective').textContent = formatOAuthDate(data.effective);
             container.querySelector('#bangumi-oauth-expire').textContent = formatOAuthDate(data.expire);

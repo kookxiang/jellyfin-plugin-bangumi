@@ -5,7 +5,6 @@ using System.Net.Http;
 using System.Text.Json;
 using System.Threading.Tasks;
 using Jellyfin.Database.Implementations.Enums;
-using MediaBrowser.Common.Api;
 using MediaBrowser.Controller.Library;
 using MediaBrowser.Controller.Net;
 using Microsoft.AspNetCore.Authorization;
@@ -24,19 +23,6 @@ public class OAuthController(
 {
     protected internal const string ApplicationId = "bgm16185f43c213d11c9";
     protected internal const string ApplicationSecret = "1b28040afd28882aecf23dcdd86be9f7";
-
-    [HttpGet("OAuthUsers")]
-    [Authorize(Policy = Policies.RequiresElevation)]
-    public ActionResult<IEnumerable<Dictionary<string, string>>> OAuthUsers()
-    {
-        return Ok(userManager.Users
-            .OrderBy(user => user.Username)
-            .Select(user => new Dictionary<string, string>
-            {
-                ["id"] = user.Id.ToString("N"),
-                ["name"] = user.Username
-            }));
-    }
 
     [HttpGet("OAuthState")]
     [Authorize]
@@ -62,7 +48,7 @@ public class OAuthController(
             ["effective"] = info.EffectiveTime,
             ["expire"] = info.ExpireTime,
             ["avatar"] = info.Avatar,
-            ["nickname"] = info.NickName ?? info.UserName,
+            ["nickname"] = string.IsNullOrWhiteSpace(info.NickName) ? info.UserName : info.NickName,
             ["url"] = info.ProfileUrl,
             ["autoRefresh"] = !string.IsNullOrEmpty(info.RefreshToken),
             ["expired"] = info.Expired
