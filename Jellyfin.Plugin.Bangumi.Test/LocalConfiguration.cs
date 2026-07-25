@@ -40,4 +40,14 @@ public class LocalConfigurationTestCases
         Assert.AreEqual(config.Offset, 0, "should use default for offset property");
         Assert.AreEqual(config.Report, true, "should use default for report property");
     }
+
+    [TestMethod]
+    public async Task InvalidIntegerUsesDefault()
+    {
+        var path = FakePath.CreateFile("invalid-integer.ini", "[Bangumi]\nID=invalid\nOffset=2");
+        var config = new LocalConfiguration();
+        await config.ReadFrom(path);
+        Assert.AreEqual(0, config.Id, "invalid integer value should be ignored");
+        Assert.AreEqual(2, config.Offset, "valid values should still be loaded");
+    }
 }

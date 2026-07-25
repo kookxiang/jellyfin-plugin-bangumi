@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Jellyfin.Data.Enums;
@@ -118,7 +119,7 @@ public class MockedLibraryManager : ILibraryManager
 
     public BaseItem? GetItemById(Guid id)
     {
-        throw new NotImplementedException();
+        return _items.Values.FirstOrDefault(item => item.Id == id);
     }
 
     public T? GetItemById<T>(Guid id) where T : BaseItem
@@ -377,6 +378,9 @@ public class MockedLibraryManager : ILibraryManager
     {
         if (_children.TryGetValue(query.ParentId, out var children))
             return children;
+        if (query.IncludeItemTypes.Contains(BaseItemKind.Series) &&
+            query.IncludeItemTypes.Contains(BaseItemKind.Episode))
+            return _items.Values.ToList();
         return Array.Empty<BaseItem>();
     }
 

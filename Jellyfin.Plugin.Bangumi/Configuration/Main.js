@@ -4,6 +4,22 @@
     var configuration = {};
     var oauthUsers = [];
     var selectedBangumiUserName = '';
+    var mediaLibraryState = {
+        initialized: false,
+        librariesLoaded: false,
+        startIndex: 0,
+        pageSize: 100,
+        totalRecordCount: 0,
+        totalItemCount: 0,
+        rootItems: [],
+        currentDirectory: null,
+        selectedItemId: '',
+        searchTimer: 0,
+        requestId: 0,
+        dialog: null,
+        dialogHelper: null,
+        dialogPromise: null
+    };
 
     function getAvailableModules() {
         return Array.from(container.querySelectorAll('.bangumi-settings-nav-item'))
@@ -467,6 +483,341 @@
         updateEpisodeParserDisplay();
     });
 
+    function getMediaLibraryApiUrl(path, query) {
+        var url = ApiClient.getUrl('/Plugins/Bangumi/Tools/MediaLibrary' + path);
+        if (!query) {
+            return url;
+        }
+
+        return url + '?' + new URLSearchParams(query).toString();
+    }
+
+    function initializeMediaLibrary() {
+        if (mediaLibraryState.initialized) {
+            return;
+        }
+
+        mediaLibraryState.initialized = true;
+        loadMediaLibraryItems();
+    }
+
+    function loadMediaLibraryOptions(libraries) {
+        if (mediaLibraryState.librariesLoaded) {
+            return;
+        }
+
+        var select = container.querySelector('#bangumi-media-library-select');
+        select.replaceChildren(new Option('全部媒体库', ''));
+        libraries.forEach(function (libraryInfo) {
+            select.appendChild(new Option(libraryInfo.Name || '未命名媒体库', libraryInfo.Id));
+        });
+        mediaLibraryState.librariesLoaded = true;
+    }
+
+    function updateMediaLibraryPagination() {
+        var first = mediaLibraryState.totalRecordCount ? mediaLibraryState.startIndex + 1 : 0;
+        var last = Math.min(
+            mediaLibraryState.startIndex + mediaLibraryState.pageSize,
+            mediaLibraryState.totalRecordCount);
+        container.querySelector('#bangumi-media-library-page-status').textContent =
+            first + '–' + last + ' / ' + mediaLibraryState.totalRecordCount;
+        container.querySelector('#bangumi-media-library-previous').disabled =
+            mediaLibraryState.startIndex === 0;
+        container.querySelector('#bangumi-media-library-next').disabled =
+            mediaLibraryState.startIndex + mediaLibraryState.pageSize >=
+            mediaLibraryState.totalRecordCount;
+    }
+
+    function enterMediaLibraryDirectory(item) {
+        mediaLibraryState.currentDirectory = item;
+        renderMediaLibraryItems();
+    }
+
+    function createMediaLibraryListItem(item) {
+        var element = container.querySelector('#bangumi-media-library-item-template')
+            .content.cloneNode(true);
+        var row = element.querySelector('.bangumi-media-list-item');
+        var children = item.Children || [];
+        var hasChildren = children.length > 0;
+        var editButton = element.querySelector('.bangumi-media-list-edit');
+        var enterButton = element.querySelector('.bangumi-media-list-enter');
+
+        row.dataset.itemId = item.Id;
+        element.querySelector('.bangumi-media-list-icon').textContent =
+            hasChildren ? 'folder' : 'folder_open';
+        element.querySelector('.bangumi-media-list-name').textContent = item.Name;
+        element.querySelector('.bangumi-media-list-path').textContent = item.Path;
+        element.querySelector('.bangumi-media-config-state').textContent =
+            item.HasConfiguration ? 'check_circle' : '';
+        enterButton.style.display = hasChildren ? '' : 'none';
+
+        function activateDefaultAction() {
+            if (hasChildren) {
+                enterMediaLibraryDirectory(item);
+            } else {
+                openMediaLibraryEditor(item);
+            }
+        }
+
+        row.addEventListener('click', function () {
+            activateDefaultAction();
+        });
+        row.addEventListener('keydown', function (event) {
+            if (event.target !== row) {
+                return;
+            }
+            if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                activateDefaultAction();
+            }
+        });
+        editButton.addEventListener('click', function (event) {
+            event.preventDefault();
+            event.stopPropagation();
+            openMediaLibraryEditor(item);
+        });
+        enterButton.addEventListener('click', function (event) {
+            event.preventDefault();
+            event.stopPropagation();
+            enterMediaLibraryDirectory(item);
+        });
+
+        return element;
+    }
+
+    function renderMediaLibraryItems() {
+        var list = container.querySelector('#bangumi-media-library-list');
+        var empty = container.querySelector('#bangumi-media-library-empty');
+        var pagination = container.querySelector('#bangumi-media-library-pagination');
+        var backButton = container.querySelector('#bangumi-media-library-back');
+        var currentLabel = container.querySelector('#bangumi-media-library-current');
+        var summary = container.querySelector('#bangumi-media-library-summary');
+        var items = mediaLibraryState.currentDirectory
+            ? (mediaLibraryState.currentDirectory.Children || [])
+            : mediaLibraryState.rootItems;
+
+        list.replaceChildren();
+        items.forEach(function (item) {
+            list.appendChild(createMediaLibraryListItem(item));
+        });
+
+        if (mediaLibraryState.currentDirectory) {
+            backButton.style.display = '';
+            currentLabel.textContent = mediaLibraryState.currentDirectory.Name;
+            summary.textContent = '共 ' + items.length + ' 个实际媒体文件夹';
+            pagination.style.display = 'none';
+            empty.textContent = '此系列下没有已索引的媒体文件夹';
+        } else {
+            var select = container.querySelector('#bangumi-media-library-select');
+            var selectedOption = select.options[select.selectedIndex];
+            backButton.style.display = 'none';
+            currentLabel.textContent = selectedOption ? selectedOption.textContent : '全部媒体库';
+            summary.textContent = '共找到 ' + mediaLibraryState.totalItemCount + ' 个可配置目录';
+            pagination.style.display = '';
+            empty.textContent = '当前筛选条件下没有可配置的系列目录';
+            updateMediaLibraryPagination();
+        }
+
+        empty.hidden = items.length > 0;
+        list.style.display = items.length ? '' : 'none';
+    }
+
+    async function loadMediaLibraryItems() {
+        var requestId = ++mediaLibraryState.requestId;
+        var select = container.querySelector('#bangumi-media-library-select');
+        var search = container.querySelector('#bangumi-media-library-search');
+
+        Dashboard.showLoadingMsg();
+        try {
+            var response = await ApiClient.fetch({
+                type: 'GET',
+                url: getMediaLibraryApiUrl('/Items', {
+                    libraryId: select.value,
+                    search: search.value.trim(),
+                    startIndex: String(mediaLibraryState.startIndex),
+                    limit: String(mediaLibraryState.pageSize)
+                })
+            });
+            if (!response.ok) {
+                throw new Error(await response.text());
+            }
+
+            var result = await response.json();
+            if (requestId !== mediaLibraryState.requestId) {
+                return;
+            }
+
+            mediaLibraryState.totalRecordCount = result.TotalRecordCount;
+            mediaLibraryState.totalItemCount = result.TotalItemCount;
+            mediaLibraryState.rootItems = result.Items;
+            loadMediaLibraryOptions(result.Libraries);
+            if (mediaLibraryState.currentDirectory) {
+                mediaLibraryState.currentDirectory = mediaLibraryState.rootItems.find(function (item) {
+                    return item.Id === mediaLibraryState.currentDirectory.Id;
+                }) || null;
+            }
+            renderMediaLibraryItems();
+        } catch (error) {
+            Dashboard.alert('加载媒体库失败：' + error.message);
+        } finally {
+            if (requestId === mediaLibraryState.requestId) {
+                Dashboard.hideLoadingMsg();
+            }
+        }
+    }
+
+    function updateMediaLibraryConfigFields() {
+        var dialog = mediaLibraryState.dialog;
+        if (!dialog) {
+            return;
+        }
+
+        var enabled = dialog.querySelector('#bangumi-media-config-enabled').checked;
+        dialog.querySelector('#bangumi-media-config-fields').style.display = enabled ? '' : 'none';
+    }
+
+    function closeMediaLibraryDialog() {
+        if (mediaLibraryState.dialog && mediaLibraryState.dialogHelper) {
+            mediaLibraryState.dialogHelper.close(mediaLibraryState.dialog);
+        }
+    }
+
+    function createMediaLibraryDialog() {
+        if (mediaLibraryState.dialogPromise) {
+            return mediaLibraryState.dialogPromise;
+        }
+
+        try {
+            var dialogHelper = Dashboard.dialogHelper;
+            if (!dialogHelper || typeof dialogHelper.createDialog !== 'function') {
+                throw new Error('当前 Jellyfin Web 未提供 dialogHelper');
+            }
+
+            var template = container.querySelector('#bangumi-media-library-dialog-template');
+            var dialog = dialogHelper.createDialog({
+                id: 'bangumi-media-library-dialog',
+                size: 'small',
+                removeOnClose: true
+            });
+
+            dialog.classList.add('formDialog');
+            dialog.appendChild(template.content.cloneNode(true));
+            dialog.querySelector('#bangumi-media-config-enabled').addEventListener(
+                'change',
+                updateMediaLibraryConfigFields);
+            dialog.querySelectorAll('.btnCancel').forEach(function (button) {
+                button.addEventListener('click', closeMediaLibraryDialog);
+            });
+            dialog.querySelector('form').addEventListener('submit', function (event) {
+                event.preventDefault();
+                saveMediaLibraryConfiguration();
+            });
+            dialog.addEventListener('close', function () {
+                if (mediaLibraryState.dialog === dialog) {
+                    mediaLibraryState.dialog = null;
+                    mediaLibraryState.dialogHelper = null;
+                    mediaLibraryState.dialogPromise = null;
+                }
+            }, { once: true });
+
+            mediaLibraryState.dialog = dialog;
+            mediaLibraryState.dialogHelper = dialogHelper;
+            mediaLibraryState.dialogPromise = Promise.resolve(dialog);
+        } catch (error) {
+            mediaLibraryState.dialogPromise = null;
+            return Promise.reject(error);
+        }
+
+        return mediaLibraryState.dialogPromise;
+    }
+
+    async function openMediaLibraryEditor(item) {
+        Dashboard.showLoadingMsg();
+        try {
+            var response = await ApiClient.fetch({
+                type: 'GET',
+                url: getMediaLibraryApiUrl('/Configuration/' + item.Id)
+            });
+            if (!response.ok) {
+                throw new Error(await response.text());
+            }
+
+            var config = await response.json();
+            var dialog = await createMediaLibraryDialog();
+            mediaLibraryState.selectedItemId = config.ItemId;
+            dialog.querySelector('#bangumi-media-dialog-title').textContent =
+                '配置：' + config.ItemName;
+            dialog.querySelector('#bangumi-media-dialog-path').textContent = config.DirectoryPath;
+            dialog.querySelector('#bangumi-media-config-enabled').checked = config.Exists;
+            dialog.querySelector('#bangumi-media-config-id').value = config.Id || '';
+            dialog.querySelector('#bangumi-media-config-offset').value = config.Offset || '';
+            dialog.querySelector('#bangumi-media-config-report').checked = config.Report;
+            dialog.querySelector('#bangumi-media-config-skip').checked = config.Skip;
+            dialog.querySelector('#bangumi-media-config-correct-index').checked = config.CorrectIndex;
+            updateMediaLibraryConfigFields();
+            mediaLibraryState.dialogHelper.open(dialog);
+        } catch (error) {
+            Dashboard.alert('读取 bangumi.ini 失败：' + error.message);
+        } finally {
+            Dashboard.hideLoadingMsg();
+        }
+    }
+
+    function getMediaLibraryConfigurationPayload() {
+        var dialog = mediaLibraryState.dialog;
+        return {
+            Id: Number.parseInt(dialog.querySelector('#bangumi-media-config-id').value || '0', 10),
+            Offset: Number.parseInt(
+                dialog.querySelector('#bangumi-media-config-offset').value || '0',
+                10),
+            Report: dialog.querySelector('#bangumi-media-config-report').checked,
+            Skip: dialog.querySelector('#bangumi-media-config-skip').checked,
+            CorrectIndex: dialog.querySelector('#bangumi-media-config-correct-index').checked
+        };
+    }
+
+    async function saveMediaLibraryConfiguration() {
+        var dialog = mediaLibraryState.dialog;
+        if (!dialog) {
+            return;
+        }
+
+        var enabled = dialog.querySelector('#bangumi-media-config-enabled').checked;
+        var idInput = dialog.querySelector('#bangumi-media-config-id');
+        var offsetInput = dialog.querySelector('#bangumi-media-config-offset');
+        if (enabled && (!idInput.reportValidity() || !offsetInput.reportValidity())) {
+            return;
+        }
+
+        Dashboard.showLoadingMsg();
+        try {
+            var response = enabled
+                ? await ApiClient.fetch({
+                    type: 'PUT',
+                    url: getMediaLibraryApiUrl(
+                        '/Configuration/' + mediaLibraryState.selectedItemId),
+                    contentType: 'application/json',
+                    data: JSON.stringify(getMediaLibraryConfigurationPayload())
+                })
+                : await ApiClient.fetch({
+                    type: 'DELETE',
+                    url: getMediaLibraryApiUrl(
+                        '/Configuration/' + mediaLibraryState.selectedItemId)
+                });
+            if (!response.ok) {
+                throw new Error(await response.text());
+            }
+
+            closeMediaLibraryDialog();
+            await loadMediaLibraryItems();
+            Dashboard.alert(enabled ? 'bangumi.ini 已保存。' : 'bangumi.ini 已删除。');
+        } catch (error) {
+            Dashboard.alert('更新 bangumi.ini 失败：' + error.message);
+        } finally {
+            Dashboard.hideLoadingMsg();
+        }
+    }
+
     function switchSettingsSection(target) {
         if (!target) {
             return;
@@ -481,6 +832,10 @@
         container.querySelectorAll('.bangumi-settings-panel').forEach(function (panel) {
             panel.classList.toggle('active', panel.getAttribute('data-section') === resolvedTarget);
         });
+
+        if (resolvedTarget === 'media-library') {
+            initializeMediaLibrary();
+        }
     }
 
     function updateEpisodeParserDisplay() {
@@ -916,6 +1271,42 @@
             e.preventDefault();
             switchSettingsSection(getResolvedModule(button.getAttribute('data-target')), false);
         });
+    });
+
+    container.querySelector('#bangumi-media-library-select').addEventListener('change', function () {
+        mediaLibraryState.startIndex = 0;
+        mediaLibraryState.currentDirectory = null;
+        loadMediaLibraryItems();
+    });
+
+    container.querySelector('#bangumi-media-library-search').addEventListener('input', function () {
+        window.clearTimeout(mediaLibraryState.searchTimer);
+        mediaLibraryState.searchTimer = window.setTimeout(function () {
+            mediaLibraryState.startIndex = 0;
+            mediaLibraryState.currentDirectory = null;
+            loadMediaLibraryItems();
+        }, 300);
+    });
+
+    container.querySelector('#bangumi-media-library-refresh').addEventListener('click', function () {
+        loadMediaLibraryItems();
+    });
+
+    container.querySelector('#bangumi-media-library-back').addEventListener('click', function () {
+        mediaLibraryState.currentDirectory = null;
+        renderMediaLibraryItems();
+    });
+
+    container.querySelector('#bangumi-media-library-previous').addEventListener('click', function () {
+        mediaLibraryState.startIndex = Math.max(
+            0,
+            mediaLibraryState.startIndex - mediaLibraryState.pageSize);
+        loadMediaLibraryItems();
+    });
+
+    container.querySelector('#bangumi-media-library-next').addEventListener('click', function () {
+        mediaLibraryState.startIndex += mediaLibraryState.pageSize;
+        loadMediaLibraryItems();
     });
 
     container.querySelectorAll('.bangumi-plugin-tools').forEach(function (link) {

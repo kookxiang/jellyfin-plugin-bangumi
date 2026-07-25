@@ -478,6 +478,117 @@
     color: var(--jf-palette-text-secondary);
 }
 
+.bangumi-media-toolbar {
+    display: grid;
+    grid-template-columns: minmax(12rem, 0.8fr) minmax(16rem, 1.2fr);
+    gap: 16px;
+    margin: 24px 0 16px;
+}
+
+.bangumi-media-navigation {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+    margin-bottom: 10px;
+}
+
+.bangumi-media-navigation #bangumi-media-library-current {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    font-weight: 600;
+}
+
+.bangumi-media-summary {
+    margin-bottom: 12px;
+}
+
+#bangumi-media-library-list {
+    margin-bottom: 16px;
+}
+
+.bangumi-media-list-item {
+    cursor: pointer;
+}
+
+.bangumi-media-list-item:hover,
+.bangumi-media-list-item:focus-visible {
+    background: var(--jf-palette-action-hover);
+}
+
+.bangumi-media-list-icon {
+    flex: 0 0 auto;
+    margin-right: 16px;
+    color: var(--jf-palette-text-secondary);
+}
+
+.bangumi-media-list-path {
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+.bangumi-media-config-state {
+    flex: 0 0 auto;
+    color: var(--jf-palette-success-main);
+}
+
+.bangumi-media-config-state:empty {
+    display: none;
+}
+
+.bangumi-media-list-edit,
+.bangumi-media-list-enter {
+    flex: 0 0 auto;
+}
+
+.bangumi-media-empty {
+    padding: 40px 16px;
+    color: var(--jf-palette-text-secondary);
+    text-align: center;
+}
+
+.bangumi-media-pagination {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.bangumi-media-pagination #bangumi-media-library-page-status {
+    flex: 1 1 auto;
+    color: var(--jf-palette-text-secondary);
+    text-align: center;
+}
+
+.bangumi-media-dialog-content {
+    padding-top: 1.5em;
+}
+
+#bangumi-media-library-dialog .formDialogContent {
+    width: 100%;
+    max-width: none;
+}
+
+#bangumi-media-dialog-path {
+    margin-bottom: 1.5em;
+    overflow-wrap: anywhere;
+}
+
+.bangumi-media-config-switch {
+    margin-bottom: 20px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--jf-palette-divider);
+}
+
+.bangumi-media-dialog-fields {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+}
+
 .bangumi-tab-container {
     display: flex;
     flex-direction: column;
@@ -621,6 +732,11 @@
     .bangumi-settings-nav-item {
         flex: 0 0 auto;
         white-space: nowrap;
+    }
+
+    .bangumi-media-toolbar,
+    .bangumi-media-dialog-fields {
+        grid-template-columns: 1fr;
     }
 }
 

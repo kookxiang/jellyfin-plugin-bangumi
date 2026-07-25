@@ -10,6 +10,7 @@
                         <button class="bangumi-settings-nav-item" data-target="metadata" type="button">元数据</button>
                         <button class="bangumi-settings-nav-item" data-target="episode-parser" type="button">剧集解析</button>
                         <button class="bangumi-settings-nav-item" data-target="archive" type="button">离线数据库</button>
+                        <button class="bangumi-settings-nav-item" data-target="media-library" type="button">媒体库</button>
                         <button class="bangumi-settings-nav-item" data-target="tools" type="button">工具</button>
                     </aside>
                     <div class="bangumi-settings-content">
@@ -529,6 +530,53 @@
                                 </div>
                             </div>
                         </div>
+                        <div class="bangumi-settings-panel without-save-button" data-section="media-library">
+                            <div class="bangumi-settings-module">
+                                <h2 class="bangumi-settings-heading">媒体库</h2>
+                                <div class="fieldDescription">
+                                    逐级浏览系列和季目录，并为指定目录创建或编辑 bangumi.ini。
+                                </div>
+                                <div class="bangumi-media-toolbar">
+                                    <div class="selectContainer">
+                                        <label class="selectLabel" for="bangumi-media-library-select">媒体库</label>
+                                        <select class="emby-select-withcolor emby-select"
+                                            data-config-ignore id="bangumi-media-library-select" is="emby-select"></select>
+                                    </div>
+                                    <div class="inputContainer">
+                                        <label class="inputLabel inputLabelUnfocused"
+                                            for="bangumi-media-library-search">搜索</label>
+                                        <input data-config-ignore id="bangumi-media-library-search" is="emby-input"
+                                            placeholder="系列名称、季名称或文件路径" type="search" />
+                                    </div>
+                                </div>
+                                <div class="bangumi-media-navigation">
+                                    <button class="raised emby-button" data-config-ignore id="bangumi-media-library-back"
+                                        is="emby-button" style="display: none" type="button">
+                                        <span class="material-icons arrow_back"></span>
+                                        <span>返回</span>
+                                    </button>
+                                    <span class="material-icons folder_open"></span>
+                                    <span id="bangumi-media-library-current">全部媒体库</span>
+                                    <button data-config-ignore id="bangumi-media-library-refresh"
+                                        is="paper-icon-button-light" title="刷新" type="button">
+                                        <span class="material-icons refresh"></span>
+                                    </button>
+                                </div>
+                                <div class="fieldDescription bangumi-media-summary"
+                                    id="bangumi-media-library-summary"></div>
+                                <div class="paperList" id="bangumi-media-library-list"></div>
+                                <div class="bangumi-media-empty" id="bangumi-media-library-empty" hidden>
+                                    当前目录下没有可配置的项目
+                                </div>
+                                <div class="bangumi-media-pagination" id="bangumi-media-library-pagination">
+                                    <button class="raised emby-button" data-config-ignore
+                                        id="bangumi-media-library-previous" is="emby-button" type="button">上一页</button>
+                                    <span id="bangumi-media-library-page-status"></span>
+                                    <button class="raised emby-button" data-config-ignore
+                                        id="bangumi-media-library-next" is="emby-button" type="button">下一页</button>
+                                </div>
+                            </div>
+                        </div>
                         <div class="bangumi-settings-panel without-save-button" data-section="tools">
                             <div class="bangumi-settings-module">
                                 <h2 class="bangumi-settings-heading">附加工具</h2>
@@ -566,6 +614,98 @@
                     </div>
                 </div>
             </form>
+                <template id="bangumi-media-library-dialog-template">
+                    <div class="formDialogHeader">
+                        <button class="btnCancel autoSize" is="paper-icon-button-light"
+                            title="返回" type="button">
+                            <span class="material-icons arrow_back"></span>
+                        </button>
+                        <h3 class="formDialogHeaderTitle" id="bangumi-media-dialog-title">文件夹配置</h3>
+                    </div>
+                    <form class="formDialogContent smoothScrollY">
+                        <div class="dialogContentInner bangumi-media-dialog-content">
+                            <div class="fieldDescription" id="bangumi-media-dialog-path"></div>
+                            <div
+                                class="checkboxContainer checkboxContainer-withDescription bangumi-media-config-switch">
+                                <label class="emby-checkbox-label">
+                                    <input data-config-ignore id="bangumi-media-config-enabled"
+                                        is="emby-checkbox" type="checkbox" />
+                                    <span>单独为此文件夹配置</span>
+                                </label>
+                                <div class="fieldDescription">
+                                    关闭并保存后将删除此文件夹中的 bangumi.ini，插件会改用上级或默认行为。
+                                </div>
+                            </div>
+                            <div id="bangumi-media-config-fields">
+                                <div class="bangumi-media-dialog-fields">
+                                    <div class="inputContainer">
+                                        <label class="inputLabel inputLabelUnfocused"
+                                            for="bangumi-media-config-id">Bangumi ID</label>
+                                        <input data-config-ignore id="bangumi-media-config-id"
+                                            is="emby-input" min="0" step="1" type="number" />
+                                        <div class="fieldDescription">留空或填写 0 表示自动搜索或使用 Jellyfin 中已有的 ID</div>
+                                    </div>
+                                    <div class="inputContainer">
+                                        <label class="inputLabel inputLabelUnfocused"
+                                            for="bangumi-media-config-offset">剧集偏移量</label>
+                                        <input data-config-ignore id="bangumi-media-config-offset"
+                                            is="emby-input" step="1" type="number" />
+                                        <div class="fieldDescription">例如文件从第 27 集开始时填写 26</div>
+                                    </div>
+                                </div>
+                                <div class="checkboxContainer checkboxContainer-withDescription">
+                                    <label class="emby-checkbox-label">
+                                        <input data-config-ignore id="bangumi-media-config-report"
+                                            is="emby-checkbox" type="checkbox" />
+                                        <span>允许同步播放进度到 Bangumi</span>
+                                    </label>
+                                </div>
+                                <div class="checkboxContainer checkboxContainer-withDescription">
+                                    <label class="emby-checkbox-label">
+                                        <input data-config-ignore id="bangumi-media-config-skip"
+                                            is="emby-checkbox" type="checkbox" />
+                                        <span>跳过此目录</span>
+                                    </label>
+                                </div>
+                                <div class="checkboxContainer checkboxContainer-withDescription">
+                                    <label class="emby-checkbox-label">
+                                        <input data-config-ignore id="bangumi-media-config-correct-index"
+                                            is="emby-checkbox" type="checkbox" />
+                                        <span>修正跨季度剧集序号</span>
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="formDialogFooter">
+                                <button class="raised button-submit block formDialogFooterItem"
+                                    data-config-ignore is="emby-button" type="submit">
+                                    <span>保存</span>
+                                </button>
+                                <button class="raised button-cancel block formDialogFooterItem btnCancel"
+                                    data-config-ignore is="emby-button" type="button">
+                                    <span>取消</span>
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </template>
+                <template id="bangumi-media-library-item-template">
+                    <div class="listItem listItem-border bangumi-media-list-item" role="button" tabindex="0">
+                        <span class="material-icons bangumi-media-list-icon"></span>
+                        <div class="listItemBody two-line">
+                            <div class="listItemBodyText bangumi-media-list-name"></div>
+                            <div class="listItemBodyText secondary bangumi-media-list-path"></div>
+                        </div>
+                        <span class="material-icons bangumi-media-config-state" title="已有单独配置"></span>
+                        <button class="bangumi-media-list-edit" data-config-ignore
+                            is="paper-icon-button-light" title="编辑此文件夹配置" type="button">
+                            <span class="material-icons edit"></span>
+                        </button>
+                        <button class="bangumi-media-list-enter" data-config-ignore
+                            is="paper-icon-button-light" title="进入下一级" type="button">
+                            <span class="material-icons navigate_next"></span>
+                        </button>
+                    </div>
+                </template>
         </div>
     </div>
     <script src="configurationpage?name=Plugin.Bangumi.Configuration.Script"></script>

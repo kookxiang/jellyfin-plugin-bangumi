@@ -65,7 +65,8 @@ public class LocalConfiguration
             }
             else if (property.PropertyType == typeof(int))
             {
-                property.SetValue(this, int.Parse(value));
+                if (int.TryParse(value, out var intValue))
+                    property.SetValue(this, intValue);
             }
             else if (property.PropertyType == typeof(string))
             {
@@ -84,10 +85,11 @@ public class LocalConfiguration
             var value = property.GetValue(this);
             if (value == null) continue;
             if (value.Equals(property.GetValue(defaultConfiguration))) continue;
+            var key = property.Name == nameof(Id) ? "ID" : property.Name;
             if (property.PropertyType == typeof(bool))
-                content += $"{property.Name}={((bool)value ? "on" : "off")}" + Environment.NewLine;
+                content += $"{key}={((bool)value ? "on" : "off")}" + Environment.NewLine;
             else
-                content += $"{property.Name}={value}" + Environment.NewLine;
+                content += $"{key}={value}" + Environment.NewLine;
         }
 
         await File.WriteAllTextAsync(path, content);
