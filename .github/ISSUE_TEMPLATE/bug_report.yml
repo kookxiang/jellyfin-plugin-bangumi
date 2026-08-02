@@ -1,0 +1,73 @@
+name: 问题反馈
+description: 报告 Jellyfin / Emby 的 Bangumi 插件问题
+title: "[Bug] "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        感谢你提交问题。请完整填写以下信息，以便快速定位问题。
+
+        上传日志前，请移除密码、访问令牌、API Key、Cookie 等敏感信息。
+
+  - type: dropdown
+    id: server_type
+    attributes:
+      label: 服务端类型
+      description: 请选择正在使用的媒体服务器。
+      options:
+        - Jellyfin
+        - Emby
+    validations:
+      required: true
+
+  - type: input
+    id: server_version
+    attributes:
+      label: 服务端版本号
+      description: 请填写完整的 Jellyfin 或 Emby 服务端版本号。
+      placeholder: 例如：10.10.7
+    validations:
+      required: true
+
+  - type: input
+    id: plugin_version
+    attributes:
+      label: 插件版本号
+      description: 请填写 Bangumi 插件的完整版本号。
+      placeholder: 例如：1.7.0.0
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem_description
+    attributes:
+      label: 问题描述
+      description: 请说明实际发生的情况、预期行为，以及可以稳定复现问题的操作步骤。
+      placeholder: |
+        实际情况：
+        预期行为：
+        复现步骤：
+        1.
+        2.
+        3.
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: 问题日志
+      description: 请将包含问题发生时段的服务端日志拖拽到此处上传；日志较大时可压缩后上传。
+      placeholder: 将日志文件拖拽到此处，等待上传完成后再提交 issue。
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: sensitive_information
+    attributes:
+      label: 敏感信息确认
+      options:
+        - label: 我已确认上传的日志不包含密码、访问令牌、API Key、Cookie 等敏感信息。
+          required: true
