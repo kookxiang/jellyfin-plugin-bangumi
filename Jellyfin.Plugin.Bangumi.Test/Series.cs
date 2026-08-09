@@ -129,7 +129,9 @@ public class Series
                 Path = FakePath.Create("White Album 2")
             },
             _token);
-        Assert.IsTrue(searchResults.Any(x => x.ProviderIds[Constants.ProviderName].Equals("69496")), "should have correct search result");
+        var result = searchResults.FirstOrDefault(x => x.ProviderIds[Constants.ProviderName].Equals("69496"));
+        Assert.IsNotNull(result, "should have correct search result");
+        Assert.IsTrue(result.ImageUrl?.StartsWith("https://", StringComparison.OrdinalIgnoreCase) == true, "should have an HTTPS image URL");
     }
 
     [TestMethod]
@@ -234,6 +236,7 @@ public class Series
         Assert.AreEqual(ImageType.Primary, _imageProvider.GetSupportedImages(series).First(), "should support primary image");
         var imgList = await _imageProvider.GetImages(new MediaBrowser.Controller.Entities.TV.Episode { ProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "69496" } } }, _token);
         Assert.IsTrue(imgList.Any(), "should return at least one image");
+        Assert.IsTrue(imgList.All(image => image.Url.StartsWith("https://", StringComparison.OrdinalIgnoreCase)), "should return HTTPS image URLs");
     }
 
     private static void AssertSeries(MetadataResult<MediaBrowser.Controller.Entities.TV.Series> result)

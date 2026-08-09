@@ -8,6 +8,7 @@ using System.Text.Json.Serialization;
 using System.Threading;
 using System.Threading.Tasks;
 using Jellyfin.Plugin.Bangumi.Model;
+using Jellyfin.Plugin.Bangumi.Utils;
 using MediaBrowser.Controller.Entities;
 using Person = Jellyfin.Plugin.Bangumi.Model.Person;
 using User = Jellyfin.Plugin.Bangumi.Model.User;
@@ -108,8 +109,9 @@ public partial class BangumiApi
 
     public async Task<string?> GetSubjectImage(int id, string type, CancellationToken token)
     {
-        var imageUrl = await FollowRedirection($"{BaseUrl}/v0/subjects/{id}/image?type={type}", token);
-        return imageUrl == "https://lain.bgm.tv/img/no_icon_subject.png" ? null : imageUrl;
+        var imageUrl = ImageUrlNormalizer.Normalize(
+            await FollowRedirection($"{BaseUrl}/v0/subjects/{id}/image?type={type}", token));
+        return ImageUrlNormalizer.IsNoIconSubjectImage(imageUrl) ? null : imageUrl;
     }
 
     public async Task<IEnumerable<Episode>?> GetSubjectEpisodeList(int id, EpisodeType? type, double episodeNumber, CancellationToken token)
@@ -417,7 +419,8 @@ public partial class BangumiApi
                 "客串" => 2,
                 _ => 3
             })
-            .SelectMany(character => character.ToPersonInfos()) ?? [];
+            .SelectMany(character => character.ToPersonInfos())
+            .Select(NormalizePersonImage) ?? [];
     }
 
     public async Task<IEnumerable<RelatedPerson>?> GetSubjectPersons(int id, CancellationToken token)
@@ -435,7 +438,16 @@ public partial class BangumiApi
     {
         if (id <= 0) return [];
         var persons = await GetSubjectPersons(id, token);
-        return (persons ?? []).Select(person => person.ToPersonInfo()).Where(info => info != null)!;
+        return (persons ?? [])
+            .Select(person => person.ToPersonInfo())
+            .OfType<PersonInfo>()
+            .Select(NormalizePersonImage);
+    }
+
+    private static PersonInfo NormalizePersonImage(PersonInfo info)
+    {
+        info.ImageUrl = ImageUrlNormalizer.Normalize(info.ImageUrl);
+        return info;
     }
 
     public async Task<Episode?> GetEpisode(int id, CancellationToken token)

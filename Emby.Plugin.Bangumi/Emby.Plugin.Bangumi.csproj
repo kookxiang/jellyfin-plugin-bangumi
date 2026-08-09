@@ -22,6 +22,9 @@
     <Compile Include="..\Jellyfin.Plugin.Bangumi\Model\*.cs">
       <Link>Model\*.cs</Link>
     </Compile>
+    <Compile Include="..\Jellyfin.Plugin.Bangumi\Utils\ImageUrlNormalizer.cs">
+      <Link>Utils\ImageUrlNormalizer.cs</Link>
+    </Compile>
     <Compile Include="..\Jellyfin.Plugin.Bangumi\OAuth\*.cs" Exclude="..\Jellyfin.Plugin.Bangumi\OAuth\OAuthController.cs">
       <Link>OAuth\*.cs</Link>
     </Compile>
