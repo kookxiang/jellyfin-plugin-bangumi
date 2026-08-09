@@ -71,6 +71,8 @@ public class PluginConfiguration : BasePluginConfiguration
 
     public bool UseOriginalTitleFirst { get; set; }
 
+    public bool AddCharacterToPerson { get; set; } = false;
+
     public string DefaultExcludeWhitelistRegexFullPath => "";
 
     public string DefaultExcludeWhitelistRegexFolderName => "";

@@ -14,6 +14,7 @@ namespace Jellyfin.Plugin.Bangumi.Test;
 [TestClass]
 public class Person
 {
+    private readonly BangumiApi _api = ServiceLocator.GetService<BangumiApi>();
     private readonly PersonImageProvider _imageProvider = ServiceLocator.GetService<PersonImageProvider>();
     private readonly PersonProvider _provider = ServiceLocator.GetService<PersonProvider>();
 
@@ -35,6 +36,46 @@ public class Person
         Assert.AreEqual("上坂すみれ", result.Item.OriginalTitle, "should return correct name");
         Assert.AreEqual("上坂堇", result.Item.Name, "should return translated name");
         Assert.IsNotNull(result.Item.ProviderIds[Constants.ProviderName], "should have plugin provider id");
+    }
+    [TestMethod]
+    public async Task GetCharacterById()
+    {
+        Bangumi.Plugin.Instance!.Configuration.PersonTranslationPreference = TranslationPreferenceType.Chinese;
+        Bangumi.Plugin.Instance!.Configuration.AddCharacterToPerson = true;
+        var result = await _provider.GetMetadata(new PersonLookupInfo { ProviderIds = new Dictionary<string, string> { { Constants.ProviderName, $"{Constants.CharacterIdPrefix}17672" } } }, _token);
+        Bangumi.Plugin.Instance!.Configuration.AddCharacterToPerson = false;
+        Assert.IsNotNull(result.Item, "person info should not be null");
+        Assert.AreEqual("星宮いちご", result.Item.OriginalTitle, "should return correct name");
+        Assert.AreEqual("星宫莓", result.Item.Name, "should return translated name");
+        Assert.IsNotNull(result.Item.ProviderIds[Constants.ProviderName], "should have plugin provider id");
+    }
+    [TestMethod]
+    public async Task TranslationPreferenceTypeWithChinese()
+    {
+        Bangumi.Plugin.Instance!.Configuration.PersonTranslationPreference = TranslationPreferenceType.Chinese;
+        var result = (await _api.GetSubjectVirtualCharacters(56847, _token)).ToList();
+        Assert.IsNotNull(result, "person info should not be null");
+        Assert.AreEqual("辉夜姬", result[0].Name, "should return translated name");
+        Assert.AreEqual("旁白", result[4].Name, "should return translated name");
+
+        result = (await _api.GetSubjectCharacters(284524, _token)).ToList();
+        Assert.IsNotNull(result, "person info should not be null");
+        Assert.AreEqual("アヴちゃん", result[0].Name, "should return translated name");
+        Assert.AreEqual("森山未来", result[2].Name, "should return translated name");
+    }
+    [TestMethod]
+    public async Task TranslationPreferenceTypeWithOriginal()
+    {
+        Bangumi.Plugin.Instance!.Configuration.PersonTranslationPreference = TranslationPreferenceType.Original;
+        var result = (await _api.GetSubjectVirtualCharacters(56847, _token)).ToList();
+        Assert.IsNotNull(result, "person info should not be null");
+        Assert.AreEqual("かぐや姫", result[0].Name, "should return translated name");
+        Assert.AreEqual("ナレーション", result[4].Name, "should return translated name");
+
+        result = (await _api.GetSubjectCharacters(284524, _token)).ToList();
+        Assert.IsNotNull(result, "person info should not be null");
+        Assert.AreEqual("アヴちゃん", result[0].Name, "should return translated name");
+        Assert.AreEqual("森山未來", result[2].Name, "should return translated name");
     }
 
     [TestMethod]

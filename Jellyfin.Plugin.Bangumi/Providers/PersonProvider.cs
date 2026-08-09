@@ -21,10 +21,29 @@ public class PersonProvider(BangumiApi api)
     {
         cancellationToken.ThrowIfCancellationRequested();
         var result = new MetadataResult<Person> { ResultLanguage = Constants.Language };
-        if (!int.TryParse(info.ProviderIds?.GetValueOrDefault(Constants.ProviderName), out var personId))
-            return result;
 
-        var person = await api.GetPerson(personId, cancellationToken);
+        Model.PersonDetail? person = null;
+
+        var personId = info.ProviderIds?.GetValueOrDefault(Constants.ProviderName);
+        string prefix = "";
+        if (string.IsNullOrEmpty(personId))
+            return result;
+        if (personId.StartsWith(Constants.CharacterIdPrefix, StringComparison.OrdinalIgnoreCase))
+        {
+            if (!int.TryParse(personId.AsSpan(Constants.CharacterIdPrefix.Length), out var id))
+                return result;
+
+            person = await api.GetCharacter(id, cancellationToken);
+            prefix = Constants.CharacterIdPrefix;
+
+        }
+        else
+        {
+            if (!int.TryParse(personId, out var id))
+                return result;
+
+            person = await api.GetPerson(id, cancellationToken);
+        }
 
         // return if person still not found
         if (person == null)
@@ -39,9 +58,9 @@ public class PersonProvider(BangumiApi api)
             PremiereDate = person.Birthdate,
             ProductionYear = person.BirthYear,
             ProductionLocations = [person.BirthPlace],
-            EndDate = person.DeathDate
+            EndDate = person.DeathDate,
+            ProviderIds = { { Constants.ProviderName, $"{prefix}{person.Id}" } }
         };
-        result.Item.ProviderIds.Add(Constants.ProviderName, $"{person.Id}");
         return result;
     }
 
@@ -50,12 +69,49 @@ public class PersonProvider(BangumiApi api)
         cancellationToken.ThrowIfCancellationRequested();
         var results = new List<RemoteSearchResult>();
 
-        if (!int.TryParse(searchInfo.ProviderIds.GetOrDefault(Constants.ProviderName), out var id))
+        var personId = searchInfo.ProviderIds.GetOrDefault(Constants.ProviderName);
+        if (!string.IsNullOrEmpty(personId))
         {
-            var searchResult = await api.SearchPerson(searchInfo.Name, cancellationToken);
-            var persons = searchResult?.ToList();
+            Model.PersonDetail? person = null;
+            string prefix = "";
+            if (personId.StartsWith(Constants.CharacterIdPrefix, StringComparison.OrdinalIgnoreCase))
+            {
+                if (!int.TryParse(personId.AsSpan(Constants.CharacterIdPrefix.Length), out var id))
+                    return results;
 
-            results.AddRange((persons ?? []).Select(item => new RemoteSearchResult
+                person = await api.GetCharacter(id, cancellationToken);
+                prefix = Constants.CharacterIdPrefix;
+
+            }
+            else
+            {
+                if (!int.TryParse(personId, out var id))
+                    return results;
+
+                person = await api.GetPerson(id, cancellationToken);
+            }
+
+            if (person == null)
+                return results;
+
+            var result = new RemoteSearchResult
+            {
+                Name = person.Name,
+                SearchProviderName = person.Name,
+                ImageUrl = person.DefaultImage,
+                Overview = person.Summary,
+                PremiereDate = person.Birthdate,
+                ProviderIds = { { Constants.ProviderName, $"{prefix}{person.Id}" } }
+            };
+
+            results.Add(result);
+        }
+        else
+        {
+            var searchPersonResult = (await api.SearchPerson(searchInfo.Name, cancellationToken))?.ToList() ?? [];
+            var searchCharacterResult = (await api.SearchCharacter(searchInfo.Name, cancellationToken))?.ToList() ?? [];
+
+            results.AddRange(searchPersonResult.Select(item => new RemoteSearchResult
             {
                 Name = item.Name,
                 SearchProviderName = item.Name,
@@ -63,24 +119,17 @@ public class PersonProvider(BangumiApi api)
                 Overview = item.ShortSummary,
                 ProviderIds = { { Constants.ProviderName, item.Id.ToString() } }
             }));
-
-            return results;
+            results.AddRange(searchCharacterResult.Select(item => new RemoteSearchResult
+            {
+                Name = item.Name,
+                SearchProviderName = item.Name,
+                ImageUrl = item.DefaultImage,
+                Overview = item.ShortSummary,
+                ProviderIds = { { Constants.ProviderName, $"{Constants.CharacterIdPrefix}{item.Id}" } }
+            }));
         }
 
-        var person = await api.GetPerson(id, cancellationToken);
-        if (person == null)
-            return results;
 
-        var result = new RemoteSearchResult
-        {
-            Name = person.Name,
-            SearchProviderName = person.Name,
-            ImageUrl = person.DefaultImage,
-            Overview = person.Summary,
-            PremiereDate = person.Birthdate
-        };
-        result.ProviderIds.Add(Constants.ProviderName, id.ToString());
-        results.Add(result);
         return results;
     }
 
