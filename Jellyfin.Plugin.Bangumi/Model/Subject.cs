@@ -62,7 +62,7 @@ public class Subject
     public Dictionary<string, string>? Images { get; set; }
 
     [JsonIgnore]
-    public string? DefaultImage => Images?["large"];
+    public string? DefaultImage => ImageUrlNormalizer.Normalize(Images?["large"]);
 
     [JsonPropertyName("eps")]
     public int? EpisodeCount { get; set; }

@@ -108,7 +108,8 @@ public partial class BangumiApi
 
     public async Task<string?> GetSubjectImage(int id, string type, CancellationToken token)
     {
-        var imageUrl = await FollowRedirection($"{BaseUrl}/v0/subjects/{id}/image?type={type}", token);
+        var imageUrl = ImageUrlNormalizer.Normalize(
+            await FollowRedirection($"{BaseUrl}/v0/subjects/{id}/image?type={type}", token));
         return imageUrl == "https://lain.bgm.tv/img/no_icon_subject.png" ? null : imageUrl;
     }
 

@@ -40,7 +40,7 @@ public class RelatedPerson
     public Dictionary<string, string?> Images { get; set; } = new();
 
     [JsonIgnore]
-    public string? DefaultImage => Images.GetValueOrDefault("large", null);
+    public string? DefaultImage => ImageUrlNormalizer.Normalize(Images.GetValueOrDefault("large", null));
 
     public string? Relation { get; set; }
 

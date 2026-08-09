@@ -21,7 +21,7 @@ public class RelatedCharacter
     public Dictionary<string, string>? Images { get; set; }
 
     [JsonIgnore]
-    public string? DefaultImage => Images?["large"];
+    public string? DefaultImage => ImageUrlNormalizer.Normalize(Images?["large"]);
 
     public string Relation { get; set; } = "";
 
