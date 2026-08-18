@@ -1,8 +1,10 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Linq;
 using Jellyfin.Data.Enums;
 using MediaBrowser.Common.Api;
+using MediaBrowser.Controller.BaseItemManager;
 using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Entities.TV;
 using MediaBrowser.Controller.Library;
@@ -20,6 +22,7 @@ namespace Jellyfin.Plugin.Bangumi.Tools.MissingBangumiId;
 public class Controller(
     Logger<Controller> log,
     ILibraryManager library,
+    IBaseItemManager baseItemManager,
     IProviderManager providerManager,
     IDirectoryService directoryService) : ControllerBase
 {
@@ -38,17 +41,43 @@ public class Controller(
                     Path = item.Path,
                     SeriesName = episode?.SeriesName,
                     SeasonName = episode?.Season?.Name,
+                    LibraryName = string.Join("、", library.GetCollectionFolders(item)
+                        .Select(folder => folder.Name)
+                        .Distinct()),
+                    BangumiProviderEnabled = IsBangumiMetadataProviderEnabled(item),
                 };
             })
             .ToList());
     }
 
     [HttpPost("Refresh")]
-    public ActionResult<RefreshResult> Refresh()
+    public ActionResult<RefreshResult> Refresh([FromForm] string? items)
     {
-        var result = new RefreshResult();
+        if (string.IsNullOrWhiteSpace(items))
+            return BadRequest("请至少选择一个需要刷新的视频。");
 
-        foreach (var item in FindMissingItems())
+        var itemIds = new List<Guid>();
+        foreach (var itemId in items.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+        {
+            if (!Guid.TryParse(itemId, out var parsedItemId))
+                return BadRequest($"无效的视频 ID：{itemId}");
+
+            if (!itemIds.Contains(parsedItemId))
+                itemIds.Add(parsedItemId);
+        }
+
+        if (itemIds.Count == 0)
+            return BadRequest("请至少选择一个需要刷新的视频。");
+
+        var result = new RefreshResult();
+        var missingItems = FindMissingItems(itemIds.ToArray());
+        result.SkippedCount = itemIds.Count - missingItems.Count;
+        var refreshableItems = missingItems
+            .Where(item => IsBangumiMetadataProviderEnabled(item))
+            .ToList();
+        result.ProviderDisabledCount = missingItems.Count - refreshableItems.Count;
+
+        foreach (var item in refreshableItems)
         {
             try
             {
@@ -62,6 +91,7 @@ public class Controller(
                     },
                     RefreshPriority.High);
                 result.QueuedCount++;
+                result.QueuedItemIds.Add(item.Id);
             }
             catch (Exception exception)
             {
@@ -75,20 +105,26 @@ public class Controller(
         }
 
         log.Info(
-            "Queued metadata refresh for {QueuedCount} videos missing Bangumi IDs; {FailedCount} failed",
+            "Queued metadata refresh for {QueuedCount} selected videos missing Bangumi IDs; {FailedCount} failed, {ProviderDisabledCount} had the Bangumi provider disabled, and {SkippedCount} skipped",
             result.QueuedCount,
-            result.FailedCount);
+            result.FailedCount,
+            result.ProviderDisabledCount,
+            result.SkippedCount);
 
         return Ok(result);
     }
 
-    private List<BaseItem> FindMissingItems()
+    private List<BaseItem> FindMissingItems(Guid[]? itemIds = null)
     {
-        return library.GetItemList(new InternalItemsQuery
-            {
-                IncludeItemTypes = [BaseItemKind.Episode, BaseItemKind.Movie],
-                IsVirtualItem = false,
-            })
+        var query = new InternalItemsQuery
+        {
+            IncludeItemTypes = [BaseItemKind.Episode, BaseItemKind.Movie],
+            IsVirtualItem = false,
+        };
+        if (itemIds is not null)
+            query.ItemIds = itemIds;
+
+        return library.GetItemList(query)
             .Where(item => !HasValidBangumiId(item))
             .OrderBy(item => item.GetBaseItemKind())
             .ThenBy(item => (item as Episode)?.SeriesName)
@@ -101,6 +137,13 @@ public class Controller(
     private static bool HasValidBangumiId(BaseItem item)
     {
         return int.TryParse(item.GetProviderId(Constants.ProviderName), out var bangumiId) && bangumiId > 0;
+    }
+
+    private bool IsBangumiMetadataProviderEnabled(BaseItem item)
+    {
+        var typeOptions = library.GetLibraryOptions(item).GetTypeOptions(item.GetBaseItemKind().ToString());
+        return typeOptions is not null
+               && baseItemManager.IsMetadataFetcherEnabled(item, typeOptions, Constants.ProviderName);
     }
 }
 
@@ -117,6 +160,10 @@ public class MissingBangumiIdItem
     public string? SeriesName { get; set; }
 
     public string? SeasonName { get; set; }
+
+    public string LibraryName { get; set; } = string.Empty;
+
+    public bool BangumiProviderEnabled { get; set; }
 }
 
 public class RefreshResult
@@ -124,4 +171,10 @@ public class RefreshResult
     public int QueuedCount { get; set; }
 
     public int FailedCount { get; set; }
+
+    public int SkippedCount { get; set; }
+
+    public int ProviderDisabledCount { get; set; }
+
+    public Collection<Guid> QueuedItemIds { get; } = [];
 }

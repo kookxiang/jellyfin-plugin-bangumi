@@ -1,4 +1,4 @@
-<div class="page type-interior pluginConfigurationPage" data-require="emby-button" data-role="page"
+<div class="page type-interior pluginConfigurationPage" data-require="emby-button,emby-checkbox" data-role="page"
     id="missingBangumiIdPage">
     <style>
         #missingBangumiIdPage .missing-id-actions {
@@ -36,6 +36,18 @@
             box-shadow: var(--jf-shadows-6);
         }
 
+        #missingBangumiIdPage .missing-id-item-queued {
+            opacity: 0.6;
+        }
+
+        #missingBangumiIdPage .missing-id-item-provider-disabled {
+            border-left: 0.25rem solid var(--jf-palette-warning-main, #f9a825);
+        }
+
+        #missingBangumiIdPage .missing-id-item-select {
+            flex: 0 0 auto;
+        }
+
         #missingBangumiIdPage .missing-id-item-icon {
             flex: 0 0 auto;
             opacity: 0.7;
@@ -44,6 +56,7 @@
         #missingBangumiIdPage .missing-id-item-content {
             flex: 1 1 auto;
             min-width: 0;
+            cursor: pointer;
         }
 
         #missingBangumiIdPage .missing-id-item-title,
@@ -67,6 +80,19 @@
             opacity: 0.8;
         }
 
+        #missingBangumiIdPage .missing-id-item-provider-status {
+            display: none;
+            flex: 0 0 auto;
+            color: var(--jf-palette-warning-main, #f9a825);
+            font-size: 0.85rem;
+        }
+
+        #missingBangumiIdPage .missing-id-item-details {
+            flex: 0 0 auto;
+            color: inherit;
+            text-decoration: none;
+        }
+
         #missingBangumiIdPage .missing-id-empty {
             display: none;
             margin-top: 3rem;
@@ -87,7 +113,7 @@
                     <h2 class="sectionTitle">缺失 Bangumi ID 的视频</h2>
                 </div>
                 <div class="fieldDescription">
-                    扫描媒体库中的电影和剧集。批量刷新会使用“替换所有元数据”模式加入 Jellyfin 刷新队列，并覆盖已有元数据。
+                    扫描媒体库中的电影和剧集。请勾选需要处理的视频；所属媒体库未启用 Bangumi 元数据提供程序的条目会提示且不可选择。刷新会使用“替换所有元数据”模式加入 Jellyfin 刷新队列，并覆盖已有元数据。
                 </div>
             </div>
 
@@ -97,7 +123,7 @@
                 </button>
                 <button id="missing-id-refresh-button" class="raised button-submit emby-button" is="emby-button"
                     type="button" disabled>
-                    <span>一键批量刷新元数据</span>
+                    <span>刷新所选视频</span>
                 </button>
             </div>
 
@@ -109,15 +135,24 @@
             </div>
 
             <template id="missing-id-item-template">
-                <a class="missing-id-item">
+                <div class="missing-id-item">
+                    <label class="missing-id-item-select">
+                        <input class="emby-checkbox missing-id-item-checkbox" type="checkbox" />
+                        <span class="checkboxOutline">
+                            <span class="material-icons check" aria-hidden="true"></span>
+                        </span>
+                    </label>
                     <i class="material-icons missing-id-item-icon"></i>
-                    <div class="missing-id-item-content">
+                    <label class="missing-id-item-content">
                         <div class="missing-id-item-title"></div>
                         <div class="missing-id-item-path"></div>
-                    </div>
+                    </label>
+                    <span class="missing-id-item-provider-status"></span>
                     <span class="missing-id-item-type"></span>
-                    <i class="material-icons navigate_next"></i>
-                </a>
+                    <a class="missing-id-item-details" title="查看详情">
+                        <i class="material-icons navigate_next"></i>
+                    </a>
+                </div>
             </template>
         </div>
     </div>
@@ -130,12 +165,49 @@
             const list = container.querySelector('#missing-id-list');
             const empty = container.querySelector('#missing-id-empty');
             const itemTemplate = container.querySelector('#missing-id-item-template');
-            let refreshQueued = false;
+            const refreshButtonText = refreshButton.querySelector('span');
+            let itemCount = 0;
+            let busy = false;
 
-            function setBusy(busy) {
-                scanButton.disabled = busy;
-                refreshButton.disabled = busy || refreshQueued || list.children.length === 0;
-                if (busy) {
+            function getSelectedCheckboxes() {
+                return Array.from(list.querySelectorAll('.missing-id-item-checkbox:checked:not(:disabled)'));
+            }
+
+            function updateSelection() {
+                const selectedCount = getSelectedCheckboxes().length;
+                const queuedCount = list.querySelectorAll('.missing-id-item-queued').length;
+                const providerDisabledCount = list.querySelectorAll('.missing-id-item-provider-disabled').length;
+                const summaryParts = itemCount
+                    ? ['共找到 ' + itemCount + ' 个缺失有效 Bangumi ID 的视频']
+                    : [];
+
+                if (selectedCount) {
+                    summaryParts.push('已选择 ' + selectedCount + ' 个');
+                }
+                if (queuedCount) {
+                    summaryParts.push('已加入队列 ' + queuedCount + ' 个');
+                }
+                if (providerDisabledCount) {
+                    summaryParts.push(providerDisabledCount + ' 个未启用 Bangumi 元数据提供程序');
+                }
+
+                summary.textContent = summaryParts.join('；');
+                refreshButtonText.textContent = selectedCount
+                    ? '刷新所选视频（' + selectedCount + '）'
+                    : '刷新所选视频';
+                refreshButton.disabled = busy || selectedCount === 0;
+            }
+
+            function setBusy(value) {
+                busy = value;
+                scanButton.disabled = value;
+                for (const checkbox of list.querySelectorAll('.missing-id-item-checkbox')) {
+                    checkbox.disabled = value
+                        || checkbox.dataset.queued === 'true'
+                        || checkbox.dataset.providerDisabled === 'true';
+                }
+                updateSelection();
+                if (value) {
                     Dashboard.showLoadingMsg();
                 } else {
                     Dashboard.hideLoadingMsg();
@@ -154,15 +226,36 @@
             }
 
             function renderItems(items) {
-                refreshQueued = false;
+                itemCount = items.length;
                 list.replaceChildren();
 
                 for (const item of items) {
                     const element = itemTemplate.content.cloneNode(true);
-                    const link = element.querySelector('.missing-id-item');
+                    const checkbox = element.querySelector('.missing-id-item-checkbox');
+                    const content = element.querySelector('.missing-id-item-content');
+                    const details = element.querySelector('.missing-id-item-details');
+                    const row = element.querySelector('.missing-id-item');
+                    const providerStatus = element.querySelector('.missing-id-item-provider-status');
                     const isEpisode = item.Type === 'Episode';
+                    const checkboxId = 'missing-id-item-' + item.Id;
 
-                    link.href = '#/details?id=' + item.Id;
+                    checkbox.id = checkboxId;
+                    checkbox.value = item.Id;
+                    checkbox.setAttribute('aria-label', '选择 ' + getDisplayName(item));
+                    checkbox.addEventListener('change', updateSelection);
+                    content.htmlFor = checkboxId;
+                    details.href = '#/details?id=' + item.Id;
+                    if (!item.BangumiProviderEnabled) {
+                        const itemTypeName = isEpisode ? '剧集' : '电影';
+                        const libraryDescription = item.LibraryName ? '媒体库“' + item.LibraryName + '”' : '所属媒体库';
+                        checkbox.disabled = true;
+                        checkbox.dataset.providerDisabled = 'true';
+                        row.classList.add('missing-id-item-provider-disabled');
+                        row.title = libraryDescription + '未启用 Bangumi ' + itemTypeName + '元数据提供程序';
+                        providerStatus.textContent = 'Bangumi 未启用'
+                            + (item.LibraryName ? '（' + item.LibraryName + '）' : '');
+                        providerStatus.style.display = '';
+                    }
                     element.querySelector('.missing-id-item-icon').textContent = isEpisode ? 'live_tv' : 'movie';
                     element.querySelector('.missing-id-item-title').textContent = getDisplayName(item);
                     element.querySelector('.missing-id-item-path').textContent = item.Path || '无文件路径';
@@ -170,12 +263,9 @@
                     list.appendChild(element);
                 }
 
-                summary.textContent = items.length
-                    ? '共找到 ' + items.length + ' 个缺失有效 Bangumi ID 的视频'
-                    : '';
                 list.style.display = items.length ? '' : 'none';
                 empty.style.display = items.length ? 'none' : 'block';
-                refreshButton.disabled = items.length === 0;
+                updateSelection();
             }
 
             async function scan() {
@@ -201,10 +291,17 @@
             scanButton.addEventListener('click', scan);
 
             refreshButton.addEventListener('click', async function () {
-                const count = list.children.length;
+                const selectedCheckboxes = getSelectedCheckboxes();
+                const selectedIds = selectedCheckboxes.map(checkbox => checkbox.value);
+                const count = selectedIds.length;
+                if (!count) {
+                    Dashboard.alert('请先勾选需要刷新的视频');
+                    return;
+                }
+
                 const confirmed = await new Promise(resolve => Dashboard.confirm(
-                    '确定要将这 ' + count + ' 个视频加入元数据刷新队列吗？',
-                    '批量刷新元数据',
+                    '确定要将所选的 ' + count + ' 个视频加入元数据刷新队列吗？',
+                    '刷新所选视频',
                     resolve));
 
                 if (!confirmed) {
@@ -215,7 +312,8 @@
                 try {
                     const response = await ApiClient.fetch({
                         type: 'POST',
-                        url: '/Plugins/Bangumi/Tools/MissingBangumiId/Refresh'
+                        url: '/Plugins/Bangumi/Tools/MissingBangumiId/Refresh',
+                        data: { items: selectedIds }
                     });
 
                     if (!response.ok) {
@@ -227,11 +325,31 @@
                     if (result.FailedCount) {
                         message += ' 另有 ' + result.FailedCount + ' 个视频加入队列失败，请查看日志。';
                     }
+                    if (result.SkippedCount) {
+                        message += ' 另有 ' + result.SkippedCount + ' 个视频已不存在或已有有效 ID，未执行刷新。';
+                    }
+                    if (result.ProviderDisabledCount) {
+                        message += ' 另有 ' + result.ProviderDisabledCount + ' 个视频因所属媒体库未启用 Bangumi 元数据提供程序而跳过。';
+                    }
 
-                    refreshQueued = true;
+                    const queuedIds = new Set((result.QueuedItemIds || []).map(id => id.toLowerCase()));
+                    for (const checkbox of selectedCheckboxes) {
+                        if (!queuedIds.has(checkbox.value.toLowerCase())) {
+                            continue;
+                        }
+
+                        checkbox.checked = false;
+                        checkbox.disabled = true;
+                        checkbox.dataset.queued = 'true';
+                        const row = checkbox.closest('.missing-id-item');
+                        row.classList.add('missing-id-item-queued');
+                        row.querySelector('.missing-id-item-type').textContent += ' · 已排队';
+                    }
+
+                    updateSelection();
                     Dashboard.alert(message);
                 } catch (error) {
-                    Dashboard.alert('批量刷新失败：' + error.message);
+                    Dashboard.alert('刷新失败：' + error.message);
                 } finally {
                     setBusy(false);
                 }
