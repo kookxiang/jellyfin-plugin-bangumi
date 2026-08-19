@@ -155,7 +155,7 @@ public class SeriesProvider(BangumiApi api, Logger<SeriesProvider> log)
             {
                 Name = subject.Name,
                 SearchProviderName = subject.OriginalName,
-                ImageUrl = ImageUrlNormalizer.Normalize(subject.DefaultImage),
+                ImageUrl = ImageUrlNormalizer.Normalize(subject.DefaultImage) ?? await api.GetSubjectImage(id, cancellationToken),
                 Overview = subject.Summary
             };
             if (DateTime.TryParse(subject.AirDate, out var airDate))
