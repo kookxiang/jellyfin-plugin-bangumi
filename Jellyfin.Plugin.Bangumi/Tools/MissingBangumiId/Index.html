@@ -19,17 +19,21 @@
         }
 
         #missingBangumiIdPage .missing-id-item {
+            position: relative;
             display: flex;
             align-items: center;
             gap: 1rem;
             min-width: 0;
             padding: 1rem 1.25rem;
+            overflow: hidden;
+            border: 0.125rem solid transparent;
             border-radius: 0.25rem;
             color: inherit;
             background: var(--jf-palette-background-paper);
             box-shadow: var(--jf-shadows-2);
             text-decoration: none;
-            transition: box-shadow 0.2s ease-in-out;
+            cursor: pointer;
+            transition: border-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
         }
 
         #missingBangumiIdPage .missing-id-item:hover {
@@ -38,14 +42,64 @@
 
         #missingBangumiIdPage .missing-id-item-queued {
             opacity: 0.6;
+            cursor: default;
+        }
+
+        #missingBangumiIdPage .missing-id-item-selected {
+            border-color: var(--jf-palette-primary-main);
+            box-shadow: var(--jf-shadows-6), 0 0 0 0.0625rem var(--jf-palette-primary-main);
+        }
+
+        #missingBangumiIdPage .missing-id-item-selected::after {
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 2.25rem;
+            height: 2.25rem;
+            box-sizing: border-box;
+            padding-right: 0.25rem;
+            color: #fff;
+            background: var(--jf-palette-primary-main);
+            clip-path: polygon(0 0, 100% 0, 100% 100%);
+            content: '✓';
+            font-size: 1rem;
+            font-weight: 700;
+            line-height: 1.25rem;
+            text-align: right;
+            pointer-events: none;
         }
 
         #missingBangumiIdPage .missing-id-item-provider-disabled {
             border-left: 0.25rem solid var(--jf-palette-warning-main, #f9a825);
+            cursor: default;
+        }
+
+        #missingBangumiIdPage .missing-id-item-queued .missing-id-item-select,
+        #missingBangumiIdPage .missing-id-item-queued .missing-id-item-content,
+        #missingBangumiIdPage .missing-id-item-provider-disabled .missing-id-item-select,
+        #missingBangumiIdPage .missing-id-item-provider-disabled .missing-id-item-content {
+            cursor: default;
         }
 
         #missingBangumiIdPage .missing-id-item-select {
+            display: flex;
+            align-items: center;
             flex: 0 0 auto;
+            cursor: pointer;
+        }
+
+        #missingBangumiIdPage .missing-id-item-select .checkboxOutline {
+            position: static;
+            flex-shrink: 0;
+        }
+
+        #missingBangumiIdPage .missing-id-item-checkbox:checked + .checkboxOutline {
+            border-color: var(--jf-palette-primary-main);
+            background-color: var(--jf-palette-primary-main);
+        }
+
+        #missingBangumiIdPage .missing-id-item-checkbox:not(:checked) + .checkboxOutline > .check {
+            display: none;
         }
 
         #missingBangumiIdPage .missing-id-item-icon {
@@ -174,6 +228,11 @@
             }
 
             function updateSelection() {
+                for (const checkbox of list.querySelectorAll('.missing-id-item-checkbox')) {
+                    checkbox.closest('.missing-id-item')
+                        .classList.toggle('missing-id-item-selected', checkbox.checked);
+                }
+
                 const selectedCount = getSelectedCheckboxes().length;
                 const queuedCount = list.querySelectorAll('.missing-id-item-queued').length;
                 const providerDisabledCount = list.querySelectorAll('.missing-id-item-provider-disabled').length;
@@ -243,6 +302,17 @@
                     checkbox.value = item.Id;
                     checkbox.setAttribute('aria-label', '选择 ' + getDisplayName(item));
                     checkbox.addEventListener('change', updateSelection);
+                    row.addEventListener('click', function (event) {
+                        if (event.target === checkbox
+                            || event.target.closest('.missing-id-item-details')
+                            || checkbox.disabled) {
+                            return;
+                        }
+
+                        event.preventDefault();
+                        checkbox.checked = !checkbox.checked;
+                        updateSelection();
+                    });
                     content.htmlFor = checkboxId;
                     details.href = '#/details?id=' + item.Id;
                     if (!item.BangumiProviderEnabled) {
