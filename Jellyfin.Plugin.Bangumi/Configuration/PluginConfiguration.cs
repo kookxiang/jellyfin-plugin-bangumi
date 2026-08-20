@@ -47,6 +47,8 @@ public class PluginConfiguration : BasePluginConfiguration
 
     public bool UseTestingSearchApi { get; set; }
 
+    public bool PreferAnimeSearch { get; set; } = true;
+
     public int SeasonGuessMaxSearchCount { get; set; } = 2;
 
     public bool SortByFuzzScore { get; set; } = false;

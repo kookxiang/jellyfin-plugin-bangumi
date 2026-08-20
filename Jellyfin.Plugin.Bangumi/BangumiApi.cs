@@ -38,7 +38,8 @@ public partial class BangumiApi
 
     public Task<IEnumerable<Subject>> SearchSubject(string keyword, CancellationToken token)
     {
-        return SearchSubject(keyword, SubjectType.Anime, token);
+        var type = Plugin.Instance!.Configuration.PreferAnimeSearch ? SubjectType.Anime : (SubjectType?)null;
+        return SearchSubject(keyword, type, token);
     }
 
     public async Task<IEnumerable<Subject>> SearchSubject(string keyword, SubjectType? type, CancellationToken token)
