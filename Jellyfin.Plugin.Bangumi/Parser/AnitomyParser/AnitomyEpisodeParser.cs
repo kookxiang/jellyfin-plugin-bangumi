@@ -31,6 +31,7 @@ public class AnitomyEpisodeParser : IEpisodeParser
 
         var (anitomyEpisodeType, bangumiEpisodeType) = GetEpisodeType();
         var episodeIndex = GetEpisodeIndex();
+        var seasonNumber = _anitomy.ExtractAnimeSeason();
 
         // 获取 seriesId
         var seriesId = LocalConfigurationHelper.GetSeriesId(_context.LocalConfiguration, _context.Info, _context.LibraryManager);
@@ -59,6 +60,10 @@ public class AnitomyEpisodeParser : IEpisodeParser
                 {
                     episode.OriginalNameRaw = TitleOfSpecialEpisode(anitomyEpisodeType);
                 }
+                if (!string.IsNullOrEmpty(seasonNumber))
+                {
+                    episode.SeasonNumber = double.Parse(seasonNumber);
+                }
                 return episode;
             }
 
@@ -69,6 +74,10 @@ public class AnitomyEpisodeParser : IEpisodeParser
                 Order = episodeIndex,
                 OriginalNameRaw = TitleOfSpecialEpisode(anitomyEpisodeType)
             };
+            if (!string.IsNullOrEmpty(seasonNumber))
+            {
+                sp.SeasonNumber = double.Parse(seasonNumber);
+            }
             _log.Debug("Set OriginalName: {OriginalNameRaw} for {fileName}", sp.OriginalNameRaw, _fileName);
             return sp;
         }
@@ -410,7 +419,7 @@ nextSeason:
             //     _log.Info("Multi season folder, Use Season {seasonNumber} for {parent}", seasonNumber, parent);
             // }
             // FIXME 没有全自动，需要再次手动执行「刷新元数据」才会更新 Season 数据
-            await _context.LibraryManager.UpdateItemAsync(parent, parent, ItemUpdateType.MetadataEdit, _context.Token);
+            await _context.LibraryManager.UpdateItemAsync(parent, parent.GetParent(), ItemUpdateType.MetadataEdit, _context.Token);
 
             return subjectId;
         }
