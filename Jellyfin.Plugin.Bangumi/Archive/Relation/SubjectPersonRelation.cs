@@ -23,7 +23,7 @@ public class SubjectPersonRelation(ArchiveData archive)
     {
         var entry = zipStream.GetEntry("subject-persons.jsonlines");
         if (entry == null) return;
-        await using var stream = entry.Open();
+        await using var stream = await entry.OpenAsync(token);
         using var reader = new StreamReader(stream, Encoding.UTF8);
 
         while (await reader.ReadLineAsync(token) is { } line)

@@ -27,7 +27,7 @@ body:
     attributes:
       label: 服务端版本号
       description: 请填写完整的 Jellyfin 或 Emby 服务端版本号。
-      placeholder: 例如：10.10.7
+      placeholder: 例如：12.0.0
     validations:
       required: true
 
