@@ -19,7 +19,7 @@ jobs:
       version: ${{ steps.meta.outputs.tag }}.${{ steps.meta.outputs.distance }}
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
       - name: Resolve MetaData
         id: meta
         uses: proudust/gh-describe@v2
@@ -28,7 +28,7 @@ jobs:
       - name: Patch version
         run: sed -i "/Version/s/>.*</>${{ steps.meta.outputs.tag }}.${{ steps.meta.outputs.distance }}</" Directory.Build.props
       - name: Setup .NET 10.x
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v6
         with:
           dotnet-version: 10
       - name: Restore NuGet Packages
@@ -44,7 +44,7 @@ jobs:
           $dll = Get-ChildItem -Path ~/.nuget/packages/jellyfin.controller -Filter "MediaBrowser.Controller.dll" -Recurse | Select-Object -First 1
           $version = [System.Reflection.AssemblyName]::GetAssemblyName($dll.FullName).Version.ToString()
           echo "version=$version" >> $env:GITHUB_OUTPUT
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: jellyfin-plugin
           path: publish/*.dll
@@ -52,7 +52,7 @@ jobs:
         run: |
           rm -rf publish
           dotnet publish --configuration Release --output publish Emby.Plugin.Bangumi
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: emby-plugin
           path: publish/*.dll
@@ -62,11 +62,11 @@ jobs:
     needs: build
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/master'
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: jellyfin-plugin
           path: jellyfin
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: emby-plugin
           path: emby
