@@ -71,7 +71,7 @@ public class ArchiveDownloadTask(BangumiApi api, ArchiveData archive, ITaskManag
 
             await using (var writeStream = File.OpenWrite(newStore.FilePath))
             {
-                await using var readStream = entry.Open();
+                await using var readStream = await entry.OpenAsync(cancellationToken);
                 await readStream.CopyToAsync(writeStream, cancellationToken);
                 await writeStream.FlushAsync(cancellationToken);
             }

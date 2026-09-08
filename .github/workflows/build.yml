@@ -27,10 +27,10 @@ jobs:
           exclude: ci
       - name: Patch version
         run: sed -i "/Version/s/>.*</>${{ steps.meta.outputs.tag }}.${{ steps.meta.outputs.distance }}</" Directory.Build.props
-      - name: Setup .NET 9.x
+      - name: Setup .NET 10.x
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: 9
+          dotnet-version: 10
       - name: Restore NuGet Packages
         run: dotnet restore
       - name: .NET Test
