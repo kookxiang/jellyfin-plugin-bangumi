@@ -130,7 +130,7 @@ public class AnitomyEpisodeParser : IEpisodeParser
     /// 获取剧集索引
     /// </summary>
     /// <returns></returns>
-    private double GetEpisodeIndex()
+    public double GetEpisodeIndex()
     {
         double episodeIndex = 0;
         var anitomyIndex = _anitomy.ExtractEpisodeNumber();
@@ -322,7 +322,7 @@ nextSeason:
 
     /// <summary>
     /// 处理多季度文件夹
-    /// 根据文件夹名称搜索，或者使用已存在的 id 
+    /// 根据文件夹名称搜索，或者使用已存在的 id
     /// 另外，推荐同时修改季度值
     /// #FIXME 效果一般
     /// </summary>

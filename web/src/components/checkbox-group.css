@@ -1,0 +1,33 @@
+:host {
+    display: block;
+    border: 1px solid var(--jf-palette-divider, rgba(128, 128, 128, 0.24));
+    border-radius: 12px;
+    overflow: hidden;
+    background: var(--jf-palette-background-paper, #242424);
+}
+
+:host([hidden]) {
+    display: none;
+}
+
+slot {
+    display: flex;
+    flex-direction: column;
+}
+
+::slotted(bangumi-checkbox) {
+    /* Group spacing takes precedence over the surrounding form's row spacing. */
+    margin: 0 !important;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+}
+
+::slotted(bangumi-checkbox:not(:first-child)) {
+    border-top: 1px solid var(--jf-palette-divider, rgba(128, 128, 128, 0.24));
+}
+
+::slotted(bangumi-checkbox:hover),
+::slotted(bangumi-checkbox:focus-within) {
+    background: var(--jf-palette-action-hover, rgba(128, 128, 128, 0.08));
+}

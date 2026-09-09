@@ -1,0 +1,70 @@
+/* Directory editor layout. Checkbox surfaces belong exclusively to their components. */
+.media-config-content {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    padding: 20px 24px;
+}
+
+#bangumi-media-dialog-path {
+    overflow-wrap: anywhere;
+}
+
+.media-config-content .checkboxContainer,
+.media-config-content .inputContainer {
+    margin-bottom: 0;
+}
+
+#bangumi-media-config-fields {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.episode-numbering {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    border-top: 1px solid var(--jf-palette-divider, rgba(128, 128, 128, 0.24));
+    padding-top: 20px;
+}
+
+.episode-numbering h3 {
+    margin: 0;
+    font-size: 1.125rem;
+    font-weight: 500;
+}
+
+#bangumi-media-library-dialog {
+    padding: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+}
+
+#bangumi-media-library-dialog > .formDialogHeader {
+    position: sticky;
+    top: 0;
+    z-index: 3;
+    padding: 20px 24px;
+    background: var(--jf-palette-background-paper, #242424);
+    border-bottom: 1px solid var(--jf-palette-divider, rgba(128, 128, 128, 0.24));
+}
+
+.media-config-content > * {
+    flex-shrink: 0;
+}
+
+.media-config-form > .formDialogFooter {
+    position: sticky;
+    bottom: 0;
+    z-index: 2;
+    padding: 16px 24px;
+    background: var(--jf-palette-background-paper, #242424);
+    border-top: 1px solid var(--jf-palette-divider, rgba(128, 128, 128, 0.24));
+}
+
+#bangumi-media-offset-options {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}

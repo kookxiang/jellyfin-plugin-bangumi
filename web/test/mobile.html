@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="zh-CN">
+    <meta charset="utf-8" /><title>Bangumi 390px 响应式预览</title
+    ><style>
+        body {
+            margin: 0;
+            background: #333;
+        }
+        iframe {
+            display: block;
+            width: 390px;
+            height: 844px;
+            border: 0;
+        }</style
+    ><iframe title="390px 组件预览" src="./preview.html?production"></iframe>
+    <script>
+        const module = new URLSearchParams(location.search).get('module');
+        const query = new URLSearchParams(location.search);
+        query.set('production', '');
+        query.delete('module');
+        document.querySelector('iframe').src =
+            './preview.html?' + query + (module ? '#?module=' + encodeURIComponent(module) : '');
+    </script>
+</html>

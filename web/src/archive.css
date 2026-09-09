@@ -1,0 +1,117 @@
+/* Archive page surfaces use the host palette and parent-owned spacing. */
+.archive-beta {
+    display: inline-block;
+    vertical-align: middle;
+    padding: 3px 8px;
+    border-radius: 6px;
+    font-size: 0.7rem;
+    font-weight: 500;
+    color: var(--jf-palette-text-secondary);
+    background: var(--jf-palette-action-hover, rgba(128, 128, 128, 0.12));
+}
+
+.archive-status-card {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    padding: 24px;
+    border: 1px solid var(--jf-palette-divider, rgba(128, 128, 128, 0.25));
+    border-radius: 16px;
+    background: var(--jf-palette-background-paper);
+}
+
+.archive-status-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+}
+
+.archive-status-icon {
+    flex: 0 0 48px;
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 12px;
+    color: var(--jf-palette-primary-main);
+    background: color-mix(in srgb, var(--jf-palette-primary-main) 12%, transparent);
+}
+
+.archive-status-copy {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 0;
+}
+
+.archive-status-copy h3 {
+    margin: 0;
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+
+.archive-status-copy p,
+.archive-footnote {
+    margin: 0;
+    font-size: 0.875rem;
+    line-height: 1.6;
+    color: var(--jf-palette-text-secondary);
+}
+
+.archive-facts {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 20px 24px;
+    margin: 0;
+}
+
+.archive-facts > div {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 0;
+}
+
+.archive-facts dt {
+    font-size: 0.8rem;
+    color: var(--jf-palette-text-secondary);
+}
+
+.archive-facts dd {
+    margin: 0;
+    overflow-wrap: anywhere;
+}
+
+.archive-path {
+    grid-column: 1 / -1;
+}
+
+.archive-path dd {
+    font-size: 0.875rem;
+}
+
+.archive-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+@media (max-width: 600px) {
+    .archive-status-card {
+        padding: 20px 16px;
+        gap: 20px;
+    }
+
+    .archive-status-header {
+        gap: 12px;
+    }
+
+    .archive-facts {
+        grid-template-columns: 1fr;
+    }
+
+    .archive-actions button {
+        flex: 1 1 auto;
+    }
+}

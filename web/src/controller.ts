@@ -1,9 +1,30 @@
-(function () {
-    var pluginId = "41b59f1b-a6cf-474a-b416-785379cbd856";
-    var container = document.querySelector('#bangumiConfigurationPage:not(.hide)');
+import { pushSectionInUrl } from './navigation-state.ts';
+import { collectConfiguration } from './configuration.ts';
+
+export function createController(container, host) {
+    var pluginId = '41b59f1b-a6cf-474a-b416-785379cbd856';
+    const { api: ApiClient, dashboard: Dashboard } = host;
+    let active = false;
+    let loaded = false;
+    let saving = false;
     var configuration = {};
-    var oauthUsers = [];
-    var selectedBangumiUserName = '';
+    let savedSnapshot = '';
+    const currentConfiguration = () =>
+        collectConfiguration(configuration, container.querySelectorAll('input,select,textarea'));
+    function updateSaveBar() {
+        const dirty = loaded && JSON.stringify(currentConfiguration()) !== savedSnapshot;
+        const section = getDefaultModule();
+        container.querySelector('.submit-button-container').hidden =
+            ['tools', 'media-library'].includes(section) || (!dirty && !saving);
+    }
+    container.addEventListener('input', updateSaveBar);
+    container.addEventListener('change', updateSaveBar);
+    // Reset buttons assign values directly, without native input/change events.
+    container.addEventListener('click', () => queueMicrotask(updateSaveBar));
+    const account = container.querySelector(
+        'bangumi-oauth-container',
+    ) as import('./components/account.ts').BangumiOAuthContainer;
+    account.configure(host);
     var mediaLibraryState = {
         initialized: false,
         librariesLoaded: false,
@@ -18,15 +39,15 @@
         requestId: 0,
         dialog: null,
         dialogHelper: null,
-        dialogPromise: null
+        dialogPromise: null,
     };
 
     function getAvailableModules() {
-        return Array.from(container.querySelectorAll('.bangumi-settings-nav-item'))
+        return (Array.from(container.querySelectorAll('.bangumi-settings-nav-item')) as HTMLElement[])
             .map(function (button) {
                 return button.getAttribute('data-target');
             })
-            .filter(Boolean);
+            .filter((module) => host.modules.includes(module));
     }
 
     function getDefaultModule() {
@@ -53,275 +74,47 @@
 
     function applyModuleFromHash() {
         switchSettingsSection(getResolvedModule(getModuleFromHash()), false);
-    }
-
-    function windowMessageHandler(e) {
-        if (e.data === 'BANGUMI-OAUTH-COMPLETE') {
-            wrapLoading(loadOAuthState());
-        }
-    }
-
-    function normalizeUserId(userId) {
-        return (userId || '').replace(/-/g, '').toLowerCase();
-    }
-
-    function getSelectedUserId() {
-        return container.querySelector('#bangumi-jellyfin-user').value;
-    }
-
-    function getSelectedUserName() {
-        var selectedUserId = normalizeUserId(getSelectedUserId());
-        var selectedUser = oauthUsers.find(function (user) {
-            return normalizeUserId(user.id) === selectedUserId;
-        });
-        return selectedUser ? selectedUser.name : '';
-    }
-
-    function getOAuthRequestPath(path) {
-        return path + '?userId=' + encodeURIComponent(getSelectedUserId());
-    }
-
-    function getAuthorizationUrl() {
-        return ApiClient.getUrl('/Plugins/Bangumi/Redirect?prefix='
-            + encodeURIComponent(ApiClient.serverAddress())
-            + '&user=' + encodeURIComponent(getSelectedUserId()));
-    }
-
-    function copyText(text) {
-        if (navigator.clipboard && window.isSecureContext) {
-            return navigator.clipboard.writeText(text);
-        }
-
-        var input = document.createElement('textarea');
-        input.value = text;
-        input.style.position = 'fixed';
-        input.style.opacity = '0';
-        document.body.appendChild(input);
-        input.select();
-        var copied = document.execCommand('copy');
-        document.body.removeChild(input);
-        return copied ? Promise.resolve() : Promise.reject(new Error('copy failed'));
-    }
-
-    function getCurrentJellyfinUser() {
-        return ApiClient.getCurrentUser().then(function (user) {
-            return user ? [user] : [];
-        });
-    }
-
-    function getJellyfinUsers() {
-        return ApiClient.getUsers().then(function (users) {
-            return users && users.length ? users : getCurrentJellyfinUser();
-        }, function (error) {
-            console.warn('[Bangumi] Failed to load Jellyfin users, falling back to the current user.', error);
-            return getCurrentJellyfinUser();
-        }).then(function (users) {
-            return users.map(function (user) {
-                return {
-                    id: user.Id || user.id || '',
-                    name: user.Name || user.name || user.Username || ''
-                };
-            }).filter(function (user) {
-                return user.id && user.name;
-            }).sort(function (left, right) {
-                return left.name.localeCompare(right.name);
-            });
-        });
-    }
-
-    function loadOAuthUsers() {
-        var userIdInput = container.querySelector('#bangumi-jellyfin-user');
-        var previousUserId = normalizeUserId(userIdInput.value || ApiClient.getCurrentUserId());
-        return getJellyfinUsers().then(function (users) {
-            oauthUsers = users;
-            var selectedUser = users.find(function (user) {
-                return normalizeUserId(user.id) === previousUserId;
-            });
-            userIdInput.value = selectedUser ? selectedUser.id : (users[0] ? users[0].id : '');
-            renderOAuthUserMenu();
-            updateSelectedJellyfinUser();
-            return loadOAuthState();
-        });
-    }
-
-    function renderOAuthUserMenu(query) {
-        var list = container.querySelector('#bangumi-jellyfin-user-menu-list');
-        var empty = container.querySelector('.bangumi-jellyfin-user-menu-empty');
-        var normalizedQuery = (query || '').trim().toLocaleLowerCase();
-        var filteredUsers = oauthUsers.filter(function (user) {
-            return !normalizedQuery || user.name.toLocaleLowerCase().includes(normalizedQuery);
-        });
-        list.innerHTML = '';
-        filteredUsers.forEach(function (user) {
-            var item = document.createElement('button');
-            item.className = 'bangumi-jellyfin-user-menu-item';
-            item.type = 'button';
-            item.setAttribute('role', 'option');
-            item.setAttribute('data-user-id', user.id);
-
-            var avatar = document.createElement('span');
-            avatar.className = 'bangumi-jellyfin-user-menu-avatar';
-            setJellyfinUserAvatar(avatar, user.id);
-
-            var name = document.createElement('span');
-            name.className = 'bangumi-jellyfin-user-menu-name';
-            name.textContent = user.name;
-
-            var check = document.createElement('span');
-            check.className = 'material-icons check bangumi-jellyfin-user-menu-check';
-
-            item.appendChild(avatar);
-            item.appendChild(name);
-            item.appendChild(check);
-            list.appendChild(item);
-        });
-        empty.hidden = filteredUsers.length > 0;
-        updateOAuthUserMenuSelection();
-    }
-
-    function updateOAuthUserMenuSelection() {
-        var selectedUserId = normalizeUserId(getSelectedUserId());
-        container.querySelectorAll('.bangumi-jellyfin-user-menu-item').forEach(function (item) {
-            var selected = normalizeUserId(item.getAttribute('data-user-id')) === selectedUserId;
-            item.classList.toggle('selected', selected);
-            item.setAttribute('aria-selected', selected ? 'true' : 'false');
-        });
-    }
-
-    function setOAuthUserMenuOpen(open) {
-        var button = container.querySelector('#bangumi-jellyfin-user-switch');
-        var menu = container.querySelector('#bangumi-jellyfin-user-menu');
-        button.setAttribute('aria-expanded', open ? 'true' : 'false');
-        menu.hidden = !open;
-        if (open) {
-            var search = container.querySelector('#bangumi-jellyfin-user-search');
-            search.value = '';
-            renderOAuthUserMenu();
-            search.focus();
-        }
-    }
-
-    function documentClickHandler(e) {
-        var selector = container.querySelector('.bangumi-jellyfin-user-selector');
-        if (!selector.contains(e.target)) setOAuthUserMenuOpen(false);
-    }
-
-    function setJellyfinUserAvatar(avatar, userId) {
-        avatar.innerHTML = '<span class="material-icons person"></span>';
-        if (!userId) return;
-
-        var image = document.createElement('img');
-        image.alt = '';
-        image.onload = function () {
-            avatar.innerHTML = '';
-            avatar.appendChild(image);
-        };
-        image.src = ApiClient.getUrl('/Users/' + encodeURIComponent(userId) + '/Images/Primary');
-    }
-
-    function updateSelectedJellyfinUser() {
-        var avatar = container.querySelector('#bangumi-jellyfin-user-avatar');
-        var userId = getSelectedUserId();
-        container.querySelector('.bangumi-jellyfin-user-name').textContent = getSelectedUserName() || '—';
-        setJellyfinUserAvatar(avatar, userId);
-        updateOAuthUserMenuSelection();
+        container.querySelector('bangumi-tools')?.syncRoute();
     }
 
     function loadArchiveState() {
+        if (!host.modules.includes('archive')) return Promise.resolve();
         return ApiClient.getJSON(ApiClient.getUrl('/Plugins/Bangumi/Archive/Status')).then(function (data) {
-            // size
-            var size = data.size || 0;
+            const size = Number(data?.size) || 0;
+            const hasData = size > 0;
+            container.querySelector('#bangumi-archive-container').classList.toggle('has-archive-data', hasData);
+            container.querySelector('#archive-status-title').textContent = hasData
+                ? '离线数据库已就绪'
+                : '尚未下载数据库';
+            container.querySelector('#archive-status-description').textContent = hasData
+                ? '优先查询本地数据，近期剧集按下方设置使用在线接口。'
+                : '当前使用在线接口。可前往计划任务下载数据库并设置更新频率。';
+            const units = ['B', 'KB', 'MB', 'GB', 'TB'];
+            const index = hasData ? Math.min(Math.floor(Math.log2(size) / 10), units.length - 1) : 0;
+            container.querySelector('#archive-size').textContent = hasData
+                ? (size / Math.pow(1024, index)).toFixed(2) + ' ' + units[index]
+                : '—';
+            container.querySelector('#archive-folder').textContent = data?.path || '—';
+            const time = data?.time ? new Date(data.time) : null;
+            container.querySelector('#archive-update-time').textContent =
+                time && !Number.isNaN(time.getTime())
+                    ? new Intl.DateTimeFormat('zh-Hans', { dateStyle: 'medium', timeStyle: 'short' }).format(time)
+                    : '—';
 
-            if (size > 0) {
-                container.querySelector('#bangumi-archive-container').classList.add('has-archive-data');
-
-                var units = ['B', 'KB', 'MB', 'GB', 'TB'];
-                var index = Math.floor(Math.log2(size) / 10);
-                container.querySelector('#archive-size').textContent = (size / Math.pow(1024, index)).toFixed(2) + ' ' + units[index];
-            } else {
-                container.querySelector('#bangumi-archive-container').classList.remove('has-archive-data');
-                container.querySelector('#archive-folder').textContent = '(不存在)';
-                return;
-            }
-
-            // path
-            container.querySelector('#archive-folder').textContent = data.path;
-
-            // update time
-            container.querySelector('#archive-update-time').textContent = data.time ? new Intl.DateTimeFormat('zh-Hans', {
-                dateStyle: 'long', timeStyle: 'long'
-            }).format(new Date(data.time)) : '-';
-
-            window.ApiClient.getScheduledTasks().then(function (tasks) {
+            return ApiClient.getScheduledTasks().then(function (tasks) {
                 var task = tasks.find(function (task) {
-                    return task.Key === "ArchiveDataDownloadTask" && task.Category === "Bangumi";
+                    return task.Key === 'ArchiveDataDownloadTask' && task.Category === 'Bangumi';
                 });
-                if (!task) return;
-                var link = container.querySelector('#archive-update-schedule-link');
-                link.href = '#/dashboard/tasks/' + task.Id;
-                link.style.display = '';
-
-                var button = container.querySelector('#config-archive-update-task');
-                button.style.display = '';
-                button.addEventListener('click', function () {
-                    link.click();
-                });
+                const button = container.querySelector('#config-archive-update-task');
+                button.disabled = !task;
+                button.title = task ? '' : '未找到离线数据库更新任务';
+                button.onclick = task
+                    ? () => {
+                          window.location.hash = '#/dashboard/tasks/' + task.Id;
+                      }
+                    : null;
             });
         });
-    }
-
-    function loadOAuthState() {
-        if (!getSelectedUserId()) return Promise.resolve();
-        return ApiClient.getJSON(ApiClient.getUrl(getOAuthRequestPath('/Plugins/Bangumi/OAuthState'))).then(function (data) {
-            var userInfo = container.querySelector('.bangumi-user-info');
-            var avatar = container.querySelector('.bangumi-user-info .user-avatar');
-            var dates = container.querySelector('.bangumi-oauth-dates');
-            selectedBangumiUserName = '';
-            if (!data) {
-                updateOAuthAction(false);
-                container.querySelector('#bangumi-oauth-btn').style.display = '';
-                container.querySelector('#bangumi-oauth-manual-btn').style.display = '';
-                container.querySelector('#bangumi-oauth-refresh').style.display = 'none';
-                container.querySelector('#bangumi-oauth-delete').style.display = 'none';
-                avatar.innerHTML = '<span class="material-icons person"></span>';
-                container.querySelector('.bangumi-user-info .user-name').textContent = '尚未绑定';
-                dates.style.display = 'none';
-                userInfo.classList.remove('expired');
-                return;
-            }
-            var bangumiUserName = data.nickname || 'Bangumi 用户';
-            selectedBangumiUserName = bangumiUserName;
-            updateOAuthAction(true);
-            container.querySelector('#bangumi-oauth-btn').style.display = '';
-            container.querySelector('#bangumi-oauth-manual-btn').style.display = 'none';
-            container.querySelector('#bangumi-oauth-refresh').style.display =
-                data.autoRefresh && data.expired !== true ? '' : 'none';
-            container.querySelector('#bangumi-oauth-delete').style.display = '';
-            avatar.innerHTML = data.avatar
-                ? '<img src="' + data.avatar + '" />'
-                : '<span class="material-icons person"></span>';
-            container.querySelector('.bangumi-user-info .user-name').textContent = bangumiUserName;
-            dates.style.display = 'flex';
-            container.querySelector('#bangumi-oauth-effective').textContent = formatOAuthDate(data.effective);
-            container.querySelector('#bangumi-oauth-expire').textContent = formatOAuthDate(data.expire);
-            userInfo.classList.toggle('expired', data.expired === true);
-        });
-    }
-
-    function formatOAuthDate(value) {
-        if (!value) return '—';
-        var date = new Date(value);
-        return Number.isNaN(date.getTime()) ? '—' : date.toLocaleString();
-    }
-
-    function updateOAuthAction(hasBinding) {
-        var isCurrentUser = normalizeUserId(getSelectedUserId()) === normalizeUserId(ApiClient.getCurrentUserId());
-        var button = container.querySelector('#bangumi-oauth-btn');
-        if (isCurrentUser) {
-            button.textContent = hasBinding ? '重新授权' : '授权登录 Bangumi';
-        } else {
-            button.textContent = hasBinding ? '复制重新授权链接' : '复制授权链接';
-        }
     }
 
     function loadConfiguration() {
@@ -334,6 +127,7 @@
                     element.checked = config[configKey];
                 } else {
                     element.value = config[configKey];
+                    element.closest('bangumi-select, bangumi-segmented-select')?.refresh();
                 }
             });
 
@@ -342,59 +136,74 @@
             }
 
             updateNSFWReportDisplay();
+            loaded = true;
+            savedSnapshot = JSON.stringify(currentConfiguration());
+            updateSaveBar();
+            container.querySelector('[type=submit]').disabled = false;
         });
     }
 
     function updateNSFWReportDisplay() {
         var skipNSFWReport = container.querySelector('#SkipNSFWPlaybackReport');
-        var privateNSFWReportContainer = container.querySelector('#PrivateNSFWPlaybackReportContainer');
-        if (!skipNSFWReport || !privateNSFWReportContainer) return;
+        var privateNSFWReport = container.querySelector('#PrivateNSFWPlaybackReport');
+        if (!skipNSFWReport || !privateNSFWReport) return;
 
-        privateNSFWReportContainer.style.display = skipNSFWReport.checked ? 'none' : '';
+        privateNSFWReport.disabled = skipNSFWReport.checked;
     }
 
     function saveConfiguration() {
-        var config = Object.assign({}, configuration);
-        var elements = container.querySelectorAll('input,select,textarea');
-        for (var i = 0; i < elements.length; i++) {
-            var element = elements[i];
-
-            // 跳过不需要保存的元素
-            if (element.hasAttribute('data-config-ignore')) {
-                continue;
-            }
-
-            if (element.type === 'checkbox') {
-                config[element.id] = element.checked;
-            } else {
-                config[element.id] = element.value;
-            }
-        }
-        return wrapLoading(ApiClient.updatePluginConfiguration(pluginId, config)
-            .then(Dashboard.processPluginConfigurationUpdateResult));
+        if (!loaded || saving) return;
+        saving = true;
+        const saveButton = container.querySelector('[type=submit]');
+        saveButton.disabled = true;
+        saveButton.setAttribute('aria-busy', 'true');
+        saveButton.textContent = '保存中…';
+        const config = currentConfiguration();
+        return wrapLoading(
+            ApiClient.updatePluginConfiguration(pluginId, config)
+                .then((result) => {
+                    configuration = config;
+                    savedSnapshot = JSON.stringify(config);
+                    Dashboard.processPluginConfigurationUpdateResult(result);
+                })
+                .finally(() => {
+                    saving = false;
+                    saveButton.disabled = false;
+                    saveButton.removeAttribute('aria-busy');
+                    saveButton.textContent = '保存';
+                    updateSaveBar();
+                }),
+        );
     }
 
     function onLoad() {
-        window.addEventListener("message", windowMessageHandler);
+        if (active) return;
+        active = true;
         window.addEventListener('hashchange', applyModuleFromHash);
-        document.addEventListener('click', documentClickHandler);
+        window.addEventListener('popstate', applyModuleFromHash);
         applyModuleFromHash();
-        wrapLoading(Promise.all([loadConfiguration(), loadArchiveState(), loadOAuthUsers(),]));
+        wrapLoading(Promise.all([loadConfiguration(), loadArchiveState(), account.show()]));
     }
 
     function onUnload() {
-        window.removeEventListener("message", windowMessageHandler);
+        active = false;
+        window.clearTimeout(mediaLibraryState.searchTimer);
+        closeMediaLibraryDialog();
+        account.hide();
         window.removeEventListener('hashchange', applyModuleFromHash);
-        document.removeEventListener('click', documentClickHandler);
+        window.removeEventListener('popstate', applyModuleFromHash);
     }
 
     function wrapLoading(promise) {
         Dashboard.showLoadingMsg();
-        promise.then(Dashboard.hideLoadingMsg, Dashboard.hideLoadingMsg);
+        return promise
+            .catch((error) => {
+                if (active && error.name !== 'AbortError') Dashboard.alert('操作失败：' + (error.message || error));
+            })
+            .finally(() => Dashboard.hideLoadingMsg());
     }
 
-    container.addEventListener('viewshow', onLoad);
-    container.addEventListener('viewhide', onUnload);
+    container.querySelector('[type=submit]').disabled = true;
 
     container.querySelector('#bangumiConfigurationForm').addEventListener('submit', function (e) {
         e.preventDefault();
@@ -403,107 +212,18 @@
 
     container.querySelector('#SkipNSFWPlaybackReport').addEventListener('change', updateNSFWReportDisplay);
 
-    container.querySelector('#bangumi-jellyfin-user-switch').addEventListener('click', function (e) {
-        e.preventDefault();
-        e.stopPropagation();
-        var open = this.getAttribute('aria-expanded') !== 'true';
-        setOAuthUserMenuOpen(open);
-    });
-
-    container.querySelector('#bangumi-jellyfin-user-menu').addEventListener('click', function (e) {
-        e.stopPropagation();
-        var item = e.target.closest('.bangumi-jellyfin-user-menu-item');
-        if (!item) return;
-        container.querySelector('#bangumi-jellyfin-user').value = item.getAttribute('data-user-id');
-        updateSelectedJellyfinUser();
-        setOAuthUserMenuOpen(false);
-        wrapLoading(loadOAuthState());
-    });
-
-    container.querySelector('#bangumi-jellyfin-user-search').addEventListener('input', function () {
-        renderOAuthUserMenu(this.value);
-    });
-
-    container.querySelector('#bangumi-jellyfin-user-menu').addEventListener('keydown', function (e) {
-        if (e.key !== 'Escape') return;
-        setOAuthUserMenuOpen(false);
-        container.querySelector('#bangumi-jellyfin-user-switch').focus();
-    });
-
-    container.querySelector('#bangumi-oauth-btn').addEventListener('click', function (e) {
-        e.preventDefault();
-        var authorizationUrl = getAuthorizationUrl();
-        var isCurrentUser = normalizeUserId(getSelectedUserId()) === normalizeUserId(ApiClient.getCurrentUserId());
-        if (isCurrentUser) {
-            window.open(authorizationUrl);
-            return;
-        }
-
-        copyText(authorizationUrl).then(function () {
-            Dashboard.alert('已复制 ' + getSelectedUserName() + ' 的 Bangumi 授权链接');
-        }, function () {
-            Dashboard.alert({ title: '复制失败', message: '请检查浏览器的剪贴板权限。' });
-        });
-    });
-
-    container.querySelector('#bangumi-oauth-manual-btn').addEventListener('click', function (e) {
-        e.preventDefault();
-        Dashboard.confirm('<div style="text-align: left"><p>仅在自动授权无法工作时推荐，步骤如下</p><ol><li>打开 <a href="https://next.bgm.tv/demo/access-token/create" style="color: inherit">Access Token 生成页面</a></li><li>创建一个 Token 并复制</li><li>点击确定后填写 Token</li></ol><p style="margin-top: 16px">注：此授权方式无法自动续期，建议选择较长有效期</p></div>', '手动授权', function (continued) {
-            if (!continued) return;
-            const token = prompt('请填写 Access Token');
-            if (!token) return;
-            wrapLoading(
-                ApiClient.fetch({ url: getOAuthRequestPath('/Plugins/Bangumi/AccessToken'), type: 'PATCH', data: { token: token } })
-                    .then(function () {
-                        Dashboard.alert('授权成功');
-                        return loadOAuthState();
-                    })
-                    .catch(function () {
-                        Dashboard.alert('授权失败，请检查 Token 是否正确');
-                    })
-            );
-        });
-    });
-
-    container.querySelector('#bangumi-oauth-delete').addEventListener('click', function (e) {
-        e.preventDefault();
-        var message = '确定解除 Jellyfin 用户“' + getSelectedUserName() + '”与 Bangumi 用户“'
-            + selectedBangumiUserName + '”的绑定吗？解除后将不再同步该用户的播放进度。';
-        Dashboard.confirm(message, '解除绑定', function (confirmed) {
-            if (!confirmed) return;
-            ApiClient.fetch({ url: getOAuthRequestPath('/Plugins/Bangumi/OAuth'), type: 'DELETE' })
-                .then(function () {
-                    wrapLoading(loadOAuthState());
-                });
-        });
-    });
-
-    container.querySelector('#bangumi-oauth-refresh').addEventListener('click', function (e) {
-        e.preventDefault();
-        wrapLoading(ApiClient.fetch({
-            url: getOAuthRequestPath('/Plugins/Bangumi/RefreshOAuthToken'), type: 'POST'
-        })
-            .then(function () {
-                loadOAuthState();
-                Dashboard.alert('授权有效期已更新');
-            }, function () {
-                Dashboard.alert({ title: '错误', message: '续期失败，请尝试重新授权' });
-                container.querySelector('#bangumi-oauth-btn').style.display = '';
-                container.querySelector('#bangumi-oauth-refresh').style.display = 'none';
-            }));
-    });
-
     container.querySelector('#delete-archive-data').addEventListener('click', function (e) {
         e.preventDefault();
         Dashboard.confirm('确定要清空离线数据库吗？', '警告', function (confirmed) {
             if (!confirmed) return;
             Dashboard.showLoadingMsg();
-            wrapLoading(ApiClient.fetch({ url: '/Plugins/Bangumi/Archive/Store', type: 'DELETE' })
-                .then(function () {
+            wrapLoading(
+                ApiClient.fetch({ url: '/Plugins/Bangumi/Archive/Store', type: 'DELETE' }).then(function () {
                     loadArchiveState();
                     Dashboard.alert('离线数据库已清空');
-                }));
-        })
+                }),
+            );
+        });
     });
 
     container.querySelector('#EpisodeParser').addEventListener('change', function (e) {
@@ -511,7 +231,7 @@
         updateEpisodeParserDisplay();
     });
 
-    function getMediaLibraryApiUrl(path, query) {
+    function getMediaLibraryApiUrl(path, query = {}) {
         var url = ApiClient.getUrl('/Plugins/Bangumi/Tools/MediaLibrary' + path);
         if (!query) {
             return url;
@@ -546,14 +266,13 @@
         var first = mediaLibraryState.totalRecordCount ? mediaLibraryState.startIndex + 1 : 0;
         var last = Math.min(
             mediaLibraryState.startIndex + mediaLibraryState.pageSize,
-            mediaLibraryState.totalRecordCount);
+            mediaLibraryState.totalRecordCount,
+        );
         container.querySelector('#bangumi-media-library-page-status').textContent =
             first + '–' + last + ' / ' + mediaLibraryState.totalRecordCount;
-        container.querySelector('#bangumi-media-library-previous').disabled =
-            mediaLibraryState.startIndex === 0;
+        container.querySelector('#bangumi-media-library-previous').disabled = mediaLibraryState.startIndex === 0;
         container.querySelector('#bangumi-media-library-next').disabled =
-            mediaLibraryState.startIndex + mediaLibraryState.pageSize >=
-            mediaLibraryState.totalRecordCount;
+            mediaLibraryState.startIndex + mediaLibraryState.pageSize >= mediaLibraryState.totalRecordCount;
     }
 
     function enterMediaLibraryDirectory(item) {
@@ -562,8 +281,7 @@
     }
 
     function createMediaLibraryListItem(item) {
-        var element = container.querySelector('#bangumi-media-library-item-template')
-            .content.cloneNode(true);
+        var element = container.querySelector('#bangumi-media-library-item-template').content.cloneNode(true);
         var row = element.querySelector('.bangumi-media-list-item');
         var children = item.Children || [];
         var hasChildren = children.length > 0;
@@ -571,12 +289,19 @@
         var enterButton = element.querySelector('.bangumi-media-list-enter');
 
         row.dataset.itemId = item.Id;
-        element.querySelector('.bangumi-media-list-icon').textContent =
-            hasChildren ? 'folder' : 'folder_open';
+        element.querySelector('.bangumi-media-list-icon').textContent = hasChildren ? 'folder' : 'folder_open';
         element.querySelector('.bangumi-media-list-name').textContent = item.Name;
         element.querySelector('.bangumi-media-list-path').textContent = item.Path;
-        element.querySelector('.bangumi-media-config-state').textContent =
-            item.HasConfiguration ? 'check_circle' : '';
+        row.dataset.configured = String(!!item.HasConfiguration);
+        editButton.title = item.HasConfiguration ? '编辑单独配置' : '配置此文件夹（当前继承设置）';
+        editButton.setAttribute('aria-label', editButton.title);
+        element.querySelector('.bangumi-media-child-count').textContent = hasChildren
+            ? children.length + ' 个子目录'
+            : '';
+        element.querySelector('.bangumi-media-list-path').title = item.Path;
+        element
+            .querySelector('.bangumi-media-list-main')
+            .setAttribute('aria-label', (hasChildren ? '浏览：' : '配置：') + item.Name);
         enterButton.style.display = hasChildren ? '' : 'none';
 
         function activateDefaultAction() {
@@ -589,15 +314,6 @@
 
         row.addEventListener('click', function () {
             activateDefaultAction();
-        });
-        row.addEventListener('keydown', function (event) {
-            if (event.target !== row) {
-                return;
-            }
-            if (event.key === 'Enter' || event.key === ' ') {
-                event.preventDefault();
-                activateDefaultAction();
-            }
         });
         editButton.addEventListener('click', function (event) {
             event.preventDefault();
@@ -621,7 +337,7 @@
         var currentLabel = container.querySelector('#bangumi-media-library-current');
         var summary = container.querySelector('#bangumi-media-library-summary');
         var items = mediaLibraryState.currentDirectory
-            ? (mediaLibraryState.currentDirectory.Children || [])
+            ? mediaLibraryState.currentDirectory.Children || []
             : mediaLibraryState.rootItems;
 
         list.replaceChildren();
@@ -641,7 +357,7 @@
             backButton.style.display = 'none';
             currentLabel.textContent = selectedOption ? selectedOption.textContent : '全部媒体库';
             summary.textContent = '共找到 ' + mediaLibraryState.totalItemCount + ' 个可配置目录';
-            pagination.style.display = '';
+            pagination.style.display = mediaLibraryState.totalRecordCount > mediaLibraryState.pageSize ? '' : 'none';
             empty.textContent = '当前筛选条件下没有可配置的系列目录';
             updateMediaLibraryPagination();
         }
@@ -663,8 +379,8 @@
                     libraryId: select.value,
                     search: search.value.trim(),
                     startIndex: String(mediaLibraryState.startIndex),
-                    limit: String(mediaLibraryState.pageSize)
-                })
+                    limit: String(mediaLibraryState.pageSize),
+                }),
             });
             if (!response.ok) {
                 throw new Error(await response.text());
@@ -680,12 +396,14 @@
             mediaLibraryState.rootItems = result.Items;
             loadMediaLibraryOptions(result.Libraries);
             if (mediaLibraryState.currentDirectory) {
-                mediaLibraryState.currentDirectory = mediaLibraryState.rootItems.find(function (item) {
-                    return item.Id === mediaLibraryState.currentDirectory.Id;
-                }) || null;
+                mediaLibraryState.currentDirectory =
+                    mediaLibraryState.rootItems.find(function (item) {
+                        return item.Id === mediaLibraryState.currentDirectory.Id;
+                    }) || null;
             }
             renderMediaLibraryItems();
         } catch (error) {
+            if (!active || requestId !== mediaLibraryState.requestId || error.name === 'AbortError') return;
             Dashboard.alert('加载媒体库失败：' + error.message);
         } finally {
             if (requestId === mediaLibraryState.requestId) {
@@ -702,6 +420,8 @@
 
         var enabled = dialog.querySelector('#bangumi-media-config-enabled').checked;
         dialog.querySelector('#bangumi-media-config-fields').style.display = enabled ? '' : 'none';
+        const offset = Number(dialog.querySelector('#bangumi-media-config-offset').value);
+        dialog.querySelector('#bangumi-media-offset-options').hidden = !Number.isFinite(offset) || offset === 0;
     }
 
     function closeMediaLibraryDialog() {
@@ -716,23 +436,29 @@
         }
 
         try {
-            var dialogHelper = Dashboard.dialogHelper;
+            var dialogHelper = host.dialogHelper;
             if (!dialogHelper || typeof dialogHelper.createDialog !== 'function') {
-                throw new Error('当前 Jellyfin Web 未提供 dialogHelper');
+                throw new Error('无法初始化配置对话框');
             }
 
             var template = container.querySelector('#bangumi-media-library-dialog-template');
             var dialog = dialogHelper.createDialog({
                 id: 'bangumi-media-library-dialog',
                 size: 'small',
-                removeOnClose: true
+                removeOnClose: true,
             });
 
             dialog.classList.add('formDialog');
             dialog.appendChild(template.content.cloneNode(true));
-            dialog.querySelector('#bangumi-media-config-enabled').addEventListener(
-                'change',
-                updateMediaLibraryConfigFields);
+            dialog
+                .querySelector('#bangumi-media-config-enabled')
+                .addEventListener('change', updateMediaLibraryConfigFields);
+            dialog
+                .querySelector('#bangumi-media-config-offset')
+                .addEventListener('input', updateMediaLibraryConfigFields);
+            dialog
+                .querySelector('#bangumi-media-config-offset')
+                .addEventListener('change', updateMediaLibraryConfigFields);
             dialog.querySelectorAll('.btnCancel').forEach(function (button) {
                 button.addEventListener('click', closeMediaLibraryDialog);
             });
@@ -740,13 +466,17 @@
                 event.preventDefault();
                 saveMediaLibraryConfiguration();
             });
-            dialog.addEventListener('close', function () {
-                if (mediaLibraryState.dialog === dialog) {
-                    mediaLibraryState.dialog = null;
-                    mediaLibraryState.dialogHelper = null;
-                    mediaLibraryState.dialogPromise = null;
-                }
-            }, { once: true });
+            dialog.addEventListener(
+                'close',
+                function () {
+                    if (mediaLibraryState.dialog === dialog) {
+                        mediaLibraryState.dialog = null;
+                        mediaLibraryState.dialogHelper = null;
+                        mediaLibraryState.dialogPromise = null;
+                    }
+                },
+                { once: true },
+            );
 
             mediaLibraryState.dialog = dialog;
             mediaLibraryState.dialogHelper = dialogHelper;
@@ -764,7 +494,7 @@
         try {
             var response = await ApiClient.fetch({
                 type: 'GET',
-                url: getMediaLibraryApiUrl('/Configuration/' + item.Id)
+                url: getMediaLibraryApiUrl('/Configuration/' + item.Id),
             });
             if (!response.ok) {
                 throw new Error(await response.text());
@@ -773,8 +503,7 @@
             var config = await response.json();
             var dialog = await createMediaLibraryDialog();
             mediaLibraryState.selectedItemId = config.ItemId;
-            dialog.querySelector('#bangumi-media-dialog-title').textContent =
-                '配置：' + config.ItemName;
+            dialog.querySelector('#bangumi-media-dialog-title').textContent = '配置：' + config.ItemName;
             dialog.querySelector('#bangumi-media-dialog-path').textContent = config.DirectoryPath;
             dialog.querySelector('#bangumi-media-config-enabled').checked = config.Exists;
             dialog.querySelector('#bangumi-media-config-id').value = config.Id || '';
@@ -784,6 +513,9 @@
             dialog.querySelector('#bangumi-media-config-correct-index').checked = config.CorrectIndex;
             updateMediaLibraryConfigFields();
             mediaLibraryState.dialogHelper.open(dialog);
+            dialog
+                .querySelector('bangumi-episode-preview')
+                .configure(ApiClient, config.ItemId, dialog.querySelector('form'));
         } catch (error) {
             Dashboard.alert('读取 bangumi.ini 失败：' + error.message);
         } finally {
@@ -795,12 +527,10 @@
         var dialog = mediaLibraryState.dialog;
         return {
             Id: Number.parseInt(dialog.querySelector('#bangumi-media-config-id').value || '0', 10),
-            Offset: Number.parseInt(
-                dialog.querySelector('#bangumi-media-config-offset').value || '0',
-                10),
+            Offset: Number.parseInt(dialog.querySelector('#bangumi-media-config-offset').value || '0', 10),
             Report: dialog.querySelector('#bangumi-media-config-report').checked,
             Skip: dialog.querySelector('#bangumi-media-config-skip').checked,
-            CorrectIndex: dialog.querySelector('#bangumi-media-config-correct-index').checked
+            CorrectIndex: dialog.querySelector('#bangumi-media-config-correct-index').checked,
         };
     }
 
@@ -821,17 +551,15 @@
         try {
             var response = enabled
                 ? await ApiClient.fetch({
-                    type: 'PUT',
-                    url: getMediaLibraryApiUrl(
-                        '/Configuration/' + mediaLibraryState.selectedItemId),
-                    contentType: 'application/json',
-                    data: JSON.stringify(getMediaLibraryConfigurationPayload())
-                })
+                      type: 'PUT',
+                      url: getMediaLibraryApiUrl('/Configuration/' + mediaLibraryState.selectedItemId),
+                      contentType: 'application/json',
+                      data: JSON.stringify(getMediaLibraryConfigurationPayload()),
+                  })
                 : await ApiClient.fetch({
-                    type: 'DELETE',
-                    url: getMediaLibraryApiUrl(
-                        '/Configuration/' + mediaLibraryState.selectedItemId)
-                });
+                      type: 'DELETE',
+                      url: getMediaLibraryApiUrl('/Configuration/' + mediaLibraryState.selectedItemId),
+                  });
             if (!response.ok) {
                 throw new Error(await response.text());
             }
@@ -846,20 +574,29 @@
         }
     }
 
-    function switchSettingsSection(target) {
+    function switchSettingsSection(target, updateUrl = true) {
         if (!target) {
             return;
         }
 
         var resolvedTarget = getResolvedModule(target);
+        if (updateUrl) {
+            pushSectionInUrl(resolvedTarget, window.location, window.history);
+            container.querySelector('bangumi-tools')?.syncRoute();
+        }
 
         container.querySelectorAll('.bangumi-settings-nav-item').forEach(function (button) {
-            button.classList.toggle('active', button.getAttribute('data-target') === resolvedTarget);
+            const active = button.getAttribute('data-target') === resolvedTarget;
+            button.classList.toggle('active', active);
+            if (active) button.setAttribute('aria-current', 'page');
+            else button.removeAttribute('aria-current');
         });
 
         container.querySelectorAll('.bangumi-settings-panel').forEach(function (panel) {
             panel.classList.toggle('active', panel.getAttribute('data-section') === resolvedTarget);
         });
+
+        updateSaveBar();
 
         if (resolvedTarget === 'media-library') {
             initializeMediaLibrary();
@@ -868,7 +605,7 @@
 
     function updateEpisodeParserDisplay() {
         const parser = container.querySelector('#EpisodeParser').value;
-        container.querySelectorAll('.episode-parser-options').forEach(el => {
+        container.querySelectorAll('.episode-parser-options').forEach((el) => {
             el.style.display = el.getAttribute('episode-parser') === parser ? '' : 'none';
         });
         const hybridSection = container.querySelector('.bangumi-tab-container');
@@ -955,7 +692,7 @@
     function getRegexLines(value) {
         return (value || '')
             .split(/\r?\n/)
-            .map(l => l.trim())
+            .map((l) => l.trim())
             .filter(Boolean);
     }
 
@@ -1029,13 +766,16 @@
         }
 
         if (navigator.clipboard && navigator.clipboard.writeText) {
-            return navigator.clipboard.writeText(value).then( () => {
-                Dashboard.alert(successMessage);
-                return true;
-            }, () => {
-                Dashboard.alert('复制失败，请手动复制');
-                return false;
-            });
+            return navigator.clipboard.writeText(value).then(
+                () => {
+                    Dashboard.alert(successMessage);
+                    return true;
+                },
+                () => {
+                    Dashboard.alert('复制失败，请手动复制');
+                    return false;
+                },
+            );
         }
 
         Dashboard.alert('复制失败，请手动复制');
@@ -1050,7 +790,7 @@
      */
     function formatResultLines(lines) {
         var frag = document.createDocumentFragment();
-        (lines || []).forEach(line => {
+        (lines || []).forEach((line) => {
             var div = document.createElement('div');
             div.className = 'bangumi-regex-test-result-line';
             div.textContent = String(line ?? '');
@@ -1068,7 +808,7 @@
     function renderRegexToolResults(items) {
         var results = container.querySelector('#RegexToolResults');
         results.innerHTML = '';
-        (items || []).forEach(item => {
+        (items || []).forEach((item) => {
             var wrapper = document.createElement('div');
             wrapper.className = 'bangumi-regex-test-result ' + (item.state || '');
 
@@ -1116,25 +856,61 @@
             {
                 title: '排除白名单',
                 inputs: [
-                    { label: '完整路径', value: resolved.fullPath, patterns: container.querySelector('#ExcludeWhitelistRegexFullPath').value },
-                    { label: '目录名称', value: resolved.folderName, patterns: container.querySelector('#ExcludeWhitelistRegexFolderName').value },
-                    { label: '文件名', value: episodeFileName, patterns: container.querySelector('#ExcludeWhitelistRegexFileName').value },
+                    {
+                        label: '完整路径',
+                        value: resolved.fullPath,
+                        patterns: container.querySelector('#ExcludeWhitelistRegexFullPath').value,
+                    },
+                    {
+                        label: '目录名称',
+                        value: resolved.folderName,
+                        patterns: container.querySelector('#ExcludeWhitelistRegexFolderName').value,
+                    },
+                    {
+                        label: '文件名',
+                        value: episodeFileName,
+                        patterns: container.querySelector('#ExcludeWhitelistRegexFileName').value,
+                    },
                 ],
             },
             {
                 title: '特典文件排除',
                 inputs: [
-                    { label: '完整路径', value: resolved.fullPath, patterns: container.querySelector('#SpExcludeRegexFullPath').value },
-                    { label: '目录名称', value: resolved.folderName, patterns: container.querySelector('#SpExcludeRegexFolderName').value },
-                    { label: '文件名', value: episodeFileName, patterns: container.querySelector('#SpExcludeRegexFileName').value },
+                    {
+                        label: '完整路径',
+                        value: resolved.fullPath,
+                        patterns: container.querySelector('#SpExcludeRegexFullPath').value,
+                    },
+                    {
+                        label: '目录名称',
+                        value: resolved.folderName,
+                        patterns: container.querySelector('#SpExcludeRegexFolderName').value,
+                    },
+                    {
+                        label: '文件名',
+                        value: episodeFileName,
+                        patterns: container.querySelector('#SpExcludeRegexFileName').value,
+                    },
                 ],
             },
             {
                 title: '杂项文件排除',
                 inputs: [
-                    { label: '完整路径', value: resolved.fullPath, patterns: container.querySelector('#MiscExcludeRegexFullPath').value },
-                    { label: '目录名称', value: resolved.folderName, patterns: container.querySelector('#MiscExcludeRegexFolderName').value },
-                    { label: '文件名', value: episodeFileName, patterns: container.querySelector('#MiscExcludeRegexFileName').value },
+                    {
+                        label: '完整路径',
+                        value: resolved.fullPath,
+                        patterns: container.querySelector('#MiscExcludeRegexFullPath').value,
+                    },
+                    {
+                        label: '目录名称',
+                        value: resolved.folderName,
+                        patterns: container.querySelector('#MiscExcludeRegexFolderName').value,
+                    },
+                    {
+                        label: '文件名',
+                        value: episodeFileName,
+                        patterns: container.querySelector('#MiscExcludeRegexFileName').value,
+                    },
                 ],
             },
         ];
@@ -1145,23 +921,35 @@
         var miscMatched = false;
 
         // 汇总每个正则组的命中结果和无效正则
-        groups.forEach(group => {
+        groups.forEach((group) => {
             var matchedLine = null;
             var invalidLines = [];
             var lines = [];
 
             // 逐条测试输入项，记录命中和无效正则
-            group.inputs.forEach(item => {
+            group.inputs.forEach((item) => {
                 var testResult = testRegexLines(item.patterns, item.value);
 
                 // 记录无效正则
-                invalidLines = invalidLines.concat(testResult.invalid.map(invalidItem => {
-                    return item.label + ' 第 ' + invalidItem.lineNumber + ' 行无效: ' + invalidItem.pattern + ' (' + invalidItem.message + ')';
-                }));
+                invalidLines = invalidLines.concat(
+                    testResult.invalid.map((invalidItem) => {
+                        return (
+                            item.label +
+                            ' 第 ' +
+                            invalidItem.lineNumber +
+                            ' 行无效: ' +
+                            invalidItem.pattern +
+                            ' (' +
+                            invalidItem.message +
+                            ')'
+                        );
+                    }),
+                );
 
                 // 记录首个命中正则
                 if (!matchedLine && testResult.matched) {
-                    matchedLine = item.label + ' 第 ' + testResult.matched.lineNumber + ' 行命中: ' + testResult.matched.pattern;
+                    matchedLine =
+                        item.label + ' 第 ' + testResult.matched.lineNumber + ' 行命中: ' + testResult.matched.pattern;
                 }
             });
 
@@ -1188,7 +976,7 @@
 
             resultItems.push({
                 title: group.title,
-                state: matchedLine ? 'hit' : (invalidLines.length ? 'invalid' : 'miss'),
+                state: matchedLine ? 'hit' : invalidLines.length ? 'invalid' : 'miss',
                 lines: lines,
             });
         });
@@ -1204,7 +992,7 @@
         if (miscMatched) {
             matchTypes.push('杂项');
         }
-        if(matchTypes.length == 0) {
+        if (matchTypes.length == 0) {
             matchTypes.push('无');
         }
         summary.textContent = '命中类型: ' + matchTypes.join(', ');
@@ -1234,7 +1022,8 @@
 
     container.querySelector('#MiscExcludeRegexFolderNameResetBtn').addEventListener('click', function (e) {
         e.preventDefault();
-        container.querySelector('#MiscExcludeRegexFolderName').value = configuration['DefaultMiscExcludeRegexFolderName'];
+        container.querySelector('#MiscExcludeRegexFolderName').value =
+            configuration['DefaultMiscExcludeRegexFolderName'];
     });
 
     container.querySelector('#MiscExcludeRegexFileNameResetBtn').addEventListener('click', function (e) {
@@ -1244,17 +1033,20 @@
 
     container.querySelector('#ExcludeWhitelistRegexFullPathResetBtn').addEventListener('click', function (e) {
         e.preventDefault();
-        container.querySelector('#ExcludeWhitelistRegexFullPath').value = configuration['DefaultExcludeWhitelistRegexFullPath'];
+        container.querySelector('#ExcludeWhitelistRegexFullPath').value =
+            configuration['DefaultExcludeWhitelistRegexFullPath'];
     });
 
     container.querySelector('#ExcludeWhitelistRegexFolderNameResetBtn').addEventListener('click', function (e) {
         e.preventDefault();
-        container.querySelector('#ExcludeWhitelistRegexFolderName').value = configuration['DefaultExcludeWhitelistRegexFolderName'];
+        container.querySelector('#ExcludeWhitelistRegexFolderName').value =
+            configuration['DefaultExcludeWhitelistRegexFolderName'];
     });
 
     container.querySelector('#ExcludeWhitelistRegexFileNameResetBtn').addEventListener('click', function (e) {
         e.preventDefault();
-        container.querySelector('#ExcludeWhitelistRegexFileName').value = configuration['DefaultExcludeWhitelistRegexFileName'];
+        container.querySelector('#ExcludeWhitelistRegexFileName').value =
+            configuration['DefaultExcludeWhitelistRegexFileName'];
     });
 
     container.querySelector('#RegexToolGenerateBtn').addEventListener('click', function (e) {
@@ -1276,16 +1068,37 @@
         runRegexToolTest();
     });
 
-    container.querySelectorAll('.bangumi-tab-container').forEach(tabContainer => {
-        tabContainer.querySelectorAll('.bangumi-tab-header-button').forEach(btn => {
+    container.querySelectorAll('.bangumi-tab-container').forEach((tabContainer) => {
+        tabContainer.querySelectorAll('.bangumi-tab-header-button').forEach((btn) => {
+            btn.addEventListener('keydown', function (event) {
+                const tabs = Array.from(
+                    tabContainer.querySelectorAll('.bangumi-tab-header-button'),
+                ) as HTMLButtonElement[];
+                const index = tabs.indexOf(btn);
+                let target: number;
+                if (event.key === 'ArrowRight') target = (index + 1) % tabs.length;
+                else if (event.key === 'ArrowLeft') target = (index + tabs.length - 1) % tabs.length;
+                else if (event.key === 'Home') target = 0;
+                else if (event.key === 'End') target = tabs.length - 1;
+                else return;
+                event.preventDefault();
+                tabs[target].click();
+                tabs[target].focus();
+            });
             btn.addEventListener('click', function () {
-                tabContainer.querySelectorAll('.bangumi-tab-header-button').forEach(b => b.classList.remove('active'));
-                tabContainer.querySelectorAll('.bangumi-tab-content').forEach(tc => tc.classList.remove('active'));
+                tabContainer.querySelectorAll('.bangumi-tab-header-button').forEach((b) => {
+                    b.classList.remove('active');
+                    b.setAttribute('aria-selected', 'false');
+                    b.tabIndex = -1;
+                });
+                tabContainer.querySelectorAll('.bangumi-tab-content').forEach((tc) => tc.classList.remove('active'));
 
                 btn.classList.add('active');
+                btn.setAttribute('aria-selected', 'true');
+                btn.tabIndex = 0;
 
                 let id = btn.getAttribute('data-tab');
-                tabContainer.querySelectorAll('.bangumi-tab-content').forEach(c => {
+                tabContainer.querySelectorAll('.bangumi-tab-content').forEach((c) => {
                     if (c.getAttribute('data-tab') == id) {
                         c.classList.add('active');
                     }
@@ -1297,7 +1110,7 @@
     container.querySelectorAll('.bangumi-settings-nav-item').forEach(function (button) {
         button.addEventListener('click', function (e) {
             e.preventDefault();
-            switchSettingsSection(getResolvedModule(button.getAttribute('data-target')), false);
+            switchSettingsSection(getResolvedModule(button.getAttribute('data-target')));
         });
     });
 
@@ -1326,9 +1139,7 @@
     });
 
     container.querySelector('#bangumi-media-library-previous').addEventListener('click', function () {
-        mediaLibraryState.startIndex = Math.max(
-            0,
-            mediaLibraryState.startIndex - mediaLibraryState.pageSize);
+        mediaLibraryState.startIndex = Math.max(0, mediaLibraryState.startIndex - mediaLibraryState.pageSize);
         loadMediaLibraryItems();
     });
 
@@ -1337,14 +1148,5 @@
         loadMediaLibraryItems();
     });
 
-    container.querySelectorAll('.bangumi-plugin-tools').forEach(function (link) {
-        link.addEventListener('click', function (e) {
-            e.preventDefault();
-            var href = link.getAttribute('href');
-            if (!href) {
-                return;
-            }
-            Dashboard.navigate(href.replace(/^#/, ''));
-        });
-    });
-})();
+    return { show: onLoad, hide: onUnload };
+}

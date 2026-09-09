@@ -27,6 +27,20 @@ jobs:
           exclude: ci
       - name: Patch version
         run: sed -i "/Version/s/>.*</>${{ steps.meta.outputs.tag }}.${{ steps.meta.outputs.distance }}</" Directory.Build.props
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - name: Build and test web components
+        working-directory: web
+        run: |
+          npm ci --no-audit --no-fund
+          npm run lint
+          npm run format:check
+          npm run build
+          npm test
       - name: Setup .NET 10.x
         uses: actions/setup-dotnet@v6
         with:
@@ -34,9 +48,9 @@ jobs:
       - name: Restore NuGet Packages
         run: dotnet restore
       - name: .NET Test
-        run: dotnet test --configuration Release Jellyfin.Plugin.Bangumi.Test
+        run: dotnet test --configuration Release -p:SkipWebBuild=true Jellyfin.Plugin.Bangumi.Test
       - name: .NET Publish
-        run: dotnet publish --configuration Release --output publish Jellyfin.Plugin.Bangumi
+        run: dotnet publish --configuration Release -p:SkipWebBuild=true --output publish Jellyfin.Plugin.Bangumi
       - name: Resolve Target ABI Version
         id: abi-version
         shell: pwsh

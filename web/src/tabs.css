@@ -1,0 +1,95 @@
+.bangumi-tab-container {
+    --tab-surface: var(--jf-palette-background-paper, #242424);
+    --tab-border: var(--jf-palette-divider, rgba(128, 128, 128, 0.3));
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 1.8em;
+}
+
+.bangumi-tab-header {
+    display: flex;
+    align-items: stretch;
+    gap: 4px;
+    padding: 4px 0 0;
+}
+
+.bangumi-tab-header-button {
+    position: relative;
+    flex: 1;
+    min-width: 0;
+    min-height: 48px;
+    margin: 4px 0 -1px;
+    padding: 10px 16px;
+    border: 1px solid transparent;
+    border-bottom-color: var(--tab-border);
+    border-radius: 10px 10px 0 0;
+    background: transparent;
+    color: var(--jf-palette-text-secondary, #aaa);
+    font: inherit;
+    line-height: 1.4;
+    cursor: pointer;
+    transition:
+        background-color 120ms ease,
+        color 120ms ease;
+}
+
+.bangumi-tab-header-button:hover {
+    background: var(--jf-palette-action-hover, rgba(128, 128, 128, 0.1));
+    color: var(--jf-palette-text-primary, #eee);
+}
+
+.bangumi-tab-header-button.active {
+    z-index: 1;
+    margin-top: 0;
+    padding-top: 14px;
+    border-color: var(--tab-border);
+    border-bottom-color: var(--tab-surface);
+    background: var(--tab-surface);
+    color: var(--jf-palette-text-primary, #eee);
+    font-weight: 500;
+}
+
+.bangumi-tab-header-button:focus-visible {
+    outline-offset: -5px;
+}
+
+.bangumi-tab-content {
+    display: none;
+    padding: 20px;
+    border: 1px solid var(--tab-border);
+    border-radius: 0 0 12px 12px;
+    background: var(--tab-surface);
+}
+
+.bangumi-tab-content.active {
+    display: block;
+}
+
+.bangumi-tab-content > .fieldDescription:first-child {
+    margin-top: 0;
+}
+
+@media (max-width: 600px) {
+    .bangumi-tab-header {
+        gap: 2px;
+    }
+
+    .bangumi-tab-header-button {
+        padding: 10px 6px;
+        font-size: 0.8125rem;
+    }
+
+    .bangumi-tab-header-button.active {
+        padding-top: 14px;
+    }
+
+    .bangumi-tab-content {
+        padding: 16px 12px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .bangumi-tab-header-button {
+        transition: none;
+    }
+}

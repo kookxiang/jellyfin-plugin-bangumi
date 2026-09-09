@@ -26,6 +26,11 @@ public class Plugin : BasePlugin<PluginConfiguration>, IHasWebPages
     /// <inheritdoc />
     public IEnumerable<PluginPageInfo> GetPages()
     {
+        var scriptResource = $"{GetType().Namespace}.Configuration.Main.js";
+#if DEBUG
+        if (WebDevelopmentController.ServerUrl is not null)
+            scriptResource = $"{GetType().Namespace}.Configuration.Development.js";
+#endif
         return
         [
             new PluginPageInfo
@@ -39,12 +44,7 @@ public class Plugin : BasePlugin<PluginConfiguration>, IHasWebPages
             new PluginPageInfo
             {
                 Name = "Plugin.Bangumi.Configuration.Script",
-                EmbeddedResourcePath = $"{GetType().Namespace}.Configuration.Main.js"
-            },
-            new PluginPageInfo
-            {
-                Name = "Plugin.Bangumi.Configuration.Style",
-                EmbeddedResourcePath = $"{GetType().Namespace}.Configuration.Style.css"
+                EmbeddedResourcePath = scriptResource
             },
             new PluginPageInfo
             {

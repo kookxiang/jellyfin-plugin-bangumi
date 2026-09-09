@@ -1,3 +1,10 @@
+using System.Threading;
+using Jellyfin.Plugin.Bangumi.Configuration;
+using Jellyfin.Plugin.Bangumi.Parser;
+using Jellyfin.Plugin.Bangumi.Parser.AnitomyParser;
+using Jellyfin.Plugin.Bangumi.Parser.BasicParser;
+using Jellyfin.Plugin.Bangumi.Parser.TorrentParser;
+using MediaBrowser.Controller.Providers;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -38,7 +45,9 @@ public class Controller(ILibraryManager library) : ControllerBase
         var virtualFolders = library.GetVirtualFolders()
             .Select(folder => new LibraryFolder
             {
-                Id = folder.ItemId.ToString(),
+                // Virtual folder names are unique directory names. Keep libraries whose
+                // collection folder has not supplied an ItemId; filtering uses Locations.
+                Id = string.IsNullOrWhiteSpace(folder.ItemId) ? "name:" + folder.Name : folder.ItemId,
                 Name = folder.Name ?? string.Empty,
                 Locations = folder.Locations ?? [],
             })
@@ -86,6 +95,50 @@ public class Controller(ILibraryManager library) : ControllerBase
         var configuration = new LocalConfiguration();
         await configuration.ReadFrom(configurationPath);
         return Ok(CreateConfiguration(target, configuration, System.IO.File.Exists(configurationPath)));
+    }
+
+    [HttpGet("Preview/{itemId:guid}")]
+    public ActionResult Preview(
+        Guid itemId,
+        [FromServices] BangumiApi api,
+        [FromServices] IMediaSourceManager mediaSources,
+        [FromServices] Logger<AnitomyEpisodeParser> anitomyLog,
+        [FromServices] Logger<BasicEpisodeParser> basicLog,
+        [FromServices] Logger<TorrentEpisodeParser> torrentLog,
+        CancellationToken cancellationToken)
+    {
+        var target = GetTarget(itemId);
+        if (target is null) return NotFound();
+        var episodes = library.GetItemList(new InternalItemsQuery
+        {
+            IncludeItemTypes = [BaseItemKind.Episode], IsVirtualItem = false,
+        }).OfType<JellyfinEpisode>()
+            .Where(episode => !string.IsNullOrWhiteSpace(episode.Path) && IsPathInDirectory(episode.Path, target.Path))
+            .ToList();
+        var sample = episodes.Count == 0 ? null : episodes[Random.Shared.Next(episodes.Count)];
+        if (sample is null) return Ok(new { Message = "此目录下没有可预览的剧集。" });
+        var info = new EpisodeInfo
+        {
+            Path = sample.Path, Name = sample.Name, IndexNumber = sample.IndexNumber,
+            ParentIndexNumber = sample.ParentIndexNumber,
+            ProviderIds = new Dictionary<string, string>(sample.ProviderIds),
+            SeriesProviderIds = sample.Series is null ? new Dictionary<string, string>() : new Dictionary<string, string>(sample.Series.ProviderIds),
+        };
+        var config = Plugin.Instance!.Configuration;
+        var rawContext = new EpisodeParserContext(api, library, info, mediaSources, config,
+            new LocalConfiguration(), cancellationToken);
+        double? detected = config.EpisodeParser switch
+        {
+            EpisodeParserType.Basic => BasicEpisodeParser.ExtractEpisodeNumberFromPath(rawContext, basicLog),
+            EpisodeParserType.AnitomySharp => new AnitomyEpisodeParser(rawContext, anitomyLog).GetEpisodeIndex(),
+            _ => TorrentEpisodeParser.ExtractEpisodeNumberFromPath(rawContext, torrentLog),
+        };
+        return Ok(new
+        {
+            EpisodeId = sample.Id, FileName = Path.GetFileName(sample.Path), Parser = config.EpisodeParser.ToString(),
+            DetectedIndex = detected,
+            Message = detected is null ? "无法识别此文件的集数，请换一集。" : "基于已保存的解析规则识别；集数映射在本地计算，不查询 Bangumi。",
+        });
     }
 
     [HttpPut("Configuration/{itemId:guid}")]

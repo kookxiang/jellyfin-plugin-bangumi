@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
+using System.IO;
 using Jellyfin.Data.Enums;
 using MediaBrowser.Common.Api;
 using MediaBrowser.Controller.BaseItemManager;
@@ -26,10 +27,22 @@ public class Controller(
     IProviderManager providerManager,
     IDirectoryService directoryService) : ControllerBase
 {
+    private static string LibraryKey(VirtualFolderInfo folder) =>
+        string.IsNullOrWhiteSpace(folder.ItemId) ? "name:" + folder.Name : folder.ItemId;
+
+    [HttpGet("Libraries")]
+    public IActionResult GetLibraries() => Ok(library.GetVirtualFolders()
+        .OrderBy(folder => folder.Name, StringComparer.CurrentCultureIgnoreCase)
+        .Select(folder => new { Id = LibraryKey(folder), folder.Name }));
+
     [HttpGet("Items")]
-    public ActionResult<List<MissingBangumiIdItem>> GetItems()
+    public ActionResult<List<MissingBangumiIdItem>> GetItems([FromQuery] string? libraryId = null)
     {
-        return Ok(FindMissingItems()
+        var locations = string.IsNullOrWhiteSpace(libraryId) ? null : library.GetVirtualFolders()
+            .FirstOrDefault(folder => LibraryKey(folder) == libraryId)?.Locations;
+        if (!string.IsNullOrWhiteSpace(libraryId) && locations is null)
+            return BadRequest("所选媒体库不存在，请重新打开工具后选择。");
+        return Ok(FindMissingItems(locations: locations)
             .Select(item =>
             {
                 var episode = item as Episode;
@@ -39,6 +52,9 @@ public class Controller(
                     Name = item.Name,
                     Type = item.GetBaseItemKind().ToString(),
                     Path = item.Path,
+                    SeriesId = episode?.SeriesId,
+                    SeasonId = episode?.SeasonId,
+                    SeasonNumber = episode?.ParentIndexNumber,
                     SeriesName = episode?.SeriesName,
                     SeasonName = episode?.Season?.Name,
                     LibraryName = string.Join("、", library.GetCollectionFolders(item)
@@ -114,7 +130,7 @@ public class Controller(
         return Ok(result);
     }
 
-    private List<BaseItem> FindMissingItems(Guid[]? itemIds = null)
+    private List<BaseItem> FindMissingItems(Guid[]? itemIds = null, string[]? locations = null)
     {
         var query = new InternalItemsQuery
         {
@@ -125,6 +141,7 @@ public class Controller(
             query.ItemIds = itemIds;
 
         return library.GetItemList(query)
+            .Where(item => locations is null || locations.Any(location => IsInLibrary(item.Path, location)))
             .Where(item => !HasValidBangumiId(item))
             .OrderBy(item => item.GetBaseItemKind())
             .ThenBy(item => (item as Episode)?.SeriesName)
@@ -132,6 +149,14 @@ public class Controller(
             .ThenBy(item => item.IndexNumber)
             .ThenBy(item => item.Name)
             .ToList();
+    }
+
+    internal static bool IsInLibrary(string? path, string location)
+    {
+        if (string.IsNullOrWhiteSpace(path) || string.IsNullOrWhiteSpace(location)) return false;
+        var relative = Path.GetRelativePath(location, path);
+        return !Path.IsPathRooted(relative) && relative != ".."
+            && !relative.StartsWith(".." + Path.DirectorySeparatorChar, StringComparison.Ordinal);
     }
 
     private static bool HasValidBangumiId(BaseItem item)
@@ -156,6 +181,12 @@ public class MissingBangumiIdItem
     public string Type { get; set; } = string.Empty;
 
     public string? Path { get; set; }
+
+    public Guid? SeriesId { get; set; }
+
+    public Guid? SeasonId { get; set; }
+
+    public int? SeasonNumber { get; set; }
 
     public string? SeriesName { get; set; }
 

@@ -3,6 +3,8 @@
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
     <RootNamespace>Jellyfin.Plugin.Bangumi</RootNamespace>
+    <BangumiWebDirectory>$(MSBuildProjectDirectory)/../web</BangumiWebDirectory>
+    <BangumiWebBundle>$(BangumiWebDirectory)/dist/bangumi.js</BangumiWebBundle>
   </PropertyGroup>
 
   <ItemGroup>
@@ -14,21 +16,28 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Remove="Configuration\Style.css"/>
-    <None Remove="Configuration\Main.html"/>
-    <None Remove="Configuration\Main.js"/>
-    <None Remove="Tools\DuplicatedEpisodesDetector\Index.html"/>
-    <None Remove="Tools\FixEpisodeMetadata\Index.html"/>
-    <None Remove="Tools\MissingBangumiId\Index.html"/>
-    <EmbeddedResource Include="Configuration\Style.css"/>
-    <EmbeddedResource Include="Configuration\Main.html"/>
-    <EmbeddedResource Include="Configuration\Main.js"/>
-    <EmbeddedResource Include="Tools\DuplicatedEpisodesDetector\Index.html"/>
-    <EmbeddedResource Include="Tools\FixEpisodeMetadata\Index.html"/>
-    <EmbeddedResource Include="Tools\MissingBangumiId\Index.html"/>
+    <EmbeddedResource Include="$(BangumiWebDirectory)/pages/configuration.html" LogicalName="Jellyfin.Plugin.Bangumi.Configuration.Main.html"/>
+    <EmbeddedResource Include="$(BangumiWebDirectory)/pages/development.js" LogicalName="Jellyfin.Plugin.Bangumi.Configuration.Development.js"/>
+    <EmbeddedResource Include="$(BangumiWebBundle)" LogicalName="Jellyfin.Plugin.Bangumi.Configuration.Main.js"/>
+    <EmbeddedResource Include="$(BangumiWebDirectory)/pages/duplicates.html" LogicalName="Jellyfin.Plugin.Bangumi.Tools.DuplicatedEpisodesDetector.Index.html"/>
+    <EmbeddedResource Include="$(BangumiWebDirectory)/pages/fix-metadata.html" LogicalName="Jellyfin.Plugin.Bangumi.Tools.FixEpisodeMetadata.Index.html"/>
+    <EmbeddedResource Include="$(BangumiWebDirectory)/pages/missing-id.html" LogicalName="Jellyfin.Plugin.Bangumi.Tools.MissingBangumiId.Index.html"/>
   </ItemGroup>
 
   <ItemGroup>
     <InternalsVisibleTo Include="Jellyfin.Plugin.Bangumi.Test"/>
+  </ItemGroup>
+  <Target Name="BuildBangumiWeb" BeforeTargets="PrepareForBuild" Condition="'$(SkipWebBuild)' != 'true' and '$(DesignTimeBuild)' != 'true'"
+          Inputs="@(BangumiWebSource)" Outputs="$(BangumiWebBundle)">
+    <Exec WorkingDirectory="$(BangumiWebDirectory)" Command="npm ci --no-audit --no-fund" />
+    <Exec WorkingDirectory="$(BangumiWebDirectory)" Command="npm run build" />
+  </Target>
+  <Target Name="ValidateBangumiWebBundle" BeforeTargets="PrepareResourceNames" DependsOnTargets="BuildBangumiWeb"
+          Condition="'$(DesignTimeBuild)' != 'true'">
+    <Error Condition="!Exists('$(BangumiWebBundle)')"
+           Text="Bangumi web bundle is missing. Run npm ci and npm run build in web/, or build without -p:SkipWebBuild=true." />
+  </Target>
+  <ItemGroup>
+    <BangumiWebSource Include="../web/src/**/*;../web/package.json;../web/package-lock.json;../web/vite.config.ts;../web/tsconfig.json" />
   </ItemGroup>
 </Project>

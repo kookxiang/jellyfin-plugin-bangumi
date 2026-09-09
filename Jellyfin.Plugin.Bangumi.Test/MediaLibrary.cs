@@ -17,6 +17,67 @@ namespace Jellyfin.Plugin.Bangumi.Test;
 public class MediaLibraryTestCases
 {
     [TestMethod]
+    public void ItemsIncludesLibrariesWithoutIndexedIds()
+    {
+        var library = new MockedLibraryManager();
+        library.VirtualFolders.Add(new MediaBrowser.Model.Entities.VirtualFolderInfo { Name = "Unindexed" });
+        library.VirtualFolders.Add(new MediaBrowser.Model.Entities.VirtualFolderInfo { Name = "Empty ID", ItemId = "" });
+        var id = Guid.NewGuid().ToString("N");
+        library.VirtualFolders.Add(new MediaBrowser.Model.Entities.VirtualFolderInfo { Name = "Anime", ItemId = id });
+        var controller = new MediaLibraryController(library);
+        var response = controller.GetItems(null, null).Result as OkObjectResult;
+        Assert.IsNotNull(response);
+        var result = response.Value as MediaLibraryItemsResult;
+        Assert.IsNotNull(result);
+        Assert.AreEqual(3, result.Libraries.Count());
+        Assert.AreEqual(id, result.Libraries.Single(item => item.Name == "Anime").Id);
+        Assert.AreEqual("name:Unindexed", result.Libraries.Single(item => item.Name == "Unindexed").Id);
+        Assert.AreEqual(0, result.TotalRecordCount);
+    }
+
+    [TestMethod]
+    public void LibraryWithoutIndexedIdCanFilterSeriesByLocation()
+    {
+        var library = new MockedLibraryManager();
+        var series = FakePath.CreateSeries(library, "media-library/library-filter");
+        library.VirtualFolders.Add(new MediaBrowser.Model.Entities.VirtualFolderInfo
+        {
+            Name = "Anime", Locations = [series.Path],
+        });
+        var controller = new MediaLibraryController(library);
+        var response = (OkObjectResult)controller.GetItems("name:Anime", null).Result!;
+        var result = (MediaLibraryItemsResult)response.Value!;
+        Assert.AreEqual(series.Id, result.Items.Single().Id);
+        Assert.AreEqual("name:Anime", result.Items.Single().LibraryId);
+        var otherResponse = (OkObjectResult)controller.GetItems("name:Other", null).Result!;
+        Assert.AreEqual(0, ((MediaLibraryItemsResult)otherResponse.Value!).TotalRecordCount);
+    }
+
+    [TestMethod]
+    public void PreviewEmptyDirectoryDoesNotCallParser()
+    {
+        var library = new MockedLibraryManager();
+        var series = FakePath.CreateSeries(library, "media-library/empty-preview");
+        var controller = new MediaLibraryController(library);
+        var result = controller.Preview(series.Id, null!, null!, null!, null!, null!, System.Threading.CancellationToken.None);
+        Assert.IsInstanceOfType<OkObjectResult>(result);
+        var missing = controller.Preview(Guid.NewGuid(), null!, null!, null!, null!, null!, System.Threading.CancellationToken.None);
+        Assert.IsInstanceOfType<NotFoundResult>(missing);
+    }
+
+    [DataTestMethod]
+    [DataRow(1d, 26, false, 27)]
+    [DataRow(1d, 26, true, 1)]
+    [DataRow(25d, -24, false, 1)]
+    [DataRow(25d, -24, true, 25)]
+    [DataRow(12.5d, 0, false, 12)]
+    public void PreviewDisplayIndexMatchesProvider(double order, int offset, bool correct, int expected)
+    {
+        Assert.AreEqual(expected, Parser.LocalConfigurationHelper.GetDisplayEpisodeIndex(order,
+            new Model.LocalConfiguration { Offset = offset, CorrectIndex = correct }));
+    }
+
+    [TestMethod]
     public async Task SaveAndDeleteConfiguration()
     {
         var library = new MockedLibraryManager();

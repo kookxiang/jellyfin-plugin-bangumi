@@ -115,3 +115,7 @@ UpgradeLog*.XML
 # MonoDevelop metafiles
 MediaBrowser.Plugins.Anime.userprefs
 
+
+# Plugin web build
+web/node_modules/
+web/dist/

@@ -122,9 +122,11 @@ public class MockedLibraryManager : ILibraryManager
         throw new NotImplementedException();
     }
 
+    public List<VirtualFolderInfo> VirtualFolders { get; } = [];
+
     public List<VirtualFolderInfo> GetVirtualFolders()
     {
-        throw new NotImplementedException();
+        return VirtualFolders;
     }
 
     public List<VirtualFolderInfo> GetVirtualFolders(bool includeRefreshState)

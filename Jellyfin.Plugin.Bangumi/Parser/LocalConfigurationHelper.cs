@@ -9,6 +9,9 @@ namespace Jellyfin.Plugin.Bangumi.Parser;
 
 public static class LocalConfigurationHelper
 {
+    public static int GetDisplayEpisodeIndex(double order, LocalConfiguration configuration) =>
+        configuration.CorrectIndex ? (int)order : (int)order + configuration.Offset;
+
     /// <summary>
     /// 应用本地配置中的偏移量到剧集索引
     /// </summary>
