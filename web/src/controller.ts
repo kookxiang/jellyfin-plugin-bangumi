@@ -508,6 +508,9 @@ export function createController(container, host) {
             dialog.querySelector('#bangumi-media-config-enabled').checked = config.Exists;
             dialog.querySelector('#bangumi-media-config-id').value = config.Id || '';
             dialog.querySelector('#bangumi-media-config-offset').value = config.Offset || '';
+            var directoryType = dialog.querySelector('#bangumi-media-config-directory-type');
+            directoryType.value = config.Type || 'Auto';
+            directoryType.closest('bangumi-segmented-select').refresh();
             dialog.querySelector('#bangumi-media-config-report').checked = config.Report;
             dialog.querySelector('#bangumi-media-config-skip').checked = config.Skip;
             dialog.querySelector('#bangumi-media-config-correct-index').checked = config.CorrectIndex;
@@ -531,6 +534,7 @@ export function createController(container, host) {
             Report: dialog.querySelector('#bangumi-media-config-report').checked,
             Skip: dialog.querySelector('#bangumi-media-config-skip').checked,
             CorrectIndex: dialog.querySelector('#bangumi-media-config-correct-index').checked,
+            Type: dialog.querySelector('#bangumi-media-config-directory-type').value,
         };
     }
 

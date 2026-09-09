@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using System.Text.Json;
 using Jellyfin.Plugin.Bangumi.Test.Mock;
 using Jellyfin.Plugin.Bangumi.Test.Util;
 using Jellyfin.Plugin.Bangumi.Tools.MediaLibrary;
@@ -92,6 +93,7 @@ public class MediaLibraryTestCases
             Report = false,
             Skip = true,
             CorrectIndex = true,
+            Type = Model.DirectoryType.Special,
         });
 
         var savedConfiguration = (saveResult.Result as OkObjectResult)?.Value as MediaLibraryConfiguration;
@@ -105,6 +107,10 @@ public class MediaLibraryTestCases
         StringAssert.Contains(content, "Report=off");
         StringAssert.Contains(content, "Skip=on");
         StringAssert.Contains(content, "CorrectIndex=on");
+        StringAssert.Contains(content, "Type=Special");
+        Assert.AreEqual(Model.DirectoryType.Special, savedConfiguration.Type);
+        var loaded = (await controller.GetConfiguration(series.Id)).Result as OkObjectResult;
+        Assert.AreEqual(Model.DirectoryType.Special, ((MediaLibraryConfiguration)loaded!.Value!).Type);
 
         var deleteResult = controller.DeleteConfiguration(series.Id);
         Assert.IsInstanceOfType<NoContentResult>(deleteResult);
@@ -261,4 +267,27 @@ public class MediaLibraryTestCases
         Assert.IsTrue(File.Exists(configurationPath));
         StringAssert.Contains(await File.ReadAllTextAsync(configurationPath), "ID=54321");
     }
+    [TestMethod]
+    public async Task RejectsInvalidDirectoryType()
+    {
+        var library = new MockedLibraryManager();
+        var series = FakePath.CreateSeries(library, "media-library/invalid-type");
+        var controller = new MediaLibraryController(library);
+        var result = await controller.SaveConfiguration(series.Id, new UpdateMediaLibraryConfiguration
+        {
+            Type = (Model.DirectoryType)999,
+        });
+        Assert.IsInstanceOfType<BadRequestObjectResult>(result.Result);
+        Assert.IsFalse(File.Exists(Path.Join(series.Path, "bangumi.ini")));
+    }
+
+    [TestMethod]
+    public void DirectoryTypeJsonUsesNames()
+    {
+        var request = JsonSerializer.Deserialize<UpdateMediaLibraryConfiguration>("{\"Type\":\"Normal\"}")!;
+        Assert.AreEqual(Model.DirectoryType.Normal, request.Type);
+        var json = JsonSerializer.Serialize(new MediaLibraryConfiguration { Type = Model.DirectoryType.Special });
+        StringAssert.Contains(json, "\"Type\":\"Special\"");
+    }
+
 }

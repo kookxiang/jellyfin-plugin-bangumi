@@ -152,6 +152,9 @@ public class Controller(ILibraryManager library) : ControllerBase
         if (request.Id < 0)
             return BadRequest("Bangumi ID 不能小于 0。");
 
+        if (!Enum.IsDefined(request.Type))
+            return BadRequest("目录类型无效。");
+
         var configuration = new LocalConfiguration
         {
             Id = request.Id,
@@ -159,6 +162,7 @@ public class Controller(ILibraryManager library) : ControllerBase
             Report = request.Report,
             Skip = request.Skip,
             CorrectIndex = request.CorrectIndex,
+            Type = request.Type,
         };
         var configurationPath = Path.Join(target.Path, "bangumi.ini");
         await configuration.SaveTo(configurationPath);
@@ -388,6 +392,7 @@ public class Controller(ILibraryManager library) : ControllerBase
             Report = configuration.Report,
             Skip = configuration.Skip,
             CorrectIndex = configuration.CorrectIndex,
+            Type = configuration.Type,
         };
     }
 
@@ -478,6 +483,8 @@ public class MediaLibraryConfiguration
     public bool Skip { get; set; }
 
     public bool CorrectIndex { get; set; }
+
+    public DirectoryType Type { get; set; }
 }
 
 public class UpdateMediaLibraryConfiguration
@@ -491,4 +498,6 @@ public class UpdateMediaLibraryConfiguration
     public bool Skip { get; set; }
 
     public bool CorrectIndex { get; set; }
+
+    public DirectoryType Type { get; set; }
 }

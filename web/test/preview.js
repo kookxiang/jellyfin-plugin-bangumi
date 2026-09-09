@@ -30,6 +30,7 @@ let saved,
     loads = 0;
 let confirmed = false;
 const toolCalls = [];
+let directoryType;
 const report = document.querySelector('#report');
 const services = {
     api: {
@@ -68,7 +69,10 @@ const services = {
                     : { size: 0 }
                 : null;
         },
-        fetch: async ({ url, data }) => {
+        fetch: async ({ url, data, type }) => {
+            if (url.includes('/MediaLibrary/Configuration/') && type === 'PUT') {
+                directoryType = JSON.parse(data).Type;
+            }
             if (url.includes('/MediaLibrary/Preview/')) {
                 toolCalls.push({ url, data });
                 const query = new URL(url, location.origin).searchParams;
@@ -160,6 +164,7 @@ const services = {
                               Exists: true,
                               DirectoryPath: '/media/anime',
                               Id: 1,
+                              Type: directoryType,
                           }
                         : {
                               Items: [{ Id: 'series', Name: '测试番剧', Path: '/media/anime', Children: [] }],
@@ -335,6 +340,14 @@ document.querySelector('#run').onclick = async () => {
         await tick();
         let dialog = root.querySelector('dialog');
         assert(dialog?.open && dialog.querySelector('#bangumi-media-config-id').value === '1', '媒体库弹窗读取');
+        const typeSelect = dialog.querySelector('#bangumi-media-config-directory-type');
+        const typeSegments = typeSelect.closest('bangumi-segmented-select').shadowRoot;
+        assert(
+            typeSelect.value === 'Auto' && typeSegments.querySelector('input:checked').value === 'Auto',
+            '旧配置默认 Auto',
+        );
+        typeSegments.querySelector('input[value=Normal]').click();
+        assert(typeSelect.value === 'Normal', '目录类型分段选择同步');
         const preview = dialog.querySelector('bangumi-episode-preview').shadowRoot;
         assert(dialog.querySelector('#bangumi-media-offset-options').hidden, '无偏移隐藏映射选项');
         assert(preview.querySelector('#detected').textContent === '27', '随机剧集预览');
@@ -354,12 +367,29 @@ document.querySelector('#run').onclick = async () => {
             '偏移和修正仅本地计算',
         );
 
-        dialog.querySelector('.btnCancel').click();
+        dialog.querySelector('form').requestSubmit();
         await tick();
-        assert(!root.querySelector('dialog'), '媒体库弹窗关闭清理');
+        assert(directoryType === 'Normal', '目录类型随配置保存');
+        assert(!root.querySelector('dialog'), '媒体库弹窗保存关闭清理');
         root.querySelector('.bangumi-media-list-edit').click();
         await tick();
         assert(root.querySelector('dialog')?.open, '媒体库弹窗可以重新打开');
+        dialog = root.querySelector('dialog');
+        assert(dialog.querySelector('#bangumi-media-config-directory-type').value === 'Normal', '已保存类型重新回填');
+        dialog
+            .querySelector('#bangumi-media-config-directory-type')
+            .closest('bangumi-segmented-select')
+            .shadowRoot.querySelector('input[value=Special]')
+            .click();
+        dialog.querySelector('form').requestSubmit();
+        await tick();
+        assert(directoryType === 'Special', '特典类型保存');
+        root.querySelector('.bangumi-media-list-edit').click();
+        await tick();
+        assert(
+            root.querySelector('dialog').querySelector('#bangumi-media-config-directory-type').value === 'Special',
+            '特典类型重新回填',
+        );
         root.querySelector('dialog').close();
         await tick();
         assert(!root.querySelector('dialog'), '原生关闭弹窗清理');

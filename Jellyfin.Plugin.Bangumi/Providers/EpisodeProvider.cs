@@ -52,10 +52,21 @@ public class EpisodeProvider(BangumiApi api, Logger<EpisodeProvider> log, ILibra
 
         if (localConfiguration.Skip) return result;
 
+        var forcedType = localConfiguration.GetForcedEpisodeType();
+        var parent = libraryManager.FindByPath(Path.GetDirectoryName(info.Path)!, true);
+
         if (episode == null)
         {
             // remove season number
-            if (BasicEpisodeParser.IsSpecial(info.Path, context.LibraryManager, true))
+            if (forcedType != null)
+            {
+                result.HasMetadata = true;
+                result.Item = new Episode
+                {
+                    ParentIndexNumber = forcedType == EpisodeType.Special ? 0 : GetNormalSeasonNumber(),
+                };
+            }
+            else if (BasicEpisodeParser.IsSpecial(info.Path, context.LibraryManager, true))
             {
                 result.HasMetadata = true;
                 result.Item = new Episode { ParentIndexNumber = 0 };
@@ -74,15 +85,19 @@ public class EpisodeProvider(BangumiApi api, Logger<EpisodeProvider> log, ILibra
         if (episode.AirDate.Length == 4)
             result.Item.ProductionYear = int.Parse(episode.AirDate);
 
-        var parent = libraryManager.FindByPath(Path.GetDirectoryName(info.Path)!, true);
-
         result.Item.Name = episode.Name;
         result.Item.OriginalTitle = episode.OriginalName;
         result.Item.IndexNumber = LocalConfigurationHelper.GetDisplayEpisodeIndex(episode.Order, localConfiguration);
         result.Item.Overview = string.IsNullOrEmpty(episode.Description) ? null : episode.Description;
         result.Item.ParentIndexNumber = (int?)episode.SeasonNumber ?? (parent is Series ? 1 : info.ParentIndexNumber ?? 1);
 
-        if (BasicEpisodeParser.IsSpecial(info.Path, context.LibraryManager, true) || episode.Type == EpisodeType.Special || (parent is not Series && info.ParentIndexNumber == 0))
+        if (forcedType != null)
+        {
+            result.Item.ParentIndexNumber = forcedType == EpisodeType.Special ? 0 : GetNormalSeasonNumber();
+            if (forcedType == EpisodeType.Normal && parent is Season { IndexNumber: > 0 } normalSeason)
+                result.Item.SeasonId = normalSeason.Id;
+        }
+        else if (BasicEpisodeParser.IsSpecial(info.Path, context.LibraryManager, true) || episode.Type == EpisodeType.Special || (parent is not Series && info.ParentIndexNumber == 0))
         {
             result.Item.ParentIndexNumber = 0;
         }
@@ -95,7 +110,7 @@ public class EpisodeProvider(BangumiApi api, Logger<EpisodeProvider> log, ILibra
 
         FillFallbackTitle(result.Item);
 
-        if (episode.Type == EpisodeType.Normal && result.Item.ParentIndexNumber > 0)
+        if ((forcedType ?? episode.Type) == EpisodeType.Normal && result.Item.ParentIndexNumber > 0)
             return result;
 
         // mark episode as special
@@ -122,6 +137,15 @@ public class EpisodeProvider(BangumiApi api, Logger<EpisodeProvider> log, ILibra
             result.Item.AirsBeforeEpisodeNumber = (int)Math.Ceiling(episode.Order);
 
         return result;
+
+        int GetNormalSeasonNumber()
+        {
+            if (parent is Season { IndexNumber: > 0 } season)
+                return season.IndexNumber.GetValueOrDefault(1);
+            if (episode?.SeasonNumber > 0)
+                return Math.Max(1, (int)episode.SeasonNumber.Value);
+            return info.ParentIndexNumber > 0 ? info.ParentIndexNumber.Value : 1;
+        }
 
         void FillFallbackTitle(Episode item)
         {

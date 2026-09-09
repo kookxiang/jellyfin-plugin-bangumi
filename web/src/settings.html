@@ -1220,6 +1220,25 @@
                                     </div>
                                 </div>
                             </div>
+                            <div class="selectContainer">
+                                <label class="selectLabel" for="bangumi-media-config-directory-type">目录类型</label>
+                                <bangumi-segmented-select>
+                                    <select
+                                        data-config-ignore
+                                        id="bangumi-media-config-directory-type"
+                                        aria-describedby="bangumi-media-config-directory-type-description"
+                                    >
+                                        <option value="Auto">Auto</option>
+                                        <option value="Normal">正片</option>
+                                        <option value="Special">特典</option>
+                                    </select>
+                                </bangumi-segmented-select>
+                                <div class="fieldDescription" id="bangumi-media-config-directory-type-description">
+                                    Auto
+                                    支持正片与特典混放；选择正片或特典后，此目录内的剧集固定按所选类型处理，不受文件名、目录名或
+                                    Bangumi 分类影响。
+                                </div>
+                            </div>
                             <bangumi-checkbox-group aria-label="目录行为">
                                 <bangumi-checkbox class="checkboxContainer checkboxContainer-withDescription">
                                     <input
