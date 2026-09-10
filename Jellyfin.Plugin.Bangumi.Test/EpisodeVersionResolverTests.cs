@@ -51,9 +51,9 @@ public class EpisodeVersionResolverTests
     public void Cleanup() => _plugin.Configuration.MergeEpisodeVersionsByBangumiId = _oldEnabled;
 
     [TestMethod]
-    public void DefaultAndDisabledLeaveNativeResolutionUntouched()
+    public void EnabledByDefaultOnJellyfin12ButCanBeDisabled()
     {
-        Assert.IsFalse(new PluginConfiguration().MergeEpisodeVersionsByBangumiId);
+        Assert.IsTrue(new PluginConfiguration().MergeEpisodeVersionsByBangumiId);
         _plugin.Configuration.MergeEpisodeVersionsByBangumiId = false;
         Assert.IsNull(_resolver.ResolveMultiple(_parent, Files("01", "02"), CollectionType.tvshows, null!));
         Assert.IsNull(_resolver.ResolvePath(null!));

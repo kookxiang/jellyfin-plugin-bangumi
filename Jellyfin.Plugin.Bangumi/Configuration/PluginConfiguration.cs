@@ -19,7 +19,9 @@ public enum EpisodeParserType
 
 public class PluginConfiguration : BasePluginConfiguration
 {
-    public bool MergeEpisodeVersionsByBangumiId { get; set; } = false;
+    // Use the loaded server assembly so this temporary workaround defaults on only for Jellyfin 12.
+    public bool MergeEpisodeVersionsByBangumiId { get; set; } =
+        typeof(MediaBrowser.Controller.Entities.BaseItem).Assembly.GetName().Version?.Major == 12;
 
     public TranslationPreferenceType TranslationPreference { get; set; } = TranslationPreferenceType.Chinese;
 

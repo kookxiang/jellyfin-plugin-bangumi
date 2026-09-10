@@ -357,20 +357,17 @@
                                     />
                                     <label slot="label" for="MergeEpisodeVersionsByBangumiId">
                                         <span id="MergeEpisodeVersionsByBangumiId-label"
-                                            >根据 Bangumi ID 合并剧集版本</span
+                                            >（实验性）修正 Jellyfin 12 多版本识别错误的问题</span
                                         >
                                         <span class="fieldDescription" id="MergeEpisodeVersionsByBangumiId-description">
-                                            <strong>临时修复方案：</strong>用于绕过 Jellyfin 12
-                                            按文件名误合并剧集版本的问题。对启用 Bangumi
-                                            剧集元数据的电视剧媒体库生效，适用于所有解析模式。只合并同目录中 Bangumi
-                                            单集 ID 相同且文件名识别出的季号、集号和类型一致的文件；没有 ID
-                                            或无法识别集号的文件先分别入库。首次扫描并获取元数据后，再扫描媒体库完成合并。关闭后恢复
-                                            Jellyfin 的文件名分组规则。
+                                            <strong>临时修复方案：</strong
+                                            >避免不同剧集被误合并为版本，适用于所有解析器。Jellyfin 12
+                                            默认启用，修改后请扫描媒体库。
                                         </span>
                                     </label>
                                 </bangumi-checkbox>
                                 <div class="selectContainer">
-                                    <label class="selectLabel" for="EpisodeParser">剧集解析模式</label>
+                                    <label class="selectLabel" for="EpisodeParser">剧集解析器</label>
                                     <bangumi-select
                                         ><select class="emby-select-withcolor emby-select" id="EpisodeParser">
                                             <option value="Basic">基础</option>

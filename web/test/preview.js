@@ -304,7 +304,7 @@ document.querySelector('#run').onclick = async () => {
         );
         root.querySelector('[data-target=episode-parser]').click();
         const versionsSwitch = root.querySelector('#MergeEpisodeVersionsByBangumiId');
-        assert(!versionsSwitch.checked, 'Bangumi 版本合并默认关闭');
+        assert(!versionsSwitch.checked, '回填已保存的关闭设置');
         assert(
             root.querySelector('#MergeEpisodeVersionsByBangumiId-description strong').textContent.includes('临时'),
             '版本合并标记为临时修复',
