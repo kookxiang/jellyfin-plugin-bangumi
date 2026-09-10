@@ -31,6 +31,9 @@ public class EpisodeProvider(BangumiApi api, Logger<EpisodeProvider> log, ILibra
         cancellationToken.ThrowIfCancellationRequested();
         var localConfiguration = await LocalConfiguration.ForPath(info.Path);
 
+        if (Configuration.MergeEpisodeVersionsByBangumiId)
+            EpisodePreRefreshProvider.CorrectEpisodeNumbers(info, localConfiguration);
+
         var context = new EpisodeParserContext(api, libraryManager, info, mediaSourceManager, Configuration, localConfiguration, cancellationToken);
         var parser = EpisodeParserFactory.CreateParser(Configuration, context, anitomyLogger, basicLogger, torrentLogger);
 
