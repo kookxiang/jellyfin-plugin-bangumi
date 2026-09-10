@@ -14,6 +14,8 @@ public class SubjectCharacterRelation(ArchiveData archive)
 {
     private string FilePath => Path.Join(archive.BasePath, "subject_character.v1.map");
 
+    public bool Exists() => File.Exists(FilePath);
+
     public async Task GenerateIndex(ZipArchive zip, CancellationToken token)
     {
         var charactersEntry = zip.GetEntry("subject-characters.jsonlines");

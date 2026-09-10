@@ -107,6 +107,42 @@ public class ArchiveRelationsTests
         var cast = characters[0].ToPersonInfos().Single();
         Assert.AreEqual("主角", cast.Role);
         Assert.AreEqual("3", cast.ProviderIds[Constants.ProviderName]);
+
+        var version = new Bangumi.Archive.ArchiveVersion(12345678901L, new DateTime(2026, 9, 10, 0, 0, 0, DateTimeKind.Utc), 1000);
+        Assert.IsFalse(await archive.IsCurrent(version), "Existing archives without a version need an update.");
+        await archive.SaveVersion(version);
+        archive = new Bangumi.Archive.ArchiveData(paths);
+        Assert.IsTrue(await archive.IsCurrent(version), "The version must survive a restart.");
+        Assert.IsFalse(await archive.IsCurrent(version with { Id = version.Id + 1 }));
+        Assert.IsFalse(await archive.IsCurrent(version with { UpdateTime = version.UpdateTime.AddHours(1) }));
+        Assert.IsFalse(await archive.IsCurrent(version with { Size = version.Size + 1 }));
+        Assert.IsFalse(await archive.IsCurrent(version with { IndexVersion = version.IndexVersion + 1 }));
+
+        var indexPath = Path.ChangeExtension(archive.Subject.FilePath, ".idx");
+        var backup = Path.Join(temp, "subject-index-backup");
+        File.Move(indexPath, backup);
+        Assert.IsFalse(await archive.IsCurrent(version), "Missing data/index files must trigger repair.");
+        File.Move(backup, indexPath);
+        Assert.IsTrue(await archive.IsCurrent(version));
+
+        archive.InvalidateVersion();
+        Assert.IsFalse(await new Bangumi.Archive.ArchiveData(paths).IsCurrent(version), "An interrupted import must be retried.");
+        using var cancelled = new CancellationTokenSource();
+        await cancelled.CancelAsync();
+        try
+        {
+            await archive.SaveVersion(version, cancelled.Token);
+            Assert.Fail("Saving a version with a cancelled token must fail.");
+        }
+        catch (OperationCanceledException)
+        {
+            // Cancellation must leave the archive unversioned.
+        }
+        Assert.IsFalse(await archive.IsCurrent(version), "Cancelled writes must not publish a version.");
+        await archive.SaveVersion(version);
+        Assert.IsTrue(await archive.IsCurrent(version));
+        await File.WriteAllTextAsync(Path.Join(directory, "version.json"), "{invalid");
+        Assert.IsFalse(await archive.IsCurrent(version), "Invalid version metadata must trigger repair.");
     }
 
     [TestMethod]
