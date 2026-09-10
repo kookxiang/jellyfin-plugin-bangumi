@@ -9,6 +9,7 @@
 
   <ItemGroup>
     <EmbeddedResource Include="Fixtures/Archive/*.jsonlines" />
+    <EmbeddedResource Include="Fixtures/Api/*.json" />
   </ItemGroup>
 
   <ItemGroup>

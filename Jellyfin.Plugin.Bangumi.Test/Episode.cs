@@ -206,26 +206,43 @@ public class Episode
         Assert.AreEqual("総集編 回想", episodeData.Item.Name, "should use subject title as episode title");
     }
 
-    [TestMethod]
-    public async Task SingleSpecialEpisodeWithManualIdUsesSubjectMetadata()
+    [DataTestMethod]
+    [DataRow(EpisodeParserType.Basic, 0, false, 14)]
+    [DataRow(EpisodeParserType.Basic, 0, true, 14)]
+    [DataRow(EpisodeParserType.Basic, -13, false, 1)]
+    [DataRow(EpisodeParserType.Basic, -13, true, 14)]
+    [DataRow(EpisodeParserType.Torrent, 0, true, 14)]
+    public async Task SingleSpecialEpisodeWithManualIdUsesSubjectMetadata(EpisodeParserType parser, int offset, bool correctIndex, int expectedIndex)
     {
-        FakePath.CreateSeason(_libraryManager, "トニカクカワイイ/OVA");
-        var episodeData = await _provider.GetMetadata(new EpisodeInfo
+        var oldParser = _plugin.Configuration.EpisodeParser;
+        var oldTrust = _plugin.Configuration.TrustExistedBangumiId;
+        try
         {
-            Path = FakePath.CreateFile("トニカクカワイイ/OVA/[Airota&LoliHouse] Tonikaku Kawaii：Seifuku [WebRip 1080p HEVC-10bit AAC ASSx2].mkv"),
-            ProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "1143188" } },
-            SeriesProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "301541" } }
-        }, _token);
+            _plugin.Configuration.EpisodeParser = parser;
+            _plugin.Configuration.TrustExistedBangumiId = true;
+            var directory = $"seifuku-{parser}-{offset}-{correctIndex}/トニカクカワイイ/OVA";
+            FakePath.CreateSeason(_libraryManager, directory);
+            FakePath.CreateLocalConfiguration(directory, new Model.LocalConfiguration { Offset = offset, CorrectIndex = correctIndex });
+            var episodeData = await _provider.GetMetadata(new EpisodeInfo
+            {
+                Path = FakePath.CreateFile($"{directory}/[Airota&LoliHouse] Tonikaku Kawaii：Seifuku [WebRip 1080p HEVC-10bit AAC ASSx2].mkv"),
+                ProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "1143188" } },
+                SeriesProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "301541" } }
+            }, _token);
 
-        Assert.IsTrue(episodeData.HasMetadata);
-        Assert.AreEqual("1143188", episodeData.Item.ProviderIds[Constants.ProviderName]);
-        Assert.AreEqual(14, episodeData.Item.IndexNumber);
-        Assert.AreEqual(0, episodeData.Item.ParentIndexNumber);
-        Assert.AreEqual("トニカクカワイイ ～制服～", episodeData.Item.Name);
-        Assert.AreEqual("トニカクカワイイ ～制服～", episodeData.Item.OriginalTitle);
-        var subject = await ServiceLocator.GetService<BangumiApi>().GetSubject(376708, _token);
-        Assert.IsFalse(string.IsNullOrEmpty(episodeData.Item.Overview));
-        Assert.AreEqual(subject!.Summary, episodeData.Item.Overview);
+            Assert.IsTrue(episodeData.HasMetadata);
+            Assert.AreEqual("1143188", episodeData.Item.ProviderIds[Constants.ProviderName]);
+            Assert.AreEqual(expectedIndex, episodeData.Item.IndexNumber);
+            Assert.AreEqual(0, episodeData.Item.ParentIndexNumber);
+            Assert.AreEqual("トニカクカワイイ ～制服～", episodeData.Item.Name);
+            Assert.AreEqual("トニカクカワイイ ～制服～", episodeData.Item.OriginalTitle);
+            StringAssert.StartsWith(episodeData.Item.Overview, "有栖川家で幸せな新婚生活を送る司とナサ。");
+        }
+        finally
+        {
+            _plugin.Configuration.EpisodeParser = oldParser;
+            _plugin.Configuration.TrustExistedBangumiId = oldTrust;
+        }
     }
 
     [TestMethod]

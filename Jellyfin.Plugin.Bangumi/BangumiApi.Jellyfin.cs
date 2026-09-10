@@ -96,7 +96,7 @@ public partial class BangumiApi(ArchiveData archive, OAuthStore store, Logger<Ba
     }
 
 
-    public HttpClient GetHttpClient(bool allowAutoRedirect = true)
+    public virtual HttpClient GetHttpClient(bool allowAutoRedirect = true)
     {
 #pragma warning disable CA2000, CA5399, CA5400
         var handler = new HttpClientHandler

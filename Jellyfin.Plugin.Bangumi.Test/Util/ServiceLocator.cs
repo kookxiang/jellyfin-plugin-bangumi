@@ -38,6 +38,7 @@ public class ServiceLocator
         serviceCollection.AddScoped<MusicArtistProvider>();
         serviceCollection.AddScoped<MusicSongProvider>();
         new PluginServiceRegistrator().RegisterServices(serviceCollection, null!);
+        serviceCollection.AddSingleton<BangumiApi, MockedBangumiApi>();
         _provider = serviceCollection.BuildServiceProvider();
 
         var plugin = GetService<Bangumi.Plugin>();

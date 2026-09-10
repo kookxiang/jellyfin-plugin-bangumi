@@ -1,0 +1,6 @@
+{
+  "Request": "GET /v0/episodes?subject_id=127827&limit=50\n",
+  "Status": 200,
+  "Body": "{\"data\":[{\"airdate\":\"2015-03-06\",\"name\":\"おっぱい、包みます!\",\"name_cn\":\"胸，裹起来！\",\"duration\":\"00:23:41\",\"desc\":\"\",\"ep\":1,\"sort\":1,\"id\":498343,\"subject_id\":127827,\"comment\":14,\"type\":0,\"disc\":0,\"duration_seconds\":1421},{\"airdate\":\"2015-12-09\",\"name\":\"蘇らない不死鳥\",\"name_cn\":\"无法复苏的不死鸟\",\"duration\":\"00:23:26\",\"desc\":\"\",\"ep\":2,\"sort\":2,\"id\":503689,\"subject_id\":127827,\"comment\":11,\"type\":0,\"disc\":0,\"duration_seconds\":1406}],\"total\":2,\"limit\":50,\"offset\":0}\n",
+  "Location": null
+}
