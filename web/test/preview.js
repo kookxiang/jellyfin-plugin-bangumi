@@ -10,6 +10,7 @@ const config = {
     TranslationPreference: 'Chinese',
     PersonTranslationPreference: 'Original',
     EpisodeParser: 'Torrent',
+    MergeEpisodeVersionsByBangumiId: false,
     DaysBeforeUsingArchiveData: 14,
     SkipNSFWPlaybackReport: true,
     PrivateNSFWPlaybackReport: false,
@@ -302,6 +303,16 @@ document.querySelector('#run').onclick = async () => {
             '用户菜单在 Shadow DOM 内保持打开',
         );
         root.querySelector('[data-target=episode-parser]').click();
+        const versionsSwitch = root.querySelector('#MergeEpisodeVersionsByBangumiId');
+        assert(!versionsSwitch.checked, 'Bangumi 版本合并默认关闭');
+        assert(
+            root.querySelector('#MergeEpisodeVersionsByBangumiId-description strong').textContent.includes('临时'),
+            '版本合并标记为临时修复',
+        );
+        versionsSwitch.click();
+        root.querySelector('#bangumiConfigurationForm').requestSubmit();
+        await tick();
+        assert(saved.MergeEpisodeVersionsByBangumiId === true, '通用版本合并开关保存');
         const parser = root.querySelector('#EpisodeParser');
         const segments = parser.closest('bangumi-segmented-select').shadowRoot;
         assert(segments.querySelector('input:checked').value === config.EpisodeParser, '解析器分段选择回填');
@@ -312,6 +323,7 @@ document.querySelector('#run').onclick = async () => {
         );
         segments.querySelector('input[value=Torrent]').click();
         assert(parser.value === 'Torrent', '恢复混合解析器');
+        assert(versionsSwitch.checked && !versionsSwitch.closest('[episode-parser]'), '版本合并不依赖解析模式');
 
         const firstTab = root.querySelector('[role=tab]');
         firstTab.click();

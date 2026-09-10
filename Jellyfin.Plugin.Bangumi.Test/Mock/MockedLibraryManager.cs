@@ -26,12 +26,14 @@ namespace Jellyfin.Plugin.Bangumi.Test.Mock;
 
 public class MockedLibraryManager : ILibraryManager
 {
+    public Func<FileSystemMetadata, Folder?, BaseItem?>? PathResolver { get; set; }
+    public LibraryOptions LibraryOptions { get; set; } = new();
     private readonly Dictionary<string, BaseItem> _items = [];
     private readonly Dictionary<Guid, List<BaseItem>> _children = [];
 
     public BaseItem? ResolvePath(FileSystemMetadata fileInfo, Folder? parent = null, IDirectoryService? directoryService = null, CollectionType? collectionType = null)
     {
-        throw new NotImplementedException();
+        return PathResolver != null ? PathResolver(fileInfo, parent) : throw new NotImplementedException();
     }
 
     public Video? ResolveAlternateVersion(string path, Type expectedVideoType, Folder? parent, CollectionType? collectionType)
@@ -368,7 +370,7 @@ public class MockedLibraryManager : ILibraryManager
 
     public LibraryOptions GetLibraryOptions(BaseItem item)
     {
-        throw new NotImplementedException();
+        return LibraryOptions;
     }
 
     public IReadOnlyList<PersonInfo> GetPeople(BaseItem item)

@@ -19,6 +19,8 @@ public enum EpisodeParserType
 
 public class PluginConfiguration : BasePluginConfiguration
 {
+    public bool MergeEpisodeVersionsByBangumiId { get; set; } = false;
+
     public TranslationPreferenceType TranslationPreference { get; set; } = TranslationPreferenceType.Chinese;
 
     public TranslationPreferenceType PersonTranslationPreference { get; set; } = TranslationPreferenceType.Original;
