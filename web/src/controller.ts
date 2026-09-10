@@ -240,13 +240,23 @@ export function createController(container, host) {
         return url + '?' + new URLSearchParams(query).toString();
     }
 
-    function initializeMediaLibrary() {
+    async function initializeMediaLibrary() {
         if (mediaLibraryState.initialized) {
             return;
         }
 
         mediaLibraryState.initialized = true;
-        loadMediaLibraryItems();
+        renderMediaLibraryItems();
+        try {
+            var response = await ApiClient.fetch({ type: 'GET', url: getMediaLibraryApiUrl('/Libraries') });
+            if (!response.ok) throw new Error(await response.text());
+            var libraries = await response.json();
+            if (!active) return;
+            loadMediaLibraryOptions(libraries);
+        } catch (error) {
+            mediaLibraryState.initialized = false;
+            if (active && error.name !== 'AbortError') Dashboard.alert('加载媒体库列表失败：' + error.message);
+        }
     }
 
     function loadMediaLibraryOptions(libraries) {
@@ -255,7 +265,7 @@ export function createController(container, host) {
         }
 
         var select = container.querySelector('#bangumi-media-library-select');
-        select.replaceChildren(new Option('全部媒体库', ''));
+        select.replaceChildren(new Option('请选择媒体库', ''), new Option('全部媒体库（手动加载）', '*'));
         libraries.forEach(function (libraryInfo) {
             select.appendChild(new Option(libraryInfo.Name || '未命名媒体库', libraryInfo.Id));
         });
@@ -355,10 +365,11 @@ export function createController(container, host) {
             var select = container.querySelector('#bangumi-media-library-select');
             var selectedOption = select.options[select.selectedIndex];
             backButton.style.display = 'none';
-            currentLabel.textContent = selectedOption ? selectedOption.textContent : '全部媒体库';
+            currentLabel.textContent = selectedOption ? selectedOption.textContent : '请选择媒体库';
             summary.textContent = '共找到 ' + mediaLibraryState.totalItemCount + ' 个可配置目录';
             pagination.style.display = mediaLibraryState.totalRecordCount > mediaLibraryState.pageSize ? '' : 'none';
-            empty.textContent = '当前筛选条件下没有可配置的系列目录';
+            empty.textContent = select.value ? '当前筛选条件下没有可配置的系列目录' : '请选择媒体库后加载目录';
+            if (!select.value) summary.textContent = '';
             updateMediaLibraryPagination();
         }
 
@@ -370,13 +381,22 @@ export function createController(container, host) {
         var requestId = ++mediaLibraryState.requestId;
         var select = container.querySelector('#bangumi-media-library-select');
         var search = container.querySelector('#bangumi-media-library-search');
+        if (!select.value) {
+            mediaLibraryState.rootItems = [];
+            mediaLibraryState.currentDirectory = null;
+            mediaLibraryState.totalRecordCount = 0;
+            mediaLibraryState.totalItemCount = 0;
+            renderMediaLibraryItems();
+            Dashboard.hideLoadingMsg();
+            return;
+        }
 
         Dashboard.showLoadingMsg();
         try {
             var response = await ApiClient.fetch({
                 type: 'GET',
                 url: getMediaLibraryApiUrl('/Items', {
-                    libraryId: select.value,
+                    libraryId: select.value === '*' ? '' : select.value,
                     search: search.value.trim(),
                     startIndex: String(mediaLibraryState.startIndex),
                     limit: String(mediaLibraryState.pageSize),
@@ -1134,6 +1154,10 @@ export function createController(container, host) {
     });
 
     container.querySelector('#bangumi-media-library-refresh').addEventListener('click', function () {
+        if (!mediaLibraryState.initialized) {
+            initializeMediaLibrary();
+            return;
+        }
         loadMediaLibraryItems();
     });
 

@@ -71,6 +71,9 @@ const services = {
                 : null;
         },
         fetch: async ({ url, data, type }) => {
+            if (url.includes('/MediaLibrary/Items')) toolCalls.push({ url, data });
+            if (url.includes('/MediaLibrary/Libraries'))
+                return new Response(JSON.stringify([{ Id: 'name:Anime', Name: '动漫' }]));
             if (url.includes('/MediaLibrary/Configuration/') && type === 'PUT') {
                 directoryType = JSON.parse(data).Type;
             }
@@ -343,9 +346,14 @@ document.querySelector('#run').onclick = async () => {
             root
                 .querySelector('#bangumi-media-library-select')
                 .closest('bangumi-select')
-                .shadowRoot.querySelector('button').textContent === '全部媒体库',
+                .shadowRoot.querySelector('button').textContent === '请选择媒体库',
             '动态下拉选项刷新',
         );
+        assert(!toolCalls.some((call) => call.url.includes('/MediaLibrary/Items')), '打开页面不加载媒体目录');
+        const librarySelect = root.querySelector('#bangumi-media-library-select');
+        librarySelect.value = 'name:Anime';
+        librarySelect.dispatchEvent(new Event('change'));
+        await tick();
         assert(
             root.querySelector('.bangumi-media-list-edit').closest('bangumi-button')?.hasAttribute('icon'),
             '媒体库配置操作使用图标按钮',

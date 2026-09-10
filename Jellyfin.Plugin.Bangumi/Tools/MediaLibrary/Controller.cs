@@ -32,6 +32,19 @@ public class Controller(ILibraryManager library) : ControllerBase
     private const int DefaultPageSize = 100;
     private const int MaxPageSize = 500;
 
+    [HttpGet("Libraries")]
+    public ActionResult<IEnumerable<MediaLibraryInfo>> GetLibraries()
+    {
+        return Ok(library.GetVirtualFolders()
+            .Select(folder => new MediaLibraryInfo
+            {
+                Id = string.IsNullOrWhiteSpace(folder.ItemId) ? "name:" + folder.Name : folder.ItemId,
+                Name = folder.Name ?? string.Empty,
+            })
+            .OrderBy(folder => folder.Name, StringComparer.CurrentCultureIgnoreCase)
+            .ToArray());
+    }
+
     [HttpGet("Items")]
     public ActionResult<MediaLibraryItemsResult> GetItems(
         [FromQuery] string? libraryId,
