@@ -1326,21 +1326,19 @@
                                     />
                                     <div class="fieldDescription">例如文件从第 27 集开始时填写 26</div>
                                 </div>
+                                <bangumi-checkbox class="checkboxContainer checkboxContainer-withDescription">
+                                    <input
+                                        aria-labelledby="bangumi-media-config-correct-index-label"
+                                        slot="control"
+                                        data-config-ignore
+                                        id="bangumi-media-config-correct-index"
+                                        type="checkbox"
+                                    />
+                                    <label slot="label" for="bangumi-media-config-correct-index">
+                                        <span id="bangumi-media-config-correct-index-label">使用 Bangumi 中的集数</span>
+                                    </label>
+                                </bangumi-checkbox>
                                 <div id="bangumi-media-offset-options" hidden>
-                                    <bangumi-checkbox class="checkboxContainer checkboxContainer-withDescription">
-                                        <input
-                                            aria-labelledby="bangumi-media-config-correct-index-label"
-                                            slot="control"
-                                            data-config-ignore
-                                            id="bangumi-media-config-correct-index"
-                                            type="checkbox"
-                                        />
-                                        <label slot="label" for="bangumi-media-config-correct-index">
-                                            <span id="bangumi-media-config-correct-index-label"
-                                                >使用 Bangumi 中的集数</span
-                                            >
-                                        </label>
-                                    </bangumi-checkbox>
                                     <bangumi-episode-preview></bangumi-episode-preview>
                                 </div>
                             </section>

@@ -207,6 +207,28 @@ public class Episode
     }
 
     [TestMethod]
+    public async Task SingleSpecialEpisodeWithManualIdUsesSubjectMetadata()
+    {
+        FakePath.CreateSeason(_libraryManager, "トニカクカワイイ/OVA");
+        var episodeData = await _provider.GetMetadata(new EpisodeInfo
+        {
+            Path = FakePath.CreateFile("トニカクカワイイ/OVA/[Airota&LoliHouse] Tonikaku Kawaii：Seifuku [WebRip 1080p HEVC-10bit AAC ASSx2].mkv"),
+            ProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "1143188" } },
+            SeriesProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "301541" } }
+        }, _token);
+
+        Assert.IsTrue(episodeData.HasMetadata);
+        Assert.AreEqual("1143188", episodeData.Item.ProviderIds[Constants.ProviderName]);
+        Assert.AreEqual(14, episodeData.Item.IndexNumber);
+        Assert.AreEqual(0, episodeData.Item.ParentIndexNumber);
+        Assert.AreEqual("トニカクカワイイ ～制服～", episodeData.Item.Name);
+        Assert.AreEqual("トニカクカワイイ ～制服～", episodeData.Item.OriginalTitle);
+        var subject = await ServiceLocator.GetService<BangumiApi>().GetSubject(376708, _token);
+        Assert.IsFalse(string.IsNullOrEmpty(episodeData.Item.Overview));
+        Assert.AreEqual(subject!.Summary, episodeData.Item.Overview);
+    }
+
+    [TestMethod]
     public async Task NonIntegerEpisodeIndexSupport()
     {
         var episodeData = await _provider.GetMetadata(new EpisodeInfo

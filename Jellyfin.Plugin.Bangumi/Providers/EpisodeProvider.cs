@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
@@ -108,10 +109,11 @@ public class EpisodeProvider(BangumiApi api, Logger<EpisodeProvider> log, ILibra
                 result.Item.ParentIndexNumber = season.IndexNumber;
         }
 
-        FillFallbackTitle(result.Item);
-
         if ((forcedType ?? episode.Type) == EpisodeType.Normal && result.Item.ParentIndexNumber > 0)
+        {
+            FillFallbackTitle(result.Item);
             return result;
+        }
 
         // mark episode as special
         result.Item.ParentIndexNumber = 0;
@@ -119,13 +121,26 @@ public class EpisodeProvider(BangumiApi api, Logger<EpisodeProvider> log, ILibra
         // use title and overview from special episode subject if episode data is empty
         var series = await api.GetSubject(episode.ParentId, cancellationToken);
         if (series == null)
+        {
+            FillFallbackTitle(result.Item);
             return result;
+        }
 
-        // use title from special episode subject if episode data is empty
-        if (string.IsNullOrEmpty(result.Item.Name))
-            result.Item.Name = series.Name;
-        if (string.IsNullOrEmpty(result.Item.OriginalTitle))
-            result.Item.OriginalTitle = series.OriginalName;
+        if (string.IsNullOrEmpty(result.Item.Name) || string.IsNullOrEmpty(result.Item.OriginalTitle) || string.IsNullOrEmpty(result.Item.Overview))
+        {
+            var episodes = await api.GetSubjectEpisodeList(episode.ParentId, null, episode.Order, cancellationToken);
+            if (episodes?.Take(2).Count() == 1)
+            {
+                if (string.IsNullOrEmpty(result.Item.Name))
+                    result.Item.Name = series.Name;
+                if (string.IsNullOrEmpty(result.Item.OriginalTitle))
+                    result.Item.OriginalTitle = series.OriginalName;
+                if (string.IsNullOrEmpty(result.Item.Overview))
+                    result.Item.Overview = series.Summary;
+            }
+        }
+
+        FillFallbackTitle(result.Item);
 
         var seasonNumber = parent is Season ? parent.IndexNumber : 1;
         if (!string.IsNullOrEmpty(episode.AirDate) && string.Compare(episode.AirDate, series.AirDate, StringComparison.Ordinal) < 0)
