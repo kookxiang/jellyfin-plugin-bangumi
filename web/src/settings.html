@@ -347,16 +347,6 @@
                         <div class="bangumi-settings-panel" data-section="episode-parser">
                             <div class="bangumi-settings-module">
                                 <h2 class="bangumi-settings-heading">剧集解析</h2>
-                                <div class="selectContainer">
-                                    <label class="selectLabel" for="EpisodeParser">剧集解析模式</label>
-                                    <bangumi-segmented-select
-                                        ><select class="emby-select-withcolor emby-select" id="EpisodeParser">
-                                            <option value="Basic">基础</option>
-                                            <option value="AnitomySharp">AnitomySharp</option>
-                                            <option value="Torrent">混合</option>
-                                        </select></bangumi-segmented-select
-                                    >
-                                </div>
                                 <bangumi-checkbox class="checkboxContainer checkboxContainer-withDescription">
                                     <input
                                         slot="control"
@@ -367,19 +357,38 @@
                                     />
                                     <label slot="label" for="MergeEpisodeVersionsByBangumiId">
                                         <span id="MergeEpisodeVersionsByBangumiId-label"
-                                            >（实验性）修正 Jellyfin 12 多版本识别错误的问题</span
+                                            >根据 Bangumi ID 合并剧集版本</span
                                         >
                                         <span class="fieldDescription" id="MergeEpisodeVersionsByBangumiId-description">
                                             <strong>临时修复方案：</strong>用于绕过 Jellyfin 12
                                             按文件名误合并剧集版本的问题。对启用 Bangumi
                                             剧集元数据的电视剧媒体库生效，适用于所有解析模式。只合并同目录中 Bangumi
                                             单集 ID 相同且文件名识别出的季号、集号和类型一致的文件；没有 ID
-                                            或无法识别集号的文件先分别入库。刷新元数据前也会按文件名修正可明确识别的季号和整数集号。首次扫描并获取元数据后，再扫描媒体库完成合并。关闭后恢复
+                                            或无法识别集号的文件先分别入库。首次扫描并获取元数据后，再扫描媒体库完成合并。关闭后恢复
                                             Jellyfin 的文件名分组规则。
                                         </span>
                                     </label>
                                 </bangumi-checkbox>
-                                <div class="episode-parser-options" episode-parser="Basic" style="display: none">
+                                <div class="selectContainer">
+                                    <label class="selectLabel" for="EpisodeParser">剧集解析模式</label>
+                                    <bangumi-select
+                                        ><select class="emby-select-withcolor emby-select" id="EpisodeParser">
+                                            <option value="Basic">基础</option>
+                                            <option value="AnitomySharp">AnitomySharp</option>
+                                            <option value="Torrent">混合</option>
+                                        </select></bangumi-select
+                                    >
+                                </div>
+                                <div
+                                    class="episode-parser-options bangumi-settings-group"
+                                    episode-parser="Basic"
+                                    style="display: none"
+                                    role="group"
+                                    aria-labelledby="parser-Basic-heading"
+                                >
+                                    <h3 class="bangumi-settings-subheading" id="parser-Basic-heading">
+                                        基础解析器设置
+                                    </h3>
                                     <bangumi-checkbox class="checkboxContainer checkboxContainer-withDescription">
                                         <input
                                             aria-labelledby="AlwaysReplaceEpisodeNumber-label"
@@ -397,7 +406,16 @@
                                         </label>
                                     </bangumi-checkbox>
                                 </div>
-                                <div class="episode-parser-options" episode-parser="AnitomySharp" style="display: none">
+                                <div
+                                    class="episode-parser-options bangumi-settings-group"
+                                    episode-parser="AnitomySharp"
+                                    style="display: none"
+                                    role="group"
+                                    aria-labelledby="parser-AnitomySharp-heading"
+                                >
+                                    <h3 class="bangumi-settings-subheading" id="parser-AnitomySharp-heading">
+                                        AnitomySharp解析器设置
+                                    </h3>
                                     <div class="fieldDescription">
                                         AnitomySharp 能够解析包含特典信息的动画文件名，适用于整理拥有特典的系列
                                     </div>
@@ -448,7 +466,16 @@
                                         </label>
                                     </bangumi-checkbox>
                                 </div>
-                                <div class="episode-parser-options" episode-parser="Torrent" style="display: none">
+                                <div
+                                    class="episode-parser-options bangumi-settings-group"
+                                    episode-parser="Torrent"
+                                    style="display: none"
+                                    role="group"
+                                    aria-labelledby="parser-Torrent-heading"
+                                >
+                                    <h3 class="bangumi-settings-subheading" id="parser-Torrent-heading">
+                                        混合解析器设置
+                                    </h3>
                                     <div class="bangumi-tab-container">
                                         <h3 class="bangumi-tool-title">文件排除正则表达式</h3>
                                         <div class="fieldDescription">

@@ -314,14 +314,16 @@ document.querySelector('#run').onclick = async () => {
         await tick();
         assert(saved.MergeEpisodeVersionsByBangumiId === true, '通用版本合并开关保存');
         const parser = root.querySelector('#EpisodeParser');
-        const segments = parser.closest('bangumi-segmented-select').shadowRoot;
-        assert(segments.querySelector('input:checked').value === config.EpisodeParser, '解析器分段选择回填');
-        segments.querySelector('input[value=Basic]').click();
+        const parserSelect = parser.closest('bangumi-select').shadowRoot;
+        assert(parser.value === config.EpisodeParser, '解析器下拉选择回填');
+        parserSelect.querySelector('button').click();
+        parserSelect.querySelector('[data-index="0"]').click();
         assert(
             parser.value === 'Basic' && root.querySelector('[episode-parser=Basic]').style.display !== 'none',
-            '分段选择与解析器选项联动',
+            '下拉选择与解析器设置分组联动',
         );
-        segments.querySelector('input[value=Torrent]').click();
+        parserSelect.querySelector('button').click();
+        parserSelect.querySelector('[data-index="2"]').click();
         assert(parser.value === 'Torrent', '恢复混合解析器');
         assert(versionsSwitch.checked && !versionsSwitch.closest('[episode-parser]'), '版本合并不依赖解析模式');
 
