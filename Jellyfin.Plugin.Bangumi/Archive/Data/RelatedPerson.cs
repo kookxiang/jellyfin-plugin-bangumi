@@ -1,4 +1,5 @@
-﻿using System.Text.Json.Serialization;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -6,6 +7,9 @@ namespace Jellyfin.Plugin.Bangumi.Archive.Data;
 
 public class RelatedPerson
 {
+    [JsonPropertyName("appear_eps")]
+    public JsonElement? AppearEps { get; set; }
+
     [JsonPropertyName("person_id")]
     public int PersonId { get; set; }
 
@@ -19,6 +23,7 @@ public class RelatedPerson
         return new Model.RelatedPerson
         {
             Id = PersonId,
+            AppearEps = AppearEps,
             Type = (int)(person?.Type ?? default),
             Name = person?.Name ?? "",
             Career = person?.Career,

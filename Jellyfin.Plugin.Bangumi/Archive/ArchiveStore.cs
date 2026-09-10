@@ -126,7 +126,7 @@ public partial class ArchiveStore<T>(string basePath, string fileName) : IArchiv
 
     public async Task<T?> FindById(int id, CancellationToken token = default)
     {
-        if (!Exists())
+        if (id <= 0 || !Exists())
             return null;
 
         var indexInfo = new FileInfo(IndexFilePath);
@@ -136,7 +136,7 @@ public partial class ArchiveStore<T>(string basePath, string fileName) : IArchiv
         var indexSize = indexReader.ReadByte();
         if (indexSize is not (sizeof(byte) or sizeof(ushort) or sizeof(uint)))
             throw new FormatException("invalid index size");
-        if (indexInfo.Length < id * indexSize)
+        if (indexInfo.Length < ((long)id + 1) * indexSize)
             return null;
 
         indexReader.Seek(id * indexSize, SeekOrigin.Begin);

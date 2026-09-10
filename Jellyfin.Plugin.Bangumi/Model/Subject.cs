@@ -76,6 +76,9 @@ public class Subject
     [JsonPropertyName("nsfw")]
     public bool IsNSFW { get; set; }
 
+    [JsonPropertyName("meta_tags")]
+    public IEnumerable<string> MetaTags { get; set; } = [];
+
     public string? Platform { get; set; }
 
     [JsonIgnore]

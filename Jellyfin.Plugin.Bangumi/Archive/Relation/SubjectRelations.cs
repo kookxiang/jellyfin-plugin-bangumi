@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.IO.Compression;
 using System.Text;
 using System.Text.Json;
@@ -11,7 +12,7 @@ namespace Jellyfin.Plugin.Bangumi.Archive.Relation;
 
 public class SubjectRelations(ArchiveData archive)
 {
-    private const string FileName = "subject_relation.map";
+    private const string FileName = "subject_relation.v2.map";
 
     private readonly Dictionary<int, List<RelatedSubject>> _mapping = new();
 
@@ -50,7 +51,7 @@ public class SubjectRelations(ArchiveData archive)
         if (!_mapping.TryGetValue(subjectId, out var rawList)) return [];
 
         var relatedSubjects = new List<Model.RelatedSubject>();
-        foreach (var relatedSubject in rawList)
+        foreach (var relatedSubject in rawList.OrderBy(item => item.Order))
         {
             relatedSubjects.Add(await relatedSubject.ToRelatedSubject(archive, token));
         }
@@ -71,6 +72,7 @@ public class SubjectRelations(ArchiveData archive)
             var subjectId = reader.ReadInt32();
             var relatedSubjectId = reader.ReadInt32();
             var relationType = reader.ReadInt16();
+            var order = reader.ReadInt32();
 
             if (!_mapping.ContainsKey(subjectId))
                 _mapping.Add(subjectId, []);
@@ -78,7 +80,8 @@ public class SubjectRelations(ArchiveData archive)
             _mapping[subjectId].Add(new RelatedSubject
             {
                 RelatedSubjectId = relatedSubjectId,
-                RelationType = relationType
+                RelationType = relationType,
+                Order = order
             });
         }
     }
@@ -95,6 +98,7 @@ public class SubjectRelations(ArchiveData archive)
             writer.Write(subjectId);
             writer.Write(relatedSubject.RelatedSubjectId);
             writer.Write(relatedSubject.RelationType);
+            writer.Write(relatedSubject.Order);
         }
 
         writer.Flush();

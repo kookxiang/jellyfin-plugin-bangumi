@@ -11,7 +11,7 @@ namespace Jellyfin.Plugin.Bangumi.Archive.Relation;
 
 public class SubjectPersonRelation(ArchiveData archive)
 {
-    private const string FileName = "subject_person.map";
+    private const string FileName = "subject_person.v2.map";
 
     private readonly Dictionary<int, List<RelatedPerson>> _mapping = new();
 
@@ -71,6 +71,7 @@ public class SubjectPersonRelation(ArchiveData archive)
             var subjectId = reader.ReadInt32();
             var personId = reader.ReadInt32();
             var position = reader.ReadInt16();
+            var appearEps = JsonSerializer.Deserialize<JsonElement?>(reader.ReadString());
 
             if (!_mapping.ContainsKey(subjectId))
                 _mapping.Add(subjectId, []);
@@ -78,7 +79,8 @@ public class SubjectPersonRelation(ArchiveData archive)
             _mapping[subjectId].Add(new RelatedPerson
             {
                 PersonId = personId,
-                Position = position
+                Position = position,
+                AppearEps = appearEps
             });
         }
     }
@@ -95,6 +97,7 @@ public class SubjectPersonRelation(ArchiveData archive)
             writer.Write(subjectId);
             writer.Write(relatedPerson.PersonId);
             writer.Write(relatedPerson.Position);
+            writer.Write(JsonSerializer.Serialize(relatedPerson.AppearEps));
         }
 
         writer.Flush();

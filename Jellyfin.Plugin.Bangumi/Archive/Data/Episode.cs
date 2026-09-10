@@ -32,11 +32,15 @@ public class Episode
     [JsonPropertyName("airdate")]
     public string AirDate { get; set; } = "";
 
+    [JsonPropertyName("duration")]
+    public string? Duration { get; set; }
+
     public Model.Episode ToEpisode()
     {
         return new Model.Episode
         {
             Id = Id,
+            Duration = Duration,
             ParentId = ParentId,
             Type = Type,
             OriginalNameRaw = OriginalName,

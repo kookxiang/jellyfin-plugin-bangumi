@@ -89,6 +89,7 @@ public class ArchiveDownloadTask(BangumiApi api, ArchiveData archive, ITaskManag
             progress.Report(65D + 30D * ++completed / archive.Stores.Count);
         }
 
+        await archive.SubjectCharacterRelation.GenerateIndex(zipStream, cancellationToken);
         await archive.SubjectRelations.GenerateIndex(zipStream, cancellationToken);
         await archive.SubjectEpisodeRelation.GenerateIndex(cancellationToken);
         await archive.SubjectPersonRelation.GenerateIndex(zipStream, cancellationToken);

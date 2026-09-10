@@ -410,7 +410,11 @@ public partial class BangumiApi
     {
         if (id <= 0) return [];
 
-        var characters = await Get<IEnumerable<RelatedCharacter>>($"{BaseUrl}/v0/subjects/{id}/characters", token);
+        IEnumerable<RelatedCharacter>? characters = null;
+#if !EMBY
+        characters = await archive.SubjectCharacterRelation.Get(id, token);
+#endif
+        characters ??= await Get<IEnumerable<RelatedCharacter>>($"{BaseUrl}/v0/subjects/{id}/characters", token);
 
         return characters?
             .OrderBy(c => c.Relation switch
