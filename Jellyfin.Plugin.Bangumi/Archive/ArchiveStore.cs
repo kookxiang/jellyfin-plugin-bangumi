@@ -45,13 +45,14 @@ public partial class ArchiveStore<T>(string basePath, string fileName) : IArchiv
     {
         using var reader = new StreamReader(FilePath, Encoding.UTF8);
 
-        reader.BaseStream.Seek(-64 * 1024, SeekOrigin.End);
+        reader.BaseStream.Seek(Math.Max(0, reader.BaseStream.Length - 64 * 1024), SeekOrigin.Begin);
         var data = await reader.ReadToEndAsync(token);
         if (!LineIdRegex().IsMatch(data))
             throw new FormatException("cannot locate id of last record");
         var lastId = int.Parse(LineIdRegex().Matches(data).Last().Groups[1].Value);
 
-        var indexSize = lastId switch
+        // Index values are byte offsets, so their width depends on file size, not IDs.
+        var indexSize = reader.BaseStream.Length switch
         {
             < byte.MaxValue => sizeof(byte),
             < ushort.MaxValue => sizeof(ushort),
@@ -62,6 +63,7 @@ public partial class ArchiveStore<T>(string basePath, string fileName) : IArchiv
         await using var memoryStream = new MemoryStream(lastId * indexSize);
         memoryStream.WriteByte((byte)indexSize);
         var startPosition = 0L;
+        reader.DiscardBufferedData();
         reader.BaseStream.Seek(startPosition, SeekOrigin.Begin);
         while (await reader.ReadLineAsync(token) is { } line)
         {
@@ -98,8 +100,8 @@ public partial class ArchiveStore<T>(string basePath, string fileName) : IArchiv
             if (File.Exists(IndexFilePath))
                 File.Move(IndexFilePath, store.IndexFilePath);
         });
-        BasePath = store.FilePath;
-        FileName = store.IndexFilePath;
+        BasePath = store.BasePath;
+        FileName = store.FileName;
     }
 
     public IArchiveStore Fork(string newBasePath, string newFileName)
@@ -157,7 +159,12 @@ public partial class ArchiveStore<T>(string basePath, string fileName) : IArchiv
         using var textReader = new StreamReader(FilePath);
         textReader.BaseStream.Seek(offset, SeekOrigin.Begin);
         var line = await textReader.ReadLineAsync(token);
-        return line == null ? null : JsonSerializer.Deserialize<T>(line, Constants.JsonSerializerOptions);
+        if (line == null) return null;
+        // Empty slots point at offset zero, which may contain a different valid record.
+        var match = LineIdRegex().Match(line);
+        if (!match.Success || !int.TryParse(match.Groups[1].Value, out var recordId) || recordId != id)
+            return null;
+        return JsonSerializer.Deserialize<T>(line, Constants.JsonSerializerOptions);
     }
 
     [GeneratedRegex("\"id\":\\s*(\\d+)")]

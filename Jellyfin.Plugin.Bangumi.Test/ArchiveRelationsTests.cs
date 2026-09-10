@@ -29,6 +29,87 @@ public class ArchiveRelationsTests
     }
 
     [TestMethod]
+    public async Task CompleteSubjectRoundTripsThroughArchiveFiles()
+    {
+        var paths = new Paths(_root);
+        var archive = new Bangumi.Archive.ArchiveData(paths);
+        var directory = Path.Join(_root, "bangumi", "archive");
+        var temp = Path.Join(directory, "temp");
+        Directory.CreateDirectory(temp);
+        using var memory = new MemoryStream();
+        using (var zip = new ZipArchive(memory, ZipArchiveMode.Create, true))
+        {
+            var assembly = typeof(ArchiveRelationsTests).Assembly;
+            const string prefix = "Jellyfin.Plugin.Bangumi.Test.Fixtures.Archive.";
+            foreach (var resource in assembly.GetManifestResourceNames().Where(name => name.StartsWith(prefix, StringComparison.Ordinal)))
+            {
+                await using var source = assembly.GetManifestResourceStream(resource)!;
+                await using var target = await zip.CreateEntry(resource[prefix.Length..]).OpenAsync();
+                await source.CopyToAsync(target);
+            }
+        }
+        memory.Position = 0;
+        using var input = new ZipArchive(memory, ZipArchiveMode.Read);
+        Assert.AreEqual(8, input.Entries.Count);
+        foreach (var store in archive.Stores)
+        {
+            var staged = store.Fork(temp, Path.GetRandomFileName());
+            await using (var source = await input.GetEntry(store.FileName)!.OpenAsync())
+            await using (var target = File.Create(staged.FilePath))
+                await source.CopyToAsync(target);
+            await staged.GenerateIndex(CancellationToken.None);
+            await staged.Move(directory, store.FileName);
+            Assert.AreEqual(store.FilePath, staged.FilePath);
+            Assert.IsTrue(staged.Exists());
+        }
+        await archive.SubjectEpisodeRelation.GenerateIndex(CancellationToken.None);
+        await archive.SubjectPersonRelation.GenerateIndex(input, CancellationToken.None);
+        await archive.SubjectRelations.GenerateIndex(input, CancellationToken.None);
+        await archive.SubjectCharacterRelation.GenerateIndex(input, CancellationToken.None);
+
+        // A new instance must recover everything from disk rather than in-memory state.
+        archive = new Bangumi.Archive.ArchiveData(paths);
+        var subject = (await archive.Subject.FindById(10))!.ToSubject();
+        Assert.AreEqual("测试动画", subject.ChineseName);
+        Assert.AreEqual(Bangumi.Model.SubjectType.Anime, subject.Type);
+        Assert.AreEqual("TV", subject.Platform);
+        Assert.AreEqual(3, subject.Rating!.Total);
+        Assert.AreEqual(8f, subject.Rating.Score);
+        Assert.AreEqual("https://example.invalid/anime", subject.OfficialWebSite);
+        CollectionAssert.AreEqual(new[] { "TV", "科幻" }, subject.MetaTags.ToArray());
+        Assert.AreEqual("测试续集", (await archive.Subject.FindById(20))!.ChineseName);
+        Assert.IsNull(await archive.Subject.FindById(11), "A sparse ID must not return the first record.");
+        Assert.IsNull(await archive.Subject.FindById(21));
+        Assert.AreEqual(2, archive.Subject.Enumerate().Count());
+
+        var episodes = (await archive.SubjectEpisodeRelation.GetEpisodes(10)).Select(e => e.ToEpisode()).ToArray();
+        CollectionAssert.AreEqual(new[] { 100, 102 }, episodes.Select(e => e.Id).ToArray());
+        Assert.AreEqual(2d, episodes[1].Order);
+        Assert.AreEqual("第2话", episodes[1].ChineseName);
+        Assert.AreEqual("24:00", episodes[1].Duration);
+        Assert.IsNull(await archive.Episode.FindById(101));
+        Assert.IsFalse((await archive.SubjectEpisodeRelation.GetEpisodes(999)).Any());
+
+        var staff = (await archive.SubjectPersonRelation.Get(10)).Single();
+        Assert.AreEqual("测试导演", staff.Name);
+        Assert.AreEqual("导演", staff.Relation);
+        Assert.AreEqual("1-2", staff.AppearEps!.Value.GetString());
+        var person = (await archive.Person.FindById(1))!.ToPersonDetail();
+        Assert.AreEqual(new DateTime(1990, 1, 2), person.Birthdate);
+        var sequel = (await archive.SubjectRelations.Get(10)).Single();
+        Assert.AreEqual(20, sequel.Id);
+        Assert.AreEqual("续集", sequel.Relation);
+        Assert.AreEqual("测试续集", sequel.ChineseName);
+        var characters = (await archive.SubjectCharacterRelation.Get(10))!.ToArray();
+        CollectionAssert.AreEqual(new[] { 1, 3 }, characters.Select(c => c.Id).ToArray());
+        Assert.AreEqual("主角", characters[0].Relation);
+        Assert.AreEqual("测试声优", characters[0].Actors!.Single().Name);
+        var cast = characters[0].ToPersonInfos().Single();
+        Assert.AreEqual("主角", cast.Role);
+        Assert.AreEqual("3", cast.ProviderIds[Constants.ProviderName]);
+    }
+
+    [TestMethod]
     public async Task CharacterIndexPreservesOrderAndSubjectSpecificActors()
     {
         var root = _root;
@@ -36,8 +117,8 @@ public class ArchiveRelationsTests
         Directory.CreateDirectory(Path.Join(directory, "temp"));
         var archive = new Bangumi.Archive.ArchiveData(new Paths(root));
         Assert.IsNull(await archive.SubjectCharacterRelation.Get(10));
-        WriteStore(directory, "character", "{\"id\":1,\"name\":\"First\",\"role\":1}", "{\"id\":2,\"name\":\"Second\",\"role\":1}");
-        WriteStore(directory, "person", "{\"id\":1,\"name\":\"Actor A\"}", "{\"id\":2,\"name\":\"Actor B\"}");
+        await WriteStore(directory, "character", "{\"id\":1,\"name\":\"First\",\"role\":1}", "{\"id\":2,\"name\":\"Second\",\"role\":1}");
+        await WriteStore(directory, "person", "{\"id\":1,\"name\":\"Actor A\"}", "{\"id\":2,\"name\":\"Actor B\"}");
         using var memory = new MemoryStream();
         using (var zip = new ZipArchive(memory, ZipArchiveMode.Create, true))
         {
@@ -77,6 +158,22 @@ public class ArchiveRelationsTests
     }
 
     [TestMethod]
+    [DataRow(300)]
+    [DataRow(70000)]
+    public async Task IndexWidthTracksByteOffsetsRatherThanIds(int summaryLength)
+    {
+        Directory.CreateDirectory(_root);
+        var first = JsonSerializer.Serialize(new { id = 1, name = "首条", summary = new string('中', summaryLength) });
+        var last = JsonSerializer.Serialize(new { id = 3, name = "末条" });
+        await WriteStore(_root, "subject", first, last);
+        var store = new Bangumi.Archive.ArchiveStore<Bangumi.Archive.Data.Subject>(_root, "subject.jsonlines");
+        Assert.AreEqual("首条", (await store.FindById(1))!.OriginalName);
+        Assert.AreEqual("末条", (await store.FindById(3))!.OriginalName);
+        Assert.IsNull(await store.FindById(2));
+        Assert.IsNull(await store.FindById(4));
+    }
+
+    [TestMethod]
     public void EpisodeDurationSurvivesConversion()
     {
         var episode = JsonSerializer.Deserialize<Bangumi.Archive.Data.Episode>("""{"id":1,"duration":"24:00"}""")!;
@@ -89,16 +186,11 @@ public class ArchiveRelationsTests
         writer.Write(content);
     }
 
-    private static void WriteStore(string directory, string name, params string[] rows)
+    private static async Task WriteStore(string directory, string name, params string[] rows)
     {
-        File.WriteAllText(Path.Join(directory, name + ".jsonlines"), string.Join("\n", rows) + "\n", new UTF8Encoding(false));
-        using var writer = new BinaryWriter(File.Create(Path.Join(directory, name + ".idx")));
-        writer.Write((int)sizeof(uint));
-        uint offset = 0;
-        foreach (var row in rows)
-        {
-            writer.Write(offset);
-            offset += (uint)Encoding.UTF8.GetByteCount(row + "\n");
-        }
+        await File.WriteAllTextAsync(Path.Join(directory, name + ".jsonlines"), string.Join("\n", rows) + "\n", new UTF8Encoding(false));
+        var store = new Bangumi.Archive.ArchiveStore<Bangumi.Archive.Data.Subject>(directory, name + ".jsonlines");
+        await store.GenerateIndex(CancellationToken.None);
     }
+
 }
