@@ -96,9 +96,12 @@ public partial class BangumiApi
     {
         if (id <= 0) return null;
 #if !EMBY
-        var subject = await archive.Subject.FindById(id, token);
-        if (subject != null)
-            return subject.ToSubject();
+        if (!IsFreshMetadataRefresh)
+        {
+            var subject = await archive.Subject.FindById(id, token);
+            if (subject != null)
+                return subject.ToSubject();
+        }
 #endif
         return await Get<Subject>($"{BaseUrl}/v0/subjects/{id}", token);
     }
@@ -119,10 +122,13 @@ public partial class BangumiApi
     {
         if (id <= 0) return null;
 #if !EMBY
-        var episodeList = (await archive.SubjectEpisodeRelation.GetEpisodes(id, token))
-            .Where(x => x.Type == type || type == null)
-            .Select(x => x.ToEpisode());
-        if (episodeList.Any()) return episodeList;
+        if (!IsFreshMetadataRefresh)
+        {
+            var episodeList = (await archive.SubjectEpisodeRelation.GetEpisodes(id, token))
+                .Where(x => x.Type == type || type == null)
+                .Select(x => x.ToEpisode());
+            if (episodeList.Any()) return episodeList;
+        }
 #endif
 
         var result = await GetSubjectEpisodeListWithOffset(id, type, 0, token);
@@ -244,9 +250,12 @@ public partial class BangumiApi
     {
         if (id <= 0) return null;
 #if !EMBY
-        var relations = await archive.SubjectRelations.Get(id, token);
-        if (relations.Any())
-            return relations;
+        if (!IsFreshMetadataRefresh)
+        {
+            var relations = await archive.SubjectRelations.Get(id, token);
+            if (relations.Any())
+                return relations;
+        }
 #endif
         return await Get<IEnumerable<RelatedSubject>>($"{BaseUrl}/v0/subjects/{id}/subjects", token);
     }
@@ -412,7 +421,10 @@ public partial class BangumiApi
 
         IEnumerable<RelatedCharacter>? characters = null;
 #if !EMBY
-        characters = await archive.SubjectCharacterRelation.Get(id, token);
+        if (!IsFreshMetadataRefresh)
+        {
+            characters = await archive.SubjectCharacterRelation.Get(id, token);
+        }
 #endif
         characters ??= await Get<IEnumerable<RelatedCharacter>>($"{BaseUrl}/v0/subjects/{id}/characters", token);
 
@@ -432,9 +444,12 @@ public partial class BangumiApi
     {
         if (id <= 0) return null;
 #if !EMBY
-        var relatedPerson = await archive.SubjectPersonRelation.Get(id, token);
-        if (relatedPerson.Any())
-            return relatedPerson;
+        if (!IsFreshMetadataRefresh)
+        {
+            var relatedPerson = await archive.SubjectPersonRelation.Get(id, token);
+            if (relatedPerson.Any())
+                return relatedPerson;
+        }
 #endif
         return await Get<IEnumerable<RelatedPerson>>($"{BaseUrl}/v0/subjects/{id}/persons", token);
     }
@@ -459,11 +474,14 @@ public partial class BangumiApi
     {
         if (id <= 0) return null;
 #if !EMBY
-        var episode = await archive.Episode.FindById(id, token);
-        if (episode != null && DateTime.TryParse(episode.AirDate, out var airDate))
-            if (_plugin.Configuration.DaysBeforeUsingArchiveData == 0 ||
-                airDate < DateTime.Now.Subtract(TimeSpan.FromDays(_plugin.Configuration.DaysBeforeUsingArchiveData)))
-                return episode.ToEpisode();
+        if (!IsFreshMetadataRefresh)
+        {
+            var episode = await archive.Episode.FindById(id, token);
+            if (episode != null && DateTime.TryParse(episode.AirDate, out var airDate))
+                if (_plugin.Configuration.DaysBeforeUsingArchiveData == 0 ||
+                    airDate < DateTime.Now.Subtract(TimeSpan.FromDays(_plugin.Configuration.DaysBeforeUsingArchiveData)))
+                    return episode.ToEpisode();
+        }
 #endif
         return await Get<Episode>($"{BaseUrl}/v0/episodes/{id}", token);
     }
@@ -472,9 +490,12 @@ public partial class BangumiApi
     {
         if (id <= 0) return null;
 #if !EMBY
-        var person = await archive.Person.FindById(id, token);
-        if (person != null)
-            return person.ToPersonDetail();
+        if (!IsFreshMetadataRefresh)
+        {
+            var person = await archive.Person.FindById(id, token);
+            if (person != null)
+                return person.ToPersonDetail();
+        }
 #endif
         return await Get<PersonDetail>($"{BaseUrl}/v0/persons/{id}", token);
     }

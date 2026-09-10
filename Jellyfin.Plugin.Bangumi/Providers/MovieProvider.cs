@@ -27,6 +27,7 @@ public class MovieProvider(BangumiApi api, Logger<MovieProvider> log)
     public async Task<MetadataResult<Movie>> GetMetadata(MovieInfo info, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
+        using var refreshScope = BangumiApi.BeginRequestedRefresh(info.Path);
         var baseName = Path.GetFileName(info.Path);
         var result = new MetadataResult<Movie> { ResultLanguage = Constants.Language };
 

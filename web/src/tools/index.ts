@@ -3,6 +3,7 @@ import hostIcons from '../host-icons.css?raw';
 import './duplicates.ts';
 import './fix-metadata.ts';
 import './missing-id.ts';
+import './missing-title.ts';
 import styles from './tools.css?raw';
 import { type ToolElement } from './tool.ts';
 import type { Services } from '../types.ts';
@@ -17,6 +18,11 @@ const tools = [
         tag: 'bangumi-tool-missing-id',
         title: '查找缺失 ID 的视频',
         description: '检查电影和剧集，为所选项目重新获取元数据。',
+    },
+    {
+        tag: 'bangumi-tool-missing-title',
+        title: '补全视频标题',
+        description: '扫描已有 Bangumi ID 但仍使用文件名的视频，批量刷新新番元数据。',
     },
 ];
 export class BangumiTools extends HTMLElement {

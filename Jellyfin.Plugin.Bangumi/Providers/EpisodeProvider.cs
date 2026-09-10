@@ -30,6 +30,7 @@ public class EpisodeProvider(BangumiApi api, Logger<EpisodeProvider> log, ILibra
     public async Task<MetadataResult<Episode>> GetMetadata(EpisodeInfo info, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
+        using var refreshScope = BangumiApi.BeginRequestedRefresh(info.Path);
         var localConfiguration = await LocalConfiguration.ForPath(info.Path);
 
         var context = new EpisodeParserContext(api, libraryManager, info, mediaSourceManager, Configuration, localConfiguration, cancellationToken);
@@ -40,7 +41,10 @@ public class EpisodeProvider(BangumiApi api, Logger<EpisodeProvider> log, ILibra
         // throw execption will cause the episode to not show up anywhere
         try
         {
-            episode = await parser.GetEpisode();
+            episode = BangumiApi.IsFreshMetadataRefresh
+                && int.TryParse(info.ProviderIds?.GetValueOrDefault(Constants.ProviderName), out var savedId) && savedId > 0
+                ? await api.GetEpisode(savedId, cancellationToken)
+                : await parser.GetEpisode();
 
             log.Info("metadata for {FilePath}: {EpisodeInfo}", Path.GetFileName(info.Path), episode);
         }

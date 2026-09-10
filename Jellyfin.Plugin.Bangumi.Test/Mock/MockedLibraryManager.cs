@@ -28,6 +28,7 @@ public class MockedLibraryManager : ILibraryManager
 {
     public Func<FileSystemMetadata, Folder?, BaseItem?>? PathResolver { get; set; }
     public LibraryOptions LibraryOptions { get; set; } = new();
+    public Func<InternalItemsQuery, IReadOnlyList<BaseItem>>? ItemQuery { get; set; }
     private readonly Dictionary<string, BaseItem> _items = [];
     private readonly Dictionary<Guid, List<BaseItem>> _children = [];
 
@@ -440,6 +441,7 @@ public class MockedLibraryManager : ILibraryManager
 
     public IReadOnlyList<BaseItem> GetItemList(InternalItemsQuery query)
     {
+        if (ItemQuery is not null) return ItemQuery(query);
         if (_children.TryGetValue(query.ParentId, out var children))
             return children;
         if (query.IncludeItemTypes.Contains(BaseItemKind.Series) &&

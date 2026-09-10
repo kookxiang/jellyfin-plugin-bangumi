@@ -93,6 +93,52 @@ const services = {
                     }),
                 );
             }
+            if (url.includes('Tools/MissingTitle/')) {
+                toolCalls.push({ url, data });
+                const items = [
+                    {
+                        Id: 'title-1',
+                        SeriesId: 'series-1',
+                        SeriesName: '总之就是非常可爱',
+                        Name: '[Airota&LoliHouse] Tonikaku Kawaii：Seifuku [WebRip 1080p HEVC-10bit AAC ASSx2]',
+                        Path: '/bangumi/トニカクカワイイ/OVA/[Airota&LoliHouse] Tonikaku Kawaii：Seifuku [WebRip 1080p HEVC-10bit AAC ASSx2].mkv',
+                        BangumiId: '1143188',
+                        Reason: '标题与文件名一致',
+                    },
+                    {
+                        Id: 'title-2',
+                        SeriesId: 'series-1',
+                        SeriesName: '总之就是非常可爱',
+                        Name: 'Tonikaku Kawaii S02E01',
+                        Path: '/bangumi/トニカクカワイイ/S2/Tonikaku Kawaii S02E01.mkv',
+                        BangumiId: '1234567',
+                        Reason: '标题与文件名一致',
+                    },
+                    {
+                        Id: 'title-3',
+                        SeriesId: 'series-2',
+                        SeriesName: '半泽直树',
+                        Name: 'Hanzawa.Naoki.S02E03.2020.Friday.WEB-DL.1080p.H264.AAC-AREY',
+                        Path: '/bangumi/半泽直树/S2/Hanzawa.Naoki.S02E03.2020.Friday.WEB-DL.1080p.H264.AAC-AREY.mkv',
+                        BangumiId: '2345678',
+                        Reason: '标题与文件名一致',
+                    },
+                ];
+                return new Response(
+                    JSON.stringify(
+                        url.endsWith('/Libraries')
+                            ? [{ Id: 'anime', Name: '动漫' }]
+                            : url.endsWith('/Refresh')
+                              ? {
+                                    QueuedCount: data.items.split(',').length,
+                                    QueuedItemIds: data.items.split(','),
+                                    SkippedCount: 0,
+                                    FailedCount: 0,
+                                }
+                              : items,
+                    ),
+                );
+            }
             if (/Tools\/(DuplicatedEpisodesDetector|FixEpisodeMetadata|MissingBangumiId)\//.test(url)) {
                 toolCalls.push({ url, data });
                 const result = url.endsWith('/Libraries')
@@ -490,6 +536,35 @@ document.querySelector('#run').onclick = async () => {
         await tick();
         assert(tool.querySelectorAll('input[data-unavailable]:disabled').length === 2, '刷新排队后不可重复选择');
         confirmed = false;
+        toolsRoot.querySelector('#back').click();
+        await tick();
+        cards[3].click();
+        tool = toolsRoot.querySelector('bangumi-tool-missing-title').shadowRoot;
+        await tick();
+        assert(tool.querySelector('#refresh').disabled, '补全标题先扫描再刷新');
+        tool.querySelector('#scan').click();
+        await tick();
+        assert(tool.querySelectorAll('input[data-item]:checked').length === 3, '缺失标题扫描默认全选');
+        assert(
+            tool.querySelectorAll('.missing-series').length === 2 && !tool.querySelector('.missing-season'),
+            '缺失标题仅按系列分组',
+        );
+        tool.querySelector('input[value="title-2"]').click();
+        assert(tool.querySelector('#select-all').indeterminate, '部分勾选显示半选状态');
+        tool.querySelector('#refresh').click();
+        await tick();
+        assert(
+            toolCalls.some(
+                (call) => call.url.includes('MissingTitle/Refresh') && call.data.items === 'title-1,title-3',
+            ),
+            '补全标题仅提交选中项到刷新队列',
+        );
+        assert(tool.querySelectorAll('input[data-queued]:disabled').length === 2, '已排队视频禁止重复提交');
+        tool.querySelector('#library').dispatchEvent(new Event('change'));
+        assert(
+            !tool.querySelector('input[data-item]') && tool.querySelector('#refresh').disabled,
+            '切换媒体库清空旧选择',
+        );
         toolsRoot.querySelector('#back').click();
         await tick();
         root.querySelector('[data-target=network]').click();
