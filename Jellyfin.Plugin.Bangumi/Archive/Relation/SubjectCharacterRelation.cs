@@ -107,7 +107,7 @@ public class SubjectCharacterRelation(ArchiveData archive)
         return result.Count > 0 ? result : null;
     }
 
-    public class CharacterRow
+    private sealed class CharacterRow
     {
         [JsonPropertyName("subject_id")]
         public int SubjectId { get; set; }
@@ -117,7 +117,7 @@ public class SubjectCharacterRelation(ArchiveData archive)
         public int Order { get; set; }
     }
 
-    public class ActorRow
+    private sealed class ActorRow
     {
         [JsonPropertyName("subject_id")]
         public int SubjectId { get; set; }
