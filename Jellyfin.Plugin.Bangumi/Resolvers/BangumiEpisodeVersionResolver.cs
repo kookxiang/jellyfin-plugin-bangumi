@@ -122,6 +122,15 @@ public partial class BangumiEpisodeVersionResolver(
                 CultureInfo.InvariantCulture, out var number) || number < 0)
             return null;
 
+        // A title sequel number can be mistaken for the episode (e.g. Log Horizon 2 [08]).
+        // Conflicting explicit bracket numbers make the path unsafe for grouping.
+        foreach (Match match in BracketEpisodeRegex().Matches(fileName))
+        {
+            if (!decimal.TryParse(match.Groups[1].Value, NumberStyles.AllowDecimalPoint,
+                    CultureInfo.InvariantCulture, out var bracketNumber) || bracketNumber != number)
+                return null;
+        }
+
         var seasonText = parsed.ExtractAnimeSeason()
             ?? new Anitomy(Path.GetFileName(Path.GetDirectoryName(path)) ?? "").ExtractAnimeSeason();
         var season = 1;
@@ -168,6 +177,9 @@ public partial class BangumiEpisodeVersionResolver(
                 .GetAwaiter().GetResult();
         }
     }
+
+    [GeneratedRegex(@"\[(\d+(?:\.\d+)?)\]")]
+    private static partial Regex BracketEpisodeRegex();
 
     [GeneratedRegex(@"\bsample\b", RegexOptions.IgnoreCase)]
     private static partial Regex SampleRegex();

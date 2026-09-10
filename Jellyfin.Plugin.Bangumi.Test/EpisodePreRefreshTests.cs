@@ -1,48 +1,50 @@
-using Jellyfin.Plugin.Bangumi.Model;
+using System.Threading;
+using System.Threading.Tasks;
+using Jellyfin.Plugin.Bangumi.Configuration;
 using Jellyfin.Plugin.Bangumi.Providers;
-using MediaBrowser.Controller.Providers;
+using Jellyfin.Plugin.Bangumi.Test.Util;
+using MediaBrowser.Controller.Library;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using JellyfinEpisode = MediaBrowser.Controller.Entities.TV.Episode;
 
 namespace Jellyfin.Plugin.Bangumi.Test;
 
 [TestClass]
 public class EpisodePreRefreshTests
 {
-    [TestMethod]
-    public void CorrectsCodecNumberAndStaleSpecialSeason()
+    [DataTestMethod]
+    [DataRow(EpisodeParserType.Basic, true)]
+    [DataRow(EpisodeParserType.AnitomySharp, true)]
+    [DataRow(EpisodeParserType.Torrent, true)]
+    [DataRow(EpisodeParserType.Basic, false)]
+    [DataRow(EpisodeParserType.AnitomySharp, false)]
+    [DataRow(EpisodeParserType.Torrent, false)]
+    public async Task VersionWorkaroundDoesNotOverwriteEpisodeNumbers(EpisodeParserType parser, bool enabled)
     {
-        var info = new EpisodeInfo
+        var configuration = ServiceLocator.GetService<Bangumi.Plugin>().Configuration;
+        var previousParser = configuration.EpisodeParser;
+        var previousEnabled = configuration.MergeEpisodeVersionsByBangumiId;
+        try
         {
-            Path = "/anime/Season 1/[Nekomoe kissaten] Arifureta Shokugyou de Sekai Saikyou 02 [BDRip 1080p HEVC-10bit FLAC].mkv",
-            IndexNumber = 10,
-            ParentIndexNumber = 0,
-            IndexNumberEnd = 13
-        };
-        Assert.IsTrue(EpisodePreRefreshProvider.CorrectEpisodeNumbers(info, new LocalConfiguration()));
-        Assert.AreEqual(2, info.IndexNumber);
-        Assert.AreEqual(1, info.ParentIndexNumber);
-        Assert.IsNull(info.IndexNumberEnd);
-    }
-
-    [TestMethod]
-    public void HonorsForcedSpecialType()
-    {
-        var info = new EpisodeInfo { Path = "/anime/Season 1/Show - 02.mkv" };
-        Assert.IsTrue(EpisodePreRefreshProvider.CorrectEpisodeNumbers(info,
-            new LocalConfiguration { Type = DirectoryType.Special }));
-        Assert.AreEqual(0, info.ParentIndexNumber);
-    }
-
-    [TestMethod]
-    [DataRow("Show.mkv", false)]
-    [DataRow("Show - 01-02.mkv", false)]
-    [DataRow("Show - 01.5.mkv", false)]
-    [DataRow("Show - 02.mkv", true)]
-    public void LeavesUncertainOrSkippedEpisodesAlone(string name, bool skip)
-    {
-        var info = new EpisodeInfo { Path = "/anime/" + name, IndexNumber = 7, ParentIndexNumber = 3 };
-        Assert.IsFalse(EpisodePreRefreshProvider.CorrectEpisodeNumbers(info, new LocalConfiguration { Skip = skip }));
-        Assert.AreEqual(7, info.IndexNumber);
-        Assert.AreEqual(3, info.ParentIndexNumber);
+            configuration.EpisodeParser = parser;
+            configuration.MergeEpisodeVersionsByBangumiId = enabled;
+            var item = new JellyfinEpisode
+            {
+                Path = "/anime/White Album 2[01][Hi10p_1080p][BDRip][x264_2flac].mkv",
+                IndexNumber = 10,
+                IndexNumberEnd = 11,
+                ParentIndexNumber = 1
+            };
+            var result = await new EpisodePreRefreshProvider().FetchAsync(item, null!, CancellationToken.None);
+            Assert.AreEqual(10, item.IndexNumber);
+            Assert.AreEqual(11, item.IndexNumberEnd);
+            Assert.IsNull(item.ParentIndexNumber, "The selected metadata parser still determines the season.");
+            Assert.AreEqual(ItemUpdateType.None, result);
+        }
+        finally
+        {
+            configuration.EpisodeParser = previousParser;
+            configuration.MergeEpisodeVersionsByBangumiId = previousEnabled;
+        }
     }
 }

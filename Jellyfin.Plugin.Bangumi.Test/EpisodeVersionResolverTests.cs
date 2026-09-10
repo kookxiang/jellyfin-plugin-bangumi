@@ -168,6 +168,7 @@ public class EpisodeVersionResolverTests
     }
 
     [DataTestMethod]
+    [DataRow("Log Horizon 2 [08][Ma10p_1080p][x265_flac].mkv", "Log Horizon 2 [02][Ma10p_720p][x265_flac].mkv")]
     [DataRow("Show S01E01.mkv", "Show S02E01.mkv")]
     [DataRow("Show [01].mkv", "Show [SP][01].mkv")]
     [DataRow("Show [OP][01].mkv", "Show [ED][01].mkv")]
