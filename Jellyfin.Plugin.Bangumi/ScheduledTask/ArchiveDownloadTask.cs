@@ -47,6 +47,7 @@ public class ArchiveDownloadTask(BangumiApi api, ArchiveData archive, ITaskManag
         var version = new ArchiveVersion(archiveMeta.Id, archiveMeta.UpdateTime, archiveMeta.Size);
         if (await archive.IsCurrent(version, cancellationToken))
         {
+            await archive.CleanupObsoleteIndexes(version, cancellationToken);
             log.Info("bangumi archive {Version} is already up to date", version.Id);
             progress.Report(100);
             return;
@@ -113,6 +114,7 @@ public class ArchiveDownloadTask(BangumiApi api, ArchiveData archive, ITaskManag
         Directory.Delete(archive.TempPath, true);
 
         await archive.SaveVersion(version, cancellationToken);
+        await archive.CleanupObsoleteIndexes(version, cancellationToken);
         progress.Report(100);
 
         if (Plugin.Instance?.Configuration.RefreshRecentEpisodeWhenArchiveUpdate == true)

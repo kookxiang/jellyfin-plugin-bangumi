@@ -110,6 +110,14 @@ public class ArchiveRelationsTests
 
         var version = new Bangumi.Archive.ArchiveVersion(12345678901L, new DateTime(2026, 9, 10, 0, 0, 0, DateTimeKind.Utc), 1000);
         Assert.IsFalse(await archive.IsCurrent(version), "Existing archives without a version need an update.");
+        var oldPersonIndex = Path.Join(directory, "subject_person.map");
+        var oldSubjectIndex = Path.Join(directory, "subject_relation.map");
+        var unknownIndex = Path.Join(directory, "custom.map");
+        await File.WriteAllTextAsync(oldPersonIndex, "legacy persons");
+        await File.WriteAllTextAsync(oldSubjectIndex, "legacy subjects");
+        await File.WriteAllTextAsync(unknownIndex, "preserve");
+        await archive.CleanupObsoleteIndexes(version);
+        Assert.IsTrue(File.Exists(oldPersonIndex), "Do not clean before a successful import.");
         await archive.SaveVersion(version);
         archive = new Bangumi.Archive.ArchiveData(paths);
         Assert.IsTrue(await archive.IsCurrent(version), "The version must survive a restart.");
@@ -122,7 +130,17 @@ public class ArchiveRelationsTests
         var backup = Path.Join(temp, "subject-index-backup");
         File.Move(indexPath, backup);
         Assert.IsFalse(await archive.IsCurrent(version), "Missing data/index files must trigger repair.");
+        await archive.CleanupObsoleteIndexes(version);
+        Assert.IsTrue(File.Exists(oldPersonIndex), "Incomplete archives must retain legacy indexes.");
+        Assert.IsTrue(File.Exists(oldSubjectIndex));
         File.Move(backup, indexPath);
+        await archive.CleanupObsoleteIndexes(version with { Id = version.Id + 1 });
+        Assert.IsTrue(File.Exists(oldPersonIndex), "A mismatched version must not trigger cleanup.");
+        await archive.CleanupObsoleteIndexes(version);
+        Assert.IsFalse(File.Exists(oldPersonIndex));
+        Assert.IsFalse(File.Exists(oldSubjectIndex));
+        Assert.AreEqual("preserve", await File.ReadAllTextAsync(unknownIndex));
+        await archive.CleanupObsoleteIndexes(version); // Repeated cleanup is harmless.
         Assert.IsTrue(await archive.IsCurrent(version));
 
         archive.InvalidateVersion();

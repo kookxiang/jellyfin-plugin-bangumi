@@ -38,6 +38,19 @@ public class ArchiveData(IApplicationPaths paths)
         }
     }
 
+    public async Task CleanupObsoleteIndexes(ArchiveVersion version, CancellationToken token = default)
+    {
+        if (!await IsCurrent(version, token)) return;
+
+        // Only explicitly superseded indexes are disposable; preserve unknown files.
+        string[] obsoleteFiles = ["subject_person.map", "subject_relation.map"];
+        foreach (var fileName in obsoleteFiles)
+        {
+            token.ThrowIfCancellationRequested();
+            File.Delete(Path.Join(BasePath, fileName));
+        }
+    }
+
     public void InvalidateVersion()
     {
         if (!File.Exists(VersionPath)) return;
