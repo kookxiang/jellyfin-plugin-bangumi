@@ -82,7 +82,8 @@ public class EpisodeVersionResolverTests
     [TestMethod]
     public void SecondScanMergesOnlyIdenticalPositiveIds()
     {
-        var files = Files("01-a", "01-b", "02", "03", "04", "05", "06");
+        var files = Files("01", "01", "02", "03", "04", "05", "06");
+        files[1].FullName = files[1].FullName.Replace("1080p", "720p");
         string?[] ids = ["101", "101", "102", null, "0", "invalid", "-1"];
         for (var i = 0; i < files.Count; i++) Save(files[i], ids[i]);
         var result = _resolver.ResolveMultiple(_parent, files, CollectionType.tvshows, null!);
@@ -145,6 +146,44 @@ public class EpisodeVersionResolverTests
         Assert.AreEqual(1, result.Items.Count);
         CollectionAssert.AreEqual(new[] { files[1].FullName }, ((JellyfinEpisode)result.Items[0]).AdditionalParts);
         Assert.AreEqual(0, result.ExtraFiles.Count);
+    }
+
+    [TestMethod]
+    public void CopiedBangumiIdsCannotMergeDifferentFilenameNumbers()
+    {
+        var files = Files(Enumerable.Range(1, 13).Select(i => i.ToString("00")).ToArray());
+        var saved = files.Select(file => Save(file, "938953")).ToArray();
+        saved[0].LocalAlternateVersions = saved.Skip(1).Select(e => e.Path).ToArray();
+        foreach (var episode in saved.Skip(1))
+        {
+            episode.IndexNumber = 0;
+            episode.ParentIndexNumber = 0;
+            episode.OwnerId = saved[0].Id;
+            episode.SetPrimaryVersionId(saved[0].Id);
+        }
+        var result = _resolver.ResolveMultiple(_parent, files, CollectionType.tvshows, null!);
+        Assert.AreEqual(13, result.Items.Count);
+        Assert.IsTrue(result.Items.Cast<JellyfinEpisode>().All(e => e.LocalAlternateVersions.Length == 0));
+        Assert.IsTrue(saved.All(e => e.OwnerId == Guid.Empty && e.PrimaryVersionId == null));
+    }
+
+    [DataTestMethod]
+    [DataRow("Show S01E01.mkv", "Show S02E01.mkv")]
+    [DataRow("Show [01].mkv", "Show [SP][01].mkv")]
+    [DataRow("Show [OP][01].mkv", "Show [ED][01].mkv")]
+    [DataRow("Show [12].mkv", "Show [12.5].mkv")]
+    [DataRow("Show [1080p HEVC-10bit].mkv", "Show [720p HEVC-10bit].mkv")]
+    [DataRow("Show [01-02].mkv", "Show [01].mkv")]
+    public void ConflictingOrUnknownPathIdentitiesStaySeparate(string first, string second)
+    {
+        var files = new List<FileSystemMetadata>
+        {
+            new() { FullName = _parent.Path + "/" + first },
+            new() { FullName = _parent.Path + "/" + second },
+        };
+        files.ForEach(file => Save(file, "101"));
+        var result = _resolver.ResolveMultiple(_parent, files, CollectionType.tvshows, null!);
+        Assert.AreEqual(2, result.Items.Count);
     }
 
     private List<FileSystemMetadata> Files(params string[] numbers) => numbers.Select(number => new FileSystemMetadata

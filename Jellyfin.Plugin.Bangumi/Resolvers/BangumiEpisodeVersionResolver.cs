@@ -1,6 +1,12 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Globalization;
+using AnitomySharp;
+using EpisodeType = Jellyfin.Plugin.Bangumi.Model.EpisodeType;
+using LocalConfiguration = Jellyfin.Plugin.Bangumi.Model.LocalConfiguration;
+using Jellyfin.Plugin.Bangumi.Parser.AnitomyParser;
+using Jellyfin.Plugin.Bangumi.Parser.BasicParser;
 using System.IO;
 using System.Threading;
 using System.Text.RegularExpressions;
@@ -19,7 +25,7 @@ using MediaBrowser.Model.Entities;
 namespace Jellyfin.Plugin.Bangumi.Resolvers;
 
 /// <summary>
-/// Uses persisted episode identities instead of filename guesses for local version groups.
+/// Requires both persisted Bangumi IDs and matching path identities for local version groups.
 /// Jellyfin discovers IItemResolver exports and runs Plugin priority before its built-in resolver.
 /// </summary>
 public partial class BangumiEpisodeVersionResolver(
@@ -54,7 +60,8 @@ public partial class BangumiEpisodeVersionResolver(
             supportMultiVersion: false, parseName: true, libraryRoot: parent.ContainingFolderPath, collectionType: collectionType);
         var result = new MultiItemResolverResult();
         var consumed = new HashSet<string>(StringComparer.Ordinal);
-        var groups = new Dictionary<int, Episode>();
+        var groups = new Dictionary<(int Id, FileIdentity Identity), Episode>();
+        var localConfiguration = LocalConfiguration.ForPath(parent.Path).GetAwaiter().GetResult();
         var savedEpisodes = new Dictionary<string, Episode>(StringComparer.Ordinal);
 
         foreach (var video in standalone.OrderBy(video => video.Files[0].Path, StringComparer.Ordinal))
@@ -79,15 +86,18 @@ public partial class BangumiEpisodeVersionResolver(
             if (saved != null)
                 savedEpisodes[path] = saved;
             var hasId = int.TryParse(saved?.GetProviderId(Constants.ProviderName), out var id) && id > 0;
-            if (hasId && groups.TryGetValue(id, out var primary))
+            var identity = GetFileIdentity(path, localConfiguration);
+            var canGroup = hasId && identity != null;
+            var key = (id, identity.GetValueOrDefault());
+            if (canGroup && groups.TryGetValue(key, out var primary))
             {
                 primary.LocalAlternateVersions = [.. primary.LocalAlternateVersions, path];
             }
             else
             {
                 result.Items.Add(episode);
-                if (hasId)
-                    groups.Add(id, episode);
+                if (canGroup)
+                    groups.Add(key, episode);
             }
         }
 
@@ -95,6 +105,35 @@ public partial class BangumiEpisodeVersionResolver(
         result.ExtraFiles = files.Where(file => !consumed.Contains(file.FullName)).ToList();
         DetachChangedLocalVersions(parent, result.Items.Cast<Episode>().ToArray(), savedEpisodes);
         return result.Items.Count > 0 ? result : null!;
+    }
+
+    internal readonly record struct FileIdentity(int Season, decimal Number, EpisodeType Type);
+
+    internal static FileIdentity? GetFileIdentity(string path, LocalConfiguration configuration)
+    {
+        // Read only the path, never IndexNumber/ParentIndexNumber or API metadata copied by Jellyfin.
+        // Anitomy already distinguishes release numbers from HEVC-10bit, resolution and checksums.
+        var fileName = Path.GetFileName(path);
+        var parsed = new Anitomy(fileName);
+        var numbers = parsed.GetElements()
+            .Where(element => element.Category == Element.ElementCategory.ElementEpisodeNumber)
+            .Select(element => element.Value).ToArray();
+        if (numbers.Length != 1 || !decimal.TryParse(numbers[0], NumberStyles.AllowDecimalPoint,
+                CultureInfo.InvariantCulture, out var number) || number < 0)
+            return null;
+
+        var seasonText = parsed.ExtractAnimeSeason()
+            ?? new Anitomy(Path.GetFileName(Path.GetDirectoryName(path)) ?? "").ExtractAnimeSeason();
+        var season = 1;
+        if (seasonText != null && (!int.TryParse(seasonText, NumberStyles.None,
+                CultureInfo.InvariantCulture, out season) || season < 0))
+            return null;
+
+        var type = configuration.GetForcedEpisodeType()
+            ?? BasicEpisodeParser.GuessEpisodeTypeFromFileName(fileName)
+            ?? AnitomyEpisodeTypeMapping.GetAnitomyAndBangumiEpisodeType(parsed.ExtractAnimeType()).Item2
+            ?? EpisodeType.Normal;
+        return new FileIdentity(season, number, type);
     }
 
     private void DetachChangedLocalVersions(Folder parent, Episode[] resolved, Dictionary<string, Episode> saved)

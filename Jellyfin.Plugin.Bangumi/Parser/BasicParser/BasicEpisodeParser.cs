@@ -307,7 +307,7 @@ public partial class BasicEpisodeParser(EpisodeParserContext context, Logger<Bas
         }
     }
 
-    private static EpisodeType? GuessEpisodeTypeFromFileName(string fileName)
+    internal static EpisodeType? GuessEpisodeTypeFromFileName(string fileName)
     {
         var tempName = fileName;
         foreach (var regex in _nonEpisodeFileNameRegex)
