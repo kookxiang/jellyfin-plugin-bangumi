@@ -36,6 +36,7 @@ export function createController(container, host) {
         currentDirectory: null,
         selectedItemId: '',
         searchTimer: 0,
+        searchComposing: false,
         requestId: 0,
         dialog: null,
         dialogHelper: null,
@@ -1144,13 +1145,27 @@ export function createController(container, host) {
         loadMediaLibraryItems();
     });
 
-    container.querySelector('#bangumi-media-library-search').addEventListener('input', function () {
+    function scheduleMediaLibrarySearch() {
         window.clearTimeout(mediaLibraryState.searchTimer);
         mediaLibraryState.searchTimer = window.setTimeout(function () {
             mediaLibraryState.startIndex = 0;
             mediaLibraryState.currentDirectory = null;
             loadMediaLibraryItems();
         }, 300);
+    }
+
+    const mediaLibrarySearch = container.querySelector('#bangumi-media-library-search');
+    mediaLibrarySearch.addEventListener('compositionstart', function () {
+        mediaLibraryState.searchComposing = true;
+        window.clearTimeout(mediaLibraryState.searchTimer);
+    });
+    mediaLibrarySearch.addEventListener('compositionend', function () {
+        mediaLibraryState.searchComposing = false;
+        scheduleMediaLibrarySearch();
+    });
+    mediaLibrarySearch.addEventListener('input', function (event) {
+        if (mediaLibraryState.searchComposing || event.isComposing) return;
+        scheduleMediaLibrarySearch();
     });
 
     container.querySelector('#bangumi-media-library-refresh').addEventListener('click', function () {
