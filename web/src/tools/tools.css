@@ -115,6 +115,11 @@ section {
     font-weight: 500;
 }
 
+.tool-filters {
+    display: grid;
+    gap: 16px;
+}
+
 .tool-field {
     display: flex;
     flex-direction: column;

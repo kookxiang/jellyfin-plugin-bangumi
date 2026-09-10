@@ -542,9 +542,25 @@ document.querySelector('#run').onclick = async () => {
         tool = toolsRoot.querySelector('bangumi-tool-missing-title').shadowRoot;
         await tick();
         assert(tool.querySelector('#refresh').disabled, '补全标题先扫描再刷新');
+        assert(tool.querySelector('#recent-only').checked, '默认只搜索近一个月更新的视频');
         tool.querySelector('#scan').click();
         await tick();
         assert(tool.querySelectorAll('input[data-item]:checked').length === 3, '缺失标题扫描默认全选');
+        assert(
+            toolCalls.some((call) => call.url.includes('MissingTitle/Items?recentOnly=true')),
+            '扫描传递最近更新筛选',
+        );
+        tool.querySelector('#recent-only').click();
+        assert(
+            !tool.querySelector('input[data-item]') && tool.querySelector('#refresh').disabled,
+            '修改日期筛选清空旧结果',
+        );
+        tool.querySelector('#scan').click();
+        await tick();
+        assert(
+            toolCalls.some((call) => call.url.includes('MissingTitle/Items?recentOnly=false')),
+            '可以关闭最近更新筛选',
+        );
         assert(
             tool.querySelectorAll('.missing-series').length === 2 && !tool.querySelector('.missing-season'),
             '缺失标题仅按系列分组',

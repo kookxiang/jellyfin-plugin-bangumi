@@ -128,6 +128,25 @@ public class MissingTitleTests
     }
 
     [TestMethod]
+    public async Task ScanDefaultsToRecentlyModifiedVideos()
+    {
+        var recent = AddEpisode();
+        recent.DateModified = DateTime.UtcNow.AddDays(-10);
+        var old = AddEpisode();
+        old.DateModified = DateTime.UtcNow.AddMonths(-2);
+        var unknown = AddEpisode();
+        unknown.DateModified = default;
+
+        var response = await _controller.GetItems();
+        var found = (List<MissingTitleItem>)((OkObjectResult)response.Result!).Value!;
+        CollectionAssert.AreEqual(new[] { recent.Id }, found.Select(item => item.Id).ToArray());
+
+        response = await _controller.GetItems(recentOnly: false);
+        found = (List<MissingTitleItem>)((OkObjectResult)response.Result!).Value!;
+        CollectionAssert.AreEquivalent(new[] { recent.Id, old.Id, unknown.Id }, found.Select(item => item.Id).ToArray());
+    }
+
+    [TestMethod]
     public async Task SubmittingQueuesJellyfinRefreshAndRevalidatesItems()
     {
         var included = AddEpisode();
@@ -175,7 +194,7 @@ public class MissingTitleTests
     {
         var item = new JellyfinEpisode
         {
-            Id = Guid.NewGuid(), Name = "Show S01E01",
+            Id = Guid.NewGuid(), Name = "Show S01E01", DateModified = DateTime.UtcNow,
             Path = FakePath.CreateFile($"missing-title-{Guid.NewGuid()}/Show S01E01.mkv"),
             SeriesId = Guid.NewGuid(), SeriesName = "Show",
         };

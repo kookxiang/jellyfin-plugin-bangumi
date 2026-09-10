@@ -41,7 +41,7 @@ public class Controller(
         .Select(folder => new { Id = LibraryKey(folder), folder.Name }));
 
     [HttpGet("Items")]
-    public async Task<ActionResult<List<MissingTitleItem>>> GetItems([FromQuery] string? libraryId = null, CancellationToken cancellationToken = default)
+    public async Task<ActionResult<List<MissingTitleItem>>> GetItems([FromQuery] string? libraryId = null, [FromQuery] bool recentOnly = true, CancellationToken cancellationToken = default)
     {
         var locations = string.IsNullOrWhiteSpace(libraryId) ? null : library.GetVirtualFolders()
             .FirstOrDefault(folder => LibraryKey(folder) == libraryId)?.Locations;
@@ -53,10 +53,12 @@ public class Controller(
             IncludeItemTypes = [BaseItemKind.Episode, BaseItemKind.Movie],
             IsVirtualItem = false,
         });
+        var minimumModifiedDate = DateTime.UtcNow.AddMonths(-1);
         var result = new List<MissingTitleItem>();
         foreach (var item in items)
         {
             cancellationToken.ThrowIfCancellationRequested();
+            if (recentOnly && item.DateModified < minimumModifiedDate) continue;
             if (locations is not null && !locations.Any(location => MissingBangumiId.Controller.IsInLibrary(item.Path, location)))
                 continue;
             var reason = GetMatchReason(item, namingOptions);
