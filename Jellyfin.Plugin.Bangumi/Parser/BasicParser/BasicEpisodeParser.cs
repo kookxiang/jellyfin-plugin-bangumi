@@ -16,6 +16,8 @@ public partial class BasicEpisodeParser(EpisodeParserContext context, Logger<Bas
     [
         new(@"[\[\(][0-9A-F]{8}[\]\)]", RegexOptions.IgnoreCase),
         new(@"S\d{2,}", RegexOptions.IgnoreCase),
+        // A release year after an episode number and a dot is not a fractional episode number.
+        new(@"(?<=\d\.)(?:19|20)\d{2}(?=\.|$)"),
         new(@"yuv[4|2|0]{3}p(10|8)?", RegexOptions.IgnoreCase),
         new(@"\d{3,4}p", RegexOptions.IgnoreCase),
         new(@"\d{3,4}x\d{3,4}", RegexOptions.IgnoreCase),
