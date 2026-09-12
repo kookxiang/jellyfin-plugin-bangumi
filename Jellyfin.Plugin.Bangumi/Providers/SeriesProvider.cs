@@ -151,11 +151,14 @@ public class SeriesProvider(BangumiApi api, Logger<SeriesProvider> log)
             var subject = await api.GetSubject(id, cancellationToken);
             if (subject == null)
                 return results;
+            var imageUrl = ImageUrlNormalizer.Normalize(subject.DefaultImage);
+            if (string.IsNullOrEmpty(imageUrl))
+                imageUrl = await api.GetSubjectImage(subject.Id, cancellationToken);
             var result = new RemoteSearchResult
             {
                 Name = subject.Name,
                 SearchProviderName = subject.OriginalName,
-                ImageUrl = ImageUrlNormalizer.Normalize(subject.DefaultImage) ?? await api.GetSubjectImage(id, cancellationToken),
+                ImageUrl = imageUrl,
                 Overview = subject.Summary
             };
             if (DateTime.TryParse(subject.AirDate, out var airDate))
@@ -171,11 +174,14 @@ public class SeriesProvider(BangumiApi api, Logger<SeriesProvider> log)
             foreach (var item in series)
             {
                 var itemId = $"{item.Id}";
+                var imageUrl = ImageUrlNormalizer.Normalize(item.DefaultImage);
+                if (string.IsNullOrEmpty(imageUrl))
+                    imageUrl = await api.GetSubjectImage(item.Id, cancellationToken);
                 var result = new RemoteSearchResult
                 {
                     Name = item.Name,
                     SearchProviderName = item.OriginalName,
-                    ImageUrl = ImageUrlNormalizer.Normalize(item.DefaultImage),
+                    ImageUrl = imageUrl,
                     Overview = item.Summary
                 };
                 if (DateTime.TryParse(item.AirDate, out var airDate))
