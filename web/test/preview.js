@@ -258,6 +258,23 @@ const assert = (value, message) => {
 document.querySelector('#run').onclick = async () => {
     try {
         const root = app.shadowRoot;
+        const entryUrl = new URL(location.href);
+        entryUrl.hash = '';
+        history.replaceState(history.state, '', entryUrl);
+        root.querySelector('[data-target=network]').click();
+        await new Promise((resolve) => {
+            window.addEventListener('popstate', resolve, { once: true });
+            history.back();
+        });
+        assert(
+            root.querySelector('.bangumi-settings-panel.active').dataset.section === 'account',
+            '后退到默认入口恢复账号页',
+        );
+        await new Promise((resolve) => {
+            window.addEventListener('popstate', resolve, { once: true });
+            history.forward();
+        });
+        assert(root.querySelector('.bangumi-settings-panel.active').dataset.section === 'network', '前进恢复网络页');
         const saveBar = root.querySelector('.submit-button-container');
         assert(saveBar.hidden, '初始无修改隐藏保存栏');
         const dirtyField = root.querySelector('#ReportPlaybackStatusToBangumi');

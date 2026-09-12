@@ -70,7 +70,8 @@ export function createController(container, host) {
 
     function getResolvedModule(module) {
         var availableModules = getAvailableModules();
-        return availableModules.indexOf(module) !== -1 ? module : getDefaultModule();
+        // An entry without a module is the account page, not the currently visible panel.
+        return availableModules.indexOf(module) !== -1 ? module : 'account';
     }
 
     function applyModuleFromHash() {
