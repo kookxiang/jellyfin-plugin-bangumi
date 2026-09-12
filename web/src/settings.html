@@ -238,81 +238,99 @@
                                     </section>
                                     <section class="bangumi-settings-group" aria-labelledby="metadata-search-heading">
                                         <h3 class="bangumi-settings-subheading" id="metadata-search-heading">搜索</h3>
-                                        <bangumi-checkbox class="checkboxContainer checkboxContainer-withDescription">
-                                            <input
-                                                aria-labelledby="UseOriginalTitleFirst-label"
-                                                aria-describedby="UseOriginalTitleFirst-description"
-                                                slot="control"
-                                                id="UseOriginalTitleFirst"
-                                                type="checkbox"
-                                            />
-                                            <label slot="label" for="UseOriginalTitleFirst">
-                                                <span id="UseOriginalTitleFirst-label">优先使用原标题搜索</span>
-                                                <span class="fieldDescription" id="UseOriginalTitleFirst-description"
-                                                    >当存在原标题(OriginalTitle)时，优先使用原标题进行搜索，而不是使用翻译后的名称。这可以提高跨平台信息匹配的准确性，特别是对于不同平台翻译不一致的情况。</span
-                                                >
-                                            </label>
-                                        </bangumi-checkbox>
-                                        <bangumi-checkbox class="checkboxContainer checkboxContainer-withDescription">
-                                            <input
-                                                aria-labelledby="AlwaysGetTitleByAnitomySharp-label"
-                                                slot="control"
-                                                id="AlwaysGetTitleByAnitomySharp"
-                                                type="checkbox"
-                                            />
-                                            <label slot="label" for="AlwaysGetTitleByAnitomySharp">
-                                                <span id="AlwaysGetTitleByAnitomySharp-label"
-                                                    >优先使用 AnitomySharp 猜测动画名</span
-                                                >
-                                            </label>
-                                        </bangumi-checkbox>
-                                        <bangumi-checkbox class="checkboxContainer checkboxContainer-withDescription">
-                                            <input
-                                                aria-labelledby="UseTestingSearchApi-label"
-                                                aria-describedby="UseTestingSearchApi-description"
-                                                slot="control"
-                                                id="UseTestingSearchApi"
-                                                type="checkbox"
-                                            />
-                                            <label slot="label" for="UseTestingSearchApi">
-                                                <span id="UseTestingSearchApi-label">使用测试版 Bangumi 搜索接口</span>
-                                                <span class="fieldDescription" id="UseTestingSearchApi-description"
-                                                    >注：搜索结果不一定更准确。</span
-                                                >
-                                            </label>
-                                        </bangumi-checkbox>
-                                        <bangumi-checkbox class="checkboxContainer checkboxContainer-withDescription">
-                                            <input
-                                                aria-labelledby="PreferAnimeSearch-label"
-                                                aria-describedby="PreferAnimeSearch-description"
-                                                slot="control"
-                                                id="PreferAnimeSearch"
-                                                type="checkbox"
-                                            />
-                                            <label slot="label" for="PreferAnimeSearch">
-                                                <span id="PreferAnimeSearch-label">优先搜索动漫</span>
-                                                <span class="fieldDescription" id="PreferAnimeSearch-description"
-                                                    >启用后，搜索电影和剧集元数据时只返回动漫类型的条目；关闭后不限制条目类型，可用于匹配真人秀或电视剧。</span
-                                                >
-                                            </label>
-                                        </bangumi-checkbox>
-                                        <bangumi-checkbox class="checkboxContainer checkboxContainer-withDescription">
-                                            <input
-                                                aria-labelledby="SortByFuzzScore-label"
-                                                aria-describedby="SortByFuzzScore-description"
-                                                slot="control"
-                                                id="SortByFuzzScore"
-                                                type="checkbox"
-                                            />
-                                            <label slot="label" for="SortByFuzzScore">
-                                                <span id="SortByFuzzScore-label"
-                                                    >使用 FuzzyWuzzy 算法对匹配结果排序</span
-                                                >
-                                                <span class="fieldDescription" id="SortByFuzzScore-description"
-                                                    >排序时会加入条目别名，提高首个条目匹配率。测试接口未启用此算法</span
-                                                >
-                                            </label>
-                                        </bangumi-checkbox>
+                                        <bangumi-checkbox-group aria-label="搜索名称">
+                                            <bangumi-checkbox
+                                                class="checkboxContainer checkboxContainer-withDescription"
+                                            >
+                                                <input
+                                                    aria-labelledby="UseOriginalTitleFirst-label"
+                                                    aria-describedby="UseOriginalTitleFirst-description"
+                                                    slot="control"
+                                                    id="UseOriginalTitleFirst"
+                                                    type="checkbox"
+                                                />
+                                                <label slot="label" for="UseOriginalTitleFirst">
+                                                    <span id="UseOriginalTitleFirst-label">优先使用原标题搜索</span>
+                                                    <span
+                                                        class="fieldDescription"
+                                                        id="UseOriginalTitleFirst-description"
+                                                        >当存在原标题(OriginalTitle)时，优先使用原标题进行搜索，而不是使用翻译后的名称。这可以提高跨平台信息匹配的准确性，特别是对于不同平台翻译不一致的情况。</span
+                                                    >
+                                                </label>
+                                            </bangumi-checkbox>
+                                            <bangumi-checkbox
+                                                class="checkboxContainer checkboxContainer-withDescription"
+                                            >
+                                                <input
+                                                    aria-labelledby="AlwaysGetTitleByAnitomySharp-label"
+                                                    slot="control"
+                                                    id="AlwaysGetTitleByAnitomySharp"
+                                                    type="checkbox"
+                                                />
+                                                <label slot="label" for="AlwaysGetTitleByAnitomySharp">
+                                                    <span id="AlwaysGetTitleByAnitomySharp-label"
+                                                        >优先使用 AnitomySharp 猜测动画名</span
+                                                    >
+                                                </label>
+                                            </bangumi-checkbox>
+                                        </bangumi-checkbox-group>
+                                        <bangumi-checkbox-group aria-label="搜索接口与结果">
+                                            <bangumi-checkbox
+                                                class="checkboxContainer checkboxContainer-withDescription"
+                                            >
+                                                <input
+                                                    aria-labelledby="UseTestingSearchApi-label"
+                                                    aria-describedby="UseTestingSearchApi-description"
+                                                    slot="control"
+                                                    id="UseTestingSearchApi"
+                                                    type="checkbox"
+                                                />
+                                                <label slot="label" for="UseTestingSearchApi">
+                                                    <span id="UseTestingSearchApi-label"
+                                                        >使用测试版 Bangumi 搜索接口</span
+                                                    >
+                                                    <span class="fieldDescription" id="UseTestingSearchApi-description"
+                                                        >注：搜索结果不一定更准确。</span
+                                                    >
+                                                </label>
+                                            </bangumi-checkbox>
+                                            <bangumi-checkbox
+                                                class="checkboxContainer checkboxContainer-withDescription"
+                                            >
+                                                <input
+                                                    aria-labelledby="PreferAnimeSearch-label"
+                                                    aria-describedby="PreferAnimeSearch-description"
+                                                    slot="control"
+                                                    id="PreferAnimeSearch"
+                                                    type="checkbox"
+                                                />
+                                                <label slot="label" for="PreferAnimeSearch">
+                                                    <span id="PreferAnimeSearch-label">优先搜索动漫</span>
+                                                    <span class="fieldDescription" id="PreferAnimeSearch-description"
+                                                        >启用后，搜索电影和剧集元数据时只返回动漫类型的条目；关闭后不限制条目类型，可用于匹配真人秀或电视剧。</span
+                                                    >
+                                                </label>
+                                            </bangumi-checkbox>
+                                            <bangumi-checkbox
+                                                class="checkboxContainer checkboxContainer-withDescription"
+                                            >
+                                                <input
+                                                    aria-labelledby="SortByFuzzScore-label"
+                                                    aria-describedby="SortByFuzzScore-description"
+                                                    slot="control"
+                                                    id="SortByFuzzScore"
+                                                    type="checkbox"
+                                                />
+                                                <label slot="label" for="SortByFuzzScore">
+                                                    <span id="SortByFuzzScore-label"
+                                                        >使用 FuzzyWuzzy 算法对匹配结果排序</span
+                                                    >
+                                                    <span class="fieldDescription" id="SortByFuzzScore-description"
+                                                        >排序时会加入条目别名，提高首个条目匹配率。测试接口未启用此算法</span
+                                                    >
+                                                </label>
+                                            </bangumi-checkbox>
+                                        </bangumi-checkbox-group>
                                     </section>
                                     <section
                                         class="bangumi-settings-group"
