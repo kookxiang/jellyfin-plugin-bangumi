@@ -417,6 +417,9 @@ document.querySelector('#run').onclick = async () => {
         librarySelect.value = 'name:Anime';
         librarySelect.dispatchEvent(new Event('change'));
         await tick();
+        assert(!toolCalls.some((call) => call.url.includes('/MediaLibrary/Items')), '选择媒体库不自动搜索');
+        root.querySelector('#bangumi-media-library-submit').click();
+        await tick();
         assert(
             root.querySelector('.bangumi-media-list-edit').closest('bangumi-button')?.hasAttribute('icon'),
             '媒体库配置操作使用图标按钮',

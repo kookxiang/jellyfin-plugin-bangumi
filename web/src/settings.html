@@ -1152,7 +1152,7 @@
                                             <label
                                                 class="inputLabel inputLabelUnfocused"
                                                 for="bangumi-media-library-search"
-                                                >搜索</label
+                                                >关键词（可选）</label
                                             >
                                             <input
                                                 class="emby-input"
@@ -1161,6 +1161,19 @@
                                                 placeholder="系列名称、季名称或文件路径"
                                                 type="search"
                                             />
+                                        </div>
+                                        <div class="bangumi-media-search-action">
+                                            <bangumi-button variant="primary">
+                                                <button
+                                                    id="bangumi-media-library-submit"
+                                                    type="button"
+                                                    data-config-ignore
+                                                    disabled
+                                                >
+                                                    <span class="material-icons" aria-hidden="true">search</span>
+                                                    搜索
+                                                </button>
+                                            </bangumi-button>
                                         </div>
                                     </div>
                                     <div class="bangumi-media-navigation">
@@ -1190,6 +1203,7 @@
                                             ><button
                                                 data-config-ignore
                                                 id="bangumi-media-library-refresh"
+                                                disabled
                                                 title="刷新"
                                                 type="button"
                                                 aria-label="刷新"

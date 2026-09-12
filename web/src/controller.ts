@@ -35,8 +35,7 @@ export function createController(container, host) {
         rootItems: [],
         currentDirectory: null,
         selectedItemId: '',
-        searchTimer: 0,
-        searchComposing: false,
+        query: null as { libraryId: string; search: string; label: string } | null,
         requestId: 0,
         dialog: null,
         dialogHelper: null,
@@ -189,7 +188,6 @@ export function createController(container, host) {
 
     function onUnload() {
         active = false;
-        window.clearTimeout(mediaLibraryState.searchTimer);
         closeMediaLibraryDialog();
         account.hide();
         window.removeEventListener('hashchange', applyModuleFromHash);
@@ -267,7 +265,7 @@ export function createController(container, host) {
         }
 
         var select = container.querySelector('#bangumi-media-library-select');
-        select.replaceChildren(new Option('请选择媒体库', ''), new Option('全部媒体库（手动加载）', '*'));
+        select.replaceChildren(new Option('请选择媒体库', ''), new Option('全部媒体库', '*'));
         libraries.forEach(function (libraryInfo) {
             select.appendChild(new Option(libraryInfo.Name || '未命名媒体库', libraryInfo.Id));
         });
@@ -352,6 +350,8 @@ export function createController(container, host) {
             ? mediaLibraryState.currentDirectory.Children || []
             : mediaLibraryState.rootItems;
 
+        container.querySelector('.bangumi-media-navigation').hidden = !mediaLibraryState.query;
+        empty.classList.toggle('is-idle', !mediaLibraryState.query);
         list.replaceChildren();
         items.forEach(function (item) {
             list.appendChild(createMediaLibraryListItem(item));
@@ -364,14 +364,13 @@ export function createController(container, host) {
             pagination.style.display = 'none';
             empty.textContent = '此系列下没有已索引的媒体文件夹';
         } else {
-            var select = container.querySelector('#bangumi-media-library-select');
-            var selectedOption = select.options[select.selectedIndex];
+            const query = mediaLibraryState.query;
             backButton.style.display = 'none';
-            currentLabel.textContent = selectedOption ? selectedOption.textContent : '请选择媒体库';
+            currentLabel.textContent = query ? query.label : '等待搜索';
             summary.textContent = '共找到 ' + mediaLibraryState.totalItemCount + ' 个可配置目录';
             pagination.style.display = mediaLibraryState.totalRecordCount > mediaLibraryState.pageSize ? '' : 'none';
-            empty.textContent = select.value ? '当前筛选条件下没有可配置的系列目录' : '请选择媒体库后加载目录';
-            if (!select.value) summary.textContent = '';
+            empty.textContent = query ? '当前筛选条件下没有可配置的系列目录' : '选择媒体库，可填写关键词，然后点击搜索';
+            if (!query) summary.textContent = '';
             updateMediaLibraryPagination();
         }
 
@@ -381,9 +380,8 @@ export function createController(container, host) {
 
     async function loadMediaLibraryItems() {
         var requestId = ++mediaLibraryState.requestId;
-        var select = container.querySelector('#bangumi-media-library-select');
-        var search = container.querySelector('#bangumi-media-library-search');
-        if (!select.value) {
+        const query = mediaLibraryState.query;
+        if (!query) {
             mediaLibraryState.rootItems = [];
             mediaLibraryState.currentDirectory = null;
             mediaLibraryState.totalRecordCount = 0;
@@ -398,8 +396,8 @@ export function createController(container, host) {
             var response = await ApiClient.fetch({
                 type: 'GET',
                 url: getMediaLibraryApiUrl('/Items', {
-                    libraryId: select.value === '*' ? '' : select.value,
-                    search: search.value.trim(),
+                    libraryId: query.libraryId === '*' ? '' : query.libraryId,
+                    search: query.search,
                     startIndex: String(mediaLibraryState.startIndex),
                     limit: String(mediaLibraryState.pageSize),
                 }),
@@ -1140,33 +1138,29 @@ export function createController(container, host) {
         });
     });
 
-    container.querySelector('#bangumi-media-library-select').addEventListener('change', function () {
+    const mediaLibrarySelect = container.querySelector('#bangumi-media-library-select');
+    const mediaLibrarySearch = container.querySelector('#bangumi-media-library-search');
+    const mediaLibrarySearchButton = container.querySelector('#bangumi-media-library-submit');
+    mediaLibrarySelect.addEventListener('change', function () {
+        mediaLibrarySearchButton.disabled = !mediaLibrarySelect.value;
+    });
+    function searchMediaLibrary() {
+        if (!mediaLibrarySelect.value) return;
+        mediaLibraryState.query = {
+            libraryId: mediaLibrarySelect.value,
+            search: mediaLibrarySearch.value.trim(),
+            label: mediaLibrarySelect.options[mediaLibrarySelect.selectedIndex].textContent,
+        };
         mediaLibraryState.startIndex = 0;
         mediaLibraryState.currentDirectory = null;
+        container.querySelector('#bangumi-media-library-refresh').disabled = false;
         loadMediaLibraryItems();
-    });
-
-    function scheduleMediaLibrarySearch() {
-        window.clearTimeout(mediaLibraryState.searchTimer);
-        mediaLibraryState.searchTimer = window.setTimeout(function () {
-            mediaLibraryState.startIndex = 0;
-            mediaLibraryState.currentDirectory = null;
-            loadMediaLibraryItems();
-        }, 300);
     }
-
-    const mediaLibrarySearch = container.querySelector('#bangumi-media-library-search');
-    mediaLibrarySearch.addEventListener('compositionstart', function () {
-        mediaLibraryState.searchComposing = true;
-        window.clearTimeout(mediaLibraryState.searchTimer);
-    });
-    mediaLibrarySearch.addEventListener('compositionend', function () {
-        mediaLibraryState.searchComposing = false;
-        scheduleMediaLibrarySearch();
-    });
-    mediaLibrarySearch.addEventListener('input', function (event) {
-        if (mediaLibraryState.searchComposing || event.isComposing) return;
-        scheduleMediaLibrarySearch();
+    mediaLibrarySearchButton.addEventListener('click', searchMediaLibrary);
+    mediaLibrarySearch.addEventListener('keydown', function (event) {
+        if (event.key !== 'Enter') return;
+        event.preventDefault();
+        if (!event.isComposing && event.keyCode !== 229) searchMediaLibrary();
     });
 
     container.querySelector('#bangumi-media-library-refresh').addEventListener('click', function () {

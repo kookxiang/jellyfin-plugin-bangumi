@@ -8,13 +8,35 @@
 
 .bangumi-media-toolbar {
     display: grid;
-    grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
+    grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr) auto;
+    align-items: end;
     gap: 16px;
 }
 
 .bangumi-media-toolbar > * {
     min-width: 0;
     margin: 0;
+}
+
+.bangumi-media-toolbar > .inputContainer,
+.bangumi-media-toolbar > .selectContainer {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.bangumi-media-toolbar label {
+    margin: 0;
+}
+
+.bangumi-media-search-action button {
+    min-height: 48px;
+    min-width: 104px;
+}
+
+.bangumi-media-empty.is-idle {
+    padding: 24px 16px;
+    background: transparent;
 }
 
 .bangumi-media-navigation {
@@ -155,6 +177,10 @@
 @media (max-width: 600px) {
     .bangumi-media-toolbar {
         grid-template-columns: 1fr;
+    }
+
+    .bangumi-media-search-action button {
+        width: 100%;
     }
 
     .bangumi-media-list-item {
