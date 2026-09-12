@@ -30,6 +30,11 @@ public class EpisodeProvider(BangumiApi api, Logger<EpisodeProvider> log, ILibra
     public async Task<MetadataResult<Episode>> GetMetadata(EpisodeInfo info, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
+        // Virtual episodes are maintained from the archive by MissingEpisodeProvider.
+        // They have no file to parse and must never trigger an online metadata fallback.
+        if (string.IsNullOrEmpty(info.Path))
+            return new MetadataResult<Episode> { ResultLanguage = Constants.Language };
+
         using var refreshScope = BangumiApi.BeginRequestedRefresh(info.Path);
         var localConfiguration = await LocalConfiguration.ForPath(info.Path);
 

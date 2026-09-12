@@ -119,11 +119,51 @@ export function createController(container, host) {
     }
 
     function loadConfiguration() {
-        return ApiClient.getPluginConfiguration(pluginId).then(function (config) {
+        return ApiClient.getPluginConfiguration(pluginId).then(async function (config) {
             configuration = config;
+            const missingLibraries = container.querySelector('#EnabledMissingEpisodeLibraries');
+            if (missingLibraries && 'EnabledMissingEpisodeLibraries' in config) {
+                const libraries = await ApiClient.getJSON(
+                    ApiClient.getUrl('/Plugins/Bangumi/Tools/MediaLibrary/Libraries'),
+                );
+                missingLibraries.replaceChildren();
+                const selected = new Set(config.EnabledMissingEpisodeLibraries || []);
+                const knownIds = new Set(libraries.map((library) => library.Id));
+                const choices = [
+                    ...libraries,
+                    ...[...selected]
+                        .filter((id) => !knownIds.has(id))
+                        .map((id) => ({
+                            Id: id,
+                            Name: '未找到的媒体库：' + id,
+                        })),
+                ];
+                for (const [index, library] of choices.entries()) {
+                    const checkbox = document.createElement('bangumi-checkbox');
+                    const input = document.createElement('input');
+                    input.slot = 'control';
+                    input.type = 'checkbox';
+                    input.id = 'bangumi-missing-library-' + index;
+                    input.name = 'EnabledMissingEpisodeLibraries';
+                    input.value = library.Id;
+                    input.checked = selected.has(library.Id);
+                    const label = document.createElement('label');
+                    label.slot = 'label';
+                    label.htmlFor = input.id;
+                    label.textContent = library.Name;
+                    checkbox.append(input, label);
+                    missingLibraries.append(checkbox);
+                }
+                if (choices.length === 0) {
+                    const empty = document.createElement('p');
+                    empty.className = 'fieldDescription';
+                    empty.textContent = '暂无可选媒体库';
+                    missingLibraries.append(empty);
+                }
+            }
             Object.keys(config).forEach(function (configKey) {
                 var element = container.querySelector('#' + configKey);
-                if (!element) return;
+                if (!element || element.matches('bangumi-checkbox-group')) return;
                 if (element.type === 'checkbox') {
                     element.checked = config[configKey];
                 } else {

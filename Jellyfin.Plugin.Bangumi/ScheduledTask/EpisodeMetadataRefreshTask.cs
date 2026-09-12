@@ -31,6 +31,7 @@ public class EpisodeMetadataRefreshTask(Logger<EpisodeMetadataRefreshTask> log, 
         var itemIds = library.GetItemIds(new InternalItemsQuery
         {
             IncludeItemTypes = [BaseItemKind.Episode],
+            IsVirtualItem = false,
             MinPremiereDate = DateTime.Now.AddMonths(-1),
             MaxPremiereDate = DateTime.Now.AddDays(7)
         });
@@ -47,7 +48,7 @@ public class EpisodeMetadataRefreshTask(Logger<EpisodeMetadataRefreshTask> log, 
 
             // obtain library item
             var item = library.GetItemById(itemId);
-            if (item == null) continue;
+            if (item == null || item.IsVirtualItem) continue;
 
             // obtain bangumi episode id
             if (!int.TryParse(item.GetProviderId(Constants.ProviderName) ?? "", out var bangumiId))

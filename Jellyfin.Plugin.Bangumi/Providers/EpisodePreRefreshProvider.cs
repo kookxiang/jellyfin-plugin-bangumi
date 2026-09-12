@@ -12,6 +12,9 @@ public class EpisodePreRefreshProvider : ICustomMetadataProvider<Episode>, IPreR
 
     public Task<ItemUpdateType> FetchAsync(Episode item, MetadataRefreshOptions options, CancellationToken cancellationToken)
     {
+        if (item.IsVirtualItem || string.IsNullOrEmpty(item.Path))
+            return Task.FromResult(ItemUpdateType.None);
+
         // Let the selected metadata parser set the season instead of Jellyfin's filename guess.
         // Version grouping must not override episode numbers or multipart ranges here.
         item.ParentIndexNumber = null;

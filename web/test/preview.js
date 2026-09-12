@@ -11,6 +11,9 @@ const config = {
     PersonTranslationPreference: 'Original',
     EpisodeParser: 'Torrent',
     MergeEpisodeVersionsByBangumiId: false,
+    ImportMissingEpisodes: false,
+    ImportUnairedEpisodes: false,
+    EnabledMissingEpisodeLibraries: [],
     DaysBeforeUsingArchiveData: 14,
     SkipNSFWPlaybackReport: true,
     PrivateNSFWPlaybackReport: false,
@@ -51,6 +54,8 @@ const services = {
             { Id: 'another', Name: '其他用户' },
         ],
         getJSON: async (url) => {
+            if (url.includes('/MediaLibrary/Libraries'))
+                return [{ Id: '11111111-1111-1111-1111-111111111111', Name: '动漫' }];
             const state = new URLSearchParams(location.search).get('auth');
             if (url.includes('OAuthState') && ['bound', 'expired'].includes(state))
                 return {
@@ -379,6 +384,28 @@ document.querySelector('#run').onclick = async () => {
         root.querySelector('#bangumiConfigurationForm').requestSubmit();
         await tick();
         assert(saved.MergeEpisodeVersionsByBangumiId === true, '通用版本合并开关保存');
+        root.querySelector('[data-target=metadata]').click();
+        const missingLibraries = root.querySelector('#EnabledMissingEpisodeLibraries');
+        assert(
+            !root.querySelector('#ImportMissingEpisodes').checked &&
+                missingLibraries.querySelectorAll('input:checked').length === 0,
+            '缺集默认关闭',
+        );
+        root.querySelector('#ImportMissingEpisodes').click();
+        missingLibraries.querySelector('label').click();
+        root.querySelector('#bangumiConfigurationForm').requestSubmit();
+        await tick();
+        assert(
+            saved.ImportMissingEpisodes &&
+                saved.EnabledMissingEpisodeLibraries[0] === missingLibraries.querySelector('input').value,
+            '缺集开关和媒体库数组保存',
+        );
+        missingLibraries.querySelector('label').click();
+        root.querySelector('#bangumiConfigurationForm').requestSubmit();
+        await tick();
+        assert(saved.EnabledMissingEpisodeLibraries.length === 0, '取消全部媒体库选中');
+
+        root.querySelector('[data-target=episode-parser]').click();
         const parser = root.querySelector('#EpisodeParser');
         const parserSelect = parser.closest('bangumi-select').shadowRoot;
         assert(parser.value === config.EpisodeParser, '解析器下拉选择回填');

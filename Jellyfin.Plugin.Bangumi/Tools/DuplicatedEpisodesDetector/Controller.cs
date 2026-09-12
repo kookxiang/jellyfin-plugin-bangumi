@@ -66,6 +66,7 @@ public class Controller(Logger<Controller> logger, ILibraryManager library, IAut
 
         var query = new InternalItemsQuery { IncludeItemTypes = [BaseItemKind.Episode] };
         var episodeList = library.GetItemList(query)
+            .Where(o => !o.IsVirtualItem && !string.IsNullOrEmpty(o.Path))
             .Where(o => o.ProviderIds.ContainsKey(Constants.PluginName))
             .Distinct()
             .ToList();

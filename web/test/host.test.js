@@ -55,3 +55,18 @@ test('host turns rejected HTTP responses into useful errors and ignores stale fa
     host.suspend();
     await assert.rejects(stale, { name: 'AbortError' });
 });
+
+test('library opt-in keeps a string array and supports deselecting every library', () => {
+    const controls = ['library-1', 'library-2', 'library-3'].map((value, index) => ({
+        id: 'library-' + index,
+        name: 'EnabledMissingEpisodeLibraries',
+        type: 'checkbox',
+        value,
+        checked: index < 2,
+        hasAttribute: () => false,
+    }));
+    const config = { EnabledMissingEpisodeLibraries: ['old-library'] };
+    assert.deepEqual(collectConfiguration(config, controls).EnabledMissingEpisodeLibraries, ['library-1', 'library-2']);
+    for (const control of controls) control.checked = false;
+    assert.deepEqual(collectConfiguration(config, controls).EnabledMissingEpisodeLibraries, []);
+});

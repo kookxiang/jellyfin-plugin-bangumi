@@ -359,6 +359,40 @@
                                             </label>
                                         </bangumi-checkbox>
                                     </section>
+                                    <section class="bangumi-settings-group" aria-labelledby="missing-episodes-heading">
+                                        <h3 class="bangumi-settings-subheading" id="missing-episodes-heading">
+                                            缺失与待播剧集
+                                        </h3>
+                                        <p class="fieldDescription">保存后，请手动刷新元数据。</p>
+                                        <bangumi-checkbox-group aria-label="缺失与待播剧集显示选项">
+                                            <bangumi-checkbox
+                                                class="checkboxContainer checkboxContainer-withDescription"
+                                            >
+                                                <input slot="control" type="checkbox" id="ImportMissingEpisodes" />
+                                                <label slot="label" for="ImportMissingEpisodes"
+                                                    >显示已播出的缺失剧集</label
+                                                >
+                                            </bangumi-checkbox>
+                                            <bangumi-checkbox
+                                                class="checkboxContainer checkboxContainer-withDescription"
+                                            >
+                                                <input slot="control" type="checkbox" id="ImportUnairedEpisodes" />
+                                                <label slot="label" for="ImportUnairedEpisodes">显示待播剧集</label>
+                                            </bangumi-checkbox>
+                                        </bangumi-checkbox-group>
+                                        <div>
+                                            <p class="selectLabel" id="missing-episode-libraries-label">启用的媒体库</p>
+                                            <bangumi-checkbox-group
+                                                id="EnabledMissingEpisodeLibraries"
+                                                aria-labelledby="missing-episode-libraries-label"
+                                                aria-describedby="missing-episodes-description"
+                                            ></bangumi-checkbox-group>
+                                            <p class="fieldDescription" id="missing-episodes-description">
+                                                默认不启用任何媒体库。仅对已启用 Bangumi
+                                                剧集元数据的媒体库生效。关闭后，下次扫描会清理本插件创建的占位，不删除媒体文件。
+                                            </p>
+                                        </div>
+                                    </section>
                                 </div>
                             </div>
                         </div>
