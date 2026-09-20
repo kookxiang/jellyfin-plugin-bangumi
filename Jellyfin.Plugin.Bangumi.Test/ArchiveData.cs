@@ -19,6 +19,10 @@ public class ArchiveData
         Assert.IsNotNull(archiveSubject, "archive subject should be parsed");
 
         var modelSubject = archiveSubject.ToSubject();
+        Assert.AreEqual(Bangumi.Model.SubjectType.Anime, modelSubject.Type);
+        Assert.IsTrue(modelSubject.MetaTags.Contains("小说改"));
+        Assert.AreEqual(649, archiveSubject.Favorite["wish"]);
+        Assert.IsFalse(archiveSubject.Series);
         Assert.IsNotNull(modelSubject, "model subject should not be null");
         Assert.AreEqual(128885, modelSubject.Id, "should parse id");
         Assert.IsNotNull(modelSubject.Rating, "rating should be parsed");

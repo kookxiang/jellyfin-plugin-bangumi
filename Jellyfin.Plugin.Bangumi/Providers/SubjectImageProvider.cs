@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
+using Jellyfin.Plugin.Bangumi.Utils;
 using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Entities.Audio;
 using MediaBrowser.Controller.Entities.Movies;
@@ -35,9 +36,12 @@ public class SubjectImageProvider(BangumiApi api)
         if (!int.TryParse(item.GetProviderId(Constants.ProviderName), out var id))
             return [];
 
-        var imageUrl = await api.GetSubjectImage(id, cancellationToken);
+        var subject = await api.GetSubject(id, cancellationToken);
+        var imageUrl = ImageUrlNormalizer.Normalize(subject?.DefaultImage);
+        if (imageUrl is null || ImageUrlNormalizer.IsNoIconSubjectImage(imageUrl))
+            imageUrl = await api.GetSubjectImage(id, cancellationToken);
 
-        if (imageUrl != null)
+        if (imageUrl is not null)
             return
             [
                 new RemoteImageInfo

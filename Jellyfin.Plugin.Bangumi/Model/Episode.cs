@@ -60,6 +60,8 @@ public class Episode
     [JsonPropertyName("desc")]
     public string? DescriptionRaw { get; set; }
 
+    public Episode Copy() => (Episode)MemberwiseClone();
+
     public override string ToString()
     {
         return $"<Bangumi Episode #{Id}: {OriginalName}>";

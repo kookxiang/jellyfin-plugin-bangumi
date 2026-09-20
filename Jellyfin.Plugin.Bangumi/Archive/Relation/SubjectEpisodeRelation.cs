@@ -16,6 +16,8 @@ public class SubjectEpisodeRelation(ArchiveData archive)
 
     private string FilePath => Path.Join(archive.BasePath, FileName);
 
+    public bool Exists() => File.Exists(FilePath);
+
     public async Task GenerateIndex(CancellationToken token)
     {
         foreach (var episode in archive.Episode.Enumerate())

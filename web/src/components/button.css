@@ -1,0 +1,89 @@
+:host {
+    display: contents;
+    --button-bg: transparent;
+    --button-hover-bg: var(--jf-palette-action-hover, rgba(128, 128, 128, 0.12));
+    --button-color: var(--jf-palette-text-primary, #eee);
+    --button-border: var(--jf-palette-divider, rgba(128, 128, 128, 0.35));
+}
+
+:host([variant='primary']) {
+    --button-bg: var(--jf-palette-primary-main, #00a4dc);
+    --button-color: var(--jf-palette-primary-contrastText, #fff);
+    --button-border: transparent;
+    --button-hover-bg: color-mix(in srgb, var(--button-bg) 90%, var(--button-color));
+}
+
+:host([variant='quiet']),
+:host([icon]) {
+    --button-border: transparent;
+}
+
+:host([variant='danger']) {
+    --button-color: var(--jf-palette-error-main, #e65b5b);
+}
+
+::slotted(button) {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    box-sizing: border-box;
+    min-height: 44px;
+    padding: 10px 18px;
+    border: 1px solid var(--button-border);
+    border-radius: 999px;
+    background: var(--button-bg);
+    color: var(--button-color);
+    font: inherit;
+    font-size: 0.9375rem;
+    font-weight: 500;
+    line-height: 1.4;
+    text-align: center;
+    cursor: pointer;
+    transition:
+        background-color 0.15s ease,
+        box-shadow 0.15s ease,
+        transform 0.1s ease;
+}
+
+::slotted(button:hover:not(:disabled)) {
+    background: var(--button-hover-bg);
+}
+
+::slotted(button:active:not(:disabled)) {
+    transform: translateY(1px);
+}
+
+::slotted(button:focus-visible) {
+    outline: 2px solid var(--jf-palette-primary-main, #00a4dc);
+    outline-offset: 3px;
+}
+
+::slotted(button:disabled) {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+::slotted(button[aria-busy='true']) {
+    cursor: progress;
+}
+
+:host([icon]) ::slotted(button) {
+    width: 44px;
+    height: 44px;
+    padding: 10px;
+    flex: 0 0 44px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    ::slotted(button) {
+        transition: none;
+        transform: none;
+    }
+}
+
+@media (forced-colors: active) {
+    ::slotted(button) {
+        border: 1px solid ButtonText;
+    }
+}

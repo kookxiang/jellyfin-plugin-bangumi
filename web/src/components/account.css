@@ -1,0 +1,335 @@
+:host {
+    display: block;
+    color: var(--jf-palette-text-primary, #eee);
+    font: inherit;
+}
+
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
+input {
+    font: inherit;
+}
+
+/* Account binding surface; uses the host palette in either theme. */
+#bangumi-oauth-container {
+    --account-padding: 24px;
+    border: 1px solid var(--jf-palette-divider, rgba(128, 128, 128, 0.3));
+    border-radius: 16px;
+    background: var(--jf-palette-background-paper);
+}
+
+.bangumi-jellyfin-user-selector {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 20px 24px;
+}
+
+.bangumi-account-connector {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    height: 0;
+    overflow: visible;
+    pointer-events: none;
+}
+
+.bangumi-account-connector::before,
+.bangumi-account-connector::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--jf-palette-divider, rgba(128, 128, 128, 0.3));
+}
+
+.bangumi-account-connector .material-icons {
+    flex: 0 0 auto;
+    font-size: 22px;
+    color: var(--jf-palette-text-secondary);
+}
+
+.bangumi-jellyfin-user-details {
+    flex: 1;
+    min-width: 0;
+    display: grid;
+    gap: 4px;
+}
+
+.bangumi-account-label {
+    color: var(--jf-palette-text-secondary);
+    font-size: 0.8rem;
+}
+
+.bangumi-jellyfin-user-name,
+#bangumi-oauth-container .user-name {
+    font-weight: 600;
+    overflow-wrap: anywhere;
+    line-height: 1.5;
+}
+
+#bangumi-oauth-container .user-avatar {
+    display: flex;
+    flex: 0 0 48px;
+    width: 48px;
+    height: 48px;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    overflow: hidden;
+    color: var(--jf-palette-primary-main);
+    background: color-mix(in srgb, var(--jf-palette-primary-main) 12%, transparent);
+}
+
+#bangumi-oauth-container .user-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.bangumi-user-info {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    padding: 24px var(--account-padding);
+}
+
+#bangumi-oauth-container .user-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-inline: calc(-1 * var(--account-padding));
+    padding: 0 var(--account-padding) 20px;
+    border-bottom: 1px solid var(--jf-palette-divider, rgba(128, 128, 128, 0.3));
+}
+
+.bangumi-bound-identity {
+    flex: 1;
+    min-width: 0;
+    display: grid;
+    gap: 4px;
+}
+
+.bangumi-auth-status {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 0.8rem;
+    color: var(--jf-palette-text-secondary);
+    background: var(--jf-palette-action-hover, rgba(128, 128, 128, 0.12));
+}
+
+.bangumi-user-info[data-state='bound'] .bangumi-auth-status {
+    color: var(--jf-palette-primary-main);
+    background: color-mix(in srgb, var(--jf-palette-primary-main) 10%, transparent);
+}
+
+.bangumi-user-info.expired .bangumi-auth-status {
+    color: var(--jf-palette-text-primary);
+    border: 1px solid var(--jf-palette-text-secondary);
+}
+
+.bangumi-account-hint {
+    margin: 0;
+    color: var(--jf-palette-text-secondary);
+    font-size: 0.875rem;
+    line-height: 1.6;
+}
+
+.bangumi-oauth-dates {
+    flex-wrap: wrap;
+    gap: 16px 24px;
+}
+
+.bangumi-oauth-date {
+    display: flex;
+    flex: 1 1 19rem;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px 8px;
+    font-size: 0.8rem;
+    min-width: 0;
+}
+
+.bangumi-oauth-date .material-icons {
+    font-size: 18px;
+    color: var(--jf-palette-text-secondary);
+}
+
+.bangumi-oauth-date-label {
+    color: var(--jf-palette-text-secondary);
+}
+
+.bangumi-oauth-date-value {
+    white-space: nowrap;
+}
+
+.bangumi-account-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+#bangumi-oauth-container .bangumi-jellyfin-user-menu-item:focus-visible {
+    outline: 2px solid var(--jf-palette-primary-main);
+    outline-offset: -2px;
+}
+
+@media (max-width: 600px) {
+    #bangumi-oauth-container {
+        --account-padding: 16px;
+    }
+
+    .bangumi-jellyfin-user-selector {
+        padding: 16px;
+    }
+
+    .bangumi-user-info {
+        padding-block: 20px;
+    }
+
+    .bangumi-account-actions button {
+        flex: 1 1 auto;
+    }
+
+    #bangumi-oauth-container .user-info {
+        display: grid;
+        grid-template-columns: 48px minmax(0, 1fr) auto;
+        gap: 8px 12px;
+    }
+
+    .bangumi-auth-status {
+        grid-column: 3;
+        grid-row: 1;
+        justify-self: end;
+        white-space: nowrap;
+    }
+}
+
+#bangumi-oauth-container .bangumi-jellyfin-user-menu {
+    position: absolute;
+    display: grid;
+    gap: 6px;
+    z-index: 20;
+    top: calc(100% + 8px);
+    right: 12px;
+    width: min(320px, calc(100% - 24px));
+    padding: 6px;
+    border: 1px solid var(--jf-palette-divider, rgba(255, 255, 255, 0.14));
+    border-radius: 8px;
+    background: var(--jf-palette-background-paper, #202020);
+    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.35);
+}
+
+#bangumi-oauth-container .bangumi-jellyfin-user-menu[hidden] {
+    display: none;
+}
+
+#bangumi-oauth-container .bangumi-jellyfin-user-search {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 10px;
+    border-radius: 6px;
+    background: var(--jf-palette-action-hover, rgba(128, 128, 128, 0.12));
+}
+
+#bangumi-oauth-container .bangumi-jellyfin-user-search .material-icons {
+    color: var(--jf-palette-text-secondary);
+    font-size: 20px;
+}
+
+#bangumi-oauth-container #bangumi-jellyfin-user-search {
+    flex: 1;
+    min-width: 0;
+    padding: 0;
+    border: 0;
+    outline: 0;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+}
+
+#bangumi-oauth-container #bangumi-jellyfin-user-search::placeholder {
+    color: var(--jf-palette-text-secondary);
+}
+
+#bangumi-oauth-container .bangumi-jellyfin-user-menu-list {
+    max-height: min(240px, 40dvh);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+}
+
+#bangumi-oauth-container .bangumi-jellyfin-user-menu-empty {
+    padding: 20px 12px;
+    color: var(--jf-palette-text-secondary);
+    text-align: center;
+}
+
+#bangumi-oauth-container .bangumi-jellyfin-user-menu-empty[hidden] {
+    display: none;
+}
+
+#bangumi-oauth-container .bangumi-jellyfin-user-menu-item {
+    display: flex;
+    width: 100%;
+    align-items: center;
+    padding: 8px;
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    color: inherit;
+    cursor: pointer;
+    text-align: left;
+}
+
+#bangumi-oauth-container .bangumi-jellyfin-user-menu-item:hover,
+#bangumi-oauth-container .bangumi-jellyfin-user-menu-item:focus-visible,
+#bangumi-oauth-container .bangumi-jellyfin-user-menu-item.selected {
+    background: var(--jf-palette-action-hover, rgba(128, 128, 128, 0.12));
+    outline: 2px solid transparent;
+}
+
+#bangumi-oauth-container .bangumi-jellyfin-user-menu-avatar {
+    display: flex;
+    flex: 0 0 36px;
+    width: 36px;
+    height: 36px;
+    align-items: center;
+    justify-content: center;
+    margin-right: 10px;
+    overflow: hidden;
+    border-radius: 50%;
+    background: var(--jf-palette-action-hover, rgba(128, 128, 128, 0.12));
+}
+
+#bangumi-oauth-container .bangumi-jellyfin-user-menu-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+#bangumi-oauth-container .bangumi-jellyfin-user-menu-name {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+#bangumi-oauth-container .bangumi-jellyfin-user-menu-check {
+    margin-left: 8px;
+    color: var(--jf-palette-primary-main);
+    font-size: 20px;
+    opacity: 0;
+}
+
+#bangumi-oauth-container .bangumi-jellyfin-user-menu-item.selected .bangumi-jellyfin-user-menu-check {
+    opacity: 1;
+}

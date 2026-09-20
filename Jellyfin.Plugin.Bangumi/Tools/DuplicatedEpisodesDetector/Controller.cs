@@ -66,6 +66,7 @@ public class Controller(Logger<Controller> logger, ILibraryManager library, IAut
 
         var query = new InternalItemsQuery { IncludeItemTypes = [BaseItemKind.Episode] };
         var episodeList = library.GetItemList(query)
+            .Where(o => !o.IsVirtualItem && !string.IsNullOrEmpty(o.Path))
             .Where(o => o.ProviderIds.ContainsKey(Constants.PluginName))
             .Distinct()
             .ToList();
@@ -89,6 +90,11 @@ public class Controller(Logger<Controller> logger, ILibraryManager library, IAut
             var items = list.Select(item => new DuplicatedEpisodeItem
             {
                 Id = item.Id,
+                SeriesId = ((Episode)item).SeriesId,
+                SeriesName = ((Episode)item).SeriesName,
+                SeasonNumber = item.ParentIndexNumber,
+                EpisodeNumber = item.IndexNumber,
+                Name = item.Name,
                 Path = item.Path,
                 LastModified = new FileInfo(item.Path).LastWriteTime,
                 Ticks = item.RunTimeTicks,

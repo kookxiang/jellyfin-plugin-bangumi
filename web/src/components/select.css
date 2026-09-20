@@ -1,0 +1,161 @@
+/* Keep the native value/validation source hidden in every embedding shadow tree. */
+::slotted(select) {
+    position: absolute !important;
+    width: 1px !important;
+    height: 1px !important;
+    min-height: 0 !important;
+    padding: 0 !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+}
+
+:host {
+    display: block;
+    position: relative;
+}
+
+button {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    width: 100%;
+    min-height: 48px;
+    padding: 12px;
+    box-sizing: border-box;
+    border: 1px solid var(--jf-palette-divider, rgba(128, 128, 128, 0.35));
+    border-radius: 10px;
+    background: var(--jf-palette-FilledInput-bg, rgba(128, 128, 128, 0.12));
+    color: var(--jf-palette-text-primary, #eee);
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+
+button::after {
+    content: '';
+    width: 7px;
+    height: 7px;
+    flex: 0 0 7px;
+    border-right: 2px solid currentColor;
+    border-bottom: 2px solid currentColor;
+    transform: translateY(-2px) rotate(45deg);
+    opacity: 0.65;
+    transition: transform 140ms ease;
+}
+
+button[aria-expanded='true']::after {
+    transform: translateY(2px) rotate(225deg);
+}
+
+button:hover:not(:disabled) {
+    border-color: var(--jf-palette-text-secondary, #aaa);
+}
+
+button:focus-visible,
+button[aria-expanded='true'] {
+    outline: 2px solid var(--jf-palette-primary-main, #00a4dc);
+    outline-offset: 2px;
+}
+
+button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+[popover] {
+    position: fixed;
+    margin: 0;
+    padding: 6px;
+    box-sizing: border-box;
+    overflow-y: auto;
+    border: 1px solid var(--jf-palette-divider, rgba(128, 128, 128, 0.35));
+    border-radius: 12px;
+    background: var(--jf-palette-background-paper, #242424);
+    color: var(--jf-palette-text-primary, #eee);
+    box-shadow: 0 12px 32px #0004;
+    font: inherit;
+}
+
+[role='option'] {
+    min-height: 44px;
+    box-sizing: border-box;
+    padding: 10px 32px 10px 12px;
+    border-radius: 7px;
+    cursor: pointer;
+    position: relative;
+    overflow-wrap: anywhere;
+}
+
+[role='option']:hover,
+[role='option'].active {
+    background: var(--jf-palette-action-hover, rgba(128, 128, 128, 0.12));
+}
+
+[aria-selected='true'] {
+    color: var(--jf-palette-primary-main, #00a4dc);
+    font-weight: 600;
+}
+
+[aria-selected='true']::after {
+    content: '✓';
+    position: absolute;
+    right: 12px;
+    top: 10px;
+}
+
+[aria-disabled='true'] {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+@media (forced-colors: active) {
+    [role='option'].active {
+        outline: 1px solid Highlight;
+    }
+}
+
+.option-description {
+    display: block;
+    margin-top: 3px;
+    color: var(--jf-palette-text-secondary, #aaa);
+    font-size: 0.8125rem;
+    line-height: 1.5;
+    font-weight: 400;
+}
+
+[popover] {
+    --reveal-offset: -4px;
+    opacity: 0;
+    transform: translateY(var(--reveal-offset));
+    transition:
+        opacity 120ms ease-out,
+        transform 120ms ease-out,
+        display 120ms allow-discrete,
+        overlay 120ms allow-discrete;
+}
+
+[popover][data-direction='up'] {
+    --reveal-offset: 4px;
+}
+
+[popover]:popover-open {
+    opacity: 1;
+    transform: translateY(0);
+    transition-duration: 140ms;
+}
+
+@starting-style {
+    [popover]:popover-open {
+        opacity: 0;
+        transform: translateY(var(--reveal-offset));
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    [popover],
+    [popover]:popover-open,
+    button::after {
+        transition: none;
+    }
+}

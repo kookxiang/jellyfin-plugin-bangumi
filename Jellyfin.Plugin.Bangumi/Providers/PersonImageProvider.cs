@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
+using Jellyfin.Plugin.Bangumi.Utils;
 using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Entities.Audio;
 using MediaBrowser.Controller.Providers;
@@ -34,7 +35,8 @@ public class PersonImageProvider(BangumiApi api)
         if (!int.TryParse(item.GetProviderId(Constants.ProviderName), out var id))
             return [];
 
-        var imageUrl = await api.GetPersonImage(id, cancellationToken);
+        var imageUrl = ImageUrlNormalizer.Normalize(
+            await api.GetPersonImage(id, cancellationToken));
 
         if (imageUrl != null)
             return new List<RemoteImageInfo>

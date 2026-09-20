@@ -1,0 +1,93 @@
+<div id="bangumi-oauth-container">
+    <div class="bangumi-jellyfin-user-selector">
+        <div class="user-avatar" id="bangumi-jellyfin-user-avatar">
+            <span class="material-icons person">person</span>
+        </div>
+        <div class="bangumi-jellyfin-user-details">
+            <div class="bangumi-account-label">Jellyfin 用户</div>
+            <span class="bangumi-jellyfin-user-name">—</span>
+        </div>
+        <bangumi-button variant="secondary" icon
+            ><button
+                aria-controls="bangumi-jellyfin-user-menu"
+                aria-expanded="false"
+                aria-label="切换 Jellyfin 用户"
+                class="bangumi-jellyfin-user-switch"
+                id="bangumi-jellyfin-user-switch"
+                title="切换用户"
+                type="button"
+            >
+                <span class="material-icons swap_horiz">swap_horiz</span>
+            </button></bangumi-button
+        >
+        <input data-config-ignore id="bangumi-jellyfin-user" type="hidden" />
+        <div class="bangumi-jellyfin-user-menu" hidden id="bangumi-jellyfin-user-menu">
+            <div class="bangumi-jellyfin-user-search">
+                <span class="material-icons search">search</span>
+                <input
+                    aria-label="搜索 Jellyfin 用户"
+                    autocomplete="off"
+                    data-config-ignore
+                    id="bangumi-jellyfin-user-search"
+                    placeholder="搜索用户"
+                    type="search"
+                />
+            </div>
+            <div
+                aria-label="选择 Jellyfin 用户"
+                class="bangumi-jellyfin-user-menu-list"
+                id="bangumi-jellyfin-user-menu-list"
+                role="listbox"
+            ></div>
+            <div class="bangumi-jellyfin-user-menu-empty" hidden>没有匹配的用户</div>
+        </div>
+    </div>
+    <div class="bangumi-account-connector" aria-hidden="true"><span class="material-icons">link</span></div>
+    <div class="bangumi-user-info">
+        <div class="user-info">
+            <div class="user-avatar">
+                <span class="material-icons person">person</span>
+            </div>
+            <div class="bangumi-bound-identity">
+                <div class="bangumi-account-label">Bangumi 账号</div>
+                <div class="user-name">正在加载…</div>
+            </div>
+            <span class="bangumi-auth-status" role="status">查询授权</span>
+        </div>
+        <p class="bangumi-account-hint" hidden></p>
+        <div class="bangumi-oauth-dates" style="display: none">
+            <div class="bangumi-oauth-date">
+                <span class="material-icons schedule">schedule</span>
+                <span class="bangumi-oauth-date-label">授权时间：</span>
+                <span class="bangumi-oauth-date-value" id="bangumi-oauth-effective">—</span>
+            </div>
+            <div class="bangumi-oauth-date bangumi-oauth-expire-date">
+                <span class="material-icons more_time">more_time</span>
+                <span class="bangumi-oauth-date-label">过期时间：</span>
+                <span class="bangumi-oauth-date-value" id="bangumi-oauth-expire">—</span>
+            </div>
+        </div>
+        <div class="bangumi-account-actions">
+            <bangumi-button variant="primary"
+                ><button id="bangumi-oauth-refresh" style="display: none" type="button">
+                    <span>延长授权时间</span>
+                </button></bangumi-button
+            >
+            <bangumi-button variant="primary"
+                ><button id="bangumi-oauth-btn" type="button">
+                    <span>授权登录 Bangumi</span>
+                </button></bangumi-button
+            >
+            <bangumi-button variant="quiet"
+                ><button id="bangumi-oauth-manual-btn" type="button">
+                    <span>手动填写</span>
+                </button></bangumi-button
+            >
+            <bangumi-button variant="danger"
+                ><button id="bangumi-oauth-delete" style="display: none" type="button">
+                    <span>取消授权</span>
+                </button></bangumi-button
+            >
+        </div>
+    </div>
+</div>

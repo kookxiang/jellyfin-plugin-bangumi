@@ -29,7 +29,7 @@ public partial class BangumiApi
         var cacheKey = request.RequestUri.ToString();
 
         // Check if already in cache
-        if (_cache.TryGetValue<string>(cacheKey, out var cachedValue) && cachedValue != null)
+        if (!IsFreshMetadataRefresh && _cache.TryGetValue<string>(cacheKey, out var cachedValue) && cachedValue != null)
         {
             return cachedValue;
         }

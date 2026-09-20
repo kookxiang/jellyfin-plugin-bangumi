@@ -93,6 +93,9 @@ public class AnitomyEpisodeParser : IEpisodeParser
     /// </summary>
     private (string?, EpisodeType?) GetEpisodeType()
     {
+        if (_context.LocalConfiguration.GetForcedEpisodeType() is { } forcedType)
+            return (null, forcedType);
+
         var (anitomyEpisodeType, bangumiEpisodeType) = AnitomyEpisodeTypeMapping.GetAnitomyAndBangumiEpisodeType(_anitomy.ExtractAnimeType());
         _log.Debug("Bangumi episode type: {bangumiEpisodeType}", bangumiEpisodeType);
         // 判断文件夹/Jellyfin 季度是否为 Special
@@ -139,7 +142,7 @@ public class AnitomyEpisodeParser : IEpisodeParser
     /// 获取剧集索引
     /// </summary>
     /// <returns></returns>
-    private double GetEpisodeIndex()
+    public double GetEpisodeIndex()
     {
         double episodeIndex = 0;
         var anitomyIndex = _anitomy.ExtractEpisodeNumber();
@@ -195,6 +198,12 @@ public class AnitomyEpisodeParser : IEpisodeParser
     /// <returns></returns>
     private async Task<Episode?> BasicRules(int seriesId, double episodeIndex, string? anitomyEpisodeType, EpisodeType? bangumiEpisodeType)
     {
+        if (_context.LocalConfiguration.GetForcedEpisodeType() is { } forcedType)
+        {
+            var episodes = await _context.Api.GetSubjectEpisodeList(seriesId, null, episodeIndex, _context.Token);
+            return episodes == null ? null : LocalConfigurationHelper.MatchDirectoryEpisode(episodes, forcedType, episodeIndex);
+        }
+
         // 获取剧集元数据
         var episodeListData = await _context.Api.GetSubjectEpisodeList(seriesId, bangumiEpisodeType, episodeIndex, _context.Token) ?? new List<Episode>();
 
@@ -331,7 +340,7 @@ nextSeason:
 
     /// <summary>
     /// 处理多季度文件夹
-    /// 根据文件夹名称搜索，或者使用已存在的 id 
+    /// 根据文件夹名称搜索，或者使用已存在的 id
     /// 另外，推荐同时修改季度值
     /// #FIXME 效果一般
     /// </summary>

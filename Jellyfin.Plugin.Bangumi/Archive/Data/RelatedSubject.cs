@@ -1,4 +1,4 @@
-﻿using System.Text.Json.Serialization;
+using System.Text.Json.Serialization;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -6,6 +6,9 @@ namespace Jellyfin.Plugin.Bangumi.Archive.Data;
 
 public class RelatedSubject
 {
+    [JsonPropertyName("order")]
+    public int Order { get; set; }
+
     [JsonPropertyName("related_subject_id")]
     public int RelatedSubjectId { get; set; }
 

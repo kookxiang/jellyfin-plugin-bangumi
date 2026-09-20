@@ -1,0 +1,103 @@
+:host {
+    display: block;
+    border: 1px solid var(--jf-palette-divider, rgba(128, 128, 128, 0.24));
+    border-radius: 12px;
+    background: var(--jf-palette-background-paper, rgba(128, 128, 128, 0.06));
+    color: inherit;
+    transition:
+        border-color 0.15s ease,
+        background-color 0.15s ease;
+}
+
+:host([hidden]) {
+    display: none;
+}
+
+:host(:hover) {
+    border-color: var(--jf-palette-text-secondary, #999);
+}
+
+:host(:focus-within) {
+    border-color: var(--jf-palette-primary-main, #00a4dc);
+}
+
+.row {
+    display: flex;
+    align-items: flex-start;
+}
+
+::slotted(input) {
+    appearance: none;
+    box-sizing: border-box;
+    flex: 0 0 22px;
+    width: 22px;
+    height: 22px;
+    margin: 18px 0 18px 16px;
+    border: 2px solid var(--jf-palette-text-secondary, #999);
+    border-radius: 6px;
+    background: transparent;
+    cursor: pointer;
+    transition:
+        background-color 0.15s ease,
+        border-color 0.15s ease;
+}
+
+::slotted(input:checked) {
+    border-color: var(--jf-palette-primary-main, #00a4dc);
+    background: var(--jf-palette-primary-main, #00a4dc)
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Cpath d='m4 10 4 4 8-8' fill='none' stroke='white' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")
+        center / 18px no-repeat;
+}
+
+::slotted(input:indeterminate) {
+    border-color: var(--jf-palette-primary-main, #00a4dc);
+    background: var(--jf-palette-primary-main, #00a4dc)
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Cpath d='M5 10h10' stroke='white' stroke-width='2.5' stroke-linecap='round'/%3E%3C/svg%3E")
+        center / 18px no-repeat;
+}
+
+::slotted(input:focus-visible) {
+    outline: 2px solid var(--jf-palette-primary-main, #00a4dc);
+    outline-offset: 4px;
+    box-shadow: none;
+}
+
+::slotted(input:disabled) {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+::slotted(label) {
+    display: block;
+    flex: 1;
+    min-width: 0;
+    padding: 16px;
+    cursor: pointer;
+    line-height: 1.6;
+    overflow-wrap: anywhere;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    :host,
+    ::slotted(input) {
+        transition: none;
+    }
+}
+
+@media (forced-colors: active) {
+    ::slotted(input) {
+        appearance: auto;
+        background: none;
+    }
+
+    ::slotted(input:checked),
+    ::slotted(input:indeterminate) {
+        background: none;
+    }
+}
+
+::slotted([slot='actions']) {
+    flex-shrink: 0;
+    align-self: center;
+    margin-inline-end: 12px;
+}

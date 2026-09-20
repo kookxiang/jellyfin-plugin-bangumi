@@ -6,6 +6,7 @@ using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using Jellyfin.Plugin.Bangumi.Configuration;
+using Jellyfin.Plugin.Bangumi.Utils;
 using MediaBrowser.Controller.Entities.Movies;
 using MediaBrowser.Controller.Providers;
 using MediaBrowser.Model.Entities;
@@ -26,6 +27,7 @@ public class MovieProvider(BangumiApi api, Logger<MovieProvider> log)
     public async Task<MetadataResult<Movie>> GetMetadata(MovieInfo info, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
+        using var refreshScope = BangumiApi.BeginRequestedRefresh(info.Path);
         var baseName = Path.GetFileName(info.Path);
         var result = new MetadataResult<Movie> { ResultLanguage = Constants.Language };
 
@@ -138,7 +140,7 @@ public class MovieProvider(BangumiApi api, Logger<MovieProvider> log)
             {
                 Name = subject.Name,
                 SearchProviderName = subject.OriginalName,
-                ImageUrl = subject.DefaultImage,
+                ImageUrl = ImageUrlNormalizer.Normalize(subject.DefaultImage),
                 Overview = subject.Summary
             };
             if (DateTime.TryParse(subject.AirDate, out var airDate))
@@ -158,7 +160,7 @@ public class MovieProvider(BangumiApi api, Logger<MovieProvider> log)
                 {
                     Name = item.Name,
                     SearchProviderName = item.OriginalName,
-                    ImageUrl = item.DefaultImage,
+                    ImageUrl = ImageUrlNormalizer.Normalize(item.DefaultImage),
                     Overview = item.Summary
                 };
                 if (DateTime.TryParse(item.AirDate, out var airDate))

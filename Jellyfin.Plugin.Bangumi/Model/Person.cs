@@ -16,7 +16,7 @@ public class Person
     public Dictionary<string, string>? Images { get; set; }
 
     [JsonIgnore]
-    public string? DefaultImage => Images?["large"];
+    public string? DefaultImage => Images?.GetValueOrDefault("large");
 
     [JsonPropertyName("short_summary")]
     public string ShortSummary { get; set; } = "";

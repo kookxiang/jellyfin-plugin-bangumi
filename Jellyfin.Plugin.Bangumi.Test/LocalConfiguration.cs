@@ -40,4 +40,37 @@ public class LocalConfigurationTestCases
         Assert.AreEqual(config.Offset, 0, "should use default for offset property");
         Assert.AreEqual(config.Report, true, "should use default for report property");
     }
+
+    [TestMethod]
+    public async Task InvalidIntegerUsesDefault()
+    {
+        var path = FakePath.CreateFile("invalid-integer.ini", "[Bangumi]\nID=invalid\nOffset=2");
+        var config = new LocalConfiguration();
+        await config.ReadFrom(path);
+        Assert.AreEqual(0, config.Id, "invalid integer value should be ignored");
+        Assert.AreEqual(2, config.Offset, "valid values should still be loaded");
+    }
+    [DataTestMethod]
+    [DataRow("Auto", DirectoryType.Auto)]
+    [DataRow("normal", DirectoryType.Normal)]
+    [DataRow("Special", DirectoryType.Special)]
+    [DataRow("unknown", DirectoryType.Auto)]
+    [DataRow("999", DirectoryType.Auto)]
+    public async Task DirectoryTypeRoundTrip(string value, DirectoryType expected)
+    {
+        var path = FakePath.CreateFile($"type-{value}.ini", $"[Bangumi]\nType={value}");
+        var config = new LocalConfiguration();
+        await config.ReadFrom(path);
+        Assert.AreEqual(expected, config.Type);
+        await config.SaveTo(path);
+        var saved = await File.ReadAllTextAsync(path);
+        if (expected == DirectoryType.Auto)
+            Assert.IsFalse(saved.Contains("Type="));
+        else
+            StringAssert.Contains(saved, $"Type={expected}");
+        var reloaded = new LocalConfiguration();
+        await reloaded.ReadFrom(path);
+        Assert.AreEqual(expected, reloaded.Type);
+    }
+
 }

@@ -58,6 +58,16 @@ public class OAuthStore
         return Get(guid.ToString("N"));
     }
 
+    public OAuthUser? GetStored(string userId)
+    {
+        return _users.GetValueOrDefault(userId);
+    }
+
+    public OAuthUser? GetStored(Guid guid)
+    {
+        return GetStored(guid.ToString("N"));
+    }
+
     public OAuthUser? GetAvailable()
     {
         try

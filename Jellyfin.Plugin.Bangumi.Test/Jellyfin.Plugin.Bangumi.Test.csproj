@@ -1,11 +1,16 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net9.0</TargetFramework>
+    <TargetFramework>net10.0</TargetFramework>
     <IsPackable>false</IsPackable>
     <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
     <AnalysisMode>None</AnalysisMode>
   </PropertyGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Fixtures/Archive/*.jsonlines" />
+    <EmbeddedResource Include="Fixtures/Api/*.json" />
+  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Jellyfin.Controller"/>

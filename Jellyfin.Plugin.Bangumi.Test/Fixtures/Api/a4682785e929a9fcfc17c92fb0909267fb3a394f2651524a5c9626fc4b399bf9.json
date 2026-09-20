@@ -1,0 +1,6 @@
+{
+  "Request": "GET /v0/episodes?subject_id=142678&limit=50\n",
+  "Status": 200,
+  "Body": "{\"data\":[{\"airdate\":\"2016-10-27\",\"name\":\"きっと、女の子はお砂糖とスパイスと素敵な何かでできている。\",\"name_cn\":\"想必，女孩子是由砂糖、辛香料和某些美好的东西组成的吧。\",\"duration\":\"00:23:40\",\"desc\":\"\",\"ep\":1,\"sort\":1,\"id\":555794,\"subject_id\":142678,\"comment\":89,\"type\":0,\"disc\":0,\"duration_seconds\":1420}],\"total\":1,\"limit\":50,\"offset\":0}\n",
+  "Location": null
+}
