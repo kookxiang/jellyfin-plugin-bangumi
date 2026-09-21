@@ -16,6 +16,8 @@ public partial class BasicEpisodeParser(EpisodeParserContext context, Logger<Bas
     [
         new(@"[\[\(][0-9A-F]{8}[\]\)]", RegexOptions.IgnoreCase),
         new(@"S\d{2,}", RegexOptions.IgnoreCase),
+        // A release year after an episode number and a dot is not a fractional episode number.
+        new(@"(?<=\d\.)(?:19|20)\d{2}(?=\.|$)"),
         new(@"yuv[4|2|0]{3}p(10|8)?", RegexOptions.IgnoreCase),
         new(@"\d{3,4}p", RegexOptions.IgnoreCase),
         new(@"\d{3,4}x\d{3,4}", RegexOptions.IgnoreCase),
@@ -98,7 +100,8 @@ public partial class BasicEpisodeParser(EpisodeParserContext context, Logger<Bas
             return null;
 
         // 根据文件路径判断剧集类型：检查文件路径是否为特典文件，否则从文件名猜测类型
-        var type = IsSpecial(context.Info.Path, context.LibraryManager) ? EpisodeType.Special : GuessEpisodeTypeFromFileName(fileName);
+        var type = context.LocalConfiguration.GetForcedEpisodeType()
+            ?? (IsSpecial(context.Info.Path, context.LibraryManager) ? EpisodeType.Special : GuessEpisodeTypeFromFileName(fileName));
 
         // 获取关联的 Bangumi 条目 ID
         var subjectId = LocalConfigurationHelper.GetSeriesId(context.LocalConfiguration, context.Info, context.LibraryManager);
@@ -112,7 +115,9 @@ public partial class BasicEpisodeParser(EpisodeParserContext context, Logger<Bas
 
         // 特典类的季号统一为 0
         if (result != null
-            && (type == EpisodeType.Special || result.Type == EpisodeType.Special))
+            && (context.LocalConfiguration.GetForcedEpisodeType() is { } forcedType
+                ? forcedType == EpisodeType.Special
+                : type == EpisodeType.Special || result.Type == EpisodeType.Special))
         {
             result.SeasonNumber = 0;
         }
@@ -163,6 +168,10 @@ public partial class BasicEpisodeParser(EpisodeParserContext context, Logger<Bas
     /// <returns>匹配的剧集信息，未找到时返回 null</returns>
     public static async Task<Model.Episode?> GetEpisodeFromProviderId<T>(EpisodeParserContext context, Logger<T> log, int subjectId, double episodeIndex)
     {
+        // 显式目录类型要求重新匹配，已有特典 ID 不能绕过目录配置。
+        if (context.LocalConfiguration.GetForcedEpisodeType() != null)
+            return null;
+
         if (int.TryParse(context.Info.ProviderIds?.GetValueOrDefault(Constants.ProviderName), out var episodeId))
         {
             // 已保存的剧集 ID 存在，尝试直接获取剧集信息
@@ -214,6 +223,21 @@ public partial class BasicEpisodeParser(EpisodeParserContext context, Logger<Bas
     public static async Task<Model.Episode?> SearchEpisodes<T>(EpisodeParserContext context, Logger<T> log, EpisodeType? type, int subjectId, double episodeIndex, bool guessEpisodeNumber = true, bool fallback = true)
     {
         var fileName = Path.GetFileName(context.Info.Path);
+
+        if (context.LocalConfiguration.GetForcedEpisodeType() is { } forcedType)
+        {
+            var episodes = await context.Api.GetSubjectEpisodeList(subjectId, null, episodeIndex, context.Token);
+            if (episodes == null)
+                return null;
+            var episodeList = episodes.ToArray();
+            if (guessEpisodeNumber && forcedType == EpisodeType.Normal)
+            {
+                var max = episodeList.Length > 0 ? episodeList.Max(e => e.Order) : double.PositiveInfinity;
+                episodeIndex = GuessEpisodeNumber(context, log, episodeIndex + context.LocalConfiguration.Offset,
+                    fileName, max + context.LocalConfiguration.Offset) - context.LocalConfiguration.Offset;
+            }
+            return LocalConfigurationHelper.MatchDirectoryEpisode(episodeList, forcedType, episodeIndex);
+        }
 
         // 从 API 获取指定条目的剧集列表，并过滤类型（如果指定了类型）
         log.Info("searching episode in series episode list");
@@ -285,7 +309,7 @@ public partial class BasicEpisodeParser(EpisodeParserContext context, Logger<Bas
         }
     }
 
-    private static EpisodeType? GuessEpisodeTypeFromFileName(string fileName)
+    internal static EpisodeType? GuessEpisodeTypeFromFileName(string fileName)
     {
         var tempName = fileName;
         foreach (var regex in _nonEpisodeFileNameRegex)

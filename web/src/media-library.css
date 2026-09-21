@@ -1,0 +1,195 @@
+/* Library browser owns its layout; no dependency on host listItem/paperList styles. */
+.bangumi-media-browser {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    min-width: 0;
+}
+
+.bangumi-media-toolbar {
+    display: grid;
+    grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr) auto;
+    align-items: end;
+    gap: 16px;
+}
+
+.bangumi-media-toolbar > * {
+    min-width: 0;
+    margin: 0;
+}
+
+.bangumi-media-toolbar > .inputContainer,
+.bangumi-media-toolbar > .selectContainer {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.bangumi-media-toolbar label {
+    margin: 0;
+}
+
+.bangumi-media-search-action button {
+    min-height: 48px;
+    min-width: 104px;
+}
+
+.bangumi-media-empty.is-idle {
+    padding: 24px 16px;
+    background: transparent;
+}
+
+.bangumi-media-navigation {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+}
+
+.bangumi-media-navigation > .material-icons {
+    color: var(--jf-palette-text-secondary, #aaa);
+}
+
+.bangumi-media-location {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    flex: 1;
+    min-width: 0;
+}
+
+#bangumi-media-library-current {
+    font-weight: 600;
+    overflow-wrap: anywhere;
+}
+
+.bangumi-media-summary {
+    color: var(--jf-palette-text-secondary, #aaa);
+    font-size: 0.8125rem;
+}
+
+.bangumi-media-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.bangumi-media-list-item {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 20px;
+    border: 1px solid var(--jf-palette-divider, rgba(128, 128, 128, 0.24));
+    border-radius: 16px;
+    background: var(--jf-palette-background-paper, #202020);
+    min-width: 0;
+    cursor: pointer;
+}
+
+.bangumi-media-list-item:hover {
+    border-color: var(--jf-palette-text-secondary, #aaa);
+}
+
+.bangumi-media-list-icon {
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    flex: 0 0 auto;
+    border-radius: 12px;
+    color: var(--jf-palette-primary-main, #00a4dc);
+    background: color-mix(in srgb, var(--jf-palette-primary-main, #00a4dc) 12%, transparent);
+}
+
+.bangumi-media-list-main {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    flex: 1;
+    min-width: 0;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: var(--jf-palette-text-primary, #eee);
+    font: inherit;
+    text-align: start;
+    cursor: pointer;
+    border-radius: 4px;
+}
+
+.bangumi-media-list-main:focus-visible {
+    outline: 2px solid var(--jf-palette-primary-main, #00a4dc);
+    outline-offset: 4px;
+}
+
+.bangumi-media-list-name {
+    font-weight: 600;
+    line-height: 1.5;
+    overflow-wrap: anywhere;
+}
+
+.bangumi-media-list-path {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 0.8125rem;
+    color: var(--jf-palette-text-secondary, #aaa);
+}
+
+.bangumi-media-child-count {
+    font-size: 0.75rem;
+    color: var(--jf-palette-text-secondary, #aaa);
+}
+
+.bangumi-media-child-count:empty {
+    display: none;
+}
+
+.bangumi-media-list-edit .material-icons {
+    color: var(--jf-palette-text-secondary, #aaa);
+}
+
+[data-configured='true'] .bangumi-media-list-edit .material-icons {
+    color: var(--jf-palette-primary-main, #00a4dc);
+}
+
+.bangumi-media-empty {
+    padding: 48px 20px;
+    border-radius: 16px;
+    background: var(--jf-palette-background-paper, #202020);
+    color: var(--jf-palette-text-secondary, #aaa);
+    text-align: center;
+}
+
+.bangumi-media-pagination {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+}
+
+#bangumi-media-library-page-status {
+    font-size: 0.875rem;
+    color: var(--jf-palette-text-secondary, #aaa);
+}
+
+@media (max-width: 600px) {
+    .bangumi-media-toolbar {
+        grid-template-columns: 1fr;
+    }
+
+    .bangumi-media-search-action button {
+        width: 100%;
+    }
+
+    .bangumi-media-list-item {
+        gap: 8px;
+        padding: 16px 12px;
+    }
+
+    .bangumi-media-list-icon {
+        width: 36px;
+        height: 36px;
+    }
+}

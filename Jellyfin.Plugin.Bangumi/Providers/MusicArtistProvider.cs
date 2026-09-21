@@ -4,6 +4,7 @@ using System.Linq;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
+using Jellyfin.Plugin.Bangumi.Utils;
 using MediaBrowser.Controller.Entities.Audio;
 using MediaBrowser.Controller.Providers;
 using MediaBrowser.Model.Entities;
@@ -52,7 +53,7 @@ public class MusicArtistProvider(BangumiApi api)
             var result = new RemoteSearchResult
             {
                 Name = person.Name,
-                ImageUrl = person.DefaultImage,
+                ImageUrl = ImageUrlNormalizer.Normalize(person.DefaultImage),
                 Overview = person.Summary
             };
             result.SetProviderId(Constants.ProviderName, id.ToString());
@@ -66,7 +67,7 @@ public class MusicArtistProvider(BangumiApi api)
                 var result = new RemoteSearchResult
                 {
                     Name = item.Name,
-                    ImageUrl = item.DefaultImage,
+                    ImageUrl = ImageUrlNormalizer.Normalize(item.DefaultImage),
                     Overview = item.Career?.Any() == true ? string.Join(", ", item.Career) : null
                 };
                 result.SetProviderId(Constants.ProviderName, item.Id.ToString());

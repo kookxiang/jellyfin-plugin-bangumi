@@ -1,0 +1,81 @@
+:host {
+    display: block;
+}
+
+[role='radiogroup'] {
+    display: flex;
+    gap: 4px;
+    padding: 5px;
+    border-radius: 999px;
+    background: var(--jf-palette-FilledInput-bg, rgba(128, 128, 128, 0.12));
+    border: 1px solid var(--jf-palette-divider, rgba(128, 128, 128, 0.24));
+}
+
+label {
+    position: relative;
+    flex: 1;
+    min-width: 0;
+    cursor: pointer;
+}
+
+input {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+}
+
+span {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 44px;
+    box-sizing: border-box;
+    padding: 10px 16px;
+    border-radius: 999px;
+    color: var(--jf-palette-text-secondary, #aaa);
+    font: inherit;
+    text-align: center;
+    transition:
+        background-color 0.15s ease,
+        color 0.15s ease;
+}
+
+label:hover span {
+    background: var(--jf-palette-action-hover, rgba(128, 128, 128, 0.12));
+}
+
+input:checked + span {
+    background: var(--jf-palette-primary-main, #00a4dc);
+    color: var(--jf-palette-primary-contrastText, #fff);
+    box-shadow: 0 2px 6px #0002;
+}
+
+input:focus-visible + span {
+    outline: 2px solid var(--jf-palette-primary-main, #00a4dc);
+    outline-offset: 2px;
+}
+
+input:disabled + span {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+@media (max-width: 600px) {
+    span {
+        font-size: 0.8125rem;
+        padding: 10px 6px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    span {
+        transition: none;
+    }
+}
+
+@media (forced-colors: active) {
+    input:checked + span {
+        outline: 2px solid Highlight;
+    }
+}

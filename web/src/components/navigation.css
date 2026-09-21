@@ -1,0 +1,85 @@
+:host {
+    display: flex;
+    flex-direction: column;
+    position: sticky;
+    top: 24px;
+    flex: 0 0 200px;
+    gap: 4px;
+    padding: 8px;
+    box-sizing: border-box;
+}
+
+::slotted(button) {
+    position: relative;
+    display: block;
+    min-height: 46px;
+    padding: 12px 20px;
+    border: 1px solid transparent;
+    border-radius: 999px;
+    background: transparent;
+    color: var(--jf-palette-text-secondary, #aaa);
+    font: inherit;
+    font-size: 0.9375rem;
+    line-height: 1.4;
+    text-align: left;
+    cursor: pointer;
+    transition:
+        background-color 0.15s ease,
+        color 0.15s ease;
+}
+
+::slotted(button:hover) {
+    background: var(--jf-palette-action-hover, rgba(128, 128, 128, 0.12));
+    color: var(--jf-palette-text-primary, #eee);
+}
+
+::slotted(button[aria-current='page']) {
+    background: color-mix(in srgb, var(--jf-palette-primary-main, #00a4dc) 16%, transparent);
+    color: var(--jf-palette-primary-main, #00a4dc);
+    font-weight: 600;
+    border-color: color-mix(in srgb, var(--jf-palette-primary-main, #00a4dc) 25%, transparent);
+}
+
+::slotted(button:focus-visible) {
+    outline: 2px solid var(--jf-palette-primary-main, #00a4dc);
+    outline-offset: 2px;
+}
+
+@media (max-width: 900px) {
+    :host {
+        position: static;
+        flex: 0 0 auto;
+        flex-direction: row;
+        flex-wrap: nowrap;
+        width: 100%;
+        min-width: 0;
+        overflow-x: auto;
+        overscroll-behavior-x: contain;
+        gap: 6px;
+        padding: 0;
+    }
+
+    ::slotted(button) {
+        flex: 0 0 auto;
+        padding: 10px 16px;
+        min-height: 44px;
+        white-space: nowrap;
+    }
+
+    ::slotted(button:focus-visible) {
+        outline-offset: -3px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    ::slotted(button) {
+        transition: none;
+    }
+}
+
+@media (forced-colors: active) {
+    ::slotted(button[aria-current='page']) {
+        border-color: Highlight;
+        color: Highlight;
+    }
+}

@@ -15,7 +15,7 @@ namespace Jellyfin.Plugin.Bangumi.Parser.TorrentParser
         public async Task<Model.Episode?> GetEpisode()
         {
             // 如果是杂项文件，跳过搜索
-            if (IsMisc(context, log))
+            if (context.LocalConfiguration.GetForcedEpisodeType() == null && IsMisc(context, log))
             {
                 log.Info($"misc file match, skip getting metadata: {context.Info.Path}");
 
@@ -60,7 +60,7 @@ namespace Jellyfin.Plugin.Bangumi.Parser.TorrentParser
             // 先置空，方便后面判断是否成功获取到元数据
             result = null;
             // 如果勾选了“始终根据配置的 Bangumi ID 获取元数据”则优先使用已记录的剧集 ID
-            if (context.Configuration.TrustExistedBangumiId)
+            if (context.Configuration.TrustExistedBangumiId && context.LocalConfiguration.GetForcedEpisodeType() == null)
             {
                 if (int.TryParse(context.Info.ProviderIds?.GetValueOrDefault(Constants.ProviderName), out var episodeId))
                 {
@@ -76,7 +76,9 @@ namespace Jellyfin.Plugin.Bangumi.Parser.TorrentParser
 
             if (result != null)
             {
-                if (type == EpisodeType.Special || result.Type == EpisodeType.Special)
+                if (context.LocalConfiguration.GetForcedEpisodeType() is { } forcedType
+                    ? forcedType == EpisodeType.Special
+                    : type == EpisodeType.Special || result.Type == EpisodeType.Special)
                 {
                     result.SeasonNumber = 0;
                 }
@@ -179,6 +181,13 @@ namespace Jellyfin.Plugin.Bangumi.Parser.TorrentParser
             // 从 API 获取指定条目的剧集列表，并过滤类型（如果指定了类型）
             log.Info("searching episode in series episode list");
             var allEpisodes = (await context.Api.GetSubjectEpisodeList(subjectId, null, episodeIndex, context.Token))?.ToArray() ?? [];
+            if (context.LocalConfiguration.GetForcedEpisodeType() is { } forcedType)
+            {
+                var match = LocalConfigurationHelper.MatchDirectoryEpisode(allEpisodes, forcedType, episodeIndex);
+                if (match != null || allEpisodes.Length == 0)
+                    return match;
+                return await GetSplitCourEpisode(context, log, episodeIndex, forcedType, subjectId, allEpisodes);
+            }
             var episodeListData = allEpisodes.Where(e => type == null || e.Type == type).ToArray();
 
             // OVA独立一个条目页面时 API 返回的剧集类型可能为0（正篇内容），导致按特典类型筛选不到结果，此时尝试按正篇类型重新查询
@@ -293,7 +302,8 @@ namespace Jellyfin.Plugin.Bangumi.Parser.TorrentParser
 
         public static EpisodeType? ExtractEpisodeTypeFromPath<T>(EpisodeParserContext context, Logger<T> log)
         {
-            return IsSpecial(context, log) ? EpisodeType.Special : EpisodeType.Normal;
+            return context.LocalConfiguration.GetForcedEpisodeType()
+                ?? (IsSpecial(context, log) ? EpisodeType.Special : EpisodeType.Normal);
         }
 
         /// <summary>

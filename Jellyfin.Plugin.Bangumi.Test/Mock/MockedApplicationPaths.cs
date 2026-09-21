@@ -1,10 +1,10 @@
-﻿using System.IO;
-using MediaBrowser.Common.Configuration;
+﻿using MediaBrowser.Common.Configuration;
 
 namespace Jellyfin.Plugin.Bangumi.Test.Mock;
 
 public class MockedApplicationPaths : IApplicationPaths
 {
+    private static readonly string BasePath = Util.FakePath.Create("application-data");
     public void MakeSanityCheckOrThrow()
     {
         throw new System.NotImplementedException();
@@ -15,21 +15,21 @@ public class MockedApplicationPaths : IApplicationPaths
         throw new System.NotImplementedException();
     }
 
-    public string ProgramDataPath => Path.GetTempPath();
-    public string WebPath => Path.GetTempPath();
-    public string ProgramSystemPath => Path.GetTempPath();
-    public string DataPath => Path.GetTempPath();
-    public string ImageCachePath => Path.GetTempPath();
-    public string PluginsPath => Path.GetTempPath();
-    public string PluginConfigurationsPath => Path.GetTempPath();
-    public string LogDirectoryPath => Path.GetTempPath();
-    public string ConfigurationDirectoryPath => Path.GetTempPath();
-    public string SystemConfigurationFilePath => Path.GetTempPath();
-    public string CachePath => Path.GetTempPath();
-    public string TempDirectory => Path.GetTempPath();
-    public string VirtualDataPath => Path.GetTempPath();
+    public string ProgramDataPath => BasePath;
+    public string WebPath => BasePath;
+    public string ProgramSystemPath => BasePath;
+    public string DataPath => BasePath;
+    public string ImageCachePath => BasePath;
+    public string PluginsPath => BasePath;
+    public string PluginConfigurationsPath => BasePath;
+    public string LogDirectoryPath => BasePath;
+    public string ConfigurationDirectoryPath => BasePath;
+    public string SystemConfigurationFilePath => BasePath;
+    public string CachePath => BasePath;
+    public string TempDirectory => BasePath;
+    public string VirtualDataPath => BasePath;
 
-    public string TrickplayPath => Path.GetTempPath();
+    public string TrickplayPath => BasePath;
 
-    public string BackupPath => Path.GetTempPath();
+    public string BackupPath => BasePath;
 }

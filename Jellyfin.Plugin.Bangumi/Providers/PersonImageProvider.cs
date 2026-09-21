@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
+using Jellyfin.Plugin.Bangumi.Utils;
 using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Entities.Audio;
 using MediaBrowser.Controller.Providers;
@@ -49,14 +50,15 @@ public class PersonImageProvider(BangumiApi api)
             //     background-size: cover !important;
             //     background-position: center top !important;  /* 从顶部开始显示，裁掉底部 */
             // }
-            imageUrl = await api.GetCharacterImage(id, cancellationToken);
+            imageUrl = ImageUrlNormalizer.Normalize(await api.GetCharacterImage(id, cancellationToken));
         }
         else
         {
             if (!int.TryParse(personId, out var id))
                 return [];
 
-            imageUrl = await api.GetPersonImage(id, cancellationToken);
+            imageUrl = ImageUrlNormalizer.Normalize(
+            await api.GetPersonImage(id, cancellationToken));
         }
 
         if (imageUrl != null)

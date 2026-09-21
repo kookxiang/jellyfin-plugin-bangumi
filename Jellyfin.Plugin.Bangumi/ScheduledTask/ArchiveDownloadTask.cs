@@ -44,6 +44,15 @@ public class ArchiveDownloadTask(BangumiApi api, ArchiveData archive, ITaskManag
 
         var archiveMeta = await GetLatestArchiveMeta(cancellationToken);
 
+        var version = new ArchiveVersion(archiveMeta.Id, archiveMeta.UpdateTime, archiveMeta.Size);
+        if (await archive.IsCurrent(version, cancellationToken))
+        {
+            await archive.CleanupObsoleteIndexes(version, cancellationToken);
+            log.Info("bangumi archive {Version} is already up to date", version.Id);
+            progress.Report(100);
+            return;
+        }
+
         progress.Report(5);
         log.Info("download bangumi archive data from {Url}", archiveMeta.DownloadUrl);
 
@@ -56,6 +65,13 @@ public class ArchiveDownloadTask(BangumiApi api, ArchiveData archive, ITaskManag
         using var zipStream = new ZipArchive(memoryStream, ZipArchiveMode.Read);
         progress.Report(65);
 
+        string[] requiredRelations = ["subject-characters.jsonlines", "person-characters.jsonlines", "subject-relations.jsonlines", "subject-persons.jsonlines"];
+        foreach (var fileName in requiredRelations)
+            if (zipStream.GetEntry(fileName) == null)
+                throw new FileNotFoundException($"{fileName} not found in archive file");
+
+        // A failed import must never retain a successful version marker.
+        archive.InvalidateVersion();
         var completed = 0;
         foreach (var oldStore in archive.Stores)
         {
@@ -71,7 +87,7 @@ public class ArchiveDownloadTask(BangumiApi api, ArchiveData archive, ITaskManag
 
             await using (var writeStream = File.OpenWrite(newStore.FilePath))
             {
-                await using var readStream = entry.Open();
+                await using var readStream = await entry.OpenAsync(cancellationToken);
                 await readStream.CopyToAsync(writeStream, cancellationToken);
                 await writeStream.FlushAsync(cancellationToken);
             }
@@ -89,12 +105,17 @@ public class ArchiveDownloadTask(BangumiApi api, ArchiveData archive, ITaskManag
             progress.Report(65D + 30D * ++completed / archive.Stores.Count);
         }
 
+        await archive.SubjectCharacterRelation.GenerateIndex(zipStream, cancellationToken);
         await archive.SubjectRelations.GenerateIndex(zipStream, cancellationToken);
         await archive.SubjectEpisodeRelation.GenerateIndex(cancellationToken);
         await archive.SubjectPersonRelation.GenerateIndex(zipStream, cancellationToken);
 
         log.Info("update completed. cleaning up temp files");
         Directory.Delete(archive.TempPath, true);
+
+        await archive.SaveVersion(version, cancellationToken);
+        await archive.CleanupObsoleteIndexes(version, cancellationToken);
+        progress.Report(100);
 
         if (Plugin.Instance?.Configuration.RefreshRecentEpisodeWhenArchiveUpdate == true)
             taskManager.Execute<EpisodeMetadataRefreshTask>();
@@ -105,13 +126,13 @@ public class ArchiveDownloadTask(BangumiApi api, ArchiveData archive, ITaskManag
 
     private async Task<ArchiveReleaseMeta> GetLatestArchiveMeta(CancellationToken token)
     {
-        return (await api.Get<ArchiveReleaseMeta>(ArchiveReleaseUrl, null, token))!;
+        return (await api.Get<ArchiveReleaseMeta>(ArchiveReleaseUrl, null, token, useCache: false))!;
     }
 
     internal class ArchiveReleaseMeta
     {
         [JsonPropertyName("id")]
-        public int Id { get; set; }
+        public long Id { get; set; }
 
         [JsonPropertyName("updated_at")]
         public DateTime UpdateTime { get; set; }

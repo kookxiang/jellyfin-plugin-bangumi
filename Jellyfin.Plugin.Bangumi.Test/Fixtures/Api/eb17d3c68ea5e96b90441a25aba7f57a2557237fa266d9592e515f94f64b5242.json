@@ -1,0 +1,6 @@
+{
+  "Request": "GET /v0/episodes?subject_id=39118&limit=50\n",
+  "Status": 200,
+  "Body": "{\"data\":[{\"airdate\":\"2012-04-25\",\"name\":\"気分は青空 会長はブルー/ハイリスクが気持ちいい/ハイリスクが気持ちいい/桜才・英稜 学園交流会!\",\"name_cn\":\"\",\"duration\":\"00:27:00\",\"desc\":\"\",\"ep\":1,\"sort\":16,\"id\":167720,\"subject_id\":39118,\"comment\":22,\"type\":0,\"disc\":0,\"duration_seconds\":1620},{\"airdate\":\"2013-05-08\",\"name\":\"お約束じゃ済まさないぜ/夜の学園/スルメとタカトシ/兄バカ文化祭\",\"name_cn\":\"\",\"duration\":\"00:24:26\",\"desc\":\"\",\"ep\":4,\"sort\":19,\"id\":258036,\"subject_id\":39118,\"comment\":19,\"type\":0,\"disc\":0,\"duration_seconds\":1466},{\"airdate\":\"2013-07-10\",\"name\":\"萩村スズの1日/乗り物談義/スルメとタカトシ/やきもきチョコ\",\"name_cn\":\"\",\"duration\":\"00:25:46\",\"desc\":\"\",\"ep\":5,\"sort\":20,\"id\":258037,\"subject_id\":39118,\"comment\":29,\"type\":0,\"disc\":0,\"duration_seconds\":1546}],\"total\":3,\"limit\":50,\"offset\":0}\n",
+  "Location": null
+}

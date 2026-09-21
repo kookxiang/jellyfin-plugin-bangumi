@@ -1,0 +1,6 @@
+{
+  "Request": "GET /v0/episodes?subject_id=96130&limit=50\n",
+  "Status": 200,
+  "Body": "{\"data\":[{\"airdate\":\"2014-07-25\",\"name\":\"これが本当のアンツィオ戦です!\",\"name_cn\":\"\",\"duration\":\"\",\"desc\":\"\",\"ep\":1,\"sort\":1,\"id\":372711,\"subject_id\":96130,\"comment\":30,\"type\":0,\"disc\":0,\"duration_seconds\":0},{\"airdate\":\"\",\"name\":\"不肖･秋山優花里の戦車講座～イタリア戦車編～\",\"name_cn\":\"\",\"duration\":\"\",\"desc\":\"\",\"ep\":0,\"sort\":1,\"id\":1742063,\"subject_id\":96130,\"comment\":0,\"type\":1,\"disc\":0,\"duration_seconds\":0}],\"total\":2,\"limit\":50,\"offset\":0}\n",
+  "Location": null
+}

@@ -8,6 +8,7 @@ using System.Text.Json.Serialization;
 using System.Threading;
 using System.Threading.Tasks;
 using Jellyfin.Plugin.Bangumi.Model;
+using Jellyfin.Plugin.Bangumi.Utils;
 using MediaBrowser.Controller.Entities;
 using Person = Jellyfin.Plugin.Bangumi.Model.Person;
 using User = Jellyfin.Plugin.Bangumi.Model.User;
@@ -37,7 +38,8 @@ public partial class BangumiApi
 
     public Task<IEnumerable<Subject>> SearchSubject(string keyword, CancellationToken token)
     {
-        return SearchSubject(keyword, SubjectType.Anime, token);
+        var type = Plugin.Instance!.Configuration.PreferAnimeSearch ? SubjectType.Anime : (SubjectType?)null;
+        return SearchSubject(keyword, type, token);
     }
 
     public async Task<IEnumerable<Subject>> SearchSubject(string keyword, SubjectType? type, CancellationToken token)
@@ -94,9 +96,12 @@ public partial class BangumiApi
     {
         if (id <= 0) return null;
 #if !EMBY
-        var subject = await archive.Subject.FindById(id, token);
-        if (subject != null)
-            return subject.ToSubject();
+        if (!IsFreshMetadataRefresh)
+        {
+            var subject = await archive.Subject.FindById(id, token);
+            if (subject != null)
+                return subject.ToSubject();
+        }
 #endif
         return await Get<Subject>($"{BaseUrl}/v0/subjects/{id}", token);
     }
@@ -108,18 +113,22 @@ public partial class BangumiApi
 
     public async Task<string?> GetSubjectImage(int id, string type, CancellationToken token)
     {
-        var imageUrl = await FollowRedirection($"{BaseUrl}/v0/subjects/{id}/image?type={type}", token);
-        return imageUrl == "https://lain.bgm.tv/img/no_icon_subject.png" ? null : imageUrl;
+        var imageUrl = ImageUrlNormalizer.Normalize(
+            await FollowRedirection($"{BaseUrl}/v0/subjects/{id}/image?type={type}", token));
+        return ImageUrlNormalizer.IsNoIconSubjectImage(imageUrl) ? null : imageUrl;
     }
 
     public async Task<IEnumerable<Episode>?> GetSubjectEpisodeList(int id, EpisodeType? type, double episodeNumber, CancellationToken token)
     {
         if (id <= 0) return null;
 #if !EMBY
-        var episodeList = (await archive.SubjectEpisodeRelation.GetEpisodes(id, token))
-            .Where(x => x.Type == type || type == null)
-            .Select(x => x.ToEpisode());
-        if (episodeList.Any()) return episodeList;
+        if (!IsFreshMetadataRefresh)
+        {
+            var episodeList = (await archive.SubjectEpisodeRelation.GetEpisodes(id, token))
+                .Where(x => x.Type == type || type == null)
+                .Select(x => x.ToEpisode());
+            if (episodeList.Any()) return episodeList;
+        }
 #endif
 
         var result = await GetSubjectEpisodeListWithOffset(id, type, 0, token);
@@ -241,9 +250,12 @@ public partial class BangumiApi
     {
         if (id <= 0) return null;
 #if !EMBY
-        var relations = await archive.SubjectRelations.Get(id, token);
-        if (relations.Any())
-            return relations;
+        if (!IsFreshMetadataRefresh)
+        {
+            var relations = await archive.SubjectRelations.Get(id, token);
+            if (relations.Any())
+                return relations;
+        }
 #endif
         return await Get<IEnumerable<RelatedSubject>>($"{BaseUrl}/v0/subjects/{id}/subjects", token);
     }
@@ -407,7 +419,14 @@ public partial class BangumiApi
     {
         if (id <= 0) return [];
 
-        var characters = await Get<IEnumerable<RelatedCharacter>>($"{BaseUrl}/v0/subjects/{id}/characters", token);
+        IEnumerable<RelatedCharacter>? characters = null;
+#if !EMBY
+        if (!IsFreshMetadataRefresh)
+        {
+            characters = await archive.SubjectCharacterRelation.Get(id, token);
+        }
+#endif
+        characters ??= await Get<IEnumerable<RelatedCharacter>>($"{BaseUrl}/v0/subjects/{id}/characters", token);
 
         return characters?
             .OrderBy(c => c.Relation switch
@@ -455,9 +474,9 @@ public partial class BangumiApi
             }
         });
         var results = await Task.WhenAll(tasks);
-        return results.SelectMany(r => r).Where(r => r != null && !string.IsNullOrEmpty(r.Name));
+        return results.SelectMany(r => r).Where(r => r != null && !string.IsNullOrEmpty(r.Name)).Select(NormalizePersonImage);
 #else
-        return characters.SelectMany(c => c.ToPersonInfos());
+        return characters.SelectMany(c => c.ToPersonInfos()).Select(NormalizePersonImage);
 #endif
     }
     public async Task<IEnumerable<PersonInfo>> GetSubjectVirtualCharacters(int id, CancellationToken token)
@@ -498,9 +517,9 @@ public partial class BangumiApi
             }
         });
         var results = await Task.WhenAll(tasks);
-        return results.Where(r => r != null && !string.IsNullOrEmpty(r.Name));
+        return results.Where(r => r != null && !string.IsNullOrEmpty(r.Name)).Select(NormalizePersonImage);
 #else
-        return characters.SelectMany(c => c.ToCharacterInfos());
+        return characters.SelectMany(c => c.ToCharacterInfos()).Select(NormalizePersonImage);
 #endif
     }
 
@@ -508,9 +527,12 @@ public partial class BangumiApi
     {
         if (id <= 0) return null;
 #if !EMBY
-        var relatedPerson = await archive.SubjectPersonRelation.Get(id, token);
-        if (relatedPerson.Any())
-            return relatedPerson;
+        if (!IsFreshMetadataRefresh)
+        {
+            var relatedPerson = await archive.SubjectPersonRelation.Get(id, token);
+            if (relatedPerson.Any())
+                return relatedPerson;
+        }
 #endif
         return await Get<IEnumerable<RelatedPerson>>($"{BaseUrl}/v0/subjects/{id}/persons", token);
     }
@@ -519,18 +541,30 @@ public partial class BangumiApi
     {
         if (id <= 0) return [];
         var persons = await GetSubjectPersons(id, token);
-        return (persons ?? []).Select(person => person.ToPersonInfo()).Where(info => info != null)!;
+        return (persons ?? [])
+            .Select(person => person.ToPersonInfo())
+            .OfType<PersonInfo>()
+            .Select(NormalizePersonImage);
+    }
+
+    private static PersonInfo NormalizePersonImage(PersonInfo info)
+    {
+        info.ImageUrl = ImageUrlNormalizer.Normalize(info.ImageUrl);
+        return info;
     }
 
     public async Task<Episode?> GetEpisode(int id, CancellationToken token)
     {
         if (id <= 0) return null;
 #if !EMBY
-        var episode = await archive.Episode.FindById(id, token);
-        if (episode != null && DateTime.TryParse(episode.AirDate, out var airDate))
-            if (_plugin.Configuration.DaysBeforeUsingArchiveData == 0 ||
-                airDate < DateTime.Now.Subtract(TimeSpan.FromDays(_plugin.Configuration.DaysBeforeUsingArchiveData)))
-                return episode.ToEpisode();
+        if (!IsFreshMetadataRefresh)
+        {
+            var episode = await archive.Episode.FindById(id, token);
+            if (episode != null && DateTime.TryParse(episode.AirDate, out var airDate))
+                if (_plugin.Configuration.DaysBeforeUsingArchiveData == 0 ||
+                    airDate < DateTime.Now.Subtract(TimeSpan.FromDays(_plugin.Configuration.DaysBeforeUsingArchiveData)))
+                    return episode.ToEpisode();
+        }
 #endif
         return await Get<Episode>($"{BaseUrl}/v0/episodes/{id}", token);
     }
@@ -539,9 +573,12 @@ public partial class BangumiApi
     {
         if (id <= 0) return null;
 #if !EMBY
-        var person = await archive.Person.FindById(id, token);
-        if (person != null)
-            return person.ToPersonDetail();
+        if (!IsFreshMetadataRefresh)
+        {
+            var person = await archive.Person.FindById(id, token);
+            if (person != null)
+                return person.ToPersonDetail();
+        }
 #endif
         return await Get<PersonDetail>($"{BaseUrl}/v0/persons/{id}", token);
     }
@@ -606,7 +643,7 @@ public partial class BangumiApi
 
     public async Task<EpisodeCollectionInfo?> GetEpisodeStatus(string accessToken, int episodeId, CancellationToken token)
     {
-        return await Get<EpisodeCollectionInfo>($"{BaseUrl}/v0/users/-/collections/-/episodes/{episodeId}", accessToken, token);
+        return await Get<EpisodeCollectionInfo>($"{BaseUrl}/v0/users/-/collections/-/episodes/{episodeId}", accessToken, token, false);
     }
 
     public async Task UpdateEpisodeStatus(string accessToken, int episodeId, EpisodeCollectionType status, CancellationToken token)

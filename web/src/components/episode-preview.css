@@ -1,0 +1,43 @@
+:host {
+    display: block;
+    padding: 16px;
+    border-radius: 12px;
+    background: var(--jf-palette-FilledInput-bg, rgba(128, 128, 128, 0.1));
+}
+
+header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+strong {
+    font-weight: 500;
+}
+
+p {
+    font-size: 0.8125rem;
+    color: var(--jf-palette-text-secondary, #aaa);
+    line-height: 1.6;
+    overflow-wrap: anywhere;
+    margin: 8px 0 0;
+}
+
+dl {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+    margin: 20px 0;
+}
+
+dt {
+    font-size: 0.75rem;
+    color: var(--jf-palette-text-secondary, #aaa);
+}
+
+dd {
+    font-size: 1.5rem;
+    margin: 6px 0 0;
+    font-variant-numeric: tabular-nums;
+}

@@ -11,7 +11,7 @@ namespace Jellyfin.Plugin.Bangumi.Archive.Relation;
 
 public class SubjectPersonRelation(ArchiveData archive)
 {
-    private const string FileName = "subject_person.map";
+    private const string FileName = "subject_person.v2.map";
 
     private readonly Dictionary<int, List<RelatedPerson>> _mapping = new();
 
@@ -19,11 +19,13 @@ public class SubjectPersonRelation(ArchiveData archive)
 
     private string FilePath => Path.Join(archive.BasePath, FileName);
 
+    public bool Exists() => File.Exists(FilePath);
+
     public async Task GenerateIndex(ZipArchive zipStream, CancellationToken token)
     {
         var entry = zipStream.GetEntry("subject-persons.jsonlines");
         if (entry == null) return;
-        await using var stream = entry.Open();
+        await using var stream = await entry.OpenAsync(token);
         using var reader = new StreamReader(stream, Encoding.UTF8);
 
         while (await reader.ReadLineAsync(token) is { } line)
@@ -71,6 +73,7 @@ public class SubjectPersonRelation(ArchiveData archive)
             var subjectId = reader.ReadInt32();
             var personId = reader.ReadInt32();
             var position = reader.ReadInt16();
+            var appearEps = JsonSerializer.Deserialize<JsonElement?>(reader.ReadString());
 
             if (!_mapping.ContainsKey(subjectId))
                 _mapping.Add(subjectId, []);
@@ -78,7 +81,8 @@ public class SubjectPersonRelation(ArchiveData archive)
             _mapping[subjectId].Add(new RelatedPerson
             {
                 PersonId = personId,
-                Position = position
+                Position = position,
+                AppearEps = appearEps
             });
         }
     }
@@ -95,6 +99,7 @@ public class SubjectPersonRelation(ArchiveData archive)
             writer.Write(subjectId);
             writer.Write(relatedPerson.PersonId);
             writer.Write(relatedPerson.Position);
+            writer.Write(JsonSerializer.Serialize(relatedPerson.AppearEps));
         }
 
         writer.Flush();

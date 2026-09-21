@@ -1,0 +1,25 @@
+{
+    "name": "bangumi-plugin-web",
+    "private": true,
+    "type": "module",
+    "scripts": {
+        "build": "tsc --noEmit && vite build",
+        "dev": "vite --host 127.0.0.1",
+        "test": "node --test test/*.test.js",
+        "typecheck": "tsc --noEmit",
+        "lint": "oxlint --deny-warnings src test pages vite.config.ts",
+        "lint:fix": "npm run lint -- --fix",
+        "format": "oxfmt --write .",
+        "format:check": "oxfmt --check ."
+    },
+    "devDependencies": {
+        "@types/node": "^26.5.0",
+        "esbuild": "^0.28.2",
+        "material-design-icons-iconfont": "^6.7.0",
+        "oxfmt": "^0.67.0",
+        "oxlint": "^1.82.0",
+        "terser": "^5.51.2",
+        "typescript": "^7.0.2",
+        "vite": "^7.1.0"
+    }
+}

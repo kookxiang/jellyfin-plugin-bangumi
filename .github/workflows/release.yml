@@ -26,17 +26,31 @@ jobs:
       abi-version: ${{ steps.abi-version.outputs.version }}
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
       - name: Patch version
         run: sed -i "/Version/s/>.*</>${{ github.ref_name }}.0</" Directory.Build.props
-      - name: Setup .NET 9.x
-        uses: actions/setup-dotnet@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
-          dotnet-version: 9
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - name: Build and test web components
+        working-directory: web
+        run: |
+          npm ci --no-audit --no-fund
+          npm run lint
+          npm run format:check
+          npm run build
+          npm test
+      - name: Setup .NET 10.x
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: 10
       - name: Restore NuGet Packages
         run: dotnet restore
       - name: .NET Publish
-        run: dotnet publish --configuration Release --output publish Jellyfin.Plugin.Bangumi
+        run: dotnet publish --configuration Release -p:SkipWebBuild=true --output publish Jellyfin.Plugin.Bangumi
       - name: Resolve Target ABI Version
         id: abi-version
         shell: pwsh
@@ -64,13 +78,13 @@ jobs:
           } | ConvertTo-Json -Compress | Out-File "publish/meta.json" -Encoding UTF8 -NoNewline
       - name: Create Release Artifact
         run: zip -9j Jellyfin.Plugin.Bangumi.zip publish/*.dll publish/meta.json
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: Jellyfin.Plugin.Bangumi
           path: Jellyfin.Plugin.Bangumi.zip
       - name: .NET Publish (Emby)
         run: dotnet publish --configuration Release --output publish Emby.Plugin.Bangumi
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: Emby.Plugin.Bangumi
           path: publish/Emby.Plugin.Bangumi.dll
@@ -79,10 +93,10 @@ jobs:
     runs-on: ubuntu-latest
     needs: build
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: Jellyfin.Plugin.Bangumi
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: Emby.Plugin.Bangumi
       - name: Upload to Release
@@ -98,7 +112,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: [build, upload]
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: Jellyfin.Plugin.Bangumi
       - name: Create Plugin Repository for Jellyfin
@@ -141,7 +155,7 @@ jobs:
             }) + $Repository[0].versions
           }) | Out-File Release/repository.json -Encoding UTF8NoBOM -NoNewline
       - name: Generate GitHub Pages Artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: plugin-repository
           path: Release/*
@@ -152,30 +166,30 @@ jobs:
     needs: repository
     steps:
       - name: Download Artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: plugin-repository
           path: pages
       - name: Repack Artifact for GitHub Pages
-        uses: actions/upload-pages-artifact@v3
+        uses: actions/upload-pages-artifact@v5
         with:
           path: pages/
       - name: Deploy
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5
   deploy-cloudflare-pages:
     name: Depoly to Cloudflare Pages
     runs-on: ubuntu-latest
     needs: repository
     steps:
       - name: Download Artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: plugin-repository
           path: pages
       - name: Replace URL
         run: sed -i "s|https://kookxiang.github.io/jellyfin-plugin-bangumi/|https://jellyfin-plugin-bangumi.kookxiang.dev/|g" pages/repository.json
       - name: Deploy
-        uses: cloudflare/wrangler-action@v3
+        uses: cloudflare/wrangler-action@v4
         with:
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}

@@ -1,3 +1,4 @@
+using System.Text.Json;
 using System.Collections.Generic;
 using System.Text.Json.Serialization;
 using MediaBrowser.Controller.Entities;
@@ -11,6 +12,9 @@ namespace Jellyfin.Plugin.Bangumi.Model;
 
 public class RelatedPerson
 {
+    [JsonPropertyName("appear_eps")]
+    public JsonElement? AppearEps { get; set; }
+
 #if EMBY
     private static readonly Dictionary<string, PersonEntityType> RelationMap = new()
     {

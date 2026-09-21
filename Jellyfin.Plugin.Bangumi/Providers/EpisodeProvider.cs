@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
@@ -29,6 +30,12 @@ public class EpisodeProvider(BangumiApi api, Logger<EpisodeProvider> log, ILibra
     public async Task<MetadataResult<Episode>> GetMetadata(EpisodeInfo info, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
+        // Virtual episodes are maintained from the archive by MissingEpisodeProvider.
+        // They have no file to parse and must never trigger an online metadata fallback.
+        if (string.IsNullOrEmpty(info.Path))
+            return new MetadataResult<Episode> { ResultLanguage = Constants.Language };
+
+        using var refreshScope = BangumiApi.BeginRequestedRefresh(info.Path);
         var localConfiguration = await LocalConfiguration.ForPath(info.Path);
 
         var context = new EpisodeParserContext(api, libraryManager, info, mediaSourceManager, Configuration, localConfiguration, cancellationToken);
@@ -39,7 +46,10 @@ public class EpisodeProvider(BangumiApi api, Logger<EpisodeProvider> log, ILibra
         // throw execption will cause the episode to not show up anywhere
         try
         {
-            episode = await parser.GetEpisode();
+            episode = BangumiApi.IsFreshMetadataRefresh
+                && int.TryParse(info.ProviderIds?.GetValueOrDefault(Constants.ProviderName), out var savedId) && savedId > 0
+                ? await api.GetEpisode(savedId, cancellationToken)
+                : await parser.GetEpisode();
 
             log.Info("metadata for {FilePath}: {EpisodeInfo}", Path.GetFileName(info.Path), episode);
         }
@@ -52,10 +62,21 @@ public class EpisodeProvider(BangumiApi api, Logger<EpisodeProvider> log, ILibra
 
         if (localConfiguration.Skip) return result;
 
+        var forcedType = localConfiguration.GetForcedEpisodeType();
+        var parent = libraryManager.FindByPath(Path.GetDirectoryName(info.Path)!, true);
+
         if (episode == null)
         {
             // remove season number
-            if (BasicEpisodeParser.IsSpecial(info.Path, context.LibraryManager, true))
+            if (forcedType != null)
+            {
+                result.HasMetadata = true;
+                result.Item = new Episode
+                {
+                    ParentIndexNumber = forcedType == EpisodeType.Special ? 0 : GetNormalSeasonNumber(),
+                };
+            }
+            else if (BasicEpisodeParser.IsSpecial(info.Path, context.LibraryManager, true))
             {
                 result.HasMetadata = true;
                 result.Item = new Episode { ParentIndexNumber = 0 };
@@ -74,17 +95,19 @@ public class EpisodeProvider(BangumiApi api, Logger<EpisodeProvider> log, ILibra
         if (episode.AirDate.Length == 4)
             result.Item.ProductionYear = int.Parse(episode.AirDate);
 
-        var parent = libraryManager.FindByPath(Path.GetDirectoryName(info.Path)!, true);
-
         result.Item.Name = episode.Name;
         result.Item.OriginalTitle = episode.OriginalName;
-        result.Item.IndexNumber = localConfiguration.CorrectIndex ?
-            (int)episode.Order :
-            (int)episode.Order + localConfiguration.Offset;
+        result.Item.IndexNumber = LocalConfigurationHelper.GetDisplayEpisodeIndex(episode.Order, localConfiguration);
         result.Item.Overview = string.IsNullOrEmpty(episode.Description) ? null : episode.Description;
         result.Item.ParentIndexNumber = (int?)episode.SeasonNumber ?? (parent is Series ? 1 : info.ParentIndexNumber ?? 1);
 
-        if (BasicEpisodeParser.IsSpecial(info.Path, context.LibraryManager, true) || episode.Type == EpisodeType.Special || (parent is not Series && info.ParentIndexNumber == 0))
+        if (forcedType != null)
+        {
+            result.Item.ParentIndexNumber = forcedType == EpisodeType.Special ? 0 : GetNormalSeasonNumber();
+            if (forcedType == EpisodeType.Normal && parent is Season { IndexNumber: > 0 } normalSeason)
+                result.Item.SeasonId = normalSeason.Id;
+        }
+        else if (BasicEpisodeParser.IsSpecial(info.Path, context.LibraryManager, true) || episode.Type == EpisodeType.Special || (parent is not Series && info.ParentIndexNumber == 0))
         {
             result.Item.ParentIndexNumber = 0;
         }
@@ -95,10 +118,11 @@ public class EpisodeProvider(BangumiApi api, Logger<EpisodeProvider> log, ILibra
                 result.Item.ParentIndexNumber = season.IndexNumber;
         }
 
-        FillFallbackTitle(result.Item);
-
-        if (episode.Type == EpisodeType.Normal && result.Item.ParentIndexNumber > 0)
+        if ((forcedType ?? episode.Type) == EpisodeType.Normal && result.Item.ParentIndexNumber > 0)
+        {
+            FillFallbackTitle(result.Item);
             return result;
+        }
 
         // mark episode as special
         result.Item.ParentIndexNumber = 0;
@@ -106,13 +130,26 @@ public class EpisodeProvider(BangumiApi api, Logger<EpisodeProvider> log, ILibra
         // use title and overview from special episode subject if episode data is empty
         var series = await api.GetSubject(episode.ParentId, cancellationToken);
         if (series == null)
+        {
+            FillFallbackTitle(result.Item);
             return result;
+        }
 
-        // use title from special episode subject if episode data is empty
-        if (string.IsNullOrEmpty(result.Item.Name))
-            result.Item.Name = series.Name;
-        if (string.IsNullOrEmpty(result.Item.OriginalTitle))
-            result.Item.OriginalTitle = series.OriginalName;
+        if (string.IsNullOrEmpty(result.Item.Name) || string.IsNullOrEmpty(result.Item.OriginalTitle) || string.IsNullOrEmpty(result.Item.Overview))
+        {
+            var episodes = await api.GetSubjectEpisodeList(episode.ParentId, null, episode.Order, cancellationToken);
+            if (episodes?.Take(2).Count() == 1)
+            {
+                if (string.IsNullOrEmpty(result.Item.Name))
+                    result.Item.Name = series.Name;
+                if (string.IsNullOrEmpty(result.Item.OriginalTitle))
+                    result.Item.OriginalTitle = series.OriginalName;
+                if (string.IsNullOrEmpty(result.Item.Overview))
+                    result.Item.Overview = series.Summary;
+            }
+        }
+
+        FillFallbackTitle(result.Item);
 
         var seasonNumber = parent is Season ? parent.IndexNumber : 1;
         if (!string.IsNullOrEmpty(episode.AirDate) && string.Compare(episode.AirDate, series.AirDate, StringComparison.Ordinal) < 0)
@@ -124,6 +161,15 @@ public class EpisodeProvider(BangumiApi api, Logger<EpisodeProvider> log, ILibra
             result.Item.AirsBeforeEpisodeNumber = (int)Math.Ceiling(episode.Order);
 
         return result;
+
+        int GetNormalSeasonNumber()
+        {
+            if (parent is Season { IndexNumber: > 0 } season)
+                return season.IndexNumber.GetValueOrDefault(1);
+            if (episode?.SeasonNumber > 0)
+                return Math.Max(1, (int)episode.SeasonNumber.Value);
+            return info.ParentIndexNumber > 0 ? info.ParentIndexNumber.Value : 1;
+        }
 
         void FillFallbackTitle(Episode item)
         {

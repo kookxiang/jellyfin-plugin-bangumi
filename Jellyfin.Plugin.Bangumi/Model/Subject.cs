@@ -62,7 +62,7 @@ public class Subject
     public Dictionary<string, string>? Images { get; set; }
 
     [JsonIgnore]
-    public string? DefaultImage => Images?["large"];
+    public string? DefaultImage => Images?.GetValueOrDefault("large");
 
     [JsonPropertyName("eps")]
     public int? EpisodeCount { get; set; }
@@ -75,6 +75,9 @@ public class Subject
 
     [JsonPropertyName("nsfw")]
     public bool IsNSFW { get; set; }
+
+    [JsonPropertyName("meta_tags")]
+    public IEnumerable<string> MetaTags { get; set; } = [];
 
     public string? Platform { get; set; }
 

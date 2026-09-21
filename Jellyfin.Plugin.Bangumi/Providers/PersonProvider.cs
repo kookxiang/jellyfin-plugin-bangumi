@@ -4,6 +4,7 @@ using System.Linq;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
+using Jellyfin.Plugin.Bangumi.Utils;
 using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Providers;
 using MediaBrowser.Model.Providers;
@@ -22,7 +23,7 @@ public class PersonProvider(BangumiApi api)
         cancellationToken.ThrowIfCancellationRequested();
         var result = new MetadataResult<Person> { ResultLanguage = Constants.Language };
 
-        Model.PersonDetail? person = null;
+        Model.PersonDetail? person;
 
         var personId = info.ProviderIds?.GetValueOrDefault(Constants.ProviderName);
         string prefix = "";
@@ -98,7 +99,7 @@ public class PersonProvider(BangumiApi api)
             {
                 Name = person.Name,
                 SearchProviderName = person.Name,
-                ImageUrl = person.DefaultImage,
+                ImageUrl = ImageUrlNormalizer.Normalize(person.DefaultImage),
                 Overview = person.Summary,
                 PremiereDate = person.Birthdate,
                 ProviderIds = { { Constants.ProviderName, $"{prefix}{person.Id}" } }
@@ -115,7 +116,7 @@ public class PersonProvider(BangumiApi api)
             {
                 Name = item.Name,
                 SearchProviderName = item.Name,
-                ImageUrl = item.DefaultImage,
+                ImageUrl = ImageUrlNormalizer.Normalize(item.DefaultImage),
                 Overview = item.ShortSummary,
                 ProviderIds = { { Constants.ProviderName, item.Id.ToString() } }
             }));
@@ -123,7 +124,7 @@ public class PersonProvider(BangumiApi api)
             {
                 Name = item.Name,
                 SearchProviderName = item.Name,
-                ImageUrl = item.DefaultImage,
+                ImageUrl = ImageUrlNormalizer.Normalize(item.DefaultImage),
                 Overview = item.ShortSummary,
                 ProviderIds = { { Constants.ProviderName, $"{Constants.CharacterIdPrefix}{item.Id}" } }
             }));

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Jellyfin.Plugin.Bangumi.Utils;
 using MediaBrowser.Common.Net;
 using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Providers;
@@ -53,7 +54,7 @@ public class PersonProvider(BangumiApi api)
             {
                 Name = item.Name,
                 SearchProviderName = item.Name,
-                ImageUrl = item.DefaultImage,
+                ImageUrl = ImageUrlNormalizer.Normalize(item.DefaultImage),
                 Overview = item.ShortSummary,
                 ProviderIds = { { Constants.ProviderName, item.Id.ToString() } }
             }));
@@ -69,7 +70,7 @@ public class PersonProvider(BangumiApi api)
         {
             Name = person.Name,
             SearchProviderName = person.Name,
-            ImageUrl = person.DefaultImage,
+            ImageUrl = ImageUrlNormalizer.Normalize(person.DefaultImage),
             Overview = person.Summary,
             PremiereDate = person.Birthdate
         };

@@ -1,0 +1,6 @@
+{
+  "Request": "GET /v0/episodes?subject_id=8631&limit=50&type=1\n",
+  "Status": 404,
+  "Body": "{\"title\":\"Not Found\",\"details\":{\"path\":\"/v0/episodes\",\"method\":\"GET\",\"query_string\":\"subject_id=8631&limit=50&type=1\"},\"request_id\":\"a3902b8ddc5208d1-LHR\",\"description\":\"resource can't be found in the database or has been removed\"}\n",
+  "Location": null
+}

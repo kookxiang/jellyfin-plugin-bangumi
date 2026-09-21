@@ -1,0 +1,335 @@
+:host {
+    display: block;
+    color: var(--jf-palette-text-primary, #eee);
+    font: inherit;
+    font-size: 1rem;
+    line-height: 1.5;
+}
+
+/* Host variables cross the shadow boundary. No document-wide CSS is emitted. */
+* {
+    box-sizing: border-box;
+}
+
+[hidden],
+.hide {
+    display: none !important;
+}
+
+input,
+select,
+textarea {
+    font: inherit;
+}
+
+button,
+a {
+    -webkit-tap-highlight-color: transparent;
+}
+
+button {
+    cursor: pointer;
+}
+
+button:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+}
+
+a {
+    color: var(--jf-palette-primary-main, #00a4dc);
+}
+
+button:focus-visible,
+a:focus-visible {
+    outline: 2px solid var(--jf-palette-primary-main, #00a4dc);
+    outline-offset: 3px;
+}
+
+#bangumiConfigurationPage div[data-role='content'] {
+    height: auto;
+    overflow: visible;
+}
+
+.bangumi-settings-layout {
+    overflow: visible;
+    align-items: flex-start;
+}
+
+.bangumi-settings-content {
+    width: 100%;
+}
+
+.bangumi-settings-heading {
+    font-size: 1.5rem;
+    font-weight: 500;
+}
+
+.inputContainer,
+.selectContainer,
+.checkboxContainer {
+    margin-bottom: 24px;
+}
+
+.inputLabel,
+.selectLabel,
+.textareaLabel {
+    display: block;
+    margin-bottom: 8px;
+    font-size: 0.875rem;
+    color: var(--jf-palette-text-secondary, #aaa);
+}
+
+input:not([type='checkbox']):not([type='hidden']),
+select,
+textarea {
+    display: block;
+    width: 100%;
+    min-width: 0;
+    padding: 12px;
+    border: 1px solid var(--jf-palette-divider, rgba(128, 128, 128, 0.35));
+    border-radius: 10px;
+    background: var(--jf-palette-FilledInput-bg, rgba(128, 128, 128, 0.12));
+    color: inherit;
+}
+
+input::placeholder,
+textarea::placeholder {
+    color: var(--jf-palette-text-secondary, #aaa);
+    opacity: 0.8;
+}
+
+input:not([type='checkbox']):focus,
+select:focus,
+textarea:focus {
+    outline: 2px solid var(--jf-palette-primary-main, #00a4dc);
+    outline-offset: 2px;
+    border-color: var(--jf-palette-primary-main, #00a4dc);
+}
+
+input:disabled,
+select:disabled,
+textarea:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+input:user-invalid,
+textarea:user-invalid {
+    border-bottom-color: var(--jf-palette-error-main, #e65b5b);
+}
+
+textarea {
+    resize: vertical;
+    line-height: 1.6;
+}
+
+.textarea-mono {
+    font-family: ui-monospace, monospace;
+}
+
+bangumi-segmented-select > select {
+    position: absolute !important;
+    width: 1px !important;
+    height: 1px;
+    min-height: 0;
+    padding: 0;
+    opacity: 0;
+    pointer-events: none;
+}
+
+option {
+    background: var(--jf-palette-background-paper, #242424);
+    color: var(--jf-palette-text-primary, #eee);
+}
+
+.fieldDescription {
+    color: var(--jf-palette-text-secondary, #aaa);
+    font-size: 0.875rem;
+    margin-top: 6px;
+    line-height: 1.6;
+    overflow-wrap: anywhere;
+}
+
+.fieldDescription p:first-child {
+    margin-top: 0;
+}
+
+.listItem {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    padding: 12px;
+}
+
+.listItemBody {
+    flex: 1;
+    min-width: 0;
+}
+
+.listItemBodyText.secondary {
+    color: var(--jf-palette-text-secondary, #aaa);
+}
+
+dialog {
+    width: min(640px, calc(100vw - 32px));
+    max-height: calc(100dvh - 32px);
+    padding: 24px;
+    border: 1px solid var(--jf-palette-divider, #555);
+    border-radius: 12px;
+    background: var(--jf-palette-background-paper, #242424);
+    color: inherit;
+}
+
+dialog::backdrop {
+    background: rgba(0, 0, 0, 0.6);
+}
+
+.formDialogHeader {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+}
+
+.formDialogHeaderTitle {
+    margin: 0;
+}
+
+.formDialogFooter {
+    padding-top: 24px;
+}
+
+@media (max-width: 900px) {
+    .bangumi-settings-layout {
+        padding: 0 16px;
+        gap: 16px;
+    }
+}
+
+@media (forced-colors: active) {
+    input,
+    select,
+    textarea,
+    button {
+        border: 1px solid ButtonText;
+    }
+}
+
+bangumi-checkbox.checkboxContainer {
+    margin-bottom: 12px;
+}
+
+bangumi-checkbox .fieldDescription {
+    display: block;
+    margin-top: 4px;
+}
+
+bangumi-checkbox input:disabled + label {
+    color: var(--jf-palette-text-disabled, #888);
+    cursor: not-allowed;
+}
+
+.formDialogFooter {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+}
+
+@media (max-width: 600px) {
+    .formDialogFooter button {
+        flex: 1;
+    }
+}
+
+.bangumi-field-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 8px;
+}
+
+.bangumi-field-header .textareaLabel {
+    margin: 0;
+}
+
+/* Section containers own spacing; hidden children leave no trailing margins. */
+.bangumi-settings-module {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+.bangumi-settings-panel .bangumi-settings-module > * {
+    margin-block: 0;
+}
+
+.bangumi-media-toolbar > * {
+    margin-block: 0;
+}
+
+.bangumi-settings-group {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+.bangumi-settings-groups {
+    display: flex;
+    flex-direction: column;
+    gap: 40px;
+}
+
+.bangumi-settings-panel .bangumi-settings-group > * {
+    margin-block: 0;
+}
+
+@media (min-width: 901px) {
+    .bangumi-settings-content {
+        padding-top: 8px;
+    }
+}
+
+/* Viewport-fixed action with reserved scroll space for the final form row. */
+.bangumi-settings-content {
+    gap: 24px;
+    padding-bottom: calc(104px + env(safe-area-inset-bottom));
+}
+
+#bangumiConfigurationForm .submit-button-container {
+    position: fixed;
+    left: var(--save-bar-left, 0px);
+    width: var(--save-bar-width, 100%);
+    bottom: 0;
+    z-index: 5;
+    display: flex;
+    justify-content: center;
+    padding: 16px 0 calc(16px + env(safe-area-inset-bottom));
+    border-top: 1px solid rgba(255, 255, 255, 0.12);
+    background: rgba(0, 0, 0, 0.4);
+    -webkit-backdrop-filter: blur(16px);
+    backdrop-filter: blur(16px);
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.08);
+}
+
+.submit-button-container button[type='submit'] {
+    min-width: 128px;
+    pointer-events: auto;
+}
+
+@media (max-width: 600px) {
+    .submit-button-container button[type='submit'] {
+        min-width: 112px;
+    }
+}
+
+/* Match the mode selector spacing around its explanation and options. */
+.episode-parser-options {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+.episode-parser-options > * {
+    margin-block: 0;
+}

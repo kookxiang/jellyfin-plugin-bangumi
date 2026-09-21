@@ -1,0 +1,6 @@
+{
+  "Request": "GET /v0/episodes/996668\n",
+  "Status": 200,
+  "Body": "{\"airdate\":\"2020-12-25\",\"name\":\"総集編 回想\",\"name_cn\":\"总集编 回想\",\"duration\":\"\",\"desc\":\"\",\"ep\":0,\"sort\":12.5,\"id\":996668,\"subject_id\":301541,\"comment\":4,\"type\":1,\"disc\":0,\"duration_seconds\":0}\n",
+  "Location": null
+}

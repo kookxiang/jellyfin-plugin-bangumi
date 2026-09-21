@@ -7,6 +7,15 @@ namespace Jellyfin.Plugin.Bangumi.Archive.Data;
 
 public class Character
 {
+    [JsonPropertyName("comments")]
+    public int Comments { get; set; }
+
+    [JsonPropertyName("collects")]
+    public int Collects { get; set; }
+
+    [JsonPropertyName("role")]
+    public Model.CharacterType Role { get; set; }
+
     [JsonPropertyName("id")]
     public int Id { get; set; }
 

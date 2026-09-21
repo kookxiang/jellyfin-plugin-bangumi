@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="zh-CN">
+    <meta charset="utf-8" /><meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Bangumi Custom Element 验证</title>
+    <style>
+        :root {
+            --jf-palette-primary-main: #00a4dc;
+            --jf-palette-text-primary: #eee;
+            --jf-palette-text-secondary: #aaa;
+            --jf-palette-background-default: #101010;
+            --jf-palette-background-paper: #202020;
+            --jf-palette-FilledInput-bg: rgba(255, 255, 255, 0.09);
+        }
+        body {
+            margin: 0;
+            background: var(--jf-palette-background-default);
+            color: var(--jf-palette-text-primary);
+        }
+        body.light {
+            --jf-palette-text-primary: #222;
+            --jf-palette-text-secondary: #666;
+            --jf-palette-background-default: #fff;
+            --jf-palette-background-paper: #fafafa;
+            --jf-palette-FilledInput-bg: rgba(0, 0, 0, 0.06);
+        }
+        body.purple {
+            --jf-palette-primary-main: #45bec5;
+            --jf-palette-primary-contrastText: #071f23;
+            --jf-palette-text-primary: #eee;
+            --jf-palette-text-secondary: #ccc;
+            --jf-palette-background-paper: #210f30;
+            --jf-palette-background-default: #210f30;
+            --jf-palette-action-hover: #30203f;
+            background: radial-gradient(at 70% 25%, #521b68, #060b33 75%);
+            background-attachment: fixed;
+        }
+        header {
+            padding: 12px 24px;
+            font: 14px sans-serif;
+        }
+        header button {
+            margin-right: 12px;
+        }
+        /* Deliberately hostile host CSS must not penetrate the component. */
+        input {
+            border: 20px solid red !important;
+        }
+        .inputLabel {
+            font-size: 80px !important;
+        }
+    </style>
+    <header>
+        <button id="theme">切换主题</button><button id="remount">重新挂载</button><button id="run">运行回归检查</button
+        ><output id="report">预览使用模拟数据，不连接真实服务器</output>
+    </header>
+    <div class="page" data-role="page" id="page"></div>
+    <script type="module" src="./preview.js"></script>
+</html>

@@ -19,6 +19,21 @@ public enum EpisodeParserType
 
 public class PluginConfiguration : BasePluginConfiguration
 {
+    // Use the loaded server assembly so this temporary workaround defaults on only for Jellyfin 12.
+    public bool MergeEpisodeVersionsByBangumiId { get; set; } =
+        typeof(MediaBrowser.Controller.Entities.BaseItem).Assembly.GetName().Version?.Major == 12;
+
+#if !EMBY
+    // Missing episode providers and their settings are only available in Jellyfin.
+    public bool ImportMissingEpisodes { get; set; }
+
+    public bool ImportUnairedEpisodes { get; set; }
+
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Performance", "CA1819:Properties should not return arrays",
+        Justification = "This serialized configuration property is an editable array of media library IDs.")]
+    public string[] EnabledMissingEpisodeLibraries { get; set; } = [];
+#endif
+
     public TranslationPreferenceType TranslationPreference { get; set; } = TranslationPreferenceType.Chinese;
 
     public TranslationPreferenceType PersonTranslationPreference { get; set; } = TranslationPreferenceType.Original;
@@ -46,6 +61,8 @@ public class PluginConfiguration : BasePluginConfiguration
     public bool AlwaysGetTitleByAnitomySharp { get; set; }
 
     public bool UseTestingSearchApi { get; set; }
+
+    public bool PreferAnimeSearch { get; set; } = true;
 
     public int SeasonGuessMaxSearchCount { get; set; } = 2;
 

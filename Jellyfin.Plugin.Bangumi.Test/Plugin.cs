@@ -14,5 +14,8 @@ public class Plugin
         Assert.AreEqual(Constants.PluginGuid, plugin.Id.ToString(), "should have plugin id");
         Assert.AreEqual(Constants.PluginName, plugin.Name, "should have plugin name");
         Assert.IsTrue(plugin.GetPages().Any(), "should have plugin pages");
+        Assert.IsFalse(
+            plugin.GetPages().Any(page => page.Name == "Plugin.Bangumi.Tools.MediaLibrary"),
+            "media library manager should be embedded in the settings page");
     }
 }

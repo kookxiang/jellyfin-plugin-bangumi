@@ -46,11 +46,22 @@ public class Subject
     [JsonPropertyName("date")]
     public string? Date { get; set; }
 
+    [JsonPropertyName("meta_tags")]
+    public IEnumerable<string> MetaTags { get; set; } = [];
+
+    [JsonPropertyName("favorite")]
+    public Dictionary<string, int> Favorite { get; set; } = [];
+
+    [JsonPropertyName("series")]
+    public bool Series { get; set; }
+
     public Model.Subject ToSubject()
     {
         return new Model.Subject
         {
             Id = Id,
+            Type = Type,
+            MetaTags = MetaTags,
             OriginalNameRaw = OriginalName,
             ChineseNameRaw = ChineseName,
             SummaryRaw = Summary,
