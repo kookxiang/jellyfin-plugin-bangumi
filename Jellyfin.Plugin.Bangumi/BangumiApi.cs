@@ -78,8 +78,10 @@ public partial class BangumiApi
                     var subjectWithInfobox = await Task.WhenAll(tasks);
 
                     var sortedSubjects =
-                        Subject.SortByFuzzScore(subjectWithInfobox.Where(s => s != null).Cast<Subject>().ToList(), keyword);
-                    return sortedSubjects.Concat(list.Skip(num)).ToList();
+                        Subject.SortByFuzzScore(subjectWithInfobox.Where(s => s != null).Cast<Subject>().ToList(),
+                        keyword,
+                        Plugin.Instance.Configuration.FuzzyWuzzyScore);
+                    return sortedSubjects.ToList();
                 }
 
                 return Subject.SortBySimilarity(list, keyword);

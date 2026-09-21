@@ -68,6 +68,8 @@ public class PluginConfiguration : BasePluginConfiguration
 
     public bool SortByFuzzScore { get; set; } = false;
 
+    public int FuzzyWuzzyScore { get; set; } = 30;
+
     public bool RefreshRecentEpisodeWhenArchiveUpdate { get; set; } = false;
 
     public bool RefreshRatingWhenArchiveUpdate { get; set; } = false;
