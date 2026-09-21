@@ -1,0 +1,6 @@
+{
+    "Request": "GET /v0/characters/10956\n",
+    "Status": 200,
+    "Body": "{\"birth_mon\":null,\"gender\":null,\"birth_day\":null,\"birth_year\":null,\"blood_type\":null,\"images\":{\"small\":\"https://lain.bgm.tv/r/100/pic/crt/l/01/01/10956_crt_5LR7z.jpg\",\"grid\":\"https://lain.bgm.tv/pic/crt/g/01/01/10956_crt_5LR7z.jpg\",\"large\":\"https://lain.bgm.tv/pic/crt/l/01/01/10956_crt_5LR7z.jpg\",\"medium\":\"https://lain.bgm.tv/r/400/pic/crt/l/01/01/10956_crt_5LR7z.jpg\"},\"summary\":\"戏剧角色背着台上其他剧中人对观众说的话。也指影视片中的解说词。说话者不出现在画面上，但直接以语言来介绍影片内容、交待剧情或发表议论，包括对白的使用。\",\"name\":\"ナレーション\",\"infobox\":[{\"key\":\"简体中文名\",\"value\":\"旁白\"},{\"key\":\"别名\",\"value\":[{\"v\":\"ナレーター\"},{\"k\":\"第二中文名\",\"v\":\"解説\"},{\"k\":\"英文名\",\"v\":\"Narration / Narrator\"},{\"k\":\"日文名\",\"v\":\"語り\"},{\"k\":\"罗马字\",\"v\":\"Nareeshon\"},{\"k\":\"昵称\",\"v\":\"天之声\"},{\"k\":\"拼音\",\"v\":\"páng bái\"}]}],\"stat\":{\"comments\":72,\"collects\":215},\"id\":10956,\"locked\":false,\"type\":1,\"nsfw\":false}",
+    "Location": null
+}

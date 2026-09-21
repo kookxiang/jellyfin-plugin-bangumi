@@ -1,0 +1,6 @@
+{
+    "Request": "GET /v0/characters/99189\n",
+    "Status": 200,
+    "Body": "{\"birth_mon\":null,\"gender\":null,\"birth_day\":null,\"birth_year\":null,\"blood_type\":null,\"images\":{\"small\":\"https://lain.bgm.tv/r/100/pic/crt/l/d0/c3/99189_crt_ldn5q.jpg?r=1650886636\",\"grid\":\"https://lain.bgm.tv/pic/crt/g/d0/c3/99189_crt_ldn5q.jpg?r=1650886636\",\"large\":\"https://lain.bgm.tv/pic/crt/l/d0/c3/99189_crt_ldn5q.jpg?r=1650886636\",\"medium\":\"https://lain.bgm.tv/r/400/pic/crt/l/d0/c3/99189_crt_ldn5q.jpg?r=1650886636\"},\"summary\":\"壇ノ浦の漁村で暮らしていたが、父とともに侍の求める箱を探しに出た海で、神器を露わにした天罰により失明する。都へ向かう途中で琵琶法師に弟子入りし、覚一座に迎えられる。犬王と出会いバディとなり、これまでにない演奏スタイルで周囲を巻き込んでいく。\",\"name\":\"友魚\",\"infobox\":[{\"key\":\"简体中文名\",\"value\":\"友鱼\"},{\"key\":\"别名\",\"value\":[{\"v\":\"ともな\"},{\"v\":\"友一\"},{\"v\":\"ともいち\"},{\"v\":\"友有\"},{\"v\":\"ともあり\"}]}],\"stat\":{\"comments\":9,\"collects\":16},\"id\":99189,\"locked\":false,\"type\":1,\"nsfw\":false}",
+    "Location": null
+}

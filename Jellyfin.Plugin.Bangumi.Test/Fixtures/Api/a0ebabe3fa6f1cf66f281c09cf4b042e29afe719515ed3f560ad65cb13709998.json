@@ -1,0 +1,6 @@
+{
+    "Request": "GET /v0/characters/99188\n",
+    "Status": 200,
+    "Body": "{\"birth_mon\":null,\"gender\":null,\"birth_day\":null,\"birth_year\":null,\"blood_type\":null,\"images\":{\"small\":\"https://lain.bgm.tv/r/100/pic/crt/l/d2/d7/99188_crt_AZd5z.jpg?r=1650886590\",\"grid\":\"https://lain.bgm.tv/pic/crt/g/d2/d7/99188_crt_AZd5z.jpg?r=1650886590\",\"large\":\"https://lain.bgm.tv/pic/crt/l/d2/d7/99188_crt_AZd5z.jpg?r=1650886590\",\"medium\":\"https://lain.bgm.tv/r/400/pic/crt/l/d2/d7/99188_crt_AZd5z.jpg?r=1650886590\"},\"summary\":\"猿楽の一座である比叡座に生まれた、異形の子。その姿ゆえに周囲に疎まれ、ひょうたんの面で顔を隠されていた。見よう見まねで能を学び、個性的な舞を会得していた。京の町で友魚と出会い、能楽師としての才能を開花させ、見たことのないステージで人々を魅了していく。\",\"name\":\"犬王\",\"infobox\":[{\"key\":\"简体中文名\",\"value\":\"犬王\"},{\"key\":\"别名\",\"value\":[{\"k\":\"纯假名\",\"v\":\"いぬおう\"}]}],\"stat\":{\"comments\":7,\"collects\":12},\"id\":99188,\"locked\":false,\"type\":1,\"nsfw\":false}",
+    "Location": null
+}

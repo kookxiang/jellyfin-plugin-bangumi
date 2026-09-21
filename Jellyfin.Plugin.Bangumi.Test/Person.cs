@@ -56,7 +56,7 @@ public class Person
         var result = (await _api.GetSubjectVirtualCharacters(56847, _token)).ToList();
         Assert.IsNotNull(result, "person info should not be null");
         Assert.AreEqual("辉夜姬", result[0].Name, "should return translated name");
-        Assert.AreEqual("旁白", result[4].Name, "should return translated name");
+        Assert.AreEqual("旁白", result[1].Name, "should return translated name");
 
         result = (await _api.GetSubjectCharacters(284524, _token)).ToList();
         Assert.IsNotNull(result, "person info should not be null");
@@ -70,7 +70,7 @@ public class Person
         var result = (await _api.GetSubjectVirtualCharacters(56847, _token)).ToList();
         Assert.IsNotNull(result, "person info should not be null");
         Assert.AreEqual("かぐや姫", result[0].Name, "should return translated name");
-        Assert.AreEqual("ナレーション", result[4].Name, "should return translated name");
+        Assert.AreEqual("ナレーション", result[1].Name, "should return translated name");
 
         result = (await _api.GetSubjectCharacters(284524, _token)).ToList();
         Assert.IsNotNull(result, "person info should not be null");
