@@ -443,7 +443,7 @@ public partial class BangumiApi
         var characters = await FetchSubjectCharactersInternal(id, token);
 #if !EMBY
         if (_plugin.Configuration.PersonTranslationPreference == Configuration.TranslationPreferenceType.Original)
-            return characters.SelectMany(c => c.ToPersonInfos());
+            return characters.SelectMany(c => c.ToPersonInfos()).Select(NormalizePersonImage);
         using var semaphore = new SemaphoreSlim(3);
         var tasks = characters.Select(async c =>
         {
@@ -484,7 +484,7 @@ public partial class BangumiApi
         var characters = await FetchSubjectCharactersInternal(id, token);
 #if !EMBY
         if (_plugin.Configuration.PersonTranslationPreference == Configuration.TranslationPreferenceType.Original)
-            return characters.SelectMany(c => c.ToCharacterInfos());
+            return characters.SelectMany(c => c.ToCharacterInfos()).Select(NormalizePersonImage);
         using var semaphore = new SemaphoreSlim(3);
         var tasks = characters.Select(async c =>
         {
@@ -598,9 +598,12 @@ public partial class BangumiApi
     {
         if (id <= 0) return null;
 #if !EMBY
-        var character = await archive.Character.FindById(id, token);
-        if (character != null)
-            return character.ToPersonDetail();
+        if (!IsFreshMetadataRefresh)
+        {
+            var character = await archive.Character.FindById(id, token);
+            if (character != null)
+                return character.ToPersonDetail();
+        }
 #endif
         return await Get<PersonDetail>($"{BaseUrl}/v0/characters/{id}", token);
     }
