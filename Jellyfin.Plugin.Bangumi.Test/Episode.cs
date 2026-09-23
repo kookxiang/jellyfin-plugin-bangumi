@@ -570,7 +570,7 @@ public class Episode
     public async Task GetEpisodeByAnitomySharpWithProcessMultiSeasonWithConsecutiveIndex()
     {
         _plugin.Configuration.EpisodeParser = EpisodeParserType.AnitomySharp;
-        _plugin.Configuration.ProcessMultiSeasonFolderByAnitomySharp = true;
+        _plugin.Configuration.ProcessMultiSeasonWithConsecutiveIndexByAnitomySharp = true;
 
         // 如：「機動戦士ガンダム00」分为两季，每季序号均从1开始，但本地文件命名为 1-50
         var filePath = FakePath.CreateFile("機動戦士ガンダム00/[VCB-Studio] Mobile Suit Gundam 00 [30][Ma10p_1080p][x265_flac].mkv");
@@ -590,7 +590,7 @@ public class Episode
         },
             _token);
         _plugin.Configuration.EpisodeParser = EpisodeParserType.Basic;
-        _plugin.Configuration.ProcessMultiSeasonFolderByAnitomySharp = false;
+        _plugin.Configuration.ProcessMultiSeasonWithConsecutiveIndexByAnitomySharp = false;
         Assert.IsNotNull(episodeData, "episode data should not be null");
         Assert.IsNotNull(episodeData.Item, "episode data should not be null");
         Assert.AreEqual(30, episodeData.Item.IndexNumber, "should fix episode index automatically");
@@ -601,7 +601,7 @@ public class Episode
     public async Task GetEpisodeByAnitomySharpWithProcessMultiSeasonWithConsecutiveIndex2()
     {
         _plugin.Configuration.EpisodeParser = EpisodeParserType.AnitomySharp;
-        _plugin.Configuration.ProcessMultiSeasonFolderByAnitomySharp = true;
+        _plugin.Configuration.ProcessMultiSeasonWithConsecutiveIndexByAnitomySharp = true;
 
         // 如：「らんま1/2」分为两季，第二季序号接第一季顺序，但本地文件命名为 1-161
         var filePath = FakePath.CreateFile("乱马/らんま½ 第083話 シャンプーの赤い糸 (1080p x265 Ma10p FLAC).mkv");
@@ -621,7 +621,7 @@ public class Episode
         },
             _token);
         _plugin.Configuration.EpisodeParser = EpisodeParserType.Basic;
-        _plugin.Configuration.ProcessMultiSeasonFolderByAnitomySharp = false;
+        _plugin.Configuration.ProcessMultiSeasonWithConsecutiveIndexByAnitomySharp = false;
         Assert.IsNotNull(episodeData, "episode data should not be null");
         Assert.IsNotNull(episodeData.Item, "episode data should not be null");
         Assert.AreEqual(83, episodeData.Item.IndexNumber, "should fix episode index automatically");

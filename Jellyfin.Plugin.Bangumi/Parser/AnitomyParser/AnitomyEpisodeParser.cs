@@ -44,10 +44,13 @@ public class AnitomyEpisodeParser : IEpisodeParser
             Episode? episode = await BasicRules(seriesId, episodeIndex, anitomyEpisodeType, bangumiEpisodeType);
 
             // 多季度规则
-            // 基础规则未匹配且为普通剧集
-            if (episode is null && (bangumiEpisodeType is EpisodeType.Normal || bangumiEpisodeType is null))
+            if (_context.Configuration.ProcessMultiSeasonWithConsecutiveIndexByAnitomySharp)
             {
-                episode = await ProcessMultiSeasonWithConsecutiveIndex(seriesId, episodeIndex);
+                // 基础规则未匹配且为普通剧集
+                if (episode is null && (bangumiEpisodeType is EpisodeType.Normal || bangumiEpisodeType is null))
+                {
+                    episode = await ProcessMultiSeasonWithConsecutiveIndex(seriesId, episodeIndex);
+                }
             }
 
             // 处理 episode 元数据
@@ -67,9 +70,10 @@ public class AnitomyEpisodeParser : IEpisodeParser
             {
                 Type = bangumiEpisodeType ?? EpisodeType.Special,
                 Order = episodeIndex,
-                OriginalNameRaw = TitleOfSpecialEpisode(anitomyEpisodeType)
+                ChineseNameRaw = TitleOfSpecialEpisode(anitomyEpisodeType),
+                OriginalNameRaw = Path.GetFileNameWithoutExtension(_context.Info.Path)
             };
-            _log.Debug("Set OriginalName: {OriginalNameRaw} for {fileName}", sp.OriginalNameRaw, _fileName);
+            _log.Debug("Set ChineseName: {ChineseNameRaw} for {fileName}", sp.ChineseNameRaw, _fileName);
             return sp;
         }
         catch (InvalidOperationException e)

@@ -84,6 +84,8 @@ public class PluginConfiguration : BasePluginConfiguration
     
     public bool MovieEpisodeDetectionByAnitomySharp { get; set; } = false;
 
+    public bool ProcessMultiSeasonWithConsecutiveIndexByAnitomySharp { get; set; } = false;
+
     public string? ProxyServerUrl { get; set; }
 
     public bool UseOriginalTitleFirst { get; set; }

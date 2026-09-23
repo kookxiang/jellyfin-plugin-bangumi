@@ -484,9 +484,11 @@
                                                 class="fieldDescription"
                                                 id="MovieEpisodeDetectionByAnitomySharp-description"
                                             >
-                                                通常电影文件命名中并未包含集数，因此当媒体库中节目和电影混合时推荐开启，可辅助电影剧集匹配到元数据
-                                                <br />判断条件：媒体文件时长大于 10 分钟且大小大于 100MB
-                                                <br />默认集数为 1。可能误判
+                                                当文件名中不含集数时，用文件时长和大小辅助判断。<br />
+                                                典型场景：媒体库同时包含节目和电影，电影/剧场版文件常无集数。<br />
+                                                判断条件：时长 > 10 分钟且大小 > 100MB，满足条件时视为第 1 集。<br />
+                                                注意：可能将长篇特典误判为第 1
+                                                集。建议将特典文件与特典文件夹配合使用，以减少副作用。
                                             </span>
                                         </label>
                                     </bangumi-checkbox>
@@ -506,11 +508,44 @@
                                                 class="fieldDescription"
                                                 id="ProcessMultiSeasonFolderByAnitomySharp-description"
                                             >
-                                                当存在目录嵌套时可以选择启用
-                                                <br />如："战姬绝唱SYMPHOGEAR/戦姫絶唱シンフォギアXV/Senki Zesshou
-                                                Symphogear XV
-                                                [01].mkv"。启用后将搜索"戦姫絶唱シンフォギアXV"并将其作为剧集的关联条目
-                                                <br />建议搭配「使用 Bangumi 词条作为季名称」使用。可能误判
+                                                适用于「系列名 / 季度名 / 剧集文件」这种嵌套结构。<br />
+                                                开启后，Anitomy 会解析季度文件夹名，并搜索对应词条，将搜索到的 ID
+                                                写入该季，而不是沿用系列本身的 ID。<br />
+                                                示例：<br />
+                                                战姬绝唱SYMPHOGEAR/戦姫絶唱シンフォギアXV/Senki Zesshou Symphogear XV
+                                                [01].mkv<br />
+                                                此时会把「戦姫絶唱シンフォギアXV」作为该季的 Bangumi 词条。<br />
+                                                建议搭配「使用 Bangumi 词条作为季名称」使用。<br />
+                                                <strong>生效方式：</strong
+                                                >本功能不能自动完成全部流程。刮削后需要再次对该季手动执行「刷新元数据」。<br />
+                                                如果搭配「使用 Bangumi
+                                                词条作为季名称」使用，则需选择「覆盖所有元数据」，季名称才会更新。<br />
+                                                注意：仅当季度文件夹名可被识别为动画标题时有效。
+                                            </span>
+                                        </label>
+                                    </bangumi-checkbox>
+                                    <bangumi-checkbox class="checkboxContainer checkboxContainer-withDescription">
+                                        <input
+                                            aria-labelledby="ProcessMultiSeasonWithConsecutiveIndexByAnitomySharp-label"
+                                            aria-describedby="ProcessMultiSeasonWithConsecutiveIndexByAnitomySharp-description"
+                                            slot="control"
+                                            id="ProcessMultiSeasonWithConsecutiveIndexByAnitomySharp"
+                                            type="checkbox"
+                                        />
+                                        <label slot="label" for="ProcessMultiSeasonWithConsecutiveIndexByAnitomySharp">
+                                            <span id="ProcessMultiSeasonWithConsecutiveIndexByAnitomySharp-label">
+                                                处理跨季连续编号
+                                            </span>
+                                            <span
+                                                class="fieldDescription"
+                                                id="ProcessMultiSeasonWithConsecutiveIndexByAnitomySharp-description"
+                                            >
+                                                当本地文件采用跨季连续编号时，本功能沿 Bangumi
+                                                的续集关系累加集数，定位到正确的剧集。<br />
+                                                典型场景：长篇采用分割放送（有多个条目），但本地同一位置的剧集文件采用连续编号。<br />
+                                                示例：<br />第 1 季 25集、第 2 季 25集，本地编号
+                                                1-50，「26」及后续集数会匹配到第 2 季对应位置。<br />
+                                                <strong>生效方式：</strong>当前系列无前传时生效，系列需配置为第 1 季对应的条目。
                                             </span>
                                         </label>
                                     </bangumi-checkbox>
