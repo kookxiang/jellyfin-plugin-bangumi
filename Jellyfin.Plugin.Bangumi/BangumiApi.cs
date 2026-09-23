@@ -58,10 +58,10 @@ public partial class BangumiApi
             }
             else
             {
-                // remove `-` in keyword
-                keyword = keyword.Replace(" -", " ");
+                // remove special symbols in keyword
+                var keywordForSearch = keyword.Replace("-", " ").Replace("!", " ").Replace("@", " ").Trim();
 
-                var url = $"{BaseUrl}/search/subject/{Uri.EscapeDataString(keyword)}?responseGroup=large";
+                var url = $"{BaseUrl}/search/subject/{Uri.EscapeDataString(keywordForSearch)}?responseGroup=large";
                 if (type != null)
                     url += $"&type={(int)type}";
                 var searchResult = await Get<SearchResult<Subject>>(url, token);
@@ -72,9 +72,15 @@ public partial class BangumiApi
 
                 if (Plugin.Instance.Configuration.SortByFuzzScore)
                 {
+                    var preSorted = Subject.ScoreByFuzz(list, keyword)
+                        .OrderByDescending(x => x.Score)
+                        .ToList();
+                    if (preSorted.Count > 0 && preSorted[0].Score == 100)
+                        return preSorted.Select(x => x.Subject).ToList();
+
                     // 仅使用前 5 个条目获取别名并排序
                     var num = 5;
-                    var tasks = list.Take(num).Select(subject => GetSubject(subject.Id, token));
+                    var tasks = preSorted.Take(num).Select(x => GetSubject(x.Subject.Id, token));
                     var subjectWithInfobox = await Task.WhenAll(tasks);
 
                     var sortedSubjects =
