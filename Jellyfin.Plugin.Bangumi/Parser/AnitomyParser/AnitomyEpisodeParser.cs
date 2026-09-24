@@ -31,7 +31,7 @@ public class AnitomyEpisodeParser : IEpisodeParser
 
         var (anitomyEpisodeType, bangumiEpisodeType) = GetEpisodeType();
         var episodeIndex = GetEpisodeIndex();
-        var seasonNumber = _anitomy.ExtractAnimeSeason();
+        double? seasonNumber = double.TryParse(_anitomy.ExtractAnimeSeason(), out var sn) ? sn : null;
 
         // 获取 seriesId
         var seriesId = LocalConfigurationHelper.GetSeriesId(_context.LocalConfiguration, _context.Info, _context.LibraryManager);
@@ -60,9 +60,9 @@ public class AnitomyEpisodeParser : IEpisodeParser
                 {
                     episode.OriginalNameRaw = TitleOfSpecialEpisode(anitomyEpisodeType);
                 }
-                if (!string.IsNullOrEmpty(seasonNumber))
+                if (seasonNumber.HasValue)
                 {
-                    episode.SeasonNumber = double.Parse(seasonNumber);
+                    episode.SeasonNumber = seasonNumber;
                 }
                 return episode;
             }
@@ -74,9 +74,9 @@ public class AnitomyEpisodeParser : IEpisodeParser
                 Order = episodeIndex,
                 OriginalNameRaw = TitleOfSpecialEpisode(anitomyEpisodeType)
             };
-            if (!string.IsNullOrEmpty(seasonNumber))
+            if (seasonNumber.HasValue)
             {
-                sp.SeasonNumber = double.Parse(seasonNumber);
+                sp.SeasonNumber = seasonNumber;
             }
             _log.Debug("Set OriginalName: {OriginalNameRaw} for {fileName}", sp.OriginalNameRaw, _fileName);
             return sp;
