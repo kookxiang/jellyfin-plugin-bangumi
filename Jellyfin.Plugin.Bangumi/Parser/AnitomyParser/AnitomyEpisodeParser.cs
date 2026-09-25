@@ -60,7 +60,8 @@ public class AnitomyEpisodeParser : IEpisodeParser
                 // 对于无标题的剧集，手动添加标题，而不是使用 Jellyfin 生成的标题
                 if (string.IsNullOrEmpty(episode.ChineseNameRaw) && string.IsNullOrEmpty(episode.OriginalNameRaw))
                 {
-                    episode.OriginalNameRaw = TitleOfSpecialEpisode(anitomyEpisodeType);
+                    episode.ChineseNameRaw = TitleOfSpecialEpisode(anitomyEpisodeType);
+                    episode.OriginalNameRaw = Path.GetFileNameWithoutExtension(_context.Info.Path);
                 }
                 return episode;
             }
