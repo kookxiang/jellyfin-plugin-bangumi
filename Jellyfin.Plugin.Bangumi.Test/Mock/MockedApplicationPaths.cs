@@ -5,6 +5,17 @@ namespace Jellyfin.Plugin.Bangumi.Test.Mock;
 public class MockedApplicationPaths : IApplicationPaths
 {
     private static readonly string BasePath = Util.FakePath.Create("application-data");
+    private readonly string _basePath;
+
+    public MockedApplicationPaths() : this(BasePath)
+    {
+    }
+
+    public MockedApplicationPaths(string basePath)
+    {
+        _basePath = basePath;
+    }
+
     public void MakeSanityCheckOrThrow()
     {
         throw new System.NotImplementedException();
@@ -15,21 +26,21 @@ public class MockedApplicationPaths : IApplicationPaths
         throw new System.NotImplementedException();
     }
 
-    public string ProgramDataPath => BasePath;
-    public string WebPath => BasePath;
-    public string ProgramSystemPath => BasePath;
-    public string DataPath => BasePath;
-    public string ImageCachePath => BasePath;
-    public string PluginsPath => BasePath;
-    public string PluginConfigurationsPath => BasePath;
-    public string LogDirectoryPath => BasePath;
-    public string ConfigurationDirectoryPath => BasePath;
-    public string SystemConfigurationFilePath => BasePath;
-    public string CachePath => BasePath;
-    public string TempDirectory => BasePath;
-    public string VirtualDataPath => BasePath;
+    public string ProgramDataPath => _basePath;
+    public string WebPath => _basePath;
+    public string ProgramSystemPath => _basePath;
+    public string DataPath => _basePath;
+    public string ImageCachePath => _basePath;
+    public string PluginsPath => _basePath;
+    public string PluginConfigurationsPath => _basePath;
+    public string LogDirectoryPath => _basePath;
+    public string ConfigurationDirectoryPath => _basePath;
+    public string SystemConfigurationFilePath => _basePath;
+    public string CachePath => _basePath;
+    public string TempDirectory => _basePath;
+    public string VirtualDataPath => _basePath;
 
-    public string TrickplayPath => BasePath;
+    public string TrickplayPath => _basePath;
 
-    public string BackupPath => BasePath;
+    public string BackupPath => _basePath;
 }
