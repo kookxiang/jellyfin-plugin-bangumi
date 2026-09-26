@@ -185,7 +185,7 @@ public class AnitomyEpisodeParser : IEpisodeParser
         var shouldApplyEpisodeOffset = bangumiEpisodeType is null or EpisodeType.Normal;
         if (shouldApplyEpisodeOffset)
         {
-            LocalConfigurationHelper.ApplyEpisodeOffset(ref episodeIndex, _context.LocalConfiguration);
+            LocalConfigurationHelper.ApplyEpisodeOffset(ref episodeIndex, _context.LocalConfiguration, _context.Info.Path);
         }
 
         _log.Debug("Use episode number: {episodeIndex} for {fileName}", episodeIndex, _fileName);

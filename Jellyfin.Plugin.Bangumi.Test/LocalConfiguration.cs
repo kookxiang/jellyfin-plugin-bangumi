@@ -73,4 +73,37 @@ public class LocalConfigurationTestCases
         Assert.AreEqual(expected, reloaded.Type);
     }
 
+    [TestMethod]
+    public async Task FileSelectorsUseFirstMatchAndFallbackToDirectoryOffset()
+    {
+        var firstFile = FakePath.CreateFile("offset-rules/[某字幕组][01].mp4");
+        var secondFile = FakePath.CreateFile("offset-rules/[其他字幕组][01].mp4");
+        var unmatchedFile = FakePath.CreateFile("offset-rules/episode-01.mkv");
+        var path = Path.Join(Path.GetDirectoryName(firstFile), "bangumi.ini");
+        await File.WriteAllTextAsync(path, "[Bangumi]\nOffset=3\n[File:[某字幕组][**].mp4]\nOffset=26\n[File:*.mp4]\nOffset=0\n");
+
+        var config = await LocalConfiguration.ForPath(firstFile);
+        Assert.AreEqual(26, config.GetOffset(firstFile));
+        Assert.AreEqual(0, config.GetOffset(secondFile));
+        Assert.AreEqual(3, config.GetOffset(unmatchedFile));
+        Assert.AreEqual(3, config.GetOffset(null));
+
+        await config.SaveTo(path);
+        var reloaded = await LocalConfiguration.ForPath(firstFile);
+        Assert.AreEqual(26, reloaded.GetOffset(firstFile));
+        Assert.AreEqual(0, reloaded.GetOffset(secondFile));
+        Assert.AreEqual(3, reloaded.GetOffset(unmatchedFile));
+        Assert.AreEqual(2, reloaded.OffsetRules.Count);
+    }
+
+    [TestMethod]
+    public async Task InvalidFileSectionDoesNotOverrideDirectoryOffset()
+    {
+        var path = FakePath.CreateFile("invalid-selector.ini", "[Bangumi]\nOffset=4\n[File:*.mp4]\nOffset=invalid\n");
+        var config = new LocalConfiguration();
+        await config.ReadFrom(path);
+        Assert.AreEqual(4, config.GetOffset("[某字幕组][01].mp4"));
+        Assert.AreEqual(0, config.OffsetRules.Count);
+    }
+
 }

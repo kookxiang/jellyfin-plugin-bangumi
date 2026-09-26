@@ -90,6 +90,7 @@ public class MediaLibraryTestCases
         {
             Id = 12345,
             Offset = 12,
+            OffsetRules = [new Model.FileOffsetRule { Selector = "[某字幕组][**].mp4", Offset = 26 }],
             Report = false,
             Skip = true,
             CorrectIndex = true,
@@ -104,6 +105,8 @@ public class MediaLibraryTestCases
         var content = await File.ReadAllTextAsync(configurationPath);
         StringAssert.Contains(content, "ID=12345");
         StringAssert.Contains(content, "Offset=12");
+        StringAssert.Contains(content, "[File:[某字幕组][**].mp4]");
+        StringAssert.Contains(content, "Offset=26");
         StringAssert.Contains(content, "Report=off");
         StringAssert.Contains(content, "Skip=on");
         StringAssert.Contains(content, "CorrectIndex=on");
@@ -111,6 +114,7 @@ public class MediaLibraryTestCases
         Assert.AreEqual(Model.DirectoryType.Special, savedConfiguration.Type);
         var loaded = (await controller.GetConfiguration(series.Id)).Result as OkObjectResult;
         Assert.AreEqual(Model.DirectoryType.Special, ((MediaLibraryConfiguration)loaded!.Value!).Type);
+        Assert.AreEqual(26, ((MediaLibraryConfiguration)loaded.Value!).OffsetRules.Single().Offset);
 
         var deleteResult = controller.DeleteConfiguration(series.Id);
         Assert.IsInstanceOfType<NoContentResult>(deleteResult);

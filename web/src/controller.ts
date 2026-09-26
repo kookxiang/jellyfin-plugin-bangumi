@@ -1,5 +1,6 @@
 import { pushSectionInUrl } from './navigation-state.ts';
 import { collectConfiguration } from './configuration.ts';
+import { parseOffsetRules } from './offset-rules.ts';
 
 export function createController(container, host) {
     var pluginId = '41b59f1b-a6cf-474a-b416-785379cbd856';
@@ -481,7 +482,9 @@ export function createController(container, host) {
         var enabled = dialog.querySelector('#bangumi-media-config-enabled').checked;
         dialog.querySelector('#bangumi-media-config-fields').style.display = enabled ? '' : 'none';
         const offset = Number(dialog.querySelector('#bangumi-media-config-offset').value);
-        dialog.querySelector('#bangumi-media-offset-options').hidden = !Number.isFinite(offset) || offset === 0;
+        const hasRules = !!dialog.querySelector('#bangumi-media-config-offset-rules').value.trim();
+        dialog.querySelector('#bangumi-media-offset-options').hidden =
+            (!Number.isFinite(offset) || offset === 0) && !hasRules;
     }
 
     function closeMediaLibraryDialog() {
@@ -519,6 +522,9 @@ export function createController(container, host) {
             dialog
                 .querySelector('#bangumi-media-config-offset')
                 .addEventListener('change', updateMediaLibraryConfigFields);
+            dialog
+                .querySelector('#bangumi-media-config-offset-rules')
+                .addEventListener('input', updateMediaLibraryConfigFields);
             dialog.querySelectorAll('.btnCancel').forEach(function (button) {
                 button.addEventListener('click', closeMediaLibraryDialog);
             });
@@ -568,6 +574,9 @@ export function createController(container, host) {
             dialog.querySelector('#bangumi-media-config-enabled').checked = config.Exists;
             dialog.querySelector('#bangumi-media-config-id').value = config.Id || '';
             dialog.querySelector('#bangumi-media-config-offset').value = config.Offset || '';
+            dialog.querySelector('#bangumi-media-config-offset-rules').value = (config.OffsetRules || [])
+                .map((rule) => `${rule.Selector}=${rule.Offset}`)
+                .join('\n');
             var directoryType = dialog.querySelector('#bangumi-media-config-directory-type');
             directoryType.value = config.Type || 'Auto';
             directoryType.closest('bangumi-segmented-select').refresh();
@@ -591,6 +600,7 @@ export function createController(container, host) {
         return {
             Id: Number.parseInt(dialog.querySelector('#bangumi-media-config-id').value || '0', 10),
             Offset: Number.parseInt(dialog.querySelector('#bangumi-media-config-offset').value || '0', 10),
+            OffsetRules: parseOffsetRules(dialog.querySelector('#bangumi-media-config-offset-rules').value),
             Report: dialog.querySelector('#bangumi-media-config-report').checked,
             Skip: dialog.querySelector('#bangumi-media-config-skip').checked,
             CorrectIndex: dialog.querySelector('#bangumi-media-config-correct-index').checked,

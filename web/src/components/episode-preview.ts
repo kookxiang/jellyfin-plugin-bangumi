@@ -1,5 +1,6 @@
 import type { ApiClient } from '../types.ts';
 import styles from './episode-preview.css?raw';
+import { parseOffsetRules, selectOffset } from '../offset-rules.ts';
 interface PreviewResult {
     EpisodeId?: string;
     FileName?: string;
@@ -28,7 +29,7 @@ export class EpisodePreview extends HTMLElement {
         this.form = form;
         this.sample = undefined;
         const update = (event: Event) => {
-            if (event.target instanceof HTMLInputElement) this.update();
+            if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) this.update();
         };
         form.addEventListener('input', update, { signal: this.events.signal });
         form.addEventListener('change', update, { signal: this.events.signal });
@@ -64,7 +65,15 @@ export class EpisodePreview extends HTMLElement {
             this.message(this.sample.Message);
             return;
         }
-        const offset = Number(this.field('offset').value || 0);
+        let rules;
+        try {
+            rules = parseOffsetRules(this.field('offset-rules').value);
+        } catch (error) {
+            this.message(error.message);
+            return;
+        }
+        const selected = selectOffset(this.sample.FileName || '', Number(this.field('offset').value || 0), rules);
+        const offset = selected.Offset;
         const bangumi = detected - offset;
         const jellyfin = this.field('correct-index').checked ? Math.trunc(bangumi) : Math.trunc(bangumi) + offset;
         for (const [id, value] of [
@@ -77,7 +86,7 @@ export class EpisodePreview extends HTMLElement {
         this.shadowRoot!.querySelector('#status')!.textContent =
             bangumi < 0
                 ? '偏移后的集数小于 0，请检查偏移量。'
-                : '按识别集数计算映射，不验证 Bangumi 中是否存在对应剧集。';
+                : `${selected.Selector ? `命中 ${selected.Selector}，` : ''}按识别集数计算映射，不验证 Bangumi 中是否存在对应剧集。`;
     }
     private async load() {
         const version = ++this.generation;

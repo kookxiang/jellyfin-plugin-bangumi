@@ -1,5 +1,7 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
+using System.IO.Enumeration;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -19,6 +21,17 @@ public class LocalConfiguration
     public int Id { get; set; } = 0;
 
     public int Offset { get; set; } = 0;
+
+    public List<FileOffsetRule> OffsetRules { get; set; } = [];
+
+    public int GetOffset(string? path)
+    {
+        if (string.IsNullOrEmpty(path)) return Offset;
+        var fileName = Path.GetFileName(path);
+        return OffsetRules.FirstOrDefault(rule =>
+            !string.IsNullOrEmpty(rule.Selector) &&
+            FileSystemName.MatchesSimpleExpression(rule.Selector, fileName, true))?.Offset ?? Offset;
+    }
 
     public bool Report { get; set; } = true;
 
@@ -43,14 +56,41 @@ public class LocalConfiguration
 
         var properties = GetType().GetProperties();
         var lines = await File.ReadAllLinesAsync(path);
+        OffsetRules.Clear();
+        FileOffsetRule? currentRule = null;
+        var inFileSection = false;
         foreach (var line in lines)
         {
+            var section = line.Trim();
+            if (section.StartsWith('[') && section.EndsWith(']'))
+            {
+                inFileSection = section.StartsWith("[File:", StringComparison.OrdinalIgnoreCase);
+                currentRule = null;
+                if (inFileSection)
+                {
+                    var selector = section[6..^1].Trim();
+                    if (!string.IsNullOrWhiteSpace(selector))
+                        currentRule = new FileOffsetRule { Selector = selector };
+                }
+                continue;
+            }
             var parts = line.Split('=', 2);
             if (parts.Length != 2) continue;
             var key = parts[0].Trim();
             var value = parts[1].Trim();
+            if (inFileSection)
+            {
+                if (currentRule != null && string.Equals(key, nameof(Offset), StringComparison.OrdinalIgnoreCase)
+                    && int.TryParse(value, out var ruleOffset))
+                {
+                    currentRule.Offset = ruleOffset;
+                    if (!OffsetRules.Contains(currentRule)) OffsetRules.Add(currentRule);
+                }
+                continue;
+            }
             var property = properties.FirstOrDefault(info => string.Equals(info!.Name, key, StringComparison.CurrentCultureIgnoreCase), null);
             if (property == null) continue;
+            if (property.Name == nameof(OffsetRules)) continue;
             if (property.PropertyType == typeof(bool))
             {
                 var trueValue = new[]
@@ -97,6 +137,7 @@ public class LocalConfiguration
         var properties = GetType().GetProperties();
         foreach (var property in properties)
         {
+            if (property.Name == nameof(OffsetRules)) continue;
             var value = property.GetValue(this);
             if (value == null) continue;
             if (value.Equals(property.GetValue(defaultConfiguration))) continue;
@@ -107,6 +148,16 @@ public class LocalConfiguration
                 content += $"{key}={value}" + Environment.NewLine;
         }
 
+        foreach (var rule in OffsetRules)
+            content += $"{Environment.NewLine}[File:{rule.Selector}]{Environment.NewLine}Offset={rule.Offset}{Environment.NewLine}";
+
         await File.WriteAllTextAsync(path, content);
     }
+}
+
+public class FileOffsetRule
+{
+    public string Selector { get; set; } = string.Empty;
+
+    public int Offset { get; set; }
 }

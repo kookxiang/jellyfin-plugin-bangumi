@@ -153,7 +153,7 @@ public partial class BasicEpisodeParser(EpisodeParserContext context, Logger<Bas
             episodeIndex = GuessEpisodeNumber(context, log, episodeIndex, fileName);
         }
 
-        LocalConfigurationHelper.ApplyEpisodeOffset(ref episodeIndex, context.LocalConfiguration);
+        LocalConfigurationHelper.ApplyEpisodeOffset(ref episodeIndex, context.LocalConfiguration, context.Info.Path);
 
         return episodeIndex;
     }
@@ -233,8 +233,9 @@ public partial class BasicEpisodeParser(EpisodeParserContext context, Logger<Bas
             if (guessEpisodeNumber && forcedType == EpisodeType.Normal)
             {
                 var max = episodeList.Length > 0 ? episodeList.Max(e => e.Order) : double.PositiveInfinity;
-                episodeIndex = GuessEpisodeNumber(context, log, episodeIndex + context.LocalConfiguration.Offset,
-                    fileName, max + context.LocalConfiguration.Offset) - context.LocalConfiguration.Offset;
+                var offset = context.LocalConfiguration.GetOffset(context.Info.Path);
+                episodeIndex = GuessEpisodeNumber(context, log, episodeIndex + offset,
+                    fileName, max + offset) - offset;
             }
             return LocalConfigurationHelper.MatchDirectoryEpisode(episodeList, forcedType, episodeIndex);
         }
@@ -273,13 +274,14 @@ public partial class BasicEpisodeParser(EpisodeParserContext context, Logger<Bas
         if (guessEpisodeNumber && type is null or EpisodeType.Normal)
         {
             var maxEpisodeNumber = episodeListData.Any() ? episodeListData.Max(x => x.Order) : double.PositiveInfinity;
+            var offset = context.LocalConfiguration.GetOffset(context.Info.Path);
             episodeIndex = GuessEpisodeNumber(
                 context,
                 log,
-                episodeIndex + context.LocalConfiguration.Offset,
+                episodeIndex + offset,
                 fileName,
-                maxEpisodeNumber + context.LocalConfiguration.Offset
-            ) - context.LocalConfiguration.Offset;
+                maxEpisodeNumber + offset
+            ) - offset;
         }
 
         try

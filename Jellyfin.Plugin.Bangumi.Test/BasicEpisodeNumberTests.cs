@@ -2,6 +2,7 @@ using System.Threading;
 using Jellyfin.Plugin.Bangumi.Configuration;
 using Jellyfin.Plugin.Bangumi.Parser;
 using Jellyfin.Plugin.Bangumi.Parser.BasicParser;
+using Jellyfin.Plugin.Bangumi.Model;
 using Jellyfin.Plugin.Bangumi.Test.Util;
 using MediaBrowser.Controller.Library;
 using MediaBrowser.Controller.Providers;
@@ -41,7 +42,26 @@ public class BasicEpisodeNumberTests
         Assert.AreEqual(expected, Extract(HanzawaFile, replace, existingIndex, offset));
     }
 
+    [TestMethod]
+    public void FileSelectorOffsetAppliesToParsingAndDisplay()
+    {
+        var config = new LocalConfiguration
+        {
+            Offset = 3,
+            OffsetRules = [new FileOffsetRule { Selector = "[某字幕组][**].mp4", Offset = 26 }],
+        };
+        var matching = "[某字幕组][27].mp4";
+        var other = "[其他字幕组][03].mp4";
+        Assert.AreEqual(1d, Extract(matching, true, 0, config));
+        Assert.AreEqual(0d, Extract(other, true, 0, config));
+        Assert.AreEqual(27, LocalConfigurationHelper.GetDisplayEpisodeIndex(1, config, matching));
+        Assert.AreEqual(4, LocalConfigurationHelper.GetDisplayEpisodeIndex(1, config, other));
+    }
+
     private static double Extract(string filename, bool replace, int existingIndex, int offset)
+        => Extract(filename, replace, existingIndex, new LocalConfiguration { Offset = offset });
+
+    private static double Extract(string filename, bool replace, int existingIndex, LocalConfiguration localConfiguration)
     {
         var context = new EpisodeParserContext(
             ServiceLocator.GetService<BangumiApi>(),
@@ -49,7 +69,7 @@ public class BasicEpisodeNumberTests
             new EpisodeInfo { Path = filename, IndexNumber = existingIndex },
             ServiceLocator.GetService<IMediaSourceManager>(),
             new PluginConfiguration { AlwaysReplaceEpisodeNumber = replace },
-            new Model.LocalConfiguration { Offset = offset },
+            localConfiguration,
             CancellationToken.None);
         return BasicEpisodeParser.ExtractEpisodeNumberFromPath(context, ServiceLocator.GetService<Logger<BasicEpisodeParser>>());
     }
