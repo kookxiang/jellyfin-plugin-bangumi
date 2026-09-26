@@ -11,8 +11,10 @@ namespace Jellyfin.Plugin.Bangumi.Test;
 [TestClass]
 public class FuzzySearchTests
 {
-    [TestMethod]
-    public async Task LaterAliasMatchIsReturnedAfterEarlierBatchMatches()
+    [DataTestMethod]
+    [DataRow(0)]
+    [DataRow(30)]
+    public async Task LaterAliasMatchIsReturnedAfterEarlierBatchMatches(int minScore)
     {
         var subjects = Enumerable.Range(1, 6)
             .Select(id => new Subject
@@ -31,7 +33,7 @@ public class FuzzySearchTests
             return Task.FromResult<Subject?>(id == 6 ? WithTargetAlias(subjects[5]) : subjects[id - 1]);
         }
 
-        var results = await BangumiApi.RankSubjectsByFuzzScore(subjects, "target", 30,
+        var results = await BangumiApi.RankSubjectsByFuzzScore(subjects, "target", minScore,
             GetDetails, CancellationToken.None);
 
         Assert.AreEqual(6, requestedIds.Count, "all candidate batches should be checked");
@@ -57,6 +59,24 @@ public class FuzzySearchTests
             GetDetails, CancellationToken.None);
 
         CollectionAssert.AreEquivalent(new[] { 1, 6 }, results.Select(x => x.Id).ToArray());
+    }
+
+    [TestMethod]
+    public async Task SingleCandidateRespectsThreshold()
+    {
+        var unrelated = new Subject { Id = 1, OriginalNameRaw = "unrelated" };
+        var exact = new Subject { Id = 2, OriginalNameRaw = "target" };
+
+        Task<Subject?> GetDetails(int id, CancellationToken _) =>
+            Task.FromResult<Subject?>(id == 1 ? unrelated : exact);
+
+        var rejected = await BangumiApi.RankSubjectsByFuzzScore([unrelated], "target", 90,
+            GetDetails, CancellationToken.None);
+        var accepted = await BangumiApi.RankSubjectsByFuzzScore([exact], "target", 100,
+            GetDetails, CancellationToken.None);
+
+        Assert.AreEqual(0, rejected.Count);
+        Assert.AreEqual(2, accepted.Single().Id, "a score equal to the threshold should be retained");
     }
 
     private static Subject WithTargetAlias(Subject subject) => new()
