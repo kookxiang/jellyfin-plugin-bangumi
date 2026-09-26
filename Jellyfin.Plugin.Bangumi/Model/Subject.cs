@@ -141,7 +141,7 @@ public class Subject
     public static IEnumerable<(Subject Subject, int Score)> ScoreByFuzz(IEnumerable<Subject> list, string keyword)
     {
 #if EMBY
-        return list.Select(x => (x, 0));
+        return list.Select(x => (x, 100));
 #else
         keyword = keyword.ToLower();
 

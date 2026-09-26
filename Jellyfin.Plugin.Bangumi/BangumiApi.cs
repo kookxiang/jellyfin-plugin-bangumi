@@ -65,29 +65,47 @@ public partial class BangumiApi
                 if (type != null)
                     url += $"&type={(int)type}";
                 var searchResult = await Get<SearchResult<Subject>>(url, token);
-                var list = searchResult?.List ?? [];
+                var list = (searchResult?.List ?? []).ToList();
 
-                if (list.Count() <= 1)
-                    return list;
+                if (list.Count == 0)
+                    return [];
 
                 if (Plugin.Instance.Configuration.SortByFuzzScore)
                 {
                     var preSorted = Subject.ScoreByFuzz(list, keyword)
                         .OrderByDescending(x => x.Score)
                         .ToList();
-                    if (preSorted.Count > 0 && preSorted[0].Score == 100)
-                        return preSorted.Select(x => x.Subject).ToList();
+                    if (preSorted[0].Score == 100)
+                        return preSorted
+                            .Where(x => x.Score >= Plugin.Instance.Configuration.FuzzyWuzzyScore)
+                            .Select(x => x.Subject)
+                            .ToList();
 
-                    // 仅使用前 5 个条目获取别名并排序
-                    var num = 5;
-                    var tasks = preSorted.Take(num).Select(x => GetSubject(x.Subject.Id, token));
-                    var subjectWithInfobox = await Task.WhenAll(tasks);
+                    const int batchSize = 5;
+                    var matchedSubject = new List<(Subject Subject, int Score)>();
+#if !EMBY
+                    var useArchive = !IsFreshMetadataRefresh && archive.Subject.Exists();
+#else   
+                    var useArchive = false;
+#endif
+                    for (var i = 0; i < preSorted.Count; i += batchSize)
+                    {
+                        var slice = preSorted.Skip(i).Take(batchSize);
+                        var tasks = slice.Select(x => GetSubject(x.Subject.Id, token));
+                        var subjectWithInfobox = await Task.WhenAll(tasks);
 
-                    var sortedSubjects =
-                        Subject.SortByFuzzScore(subjectWithInfobox.Where(s => s != null).Cast<Subject>().ToList(),
-                        keyword,
-                        Plugin.Instance.Configuration.FuzzyWuzzyScore);
-                    return sortedSubjects.ToList();
+                        var scoredSubjects =
+                            Subject.ScoreByFuzz(subjectWithInfobox.Where(s => s != null).Cast<Subject>(),
+                            keyword);
+                        matchedSubject.AddRange(scoredSubjects.Where(x => x.Score >= Plugin.Instance.Configuration.FuzzyWuzzyScore));
+
+                        if (!useArchive && matchedSubject.Count > 0)
+                            break;
+                    }
+                    return matchedSubject
+                        .OrderByDescending(x => x.Score)
+                        .Select(x => x.Subject)
+                        .ToList();
                 }
 
                 return Subject.SortBySimilarity(list, keyword);
