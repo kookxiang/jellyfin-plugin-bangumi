@@ -19,9 +19,12 @@ public enum EpisodeParserType
 
 public class PluginConfiguration : BasePluginConfiguration
 {
-    // Use the loaded server assembly so this temporary workaround defaults on only for Jellyfin 12.
+    // Use the loaded server assembly so this temporary workaround defaults on only for Jellyfin 12.0.x.
     public bool MergeEpisodeVersionsByBangumiId { get; set; } =
-        typeof(MediaBrowser.Controller.Entities.BaseItem).Assembly.GetName().Version?.Major == 12;
+        ShouldEnableEpisodeVersionWorkaround(typeof(MediaBrowser.Controller.Entities.BaseItem).Assembly.GetName().Version);
+
+    internal static bool ShouldEnableEpisodeVersionWorkaround(Version? serverVersion) =>
+        serverVersion?.Major == 12 && serverVersion.Minor == 0;
 
 #if !EMBY
     // Missing episode providers and their settings are only available in Jellyfin.
