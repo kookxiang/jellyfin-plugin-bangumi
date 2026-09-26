@@ -72,40 +72,12 @@ public partial class BangumiApi
 
                 if (Plugin.Instance.Configuration.SortByFuzzScore)
                 {
-                    var preSorted = Subject.ScoreByFuzz(list, keyword)
-                        .OrderByDescending(x => x.Score)
-                        .ToList();
-                    if (preSorted[0].Score == 100)
-                        return preSorted
-                            .Where(x => x.Score >= Plugin.Instance.Configuration.FuzzyWuzzyScore)
-                            .Select(x => x.Subject)
-                            .ToList();
-
-                    const int batchSize = 5;
-                    var matchedSubject = new List<(Subject Subject, int Score)>();
-#if !EMBY
-                    var useArchive = !IsFreshMetadataRefresh && archive.Subject.Exists();
-#else   
-                    var useArchive = false;
+#if EMBY
+                    return list;
+#else
+                    return await RankSubjectsByFuzzScore(list, keyword,
+                        Plugin.Instance.Configuration.FuzzyWuzzyScore, GetSubject, token);
 #endif
-                    for (var i = 0; i < preSorted.Count; i += batchSize)
-                    {
-                        var slice = preSorted.Skip(i).Take(batchSize);
-                        var tasks = slice.Select(x => GetSubject(x.Subject.Id, token));
-                        var subjectWithInfobox = await Task.WhenAll(tasks);
-
-                        var scoredSubjects =
-                            Subject.ScoreByFuzz(subjectWithInfobox.Where(s => s != null).Cast<Subject>(),
-                            keyword);
-                        matchedSubject.AddRange(scoredSubjects.Where(x => x.Score >= Plugin.Instance.Configuration.FuzzyWuzzyScore));
-
-                        if (!useArchive && matchedSubject.Count > 0)
-                            break;
-                    }
-                    return matchedSubject
-                        .OrderByDescending(x => x.Score)
-                        .Select(x => x.Subject)
-                        .ToList();
                 }
 
                 return Subject.SortBySimilarity(list, keyword);
@@ -116,6 +88,30 @@ public partial class BangumiApi
             // 404 Not Found Anime
             return [];
         }
+    }
+
+    internal static async Task<List<Subject>> RankSubjectsByFuzzScore(IReadOnlyList<Subject> subjects, string keyword,
+        int minScore, Func<int, CancellationToken, Task<Subject?>> getSubject, CancellationToken token)
+    {
+        const int batchSize = 5;
+        var preSorted = Subject.ScoreByFuzz(subjects, keyword)
+            .OrderByDescending(x => x.Score)
+            .ToList();
+        var matchedSubjects = new List<(Subject Subject, int Score)>();
+
+        for (var i = 0; i < preSorted.Count; i += batchSize)
+        {
+            var slice = preSorted.Skip(i).Take(batchSize).Select(x => x.Subject).ToList();
+            var details = await Task.WhenAll(slice.Select(subject => getSubject(subject.Id, token)));
+            var candidates = slice.Select((subject, index) => details[index] ?? subject);
+            matchedSubjects.AddRange(Subject.ScoreByFuzz(candidates, keyword)
+                .Where(x => x.Score >= minScore));
+        }
+
+        return matchedSubjects
+            .OrderByDescending(x => x.Score)
+            .Select(x => x.Subject)
+            .ToList();
     }
 
     public async Task<Subject?> GetSubject(int id, CancellationToken token)
