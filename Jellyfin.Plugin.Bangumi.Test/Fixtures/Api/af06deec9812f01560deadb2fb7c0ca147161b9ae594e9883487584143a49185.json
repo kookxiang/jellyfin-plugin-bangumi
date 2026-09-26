@@ -1,0 +1,6 @@
+{
+    "Request": "GET /v0/persons/22738\n",
+    "Status": 200,
+    "Body": "{\"last_modified\":\"0001-01-01T00:00:00Z\",\"blood_type\":null,\"birth_year\":1945,\"birth_day\":27,\"birth_mon\":3,\"gender\":\"female\",\"images\":{\"small\":\"https://lain.bgm.tv/r/100/pic/crt/l/9d/15/22738_prsn_6p5S5.jpg\",\"grid\":\"https://lain.bgm.tv/pic/crt/g/9d/15/22738_prsn_6p5S5.jpg\",\"large\":\"https://lain.bgm.tv/pic/crt/l/9d/15/22738_prsn_6p5S5.jpg\",\"medium\":\"https://lain.bgm.tv/r/400/pic/crt/l/9d/15/22738_prsn_6p5S5.jpg\"},\"summary\":\"宮本 信子（みやもと のぶこ、戸籍名；池内 信子、旧姓；宮本、1945年3月27日 - ）は、日本の女優、歌手。北海道小樽市生まれ、愛知県名古屋市育ち。愛知淑徳高等学校卒業。夫は伊丹十三。長男は池内万作。所属事務所は東宝芸能（1990年から）。\",\"name\":\"宮本信子\",\"img\":\"https://lain.bgm.tv/pic/crt/l/9d/15/22738_prsn_6p5S5.jpg\",\"infobox\":[{\"key\":\"简体中文名\",\"value\":\"宫本信子\"},{\"key\":\"别名\",\"value\":[{\"k\":\"日文名\",\"v\":\"池内信子\"},{\"k\":\"纯假名\",\"v\":\"みやもと のぶこ\"}]},{\"key\":\"性别\",\"value\":\"女\"},{\"key\":\"生日\",\"value\":\"1945年3月27日\"},{\"key\":\"血型\",\"value\":\"O型\"},{\"key\":\"身高\",\"value\":\"157cm\"},{\"key\":\"夫\",\"value\":\"伊丹十三\"},{\"key\":\"長男\",\"value\":\"池内万作\"}],\"career\":[\"artist\",\"actor\"],\"stat\":{\"comments\":0,\"collects\":2},\"id\":22738,\"locked\":false,\"type\":1}",
+    "Location": null
+}
