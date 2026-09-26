@@ -331,6 +331,21 @@
                                                 </label>
                                             </bangumi-checkbox>
                                         </bangumi-checkbox-group>
+                                        <div class="selectContainer">
+                                            <label class="selectLabel" for="FuzzyWuzzyScore">FuzzyWuzzy 过滤阈值</label>
+                                            <bangumi-select
+                                                ><select class="emby-select-withcolor emby-select" id="FuzzyWuzzyScore">
+                                                    <option value="0">0</option>
+                                                    <option value="30">30</option>
+                                                    <option value="60">60</option>
+                                                    <option value="90">90</option>
+                                                </select></bangumi-select
+                                            >
+                                            <div class="fieldDescription">
+                                                相似度低于此分数的结果会被丢弃（范围 0–100）。<br />
+                                                调高更精确但可能漏匹配，调低更全但可能混入无关结果。默认 30。
+                                            </div>
+                                        </div>
                                     </section>
                                     <section
                                         class="bangumi-settings-group"
