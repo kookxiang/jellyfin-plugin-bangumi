@@ -1444,21 +1444,20 @@
                                     <div class="fieldDescription">例如文件从第 27 集开始时填写 26</div>
                                 </div>
                                 <div class="inputContainer">
-                                    <label
-                                        class="inputLabel inputLabelUnfocused"
-                                        for="bangumi-media-config-offset-rules"
-                                        >按文件名指定偏移量</label
+                                    <label class="inputLabel inputLabelUnfocused" for="bangumi-media-config-sections"
+                                        >按文件名覆盖配置</label
                                     >
                                     <textarea
                                         class="textarea-mono emby-textarea"
                                         data-config-ignore
-                                        id="bangumi-media-config-offset-rules"
-                                        rows="3"
-                                        placeholder="[某字幕组][**].mp4=26"
+                                        id="bangumi-media-config-sections"
+                                        rows="8"
+                                        placeholder="[Section.1]&#10;Selector=[某字幕组][**].mp4&#10;Offset=26"
                                     ></textarea>
                                     <div class="fieldDescription">
-                                        每行一条“文件名通配符=偏移量”；* 和 ?
-                                        可匹配任意字符，方括号按字面匹配。按顺序使用第一条命中的规则；未命中时使用上面的偏移量。
+                                        每个 [Section.编号] 节填写 Selector 和需要覆盖的字段，可用
+                                        ID、Offset、Report、Skip、CorrectIndex、Type；未填写的字段沿用目录配置。* 和 ?
+                                        是通配符，方括号按字面匹配；按出现顺序使用第一条命中的节。
                                     </div>
                                 </div>
                                 <bangumi-checkbox class="checkboxContainer checkboxContainer-withDescription">

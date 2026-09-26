@@ -22,15 +22,32 @@ public class LocalConfiguration
 
     public int Offset { get; set; } = 0;
 
-    public List<FileOffsetRule> OffsetRules { get; set; } = [];
+    public List<LocalConfigurationSection> Sections { get; set; } = [];
 
-    public int GetOffset(string? path)
+    private LocalConfigurationSection? FindSection(string? path)
     {
-        if (string.IsNullOrEmpty(path)) return Offset;
+        if (string.IsNullOrEmpty(path)) return null;
         var fileName = Path.GetFileName(path);
-        return OffsetRules.FirstOrDefault(rule =>
-            !string.IsNullOrEmpty(rule.Selector) &&
-            FileSystemName.MatchesSimpleExpression(rule.Selector, fileName, true))?.Offset ?? Offset;
+        return Sections.FirstOrDefault(section =>
+            !string.IsNullOrEmpty(section.Selector) &&
+            FileSystemName.MatchesSimpleExpression(section.Selector, fileName, true));
+    }
+
+    public int GetOffset(string? path) => FindSection(path)?.Offset ?? Offset;
+
+    public LocalConfiguration ForFile(string path)
+    {
+        var section = FindSection(path);
+        if (section == null) return this;
+        return new LocalConfiguration
+        {
+            Id = section.Id ?? Id,
+            Offset = section.Offset ?? Offset,
+            Report = section.Report ?? Report,
+            Skip = section.Skip ?? Skip,
+            CorrectIndex = section.CorrectIndex ?? CorrectIndex,
+            Type = section.Type ?? Type,
+        };
     }
 
     public bool Report { get; set; } = true;
@@ -45,7 +62,10 @@ public class LocalConfiguration
         if (Directory.Exists(path))
             await configuration.ReadFrom(Path.Join(path, "bangumi.ini"));
         if (File.Exists(path))
+        {
             await configuration.ReadFrom(Path.Join(Path.GetDirectoryName(path), "bangumi.ini"));
+            return configuration.ForFile(path);
+        }
         return configuration;
     }
 
@@ -54,80 +74,62 @@ public class LocalConfiguration
         if (!File.Exists(path))
             return;
 
-        var properties = GetType().GetProperties();
         var lines = await File.ReadAllLinesAsync(path);
-        OffsetRules.Clear();
-        FileOffsetRule? currentRule = null;
-        var inFileSection = false;
+        Sections.Clear();
+        LocalConfigurationSection? currentSection = null;
+        var inRuleSection = false;
+        var inBangumiSection = true;
         foreach (var line in lines)
         {
             var section = line.Trim();
             if (section.StartsWith('[') && section.EndsWith(']'))
             {
-                inFileSection = section.StartsWith("[File:", StringComparison.OrdinalIgnoreCase);
-                currentRule = null;
-                if (inFileSection)
-                {
-                    var selector = section[6..^1].Trim();
-                    if (!string.IsNullOrWhiteSpace(selector))
-                        currentRule = new FileOffsetRule { Selector = selector };
-                }
+                inBangumiSection = string.Equals(section, "[Bangumi]", StringComparison.OrdinalIgnoreCase);
+                inRuleSection = section.StartsWith("[Section.", StringComparison.OrdinalIgnoreCase) && section.Length > 10;
+                currentSection = null;
+                if (inRuleSection)
+                    currentSection = new LocalConfigurationSection();
                 continue;
             }
             var parts = line.Split('=', 2);
             if (parts.Length != 2) continue;
             var key = parts[0].Trim();
             var value = parts[1].Trim();
-            if (inFileSection)
+            if (inRuleSection)
             {
-                if (currentRule != null && string.Equals(key, nameof(Offset), StringComparison.OrdinalIgnoreCase)
-                    && int.TryParse(value, out var ruleOffset))
+                if (currentSection != null)
                 {
-                    currentRule.Offset = ruleOffset;
-                    if (!OffsetRules.Contains(currentRule)) OffsetRules.Add(currentRule);
+                    ReadProperty(currentSection, key, value);
+                    if (!string.IsNullOrWhiteSpace(currentSection.Selector) && !Sections.Contains(currentSection))
+                        Sections.Add(currentSection);
                 }
                 continue;
             }
-            var property = properties.FirstOrDefault(info => string.Equals(info!.Name, key, StringComparison.CurrentCultureIgnoreCase), null);
-            if (property == null) continue;
-            if (property.Name == nameof(OffsetRules)) continue;
-            if (property.PropertyType == typeof(bool))
-            {
-                var trueValue = new[]
-                {
-                    "on",
-                    "yes",
-                    "true",
-                    "1"
-                };
-                var falseValue = new[]
-                {
-                    "off",
-                    "no",
-                    "false",
-                    "0"
-                };
-                if (trueValue.Contains(value, StringComparer.CurrentCultureIgnoreCase))
-                    property.SetValue(this, true);
-                else if (falseValue.Contains(value, StringComparer.CurrentCultureIgnoreCase))
-                    property.SetValue(this, false);
-            }
-            else if (property.PropertyType == typeof(int))
-            {
-                if (int.TryParse(value, out var intValue))
-                    property.SetValue(this, intValue);
-            }
-            else if (property.PropertyType.IsEnum)
-            {
-                if (Enum.TryParse(property.PropertyType, value, true, out var enumValue)
-                    && enumValue != null && Enum.IsDefined(property.PropertyType, enumValue))
-                    property.SetValue(this, enumValue);
-            }
-            else if (property.PropertyType == typeof(string))
-            {
-                property.SetValue(this, value);
-            }
+            if (!inBangumiSection) continue;
+            ReadProperty(this, key, value);
         }
+    }
+
+    private static void ReadProperty(object target, string key, string value)
+    {
+        var property = target.GetType().GetProperties().FirstOrDefault(info =>
+            string.Equals(info.Name, key, StringComparison.OrdinalIgnoreCase));
+        if (property == null || property.Name == nameof(Sections)) return;
+        var type = Nullable.GetUnderlyingType(property.PropertyType) ?? property.PropertyType;
+        if (type == typeof(bool))
+        {
+            if (new[] { "on", "yes", "true", "1" }.Contains(value, StringComparer.OrdinalIgnoreCase))
+                property.SetValue(target, true);
+            else if (new[] { "off", "no", "false", "0" }.Contains(value, StringComparer.OrdinalIgnoreCase))
+                property.SetValue(target, false);
+        }
+        else if (type == typeof(int) && int.TryParse(value, out var intValue))
+            property.SetValue(target, intValue);
+        else if (type.IsEnum && Enum.TryParse(type, value, true, out var enumValue)
+                 && enumValue != null && Enum.IsDefined(type, enumValue))
+            property.SetValue(target, enumValue);
+        else if (type == typeof(string))
+            property.SetValue(target, value);
     }
 
     public async Task SaveTo(string path)
@@ -137,7 +139,7 @@ public class LocalConfiguration
         var properties = GetType().GetProperties();
         foreach (var property in properties)
         {
-            if (property.Name == nameof(OffsetRules)) continue;
+            if (property.Name == nameof(Sections)) continue;
             var value = property.GetValue(this);
             if (value == null) continue;
             if (value.Equals(property.GetValue(defaultConfiguration))) continue;
@@ -148,16 +150,38 @@ public class LocalConfiguration
                 content += $"{key}={value}" + Environment.NewLine;
         }
 
-        foreach (var rule in OffsetRules)
-            content += $"{Environment.NewLine}[File:{rule.Selector}]{Environment.NewLine}Offset={rule.Offset}{Environment.NewLine}";
+        for (var index = 0; index < Sections.Count; index++)
+        {
+            var section = Sections[index];
+            content += $"{Environment.NewLine}[Section.{index + 1}]{Environment.NewLine}" +
+                       $"Selector={section.Selector}{Environment.NewLine}";
+            foreach (var property in typeof(LocalConfigurationSection).GetProperties())
+            {
+                if (property.Name == nameof(LocalConfigurationSection.Selector)) continue;
+                var value = property.GetValue(section);
+                if (value == null) continue;
+                var key = property.Name == nameof(Id) ? "ID" : property.Name;
+                content += $"{key}={(value is bool flag ? flag ? "on" : "off" : value)}{Environment.NewLine}";
+            }
+        }
 
         await File.WriteAllTextAsync(path, content);
     }
 }
 
-public class FileOffsetRule
+public class LocalConfigurationSection
 {
     public string Selector { get; set; } = string.Empty;
 
-    public int Offset { get; set; }
+    public int? Id { get; set; }
+
+    public int? Offset { get; set; }
+
+    public bool? Report { get; set; }
+
+    public bool? Skip { get; set; }
+
+    public bool? CorrectIndex { get; set; }
+
+    public DirectoryType? Type { get; set; }
 }

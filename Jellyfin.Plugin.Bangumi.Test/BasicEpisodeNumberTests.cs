@@ -48,7 +48,7 @@ public class BasicEpisodeNumberTests
         var config = new LocalConfiguration
         {
             Offset = 3,
-            OffsetRules = [new FileOffsetRule { Selector = "[某字幕组][**].mp4", Offset = 26 }],
+            Sections = [new LocalConfigurationSection { Selector = "[某字幕组][**].mp4", Offset = 26 }],
         };
         var matching = "[某字幕组][27].mp4";
         var other = "[其他字幕组][03].mp4";

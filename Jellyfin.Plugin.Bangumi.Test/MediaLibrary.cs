@@ -90,7 +90,7 @@ public class MediaLibraryTestCases
         {
             Id = 12345,
             Offset = 12,
-            OffsetRules = [new Model.FileOffsetRule { Selector = "[某字幕组][**].mp4", Offset = 26 }],
+            Sections = [new Model.LocalConfigurationSection { Selector = "[某字幕组][**].mp4", Offset = 26, Skip = false }],
             Report = false,
             Skip = true,
             CorrectIndex = true,
@@ -105,8 +105,10 @@ public class MediaLibraryTestCases
         var content = await File.ReadAllTextAsync(configurationPath);
         StringAssert.Contains(content, "ID=12345");
         StringAssert.Contains(content, "Offset=12");
-        StringAssert.Contains(content, "[File:[某字幕组][**].mp4]");
+        StringAssert.Contains(content, "[Section.1]");
+        StringAssert.Contains(content, "Selector=[某字幕组][**].mp4");
         StringAssert.Contains(content, "Offset=26");
+        StringAssert.Contains(content, "[Section.1]" + Environment.NewLine + "Selector=[某字幕组][**].mp4" + Environment.NewLine + "Offset=26" + Environment.NewLine + "Skip=off");
         StringAssert.Contains(content, "Report=off");
         StringAssert.Contains(content, "Skip=on");
         StringAssert.Contains(content, "CorrectIndex=on");
@@ -114,7 +116,12 @@ public class MediaLibraryTestCases
         Assert.AreEqual(Model.DirectoryType.Special, savedConfiguration.Type);
         var loaded = (await controller.GetConfiguration(series.Id)).Result as OkObjectResult;
         Assert.AreEqual(Model.DirectoryType.Special, ((MediaLibraryConfiguration)loaded!.Value!).Type);
-        Assert.AreEqual(26, ((MediaLibraryConfiguration)loaded.Value!).OffsetRules.Single().Offset);
+        Assert.AreEqual(26, ((MediaLibraryConfiguration)loaded.Value!).Sections.Single().Offset);
+        Assert.AreEqual(false, ((MediaLibraryConfiguration)loaded.Value!).Sections.Single().Skip);
+        var episodePath = FakePath.CreateFile("media-library/series/[某字幕组][27].mp4");
+        var selected = await Model.LocalConfiguration.ForPath(episodePath);
+        Assert.AreEqual(26, selected.Offset);
+        Assert.IsFalse(selected.Skip);
 
         var deleteResult = controller.DeleteConfiguration(series.Id);
         Assert.IsInstanceOfType<NoContentResult>(deleteResult);
