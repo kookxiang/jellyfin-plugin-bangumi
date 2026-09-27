@@ -358,6 +358,21 @@
                                                 </label>
                                             </bangumi-checkbox>
                                         </bangumi-checkbox-group>
+                                        <div class="selectContainer">
+                                            <label class="selectLabel" for="FuzzyWuzzyScore">FuzzyWuzzy 过滤阈值</label>
+                                            <bangumi-select
+                                                ><select class="emby-select-withcolor emby-select" id="FuzzyWuzzyScore">
+                                                    <option value="0">0</option>
+                                                    <option value="30">30</option>
+                                                    <option value="60">60</option>
+                                                    <option value="90">90</option>
+                                                </select></bangumi-select
+                                            >
+                                            <div class="fieldDescription">
+                                                相似度低于此分数的结果会被丢弃（范围 0–100）。<br />
+                                                调高更精确但可能漏匹配，调低更全但可能混入无关结果。默认 30。
+                                            </div>
+                                        </div>
                                     </section>
                                     <section
                                         class="bangumi-settings-group"
@@ -436,12 +451,12 @@
                                     />
                                     <label slot="label" for="MergeEpisodeVersionsByBangumiId">
                                         <span id="MergeEpisodeVersionsByBangumiId-label"
-                                            >（实验性）修正 Jellyfin 12 多版本识别错误的问题</span
+                                            >（实验性）修正 Jellyfin 12.0 多版本识别错误的问题</span
                                         >
                                         <span class="fieldDescription" id="MergeEpisodeVersionsByBangumiId-description">
-                                            <strong>临时修复方案：</strong
-                                            >避免不同剧集被误合并为版本，适用于所有解析器。Jellyfin 12
-                                            默认启用，修改后请扫描媒体库。
+                                            <strong>临时修复方案，未来将下线：</strong>避免 Jellyfin 12.0
+                                            将不同剧集误合并为版本，适用于所有解析器。仅在 12.0
+                                            默认启用，其他版本默认关闭；已保存的设置不变。修改后请扫描媒体库。
                                         </span>
                                     </label>
                                 </bangumi-checkbox>
@@ -511,9 +526,11 @@
                                                 class="fieldDescription"
                                                 id="MovieEpisodeDetectionByAnitomySharp-description"
                                             >
-                                                通常电影文件命名中并未包含集数，因此当媒体库中节目和电影混合时推荐开启，可辅助电影剧集匹配到元数据
-                                                <br />判断条件：媒体文件时长大于 10 分钟且大小大于 100MB
-                                                <br />默认集数为 1。可能误判
+                                                当文件名中不含集数时，用文件时长和大小辅助判断。<br />
+                                                典型场景：媒体库同时包含节目和电影，电影/剧场版文件常无集数。<br />
+                                                判断条件：时长 > 10 分钟且大小 > 100MB，满足条件时视为第 1 集。<br />
+                                                注意：可能将长篇特典误判为第 1
+                                                集。建议将特典文件与特典文件夹配合使用，以减少副作用。
                                             </span>
                                         </label>
                                     </bangumi-checkbox>
@@ -533,11 +550,45 @@
                                                 class="fieldDescription"
                                                 id="ProcessMultiSeasonFolderByAnitomySharp-description"
                                             >
-                                                当存在目录嵌套时可以选择启用
-                                                <br />如："战姬绝唱SYMPHOGEAR/戦姫絶唱シンフォギアXV/Senki Zesshou
-                                                Symphogear XV
-                                                [01].mkv"。启用后将搜索"戦姫絶唱シンフォギアXV"并将其作为剧集的关联条目
-                                                <br />建议搭配「使用 Bangumi 词条作为季名称」使用。可能误判
+                                                适用于「系列名 / 季度名 / 剧集文件」这种嵌套结构。<br />
+                                                开启后，Anitomy 会解析季度文件夹名，并搜索对应词条，将搜索到的 ID
+                                                写入该季，而不是沿用系列本身的 ID。<br />
+                                                示例：<br />
+                                                战姬绝唱SYMPHOGEAR/戦姫絶唱シンフォギアXV/Senki Zesshou Symphogear XV
+                                                [01].mkv<br />
+                                                此时会把「戦姫絶唱シンフォギアXV」作为该季的 Bangumi 词条。<br />
+                                                建议搭配「使用 Bangumi 词条作为季名称」使用。<br />
+                                                <strong>生效方式：</strong
+                                                >本功能不能自动完成全部流程。刮削后需要再次对该季手动执行「刷新元数据」。<br />
+                                                如果搭配「使用 Bangumi
+                                                词条作为季名称」使用，则需选择「覆盖所有元数据」，季名称才会更新。<br />
+                                                注意：仅当季度文件夹名可被识别为动画标题时有效。
+                                            </span>
+                                        </label>
+                                    </bangumi-checkbox>
+                                    <bangumi-checkbox class="checkboxContainer checkboxContainer-withDescription">
+                                        <input
+                                            aria-labelledby="ProcessMultiSeasonWithConsecutiveIndexByAnitomySharp-label"
+                                            aria-describedby="ProcessMultiSeasonWithConsecutiveIndexByAnitomySharp-description"
+                                            slot="control"
+                                            id="ProcessMultiSeasonWithConsecutiveIndexByAnitomySharp"
+                                            type="checkbox"
+                                        />
+                                        <label slot="label" for="ProcessMultiSeasonWithConsecutiveIndexByAnitomySharp">
+                                            <span id="ProcessMultiSeasonWithConsecutiveIndexByAnitomySharp-label">
+                                                处理跨季连续编号
+                                            </span>
+                                            <span
+                                                class="fieldDescription"
+                                                id="ProcessMultiSeasonWithConsecutiveIndexByAnitomySharp-description"
+                                            >
+                                                当本地文件采用跨季连续编号时，本功能沿 Bangumi
+                                                的续集关系累加集数，定位到正确的剧集。<br />
+                                                典型场景：长篇采用分割放送（有多个条目），但本地同一位置的剧集文件采用连续编号。<br />
+                                                示例：<br />第 1 季 25集、第 2 季 25集，本地编号
+                                                1-50，「26」及后续集数会匹配到第 2 季对应位置。<br />
+                                                <strong>生效方式：</strong>当前系列无前传时生效，系列需配置为第 1
+                                                季对应的条目。新安装默认关闭；已有配置升级时保留原来的自动匹配行为。
                                             </span>
                                         </label>
                                     </bangumi-checkbox>
@@ -1418,6 +1469,23 @@
                                         type="number"
                                     />
                                     <div class="fieldDescription">例如文件从第 27 集开始时填写 26</div>
+                                </div>
+                                <div class="inputContainer">
+                                    <label class="inputLabel inputLabelUnfocused" for="bangumi-media-config-sections"
+                                        >按文件名覆盖配置</label
+                                    >
+                                    <textarea
+                                        class="textarea-mono emby-textarea"
+                                        data-config-ignore
+                                        id="bangumi-media-config-sections"
+                                        rows="8"
+                                        placeholder="[Section.1]&#10;Selector=[某字幕组][**].mp4&#10;Offset=26"
+                                    ></textarea>
+                                    <div class="fieldDescription">
+                                        每个 [Section.编号] 节填写 Selector 和需要覆盖的字段，可用
+                                        ID、Offset、Report、Skip、CorrectIndex、Type；未填写的字段沿用目录配置。* 和 ?
+                                        是通配符，方括号按字面匹配；按出现顺序使用第一条命中的节。
+                                    </div>
                                 </div>
                                 <bangumi-checkbox class="checkboxContainer checkboxContainer-withDescription">
                                     <input

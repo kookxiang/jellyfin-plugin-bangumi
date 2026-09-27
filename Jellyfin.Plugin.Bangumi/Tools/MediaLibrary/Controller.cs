@@ -168,10 +168,20 @@ public class Controller(ILibraryManager library) : ControllerBase
         if (!Enum.IsDefined(request.Type))
             return BadRequest("目录类型无效。");
 
+        if (request.Sections == null || request.Sections.Any(section => section == null ||
+                string.IsNullOrWhiteSpace(section.Selector) ||
+                section.Selector.IndexOfAny(['/', '\\', '\r', '\n']) >= 0))
+            return BadRequest("文件名选择器不能为空，也不能包含路径分隔符或换行符。");
+
+        if (request.Sections.Any(section => section.Id < 0 ||
+                section.Type is { } type && !Enum.IsDefined(type)))
+            return BadRequest("文件规则中的 Bangumi ID 或目录类型无效。");
+
         var configuration = new LocalConfiguration
         {
             Id = request.Id,
             Offset = request.Offset,
+            Sections = request.Sections,
             Report = request.Report,
             Skip = request.Skip,
             CorrectIndex = request.CorrectIndex,
@@ -402,6 +412,7 @@ public class Controller(ILibraryManager library) : ControllerBase
             Exists = exists,
             Id = configuration.Id,
             Offset = configuration.Offset,
+            Sections = configuration.Sections,
             Report = configuration.Report,
             Skip = configuration.Skip,
             CorrectIndex = configuration.CorrectIndex,
@@ -491,6 +502,8 @@ public class MediaLibraryConfiguration
 
     public int Offset { get; set; }
 
+    public List<LocalConfigurationSection> Sections { get; set; } = [];
+
     public bool Report { get; set; }
 
     public bool Skip { get; set; }
@@ -505,6 +518,8 @@ public class UpdateMediaLibraryConfiguration
     public int Id { get; set; }
 
     public int Offset { get; set; }
+
+    public List<LocalConfigurationSection> Sections { get; set; } = [];
 
     public bool Report { get; set; } = true;
 

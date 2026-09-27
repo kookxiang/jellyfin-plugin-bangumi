@@ -23,9 +23,12 @@ public class PluginConfiguration : BasePluginConfiguration
     public bool EnableUserSettingsInjection { get; set; }
 #endif
 
-    // Use the loaded server assembly so this temporary workaround defaults on only for Jellyfin 12.
+    // Use the loaded server assembly so this temporary workaround defaults on only for Jellyfin 12.0.x.
     public bool MergeEpisodeVersionsByBangumiId { get; set; } =
-        typeof(MediaBrowser.Controller.Entities.BaseItem).Assembly.GetName().Version?.Major == 12;
+        ShouldEnableEpisodeVersionWorkaround(typeof(MediaBrowser.Controller.Entities.BaseItem).Assembly.GetName().Version);
+
+    internal static bool ShouldEnableEpisodeVersionWorkaround(Version? serverVersion) =>
+        serverVersion?.Major == 12 && serverVersion.Minor == 0;
 
 #if !EMBY
     // Missing episode providers and their settings are only available in Jellyfin.
@@ -72,6 +75,8 @@ public class PluginConfiguration : BasePluginConfiguration
 
     public bool SortByFuzzScore { get; set; } = false;
 
+    public int FuzzyWuzzyScore { get; set; } = 30;
+
     public bool RefreshRecentEpisodeWhenArchiveUpdate { get; set; } = false;
 
     public bool RefreshRatingWhenArchiveUpdate { get; set; } = false;
@@ -87,6 +92,8 @@ public class PluginConfiguration : BasePluginConfiguration
     public bool ProcessMultiSeasonFolderByAnitomySharp { get; set; } = false;
     
     public bool MovieEpisodeDetectionByAnitomySharp { get; set; } = false;
+
+    public bool ProcessMultiSeasonWithConsecutiveIndexByAnitomySharp { get; set; } = false;
 
     public string? ProxyServerUrl { get; set; }
 

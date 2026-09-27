@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
+using System.Xml;
 using Jellyfin.Plugin.Bangumi.Configuration;
 using MediaBrowser.Common.Configuration;
 using MediaBrowser.Common.Plugins;
@@ -15,6 +17,41 @@ public class Plugin : BasePlugin<PluginConfiguration>, IHasWebPages
     public Plugin(IApplicationPaths applicationPaths, IXmlSerializer xmlSerializer) : base(applicationPaths, xmlSerializer)
     {
         Instance = this;
+        if (MigrateLegacyMultiSeasonConfiguration(Configuration, ConfigurationFilePath))
+            SaveConfiguration();
+    }
+
+    internal static bool MigrateLegacyMultiSeasonConfiguration(PluginConfiguration configuration, string configurationPath)
+    {
+        if (!File.Exists(configurationPath))
+            return false;
+
+        try
+        {
+            using var reader = XmlReader.Create(configurationPath, new XmlReaderSettings
+            {
+                DtdProcessing = DtdProcessing.Prohibit,
+                XmlResolver = null
+            });
+            while (reader.Read())
+            {
+                if (reader.NodeType == XmlNodeType.Element &&
+                    reader.LocalName == nameof(PluginConfiguration.ProcessMultiSeasonWithConsecutiveIndexByAnitomySharp))
+                    return false;
+            }
+        }
+        catch (XmlException)
+        {
+            return false;
+        }
+        catch (IOException)
+        {
+            return false;
+        }
+
+        // Older versions always tried this fallback when the basic Anitomy match failed.
+        configuration.ProcessMultiSeasonWithConsecutiveIndexByAnitomySharp = true;
+        return true;
     }
 
     /// <inheritdoc />

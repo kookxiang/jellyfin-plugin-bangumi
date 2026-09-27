@@ -154,7 +154,7 @@ namespace Jellyfin.Plugin.Bangumi.Parser.TorrentParser
             if (num != null)
             {
                 double episodeNumber = num.Value;
-                LocalConfigurationHelper.ApplyEpisodeOffset(ref episodeNumber, context.LocalConfiguration);
+                LocalConfigurationHelper.ApplyEpisodeOffset(ref episodeNumber, context.LocalConfiguration, context.Info.Path);
                 return episodeNumber;
             }
 

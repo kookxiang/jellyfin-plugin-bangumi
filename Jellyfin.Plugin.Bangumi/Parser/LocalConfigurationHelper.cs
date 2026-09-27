@@ -19,17 +19,17 @@ public static class LocalConfigurationHelper
         return episode?.Copy();
     }
 
-    public static int GetDisplayEpisodeIndex(double order, LocalConfiguration configuration) =>
-        configuration.CorrectIndex ? (int)order : (int)order + configuration.Offset;
+    public static int GetDisplayEpisodeIndex(double order, LocalConfiguration configuration, string? path = null) =>
+        configuration.CorrectIndex ? (int)order : (int)order + configuration.GetOffset(path);
 
     /// <summary>
     /// 应用本地配置中的偏移量到剧集索引
     /// </summary>
     /// <param name="episodeIndex"></param>
     /// <param name="localConfiguration"></param>
-    public static void ApplyEpisodeOffset(ref double episodeIndex, LocalConfiguration localConfiguration)
+    public static void ApplyEpisodeOffset(ref double episodeIndex, LocalConfiguration localConfiguration, string? path = null)
     {
-        var offset = localConfiguration.Offset;
+        var offset = localConfiguration.GetOffset(path);
         if (offset != 0)
             // Applying offset {Offset} to episode index {EpisodeIndex}
             episodeIndex -= offset;
