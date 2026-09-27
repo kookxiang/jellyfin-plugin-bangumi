@@ -100,7 +100,7 @@ public class EpisodeProvider(BangumiApi api, ILogger log) : IRemoteMetadataProvi
         if (episodeIndex is null)
             return null;
 
-        var offset = localConfiguration.GetOffset(searchInfo.Path);
+        var offset = localConfiguration.ResolveOffset(searchInfo.Path);
         if (offset != 0)
             episodeIndex -= offset;
 

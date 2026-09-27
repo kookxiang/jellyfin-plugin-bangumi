@@ -84,10 +84,10 @@ public class LocalConfigurationTestCases
 
         var config = new LocalConfiguration();
         await config.ReadFrom(path);
-        Assert.AreEqual(26, config.GetOffset(firstFile));
-        Assert.AreEqual(0, config.GetOffset(secondFile));
-        Assert.AreEqual(3, config.GetOffset(unmatchedFile));
-        Assert.AreEqual(3, config.GetOffset(null));
+        Assert.AreEqual(26, config.ResolveOffset(firstFile));
+        Assert.AreEqual(0, config.ResolveOffset(secondFile));
+        Assert.AreEqual(3, config.ResolveOffset(unmatchedFile));
+        Assert.AreEqual(3, config.ResolveOffset(null));
 
         var selected = await LocalConfiguration.ForPath(firstFile);
         Assert.AreEqual(26, selected.Offset);
@@ -105,9 +105,9 @@ public class LocalConfigurationTestCases
         StringAssert.Contains(await File.ReadAllTextAsync(path), "[Section.1]\nSelector=[某字幕组][**].mp4");
         var reloaded = new LocalConfiguration();
         await reloaded.ReadFrom(path);
-        Assert.AreEqual(26, reloaded.GetOffset(firstFile));
-        Assert.AreEqual(0, reloaded.GetOffset(secondFile));
-        Assert.AreEqual(3, reloaded.GetOffset(unmatchedFile));
+        Assert.AreEqual(26, reloaded.ResolveOffset(firstFile));
+        Assert.AreEqual(0, reloaded.ResolveOffset(secondFile));
+        Assert.AreEqual(3, reloaded.ResolveOffset(unmatchedFile));
         Assert.AreEqual(2, reloaded.Sections.Count);
     }
 
@@ -117,7 +117,7 @@ public class LocalConfigurationTestCases
         var path = FakePath.CreateFile("invalid-selector.ini", "[Bangumi]\nOffset=4\n[Section.1]\nSelector=*.mp4\nOffset=invalid\n");
         var config = new LocalConfiguration();
         await config.ReadFrom(path);
-        Assert.AreEqual(4, config.GetOffset("[某字幕组][01].mp4"));
+        Assert.AreEqual(4, config.ResolveOffset("[某字幕组][01].mp4"));
         Assert.AreEqual(1, config.Sections.Count);
     }
 
@@ -127,7 +127,7 @@ public class LocalConfigurationTestCases
         var path = FakePath.CreateFile("unknown-section.ini", "[Bangumi]\nOffset=3\n[Unrelated]\nOffset=26\n");
         var config = new LocalConfiguration();
         await config.ReadFrom(path);
-        Assert.AreEqual(3, config.GetOffset("[某字幕组][27].mp4"));
+        Assert.AreEqual(3, config.ResolveOffset("[某字幕组][27].mp4"));
     }
 
     [TestMethod]

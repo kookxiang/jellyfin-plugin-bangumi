@@ -233,7 +233,7 @@ public partial class BasicEpisodeParser(EpisodeParserContext context, Logger<Bas
             if (guessEpisodeNumber && forcedType == EpisodeType.Normal)
             {
                 var max = episodeList.Length > 0 ? episodeList.Max(e => e.Order) : double.PositiveInfinity;
-                var offset = context.LocalConfiguration.GetOffset(context.Info.Path);
+                var offset = context.LocalConfiguration.ResolveOffset(context.Info.Path);
                 episodeIndex = GuessEpisodeNumber(context, log, episodeIndex + offset,
                     fileName, max + offset) - offset;
             }
@@ -274,7 +274,7 @@ public partial class BasicEpisodeParser(EpisodeParserContext context, Logger<Bas
         if (guessEpisodeNumber && type is null or EpisodeType.Normal)
         {
             var maxEpisodeNumber = episodeListData.Any() ? episodeListData.Max(x => x.Order) : double.PositiveInfinity;
-            var offset = context.LocalConfiguration.GetOffset(context.Info.Path);
+            var offset = context.LocalConfiguration.ResolveOffset(context.Info.Path);
             episodeIndex = GuessEpisodeNumber(
                 context,
                 log,

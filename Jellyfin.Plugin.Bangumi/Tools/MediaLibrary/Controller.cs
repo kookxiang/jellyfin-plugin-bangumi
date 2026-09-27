@@ -7,6 +7,8 @@ using Jellyfin.Plugin.Bangumi.Parser.TorrentParser;
 using MediaBrowser.Controller.Providers;
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
@@ -402,7 +404,7 @@ public class Controller(ILibraryManager library) : ControllerBase
         LocalConfiguration configuration,
         bool exists)
     {
-        return new MediaLibraryConfiguration
+        var result = new MediaLibraryConfiguration
         {
             ItemId = item.Id,
             ItemName = item.Name,
@@ -412,12 +414,14 @@ public class Controller(ILibraryManager library) : ControllerBase
             Exists = exists,
             Id = configuration.Id,
             Offset = configuration.Offset,
-            Sections = configuration.Sections,
             Report = configuration.Report,
             Skip = configuration.Skip,
             CorrectIndex = configuration.CorrectIndex,
             Type = configuration.Type,
         };
+        foreach (var section in configuration.Sections)
+            result.Sections.Add(section);
+        return result;
     }
 
     private sealed class LibraryFolder
@@ -502,7 +506,7 @@ public class MediaLibraryConfiguration
 
     public int Offset { get; set; }
 
-    public List<LocalConfigurationSection> Sections { get; set; } = [];
+    public Collection<LocalConfigurationSection> Sections { get; } = [];
 
     public bool Report { get; set; }
 
@@ -519,7 +523,9 @@ public class UpdateMediaLibraryConfiguration
 
     public int Offset { get; set; }
 
-    public List<LocalConfigurationSection> Sections { get; set; } = [];
+    [SuppressMessage("Usage", "CA2227:Collection properties should be read only",
+        Justification = "A public setter is required for request-body JSON deserialization.")]
+    public Collection<LocalConfigurationSection> Sections { get; set; } = [];
 
     public bool Report { get; set; } = true;
 
