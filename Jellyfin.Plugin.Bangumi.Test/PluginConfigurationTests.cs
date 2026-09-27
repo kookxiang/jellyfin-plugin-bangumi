@@ -13,4 +13,12 @@ public class PluginConfigurationTests
 
         Assert.IsTrue(configuration.PreferAnimeSearch);
     }
+
+    [TestMethod]
+    public void UserSettingsInjectionIsDisabledByDefault()
+    {
+        var configuration = new PluginConfiguration();
+
+        Assert.IsFalse(configuration.EnableUserSettingsInjection);
+    }
 }

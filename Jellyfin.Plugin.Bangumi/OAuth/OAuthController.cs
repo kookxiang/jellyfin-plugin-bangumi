@@ -17,6 +17,7 @@ namespace Jellyfin.Plugin.Bangumi.OAuth;
 public class OAuthController(
     BangumiApi api,
     OAuthStore store,
+    OAuthAuthorizationStore authorizationStore,
     IAuthorizationContext authorizationContext,
     IUserManager userManager)
     : ControllerBase
@@ -86,39 +87,44 @@ public class OAuthController(
         return Accepted();
     }
 
-    [HttpGet("Redirect")]
-    public Task<ActionResult> SetCallbackUrl([FromQuery(Name = "prefix")] string urlPrefix, [FromQuery(Name = "user")] string user)
+    [HttpPost("OAuth/Authorization")]
+    [Authorize]
+    public async Task<ActionResult<Dictionary<string, string>>> CreateAuthorization(
+        [FromForm(Name = "prefix")] string urlPrefix,
+        [FromQuery] string? userId = null)
     {
+        var targetUserId = await GetTargetUserId(userId);
         if (!TryNormalizeServerUrl(urlPrefix, out var normalizedPrefix)
-            || !Guid.TryParse(user, out var userId)
-            || userManager.GetUserById(userId) == null)
-            return Task.FromResult<ActionResult>(BadRequest());
+            || targetUserId == null)
+            return BadRequest();
 
-        var callbackUrl = GetOAuthCallbackUrl(normalizedPrefix, userId.ToString("N"));
+        var callbackUrl = GetOAuthCallbackUrl(normalizedPrefix);
+        var authorization = authorizationStore.Create(targetUserId.Value, callbackUrl, normalizedPrefix);
         var redirectUri = Uri.EscapeDataString(callbackUrl);
-        return Task.FromResult<ActionResult>(
-            Redirect($"{BangumiApi.BaseWebsiteUrl}/oauth/authorize?client_id={ApplicationId}&redirect_uri={redirectUri}&response_type=code"));
+        var state = Uri.EscapeDataString(authorization.State);
+        return new Dictionary<string, string>
+        {
+            ["url"] = $"{BangumiApi.BaseWebsiteUrl}/oauth/authorize?client_id={ApplicationId}&redirect_uri={redirectUri}&response_type=code&state={state}"
+        };
     }
 
     [HttpGet("OAuth")]
     public async Task<object?> OAuthCallback(
         [FromQuery(Name = "code")] string code,
-        [FromQuery(Name = "user")] string user,
-        [FromQuery(Name = "prefix")] string? urlPrefix = null)
+        [FromQuery(Name = "state")] string state)
     {
-        if (!Guid.TryParse(user, out var userId) || userManager.GetUserById(userId) == null)
+        if (string.IsNullOrWhiteSpace(code) || string.IsNullOrWhiteSpace(state))
+            return BadRequest();
+        var authorization = authorizationStore.Consume(state);
+        if (authorization == null || userManager.GetUserById(authorization.UserId) == null)
             return BadRequest();
 
-        var normalizedUserId = userId.ToString("N");
-        var callbackUrl = TryNormalizeServerUrl(urlPrefix, out var normalizedPrefix)
-            ? GetOAuthCallbackUrl(normalizedPrefix, normalizedUserId)
-            : $"{Request.Scheme}://{Request.Host}{Request.PathBase}{Request.Path}?user={normalizedUserId}";
         using var formData = new FormUrlEncodedContent([
             new KeyValuePair<string, string>("grant_type", "authorization_code"),
             new KeyValuePair<string, string>("client_id", ApplicationId),
             new KeyValuePair<string, string>("client_secret", ApplicationSecret),
             new KeyValuePair<string, string>("code", code),
-            new KeyValuePair<string, string>("redirect_uri", callbackUrl)
+            new KeyValuePair<string, string>("redirect_uri", authorization.CallbackUrl)
         ]);
         using var httpClient = api.GetHttpClient();
         var response = await httpClient.PostAsync($"{BangumiApi.BaseWebsiteUrl}/oauth/access_token", formData);
@@ -128,17 +134,18 @@ public class OAuthController(
         result.EffectiveTime = DateTime.Now;
         await result.GetProfile(api);
         store.Load();
-        store.Set(normalizedUserId, result);
+        store.Set(authorization.UserId, result);
         store.Save();
+        var targetOrigin = JsonSerializer.Serialize(new Uri(authorization.ServerUrl).GetLeftPart(UriPartial.Authority));
         return Content("""
             <!doctype html>
             <html lang="zh-CN">
             <head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>Bangumi 授权成功</title></head>
             <body style="font-family: sans-serif; text-align: center; padding: 3rem 1rem">
             <h1>授权成功</h1><p>Bangumi 账号已经绑定，可以关闭此页面。</p>
-            <script>if (window.opener) { window.opener.postMessage('BANGUMI-OAUTH-COMPLETE', '*'); window.close(); }</script>
+            <script>if (window.opener) { window.opener.postMessage('BANGUMI-OAUTH-COMPLETE', TARGET_ORIGIN); window.close(); }</script>
             </body></html>
-            """, "text/html");
+            """.Replace("TARGET_ORIGIN", targetOrigin, StringComparison.Ordinal), "text/html");
     }
 
     [HttpPatch("AccessToken")]
@@ -205,8 +212,8 @@ public class OAuthController(
         return true;
     }
 
-    private static string GetOAuthCallbackUrl(string urlPrefix, string userId)
+    private static string GetOAuthCallbackUrl(string urlPrefix)
     {
-        return $"{urlPrefix}/Plugins/Bangumi/OAuth?user={Uri.EscapeDataString(userId)}&prefix={Uri.EscapeDataString(urlPrefix)}";
+        return $"{urlPrefix}/Plugins/Bangumi/OAuth";
     }
 }

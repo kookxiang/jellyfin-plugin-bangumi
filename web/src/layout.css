@@ -232,3 +232,27 @@
         min-width: 0;
     }
 }
+#bangumiConfigurationPage .bangumi-injection-settings {
+    margin: 1.5rem 0;
+    padding: 1rem;
+    border: 1px solid var(--jf-palette-divider, rgba(255, 255, 255, 0.14));
+    border-radius: 0.5rem;
+}
+
+#bangumiConfigurationPage .bangumi-injection-settings .bangumi-settings-subheading {
+    margin-top: 0;
+}
+
+#bangumiConfigurationPage .bangumi-injection-status {
+    min-height: 1.4em;
+    margin: 0.5rem 0 0;
+    color: var(--jf-palette-text-secondary, rgba(255, 255, 255, 0.7));
+}
+
+#bangumiConfigurationPage .bangumi-injection-status[data-state='active'] {
+    color: var(--jf-palette-success-main, #66bb6a);
+}
+
+#bangumiConfigurationPage .bangumi-injection-status[data-state='error'] {
+    color: var(--jf-palette-error-main, #f44336);
+}

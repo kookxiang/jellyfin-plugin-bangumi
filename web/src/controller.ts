@@ -7,7 +7,7 @@ export function createController(container, host) {
     let active = false;
     let loaded = false;
     let saving = false;
-    var configuration = {};
+    var configuration: Record<string, any> = {};
     let savedSnapshot = '';
     const currentConfiguration = () =>
         collectConfiguration(configuration, container.querySelectorAll('input,select,textarea'));
@@ -118,6 +118,64 @@ export function createController(container, host) {
         });
     }
 
+    function renderInjectionStatus(status) {
+        const toggle = container.querySelector('#bangumi-user-settings-injection');
+        const output = container.querySelector('#bangumi-injection-status');
+        const normalized = status
+            ? {
+                  enabled: status.enabled ?? status.Enabled ?? false,
+                  dependencyAvailable: status.dependencyAvailable ?? status.DependencyAvailable ?? false,
+                  active: status.active ?? status.Active ?? false,
+                  reason: status.reason ?? status.Reason ?? null,
+              }
+            : null;
+        if (normalized && configuration) configuration.EnableUserSettingsInjection = normalized.enabled === true;
+        if (status && savedSnapshot) {
+            const snapshot = JSON.parse(savedSnapshot);
+            snapshot.EnableUserSettingsInjection = normalized.enabled === true;
+            savedSnapshot = JSON.stringify(snapshot);
+        }
+        toggle.checked = normalized?.enabled === true && normalized?.active === true;
+        toggle.disabled = normalized?.dependencyAvailable !== true && !toggle.checked;
+        if (normalized?.active) {
+            output.textContent = '已注册';
+            output.dataset.state = 'active';
+        } else if (normalized?.reason) {
+            const missing = normalized.dependencyAvailable !== true;
+            output.textContent = (missing ? '依赖缺失，已自动关闭：' : '注册失败，已自动关闭：') + normalized.reason;
+            output.dataset.state = 'error';
+        } else {
+            output.textContent =
+                normalized?.dependencyAvailable === false ? '未启用（尚未检测到 File Transformation）' : '未启用';
+            output.dataset.state = 'inactive';
+        }
+    }
+
+    function loadInjectionStatus() {
+        return ApiClient.getJSON(ApiClient.getUrl('/Plugins/Bangumi/WebInjection')).then(renderInjectionStatus);
+    }
+
+    async function updateInjectionStatus() {
+        const toggle = container.querySelector('#bangumi-user-settings-injection');
+        const enabled = toggle.checked;
+        toggle.disabled = true;
+        try {
+            const response = await ApiClient.fetch({
+                url: ApiClient.getUrl('/Plugins/Bangumi/WebInjection?enabled=' + String(enabled)),
+                type: 'PUT',
+            });
+            if (response?.ok === false) {
+                const status = await response.json();
+                renderInjectionStatus(status);
+                throw new Error(status?.reason || '无法启用普通用户账号入口');
+            }
+            const status = response && typeof response.json === 'function' ? await response.json() : response;
+            renderInjectionStatus(status);
+        } finally {
+            await loadInjectionStatus();
+        }
+    }
+
     function loadConfiguration() {
         return ApiClient.getPluginConfiguration(pluginId).then(async function (config) {
             configuration = config;
@@ -223,7 +281,7 @@ export function createController(container, host) {
         window.addEventListener('hashchange', applyModuleFromHash);
         window.addEventListener('popstate', applyModuleFromHash);
         applyModuleFromHash();
-        wrapLoading(Promise.all([loadConfiguration(), loadArchiveState(), account.show()]));
+        wrapLoading(Promise.all([loadConfiguration(), loadArchiveState(), loadInjectionStatus(), account.show()]));
     }
 
     function onUnload() {
@@ -251,6 +309,10 @@ export function createController(container, host) {
     });
 
     container.querySelector('#SkipNSFWPlaybackReport').addEventListener('change', updateNSFWReportDisplay);
+
+    container.querySelector('#bangumi-user-settings-injection').addEventListener('change', function () {
+        wrapLoading(updateInjectionStatus());
+    });
 
     container.querySelector('#delete-archive-data').addEventListener('click', function (e) {
         e.preventDefault();
