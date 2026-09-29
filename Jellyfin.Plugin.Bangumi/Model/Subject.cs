@@ -111,6 +111,15 @@ public class Subject
     public IEnumerable<string>? Alias => InfoBox?.GetList("别名");
 
     [JsonIgnore]
+    public IEnumerable<string>? RomajiAlias => InfoBox?.GetList("别名/罗马字");
+
+    [JsonIgnore]
+    public IEnumerable<string>? EnglishAlias => InfoBox?.GetList("别名/英文名");
+
+    [JsonIgnore]
+    public IEnumerable<string>? AllAlias => (Alias ?? [])?.Concat(RomajiAlias ?? []).Concat(EnglishAlias ?? []);
+
+    [JsonIgnore]
     public DateTime? EndDate
     {
         get
@@ -151,7 +160,7 @@ public class Subject
                     ? 0
                     : Fuzz.Ratio(subject.ChineseName.ToLower(), keyword);
                 var originalNameScore = Fuzz.Ratio(subject.OriginalName.ToLower(), keyword);
-                var aliasScore = subject.Alias?.Select(alias => Fuzz.Ratio(alias.ToLower(), keyword)) ?? [];
+                var aliasScore = subject.AllAlias?.Select(alias => Fuzz.Ratio(alias.ToLower(), keyword)) ?? [];
 
                 var maxScore = Math.Max(chineseNameScore, Math.Max(originalNameScore, aliasScore.DefaultIfEmpty(int.MinValue).Max()));
 
