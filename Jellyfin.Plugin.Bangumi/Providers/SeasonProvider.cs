@@ -3,10 +3,12 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using Jellyfin.Plugin.Bangumi.Configuration;
 using Jellyfin.Plugin.Bangumi.Model;
+using Jellyfin.Plugin.Bangumi.Parser.AnitomyParser;
 using MediaBrowser.Controller.Entities.TV;
 using MediaBrowser.Controller.Library;
 using MediaBrowser.Controller.Providers;
@@ -133,6 +135,9 @@ public class SeasonProvider(BangumiApi api, Logger<SeasonProvider> log, ILibrary
             }
         }
 
+        if (subjectId <= 0 && Configuration.ProcessMultiSeasonFolderByAnitomySharp)
+            subjectId = await ProcessMultiSeasonFolder(subjectId, info, cancellationToken);
+
         if (subjectId <= 0)
             return result;
 
@@ -220,5 +225,132 @@ public class SeasonProvider(BangumiApi api, Logger<SeasonProvider> log, ILibrary
     {
         using var httpClient = api.GetHttpClient();
         return await httpClient.GetAsync(url, cancellationToken);
+    }
+
+
+    /// <summary>
+    /// 处理多季度文件夹
+    /// 根据文件夹名称搜索，或者使用已存在的 id
+    /// </summary>
+    /// <param name="seasonId"></param>
+    /// <returns></returns>
+    private async Task<int> ProcessMultiSeasonFolder(int seasonId, SeasonInfo info, CancellationToken cancellationToken)
+    {
+        // 获取当前目录
+        var folderItem = libraryManager.FindByPath(info.Path!, true);
+        log.Debug("Jellyfin folder name: {folder}", folderItem);
+
+        // 限制目录类型
+        switch (folderItem)
+        {
+            // Series 类型
+            case MediaBrowser.Controller.Entities.TV.Series series:
+                log.Debug("{folder} is Series Folder", folderItem);
+                break;
+
+            // Season 类型
+            case MediaBrowser.Controller.Entities.TV.Season season:
+                log.Debug("{folder} is Season Folder", folderItem);
+                break;
+
+            // 普通文件夹，但其父级是 Series（应视为 Season）
+            case MediaBrowser.Controller.Entities.Folder folder
+                when folder.GetParent() is MediaBrowser.Controller.Entities.TV.Series:
+                log.Debug("{folder} is a folder under a Series, treating as Season", folderItem);
+                break;
+
+            // 其他类型或不符合条件，跳过
+            // 比如多层嵌套（other）：series/season/other
+            default:
+                log.Debug("{folder} is not a recognized type or not under Series, skip", folderItem);
+                return seasonId;
+        }
+
+        // 如果在 Jellyfin 中已配置，则直接返回此配置值
+        _ = int.TryParse(folderItem!.ProviderIds.GetOrDefault(Constants.ProviderName), out var folderId);
+        if (folderId > 0)
+        {
+            log.Debug("Multi season folder, use exist id: {folderId}", folderId);
+            return folderId;
+        }
+
+        // 检查是否应跳过处理
+        if (ShouldSkipFolder(folderItem.Name) || folderItem.IsVirtualItem)
+        {
+            log.Debug("Skip special folder: {folderItem}", folderItem);
+            return seasonId;
+        }
+
+        _ = int.TryParse(info.SeriesProviderIds.GetOrDefault(Constants.ProviderName), out var seriesId);
+        if (seriesId <= 0)
+        {
+            log.Warn("Multi season folder, no series id found for {folderItem}, skip", folderItem);
+            return seasonId;
+        }
+        // 搜索
+        var searchName = folderItem.Name;
+        if (IsSeasonNameFolder(searchName))
+            // 路径名
+            searchName = folderItem.FileNameWithoutExtension;
+        string? animeYear = null;
+        if (Configuration.AlwaysGetTitleByAnitomySharp)
+        {
+            var anitomyParent = new Anitomy(searchName);
+            searchName = anitomyParent.ExtractAnimeTitle();
+            animeYear = anitomyParent.ExtractAnimeYear();
+        }
+        if (searchName is null) return seasonId;
+        log.Info("Multi season folder, Searching {Name} in bgm.tv", searchName);
+
+        var searchResult = await api.SearchSubject(searchName, cancellationToken);
+
+        if (animeYear != null)
+            searchResult = searchResult.Where(x => x.ProductionYear == animeYear);
+
+        if (searchResult.Any())
+        {
+            var searchResultSubjectId = searchResult.First().Id;
+            // 检查与旧 seriesId 的关联性，如果无联系则说明可能匹配错误
+            // 获取此 id 对应的系列所有 id
+            var bangumiSeriesIds = await api.GetAllAnimeSeriesSubjectIds(seriesId, cancellationToken);
+            if (bangumiSeriesIds.Any(id => id == searchResultSubjectId))
+            {
+                log.Info("Multi season folder, Use subject id: {id}", searchResultSubjectId);
+                return searchResultSubjectId;
+            }
+
+        }
+
+        return seasonId;
+    }
+    private static readonly Regex _chineseSeasonRegex = new Regex(
+    @"第\s*[0-9一二三四五六七八九十百千]+\s*季",
+    RegexOptions.Compiled | RegexOptions.IgnoreCase
+);
+
+    private static readonly Regex _englishSeasonRegex = new Regex(
+        @"season\s*\d+",
+        RegexOptions.Compiled | RegexOptions.IgnoreCase
+    );
+
+    private static readonly HashSet<string> _confusingWords = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "SP", "ED", "OP", "IV"
+    };
+    private static readonly string[] _effectiveSkipWords = AnitomyEpisodeTypeMapping.SkipWords
+        .Where(k => !_confusingWords.Contains(k))
+        .ToArray();
+    private static bool ShouldSkipFolder(string folderName)
+    {
+        return _effectiveSkipWords
+            .Any(keyword => folderName.Contains(keyword, StringComparison.OrdinalIgnoreCase));
+    }
+    private static bool IsSeasonNameFolder(string folderName)
+    {
+        if (_chineseSeasonRegex.IsMatch(folderName))
+            return true;
+        if (_englishSeasonRegex.IsMatch(folderName))
+            return true;
+        return false;
     }
 }
