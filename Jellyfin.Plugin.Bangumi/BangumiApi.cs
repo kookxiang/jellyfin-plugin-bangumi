@@ -437,6 +437,56 @@ public partial class BangumiApi
         return allSubjectIds.ToList();
     }
 
+    /// <summary>
+    /// 获取此条目的所有前传动画条目
+    /// 注：包括本条目
+    /// </summary>
+    public async Task<List<int>> GetPrequelSeriesSubjectIds(int seriesId, CancellationToken token)
+    {
+        var chain = new List<int>();
+        HashSet<int> allSubjectIds = new HashSet<int>();
+        var queue = new Queue<int>();
+        queue.Enqueue(seriesId);
+
+        int requestCount = 0;
+        int maxRequestCount = 1024; // 最多请求数
+
+
+        while (queue.Count > 0 && requestCount < maxRequestCount)
+        {
+            var currentSeriesId = queue.Dequeue();
+            // 将 id 添加进集合
+            if (allSubjectIds.Add(currentSeriesId))
+            {
+                chain.Add(currentSeriesId);
+                // 获取关联条目
+                var results = await GetRelatedSubjects(currentSeriesId, token);
+                if (results is null)
+                    continue;
+
+                // 遍历条目，判断关系，仅处理动画
+                // 不同世界观、不同演绎……等视作单独系列，故未作判断
+                foreach (var result in results.Where(r => r.Type == SubjectType.Anime))
+                {
+                    switch (result.Relation)
+                    {
+                        // 主线故事
+                        case SubjectRelation.Prequel:
+                            queue.Enqueue(result.Id);
+                            break;
+
+                        default:
+                            break;
+                    }
+                }
+                requestCount++;
+            }
+
+        }
+        chain.Reverse();
+        return chain;
+    }
+
     public async Task<IEnumerable<PersonInfo>> GetSubjectCharacters(int id, CancellationToken token)
     {
         if (id <= 0) return [];
