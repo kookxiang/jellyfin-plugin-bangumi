@@ -161,21 +161,36 @@ public class AnitomyEpisodeParser : IEpisodeParser
         {
             const double MIN_MEDIA_TIME = 10;   // 分钟
             const double MIN_MEDIA_SIZE = 100;   // MB
-            var mediaSourceInfo = _context.MediaSourceManager.GetStaticMediaSources(_context.LibraryManager.FindByPath(_context.Info.Path, false), false)?[0];
-            if (mediaSourceInfo != null)
+            var mediaItem = _context.LibraryManager.FindByPath(_context.Info.Path, false);
+            if (mediaItem is null)
             {
-                // 视频时长（分钟）
-                double mediaTime = TimeSpan.FromTicks(mediaSourceInfo.RunTimeTicks ?? 0).TotalMinutes;
-                // 文件大小（MB）
-                double mediaSize = (mediaSourceInfo.Size ?? 0) / (1024 * 1024d);
-                _log.Debug("Media time: {mediaTime} minutes, Media size: {mediaSize} MB", mediaTime, mediaSize);
-                if (mediaTime > MIN_MEDIA_TIME && mediaSize > MIN_MEDIA_SIZE)
+                _log.Warn("Cannot find library item by path: {path}, skip movie episode detection", _context.Info.Path);
+            }
+            else
+            {
+                try
                 {
-                    // 当媒体库中节目和电影混合时，可辅助电影剧集匹配到元数据
-                    // 媒体文件时长大于 10 分钟，大小大于 100MB 的可能是 Movie 等类型
-                    // 存在误判的可能性，导致被识别为第一集。配合 SP 文件夹判断可降低误判的副作用
-                    episodeIndex = 1;
-                    _log.Debug("Use episode number: {episodeIndex} for {fileName}, because file size is {size} MB", episodeIndex, _fileName, mediaSize);
+                    var mediaSourceInfo = _context.MediaSourceManager.GetStaticMediaSources(mediaItem, false)?[0];
+                    if (mediaSourceInfo != null)
+                    {
+                        // 视频时长（分钟）
+                        double mediaTime = TimeSpan.FromTicks(mediaSourceInfo.RunTimeTicks ?? 0).TotalMinutes;
+                        // 文件大小（MB）
+                        double mediaSize = (mediaSourceInfo.Size ?? 0) / (1024 * 1024d);
+                        _log.Debug("Media time: {mediaTime} minutes, Media size: {mediaSize} MB", mediaTime, mediaSize);
+                        if (mediaTime > MIN_MEDIA_TIME && mediaSize > MIN_MEDIA_SIZE)
+                        {
+                            // 当媒体库中节目和电影混合时，可辅助电影剧集匹配到元数据
+                            // 媒体文件时长大于 10 分钟，大小大于 100MB 的可能是 Movie 等类型
+                            // 存在误判的可能性，导致被识别为第一集。配合 SP 文件夹判断可降低误判的副作用
+                            episodeIndex = 1;
+                            _log.Debug("Use episode number: {episodeIndex} for {fileName}, because file size is {size} MB", episodeIndex, _fileName, mediaSize);
+                        }
+                        }
+                    }
+                catch (Exception e)
+                {
+                    _log.Warn("Failed to get media source info for {path}, skip movie episode detection. {Message}", _context.Info.Path, e.Message);
                 }
             }
         }
