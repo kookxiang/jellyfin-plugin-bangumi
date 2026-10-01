@@ -64,7 +64,8 @@ public class Anitomy
     /// <returns>The extracted ElementAnimeType, or null if not found.</returns>
     public string[]? ExtractAnimeType()
     {
-        return _elements.Where(p => p.Category == Element.ElementCategory.ElementAnimeType).Select(type => type.Value).ToArray();
+        var result = _elements.Where(p => p.Category == Element.ElementCategory.ElementAnimeType).Select(type => type.Value).ToArray();
+        return result.Length > 0 ? result : null;
     }
 
     /// <summary>
