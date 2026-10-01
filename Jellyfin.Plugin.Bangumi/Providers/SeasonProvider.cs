@@ -15,7 +15,7 @@ using MediaBrowser.Model.Providers;
 
 namespace Jellyfin.Plugin.Bangumi.Providers;
 
-public class SeasonProvider(BangumiApi api, Logger<EpisodeProvider> log, ILibraryManager libraryManager)
+public class SeasonProvider(BangumiApi api, Logger<SeasonProvider> log, ILibraryManager libraryManager)
     : IRemoteMetadataProvider<Season, SeasonInfo>, IHasOrder
 {
     private static PluginConfiguration Configuration => Plugin.Instance!.Configuration;
@@ -143,7 +143,18 @@ public class SeasonProvider(BangumiApi api, Logger<EpisodeProvider> log, ILibrar
             return result;
 
         FillSeasonMetadata(result, subject);
-        result.Item.IndexNumber = info.IndexNumber;
+
+        if (info.IndexNumber != null)
+        {
+            log.Info("Use exist Season {seasonNumber} for {parent}", info.IndexNumber, seasonPath);
+            result.Item.IndexNumber = info.IndexNumber;
+        }
+        else if (Configuration.UseBangumiRelationChainForSeasonNumber)
+        {
+            var chain = await api.GetPrequelSeriesSubjectIds(subjectId, cancellationToken);
+            result.Item.IndexNumber = chain.Count;
+            log.Info("Use chain Season {seasonNumber} for {parent}", chain.Count, seasonPath);
+        }
 
         (await api.GetSubjectPersonInfos(subject.Id, cancellationToken)).ToList().ForEach(result.AddPerson);
         (await api.GetSubjectCharacters(subject.Id, cancellationToken)).ToList().ForEach(result.AddPerson);
