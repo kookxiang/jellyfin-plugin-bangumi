@@ -145,8 +145,35 @@ public class SeasonProvider(BangumiApi api, Logger<EpisodeProvider> log, ILibrar
         FillSeasonMetadata(result, subject);
         result.Item.IndexNumber = info.IndexNumber;
 
-        (await api.GetSubjectPersonInfos(subject.Id, cancellationToken)).ToList().ForEach(result.AddPerson);
-        (await api.GetSubjectCharacters(subject.Id, cancellationToken)).ToList().ForEach(result.AddPerson);
+        try
+        {
+            (await api.GetSubjectPersonInfos(subject.Id, cancellationToken)).ToList().ForEach(result.AddPerson);
+        }
+        catch (Exception ex)
+        {
+            log.Error("Failed to get person infos for subject {0} : {1}", subject.Id, ex);
+        }
+
+        if (Configuration.AddCharacterToPerson)
+        {
+            try
+            {
+                (await api.GetSubjectVirtualCharacters(subject.Id, cancellationToken)).ToList().ForEach(result.AddPerson);
+            }
+            catch (Exception ex)
+            {
+                log.Error("Failed to get character infos for subject {0} : {1}", subject.Id, ex);
+            }
+        }
+
+        try
+        {
+            (await api.GetSubjectCharacters(subject.Id, cancellationToken)).ToList().ForEach(result.AddPerson);
+        }
+        catch (Exception ex)
+        {
+            log.Error("Failed to get person infos for subject {0} : {1}", subject.Id, ex);
+        }
 
         return result;
     }
