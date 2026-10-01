@@ -89,7 +89,7 @@ public class PluginConfiguration : BasePluginConfiguration
 
     public bool AlwaysReplaceEpisodeNumber { get; set; }
 
-    public bool ProcessMultiSeasonFolderByAnitomySharp { get; set; } = false;
+    public bool ProcessMultiSeasonFolder { get; set; } = false;
     
     public bool MovieEpisodeDetectionByAnitomySharp { get; set; } = false;
 

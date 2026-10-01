@@ -135,7 +135,7 @@ public class SeasonProvider(BangumiApi api, Logger<SeasonProvider> log, ILibrary
             }
         }
 
-        if (subjectId <= 0 && Configuration.ProcessMultiSeasonFolderByAnitomySharp)
+        if (subjectId <= 0 && Configuration.ProcessMultiSeasonFolder)
             subjectId = await ProcessMultiSeasonFolder(subjectId, info, cancellationToken);
 
         if (subjectId <= 0)
