@@ -14,6 +14,7 @@ namespace Jellyfin.Plugin.Bangumi.Test;
 [TestClass]
 public class Season
 {
+    private readonly Bangumi.Plugin _plugin = ServiceLocator.GetService<Bangumi.Plugin>();
     private readonly BangumiApi _api = ServiceLocator.GetService<BangumiApi>();
     private readonly SubjectImageProvider _imageProvider = ServiceLocator.GetService<SubjectImageProvider>();
     private readonly SeasonProvider _provider = ServiceLocator.GetService<SeasonProvider>();
@@ -126,4 +127,58 @@ public class Season
             _token);
         Assert.IsFalse(result.HasMetadata, "should return metadata when folder name contains season");
     }
+
+    [TestMethod]
+    public async Task GetSeasonWithProcessMultiSeasonFolder()
+    {
+        _plugin.Configuration.ProcessMultiSeasonFolder = true;
+
+        var seriesPath = FakePath.Create("战姬绝唱SYMPHOGEAR");
+        var seasonPath = FakePath.Create("战姬绝唱SYMPHOGEAR/戦姫絶唱シンフォギアXV");
+
+        var series = new MediaBrowser.Controller.Entities.TV.Series
+        {
+            Path = seriesPath,
+            Name = "战姬绝唱SYMPHOGEAR"
+        };
+        _libraryManager.CreateItem(series, null);
+
+        _libraryManager.CreateItem(new MediaBrowser.Controller.Entities.TV.Season
+        {
+            Path = seasonPath,
+            Name = "戦姫絶唱シンフォギアXV"
+        }, series);
+
+        var result = await _provider.GetMetadata(new SeasonInfo
+        {
+            Path = seasonPath,
+            SeriesProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "25834" } } //第一季
+        },
+            _token);
+        Assert.IsTrue(result.HasMetadata, "should return metadata when folder name contains season");
+        Assert.IsNotNull(result.Item, "data should not be null");
+        Assert.AreEqual("戦姫絶唱シンフォギアXV", result.Item.Name, "should return the right title");
+        Assert.AreEqual("170689", result.Item.ProviderIds[Constants.ProviderName], "should return the right provider ID");
+
+        _plugin.Configuration.ProcessMultiSeasonFolder = false;
+    }
+    [TestMethod]
+    public async Task GetSeasonNumberWithUseBangumiRelationChainForSeasonNumber()
+    {
+        _plugin.Configuration.UseBangumiRelationChainForSeasonNumber = true;
+
+        var seasonPath = FakePath.Create("战姬绝唱SYMPHOGEAR/戦姫絶唱シンフォギアXV");
+        var result = await _provider.GetMetadata(new SeasonInfo
+        {
+            Path = seasonPath,
+            ProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "170689" } }
+        },
+            _token);
+        Assert.IsTrue(result.HasMetadata, "should return metadata when folder name contains season");
+        Assert.IsNotNull(result.Item, "data should not be null");
+        Assert.AreEqual(5, result.Item.IndexNumber, "should return the right season number");
+
+        _plugin.Configuration.UseBangumiRelationChainForSeasonNumber = false;
+    }
+
 }
