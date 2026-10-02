@@ -29,25 +29,8 @@ public class AnitomyEpisodeParser : IEpisodeParser
 
         var (anitomyEpisodeType, bangumiEpisodeType) = GetEpisodeType();
         var episodeIndex = GetEpisodeIndex();
-        // 获取 seriesId
+
         var seriesId = LocalConfigurationHelper.GetSeriesId(_context.LocalConfiguration, _context.Info, _context.LibraryManager);
-
-        double? seasonNumber = double.TryParse(_anitomy.ExtractAnimeSeason(), out var sn) ? sn : null;
-
-        var parent = _context.LibraryManager.FindByPath(Path.GetDirectoryName(_context.Info.Path)!, true);
-        _log.Debug("Jellyfin parent name: {parent}", parent);
-        if (parent is MediaBrowser.Controller.Entities.TV.Season season && season.IndexNumber != null)
-        {
-            seasonNumber = season.IndexNumber;
-            _log.Debug("Use exist Season {seasonNumber} for {parent}", seasonNumber, _fileName);
-        }
-        else if (_context.Configuration.UseBangumiRelationChainForEpisodeSeasonNumber)
-        {
-            var chain = await _context.Api.GetPrequelSeriesSubjectIds(seriesId, _context.Token);
-            seasonNumber = chain.Count;
-            _log.Debug("Use chain Season {seasonNumber} for {parent}", seasonNumber, _fileName);
-        }
-
 
         // 获取 episode
         try
@@ -75,9 +58,9 @@ public class AnitomyEpisodeParser : IEpisodeParser
                     episode.ChineseNameRaw = TitleOfSpecialEpisode(anitomyEpisodeType);
                     episode.OriginalNameRaw = Path.GetFileNameWithoutExtension(_context.Info.Path);
                 }
-                if (seasonNumber.HasValue)
+                if (double.TryParse(_anitomy.ExtractAnimeSeason(), out var sn))
                 {
-                    episode.SeasonNumber = seasonNumber;
+                    episode.SeasonNumber ??= sn;
                 }
                 return episode;
             }

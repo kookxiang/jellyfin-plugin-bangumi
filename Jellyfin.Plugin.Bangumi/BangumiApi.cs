@@ -441,12 +441,12 @@ public partial class BangumiApi
     /// 获取此条目的所有前传动画条目
     /// 注：包括本条目
     /// </summary>
-    public async Task<List<int>> GetPrequelSeriesSubjectIds(int seriesId, CancellationToken token)
+    public async Task<List<int>> GetPrequelChainSubjectIds(int subjectId, CancellationToken token)
     {
         var chain = new List<int>();
         HashSet<int> allSubjectIds = new HashSet<int>();
         var queue = new Queue<int>();
-        queue.Enqueue(seriesId);
+        queue.Enqueue(subjectId);
 
         int requestCount = 0;
         int maxRequestCount = 1024; // 最多请求数

@@ -156,7 +156,7 @@ public class SeasonProvider(BangumiApi api, Logger<SeasonProvider> log, ILibrary
         }
         else if (Configuration.UseBangumiRelationChainForSeasonNumber)
         {
-            var chain = await api.GetPrequelSeriesSubjectIds(subjectId, cancellationToken);
+            var chain = await api.GetPrequelChainSubjectIds(subjectId, cancellationToken);
             result.Item.IndexNumber = chain.Count;
             log.Info("Use chain Season {seasonNumber} for {parent}", chain.Count, seasonPath);
         }
