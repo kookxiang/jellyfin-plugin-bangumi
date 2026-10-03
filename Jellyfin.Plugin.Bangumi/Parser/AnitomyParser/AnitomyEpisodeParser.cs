@@ -15,6 +15,8 @@ public class AnitomyEpisodeParser : IEpisodeParser
     private readonly Logger<AnitomyEpisodeParser> _log;
     private readonly string _fileName;
     private readonly Anitomy _anitomy;
+    private const double MinMediaDurationMinutes = 10;   // 分钟
+    private const double MinMediaSizeMB = 100;   // MB
 
     public AnitomyEpisodeParser(EpisodeParserContext parserContext, Logger<AnitomyEpisodeParser> logger)
     {
@@ -108,10 +110,11 @@ public class AnitomyEpisodeParser : IEpisodeParser
         {
             try
             {
-                string[] parent = [_context.LibraryManager.FindByPath(Path.GetDirectoryName(_context.Info.Path)!, true)!.Name];
+                var parentName = _context.LibraryManager.FindByPath(Path.GetDirectoryName(_context.Info.Path)!, true)!.Name;
+                var parentTypes = new Anitomy(parentName).ExtractAnimeType();
                 // #FIXME 路径类型，存在误判的可能性
-                (anitomyEpisodeType, bangumiEpisodeType) = AnitomyEpisodeTypeMapping.GetAnitomyAndBangumiEpisodeType(parent);
-                _log.Debug("Jellyfin parent name: {parent}. Path type: {type}", parent, anitomyEpisodeType);
+                (anitomyEpisodeType, bangumiEpisodeType) = AnitomyEpisodeTypeMapping.GetAnitomyAndBangumiEpisodeType(parentTypes ?? [parentName]);
+                _log.Debug("Jellyfin parent name: {parent}. Path type: {type}", parentName, anitomyEpisodeType);
             }
             catch (Exception e)
             {
@@ -149,6 +152,7 @@ public class AnitomyEpisodeParser : IEpisodeParser
     /// <returns></returns>
     public double GetEpisodeIndex()
     {
+        var (_, bangumiEpisodeType) = GetEpisodeType();
         double episodeIndex = 0;
         var anitomyIndex = _anitomy.ExtractEpisodeNumber();
 
@@ -157,45 +161,15 @@ public class AnitomyEpisodeParser : IEpisodeParser
         {
             episodeIndex = parsedIndex;
         }
-        else if (_context.Configuration.MovieEpisodeDetectionByAnitomySharp)
+        else if (_context.Configuration.MovieEpisodeDetectionByAnitomySharp
+                && (bangumiEpisodeType is null or EpisodeType.Normal or EpisodeType.Special))
         {
-            const double MIN_MEDIA_TIME = 10;   // 分钟
-            const double MIN_MEDIA_SIZE = 100;   // MB
-            var mediaItem = _context.LibraryManager.FindByPath(_context.Info.Path, false);
-            if (mediaItem is null)
+            if (TryDetectMovieEpisodeIndex(out var movieEpisodeIndex))
             {
-                _log.Warn("Cannot find library item by path: {path}, skip movie episode detection", _context.Info.Path);
-            }
-            else
-            {
-                try
-                {
-                    var mediaSourceInfo = _context.MediaSourceManager.GetStaticMediaSources(mediaItem, false)?[0];
-                    if (mediaSourceInfo != null)
-                    {
-                        // 视频时长（分钟）
-                        double mediaTime = TimeSpan.FromTicks(mediaSourceInfo.RunTimeTicks ?? 0).TotalMinutes;
-                        // 文件大小（MB）
-                        double mediaSize = (mediaSourceInfo.Size ?? 0) / (1024 * 1024d);
-                        _log.Debug("Media time: {mediaTime} minutes, Media size: {mediaSize} MB", mediaTime, mediaSize);
-                        if (mediaTime > MIN_MEDIA_TIME && mediaSize > MIN_MEDIA_SIZE)
-                        {
-                            // 当媒体库中节目和电影混合时，可辅助电影剧集匹配到元数据
-                            // 媒体文件时长大于 10 分钟，大小大于 100MB 的可能是 Movie 等类型
-                            // 存在误判的可能性，导致被识别为第一集。配合 SP 文件夹判断可降低误判的副作用
-                            episodeIndex = 1;
-                            _log.Debug("Use episode number: {episodeIndex} for {fileName}, because file size is {size} MB", episodeIndex, _fileName, mediaSize);
-                        }
-                        }
-                    }
-                catch (Exception e)
-                {
-                    _log.Warn("Failed to get media source info for {path}, skip movie episode detection. {Message}", _context.Info.Path, e.Message);
-                }
+                episodeIndex = movieEpisodeIndex;
             }
         }
 
-        var (_, bangumiEpisodeType) = GetEpisodeType();
         // 特典剧集不应用本地配置的偏移值
         var shouldApplyEpisodeOffset = bangumiEpisodeType is null or EpisodeType.Normal;
         if (shouldApplyEpisodeOffset)
@@ -206,6 +180,59 @@ public class AnitomyEpisodeParser : IEpisodeParser
         _log.Debug("Use episode number: {episodeIndex} for {fileName}", episodeIndex, _fileName);
 
         return episodeIndex;
+    }
+
+    /// <summary>
+    /// 尝试通过媒体信息检测是否为电影（返回剧集索引 1）
+    /// </summary>
+    private bool TryDetectMovieEpisodeIndex(out double episodeIndex)
+    {
+        episodeIndex = 0;
+
+        var mediaItem = _context.LibraryManager.FindByPath(_context.Info.Path, false);
+        if (mediaItem is null)
+        {
+            _log.Warn("Cannot find library item by path: {path}, skip movie episode detection", _context.Info.Path);
+            return false;
+        }
+        try
+        {
+            var mediaSources = _context.MediaSourceManager.GetStaticMediaSources(mediaItem, false);
+
+            if (mediaSources is null || mediaSources.Count == 0)
+            {
+                _log.Warn("No media source info found for {Path}, skip movie episode detection", _context.Info.Path);
+                return false;
+            }
+
+            var mediaSourceInfo = mediaSources[0];
+            // 新入库文件在媒体信息提取完成前 RunTimeTicks 可能为 null
+            if (mediaSourceInfo.RunTimeTicks is not long ticks || ticks <= 0)
+            {
+                _log.Warn("RunTimeTicks is not available for {Path}. Media info may not be parsed yet, skip movie episode detection", _context.Info.Path);
+                return false;
+            }
+
+            // 视频时长（分钟）
+            double mediaMinutes = TimeSpan.FromTicks(ticks).TotalMinutes;
+            // 文件大小（MB）
+            double mediaMB = (mediaSourceInfo.Size ?? 0) / (1024 * 1024d);
+            _log.Debug("Media time: {mediaTime} minutes, Media size: {mediaSize} MB", mediaMinutes, mediaMB);
+            if (mediaMinutes > MinMediaDurationMinutes && mediaMB > MinMediaSizeMB)
+            {
+                // 当媒体库中节目和电影混合时，可辅助电影剧集匹配到元数据
+                // 媒体文件时长大于 10 分钟，大小大于 100MB 的可能是 Movie 等类型
+                // 存在误判的可能性，导致被识别为第一集。配合 SP 文件夹判断可降低误判的副作用
+                episodeIndex = 1;
+                _log.Debug("Use episode number: {episodeIndex} for {fileName}, because file size is {size} MB", episodeIndex, _fileName, mediaMB);
+                return true;
+            }
+        }
+        catch (Exception e)
+        {
+            _log.Warn("Failed to get media source info for {path}, skip movie episode detection. {Message}", _context.Info.Path, e.Message);
+        }
+        return false;
     }
 
     /// <summary>
