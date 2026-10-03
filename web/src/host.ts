@@ -2,7 +2,16 @@ export function createHost(services: import('./types.ts').Services, root: Shadow
     const client = services.api;
     const dashboard = services.dashboard;
     let generation = 0;
-    const modules = ['account', 'network', 'metadata', 'season-parser', 'episode-parser', 'archive', 'media-library', 'tools'];
+    const modules = [
+        'account',
+        'network',
+        'metadata',
+        'season-parser',
+        'episode-parser',
+        'archive',
+        'media-library',
+        'tools',
+    ];
     const api = new Proxy(client, {
         get(target, key) {
             if (typeof key === 'symbol') return Reflect.get(target, key);
