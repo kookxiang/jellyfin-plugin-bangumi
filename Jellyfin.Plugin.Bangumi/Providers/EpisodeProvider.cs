@@ -186,7 +186,9 @@ public class EpisodeProvider(BangumiApi api, Logger<EpisodeProvider> log, ILibra
             return (season.IndexNumber!.Value, season.Id);
 
         // relation chain
-        var seriesId = LocalConfigurationHelper.GetSeriesId(localConfiguration, info, libraryManager);
+        var seriesId = episode is { ParentId: > 0 }
+            ? episode.ParentId
+            : LocalConfigurationHelper.GetSeriesId(localConfiguration, info, libraryManager);
         if (Configuration.UseBangumiRelationChainForEpisodeSeasonNumber && seriesId > 0)
         {
             var chain = await api.GetPrequelChainSubjectIds(seriesId, token);
