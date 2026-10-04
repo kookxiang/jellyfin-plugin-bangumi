@@ -156,9 +156,17 @@ public class SeasonProvider(BangumiApi api, Logger<SeasonProvider> log, ILibrary
         }
         else if (Configuration.UseBangumiRelationChainForSeasonNumber)
         {
-            var chain = await api.GetPrequelChainSubjectIds(subjectId, cancellationToken);
-            result.Item.IndexNumber = chain.Count;
-            log.Info("Use chain Season {seasonNumber} for {parent}", chain.Count, seasonPath);
+            try
+            {
+                var chain = await api.GetPrequelChainSubjectIds(subjectId, cancellationToken);
+                result.Item.IndexNumber = chain.Count;
+                log.Info("Use chain Season {seasonNumber} for {parent}", chain.Count, seasonPath);
+            }
+            catch (Exception ex) when (!cancellationToken.IsCancellationRequested)
+            {
+                // Season inference is optional; keep the metadata already fetched.
+                log.Warn("Failed to infer season number for subject {SubjectId}: {Error}", subjectId, ex.Message);
+            }
         }
 
         (await api.GetSubjectPersonInfos(subject.Id, cancellationToken)).ToList().ForEach(result.AddPerson);

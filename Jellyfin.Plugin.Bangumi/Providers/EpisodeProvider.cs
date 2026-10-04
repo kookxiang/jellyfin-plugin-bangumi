@@ -191,8 +191,16 @@ public class EpisodeProvider(BangumiApi api, Logger<EpisodeProvider> log, ILibra
             : LocalConfigurationHelper.GetSeriesId(localConfiguration, info, libraryManager);
         if (Configuration.UseBangumiRelationChainForEpisodeSeasonNumber && seriesId > 0)
         {
-            var chain = await api.GetPrequelChainSubjectIds(seriesId, token);
-            if (chain.Count > 0) return (chain.Count, Guid.Empty);
+            try
+            {
+                var chain = await api.GetPrequelChainSubjectIds(seriesId, token);
+                if (chain.Count > 0) return (chain.Count, Guid.Empty);
+            }
+            catch (Exception ex) when (!token.IsCancellationRequested)
+            {
+                // Fall back to the parser and existing season number if inference fails.
+                log.Warn("Failed to infer episode season number for subject {SubjectId}: {Error}", seriesId, ex.Message);
+            }
         }
 
         // parser result
