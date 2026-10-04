@@ -85,6 +85,11 @@ public class Plugin : BasePlugin<PluginConfiguration>, IHasWebPages
             },
             new PluginPageInfo
             {
+                Name = "Plugin.Bangumi.UserSettings.Script",
+                EmbeddedResourcePath = scriptResource
+            },
+            new PluginPageInfo
+            {
                 Name = "Plugin.Bangumi.Tools.DuplicatedEpisodesDetector",
                 DisplayName = "重复剧集检测",
                 EmbeddedResourcePath = $"{GetType().Namespace}.Tools.DuplicatedEpisodesDetector.Index.html"

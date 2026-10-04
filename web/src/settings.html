@@ -28,6 +28,33 @@
                             <div class="bangumi-settings-module">
                                 <h2 class="bangumi-settings-heading">账号授权</h2>
                                 <bangumi-oauth-container></bangumi-oauth-container>
+                                <section class="bangumi-injection-settings" aria-labelledby="bangumi-injection-heading">
+                                    <h3 class="bangumi-settings-subheading" id="bangumi-injection-heading">
+                                        普通用户账号绑定入口
+                                    </h3>
+                                    <bangumi-checkbox class="checkboxContainer checkboxContainer-withDescription">
+                                        <input
+                                            aria-describedby="bangumi-injection-description bangumi-injection-status"
+                                            data-config-ignore
+                                            id="bangumi-user-settings-injection"
+                                            slot="control"
+                                            type="checkbox"
+                                        />
+                                        <label for="bangumi-user-settings-injection" slot="label">
+                                            在普通用户的设置中显示“Bangumi 账号”
+                                        </label>
+                                    </bangumi-checkbox>
+                                    <p class="fieldDescription" id="bangumi-injection-description">
+                                        仅支持 Jellyfin 12 Web，需要安装兼容的
+                                        <a
+                                            href="https://github.com/IAmParadox27/jellyfin-plugin-file-transformation"
+                                            rel="noopener noreferrer"
+                                            target="_blank"
+                                            >File Transformation</a
+                                        >。此开关不影响刮削和播放同步。
+                                    </p>
+                                    <p class="bangumi-injection-status" id="bangumi-injection-status" role="status"></p>
+                                </section>
                                 <bangumi-checkbox-group aria-label="播放状态同步">
                                     <bangumi-checkbox class="checkboxContainer checkboxContainer-withDescription">
                                         <input

@@ -30,6 +30,14 @@ Jellyfin bgm.tv 数据源插件，用于拉取中文番剧信息及图片。
 
 安装后可在后台更新，推荐使用此方式安装
 
+## 普通用户绑定 Bangumi 账号（Jellyfin 12）
+
+依赖 File Transformation
+
+如需让普通用户在自己的 Jellyfin 设置中管理 Bangumi 授权，请先安装与当前 Jellyfin 版本兼容的 [File Transformation](https://github.com/IAmParadox27/jellyfin-plugin-file-transformation)，重启服务器，然后在 Bangumi 插件的“账号”页开启“普通用户账号绑定入口”。此功能默认关闭，仅向 Jellyfin Web 注入入口，不修改 Web 文件，也不影响刮削和已有的播放同步。
+
+如果 File Transformation 缺失、不兼容或注册转换失败，开关不会开启；已启用后卸载该依赖，则在 Jellyfin 下次启动或状态检查时自动保存为关闭。普通用户只能管理自己的绑定，管理员仍可在插件页代管其他用户。
+
 ## 手动安装
 
 1. 下载插件 DLL 文件至 `Jellyfin 数据目录/Plugins/Bangumi`

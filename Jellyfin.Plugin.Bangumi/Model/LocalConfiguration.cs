@@ -1,5 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.IO;
 using System.IO.Enumeration;
 using System.Linq;
@@ -22,7 +22,7 @@ public class LocalConfiguration
 
     public int Offset { get; set; } = 0;
 
-    public List<LocalConfigurationSection> Sections { get; set; } = [];
+    public Collection<LocalConfigurationSection> Sections { get; set; } = [];
 
     private LocalConfigurationSection? FindSection(string? path)
     {
@@ -33,7 +33,7 @@ public class LocalConfiguration
             FileSystemName.MatchesSimpleExpression(section.Selector, fileName, true));
     }
 
-    public int GetOffset(string? path) => FindSection(path)?.Offset ?? Offset;
+    public int ResolveOffset(string? path) => FindSection(path)?.Offset ?? Offset;
 
     public LocalConfiguration ForFile(string path)
     {

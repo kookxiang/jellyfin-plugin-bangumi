@@ -19,6 +19,10 @@ public enum EpisodeParserType
 
 public class PluginConfiguration : BasePluginConfiguration
 {
+#if !EMBY
+    public bool EnableUserSettingsInjection { get; set; }
+#endif
+
     // Use the loaded server assembly so this temporary workaround defaults on only for Jellyfin 12.0.x.
     public bool MergeEpisodeVersionsByBangumiId { get; set; } =
         ShouldEnableEpisodeVersionWorkaround(typeof(MediaBrowser.Controller.Entities.BaseItem).Assembly.GetName().Version);

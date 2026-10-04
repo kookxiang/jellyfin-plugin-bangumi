@@ -13,10 +13,11 @@ export class BangumiOAuthContainer extends HTMLElement {
         this.attachShadow({ mode: 'open' });
     }
 
-    configure(services: Services) {
+    configure(services: Services, options: { selfService?: boolean } = {}) {
         this.#controller?.hide();
+        this.toggleAttribute('self-service', options.selfService === true);
         this.shadowRoot.innerHTML = `<style>${styles}\n${icons}</style>${template}`;
-        this.#controller = createAccountController(this.shadowRoot, services);
+        this.#controller = createAccountController(this.shadowRoot, services, options.selfService === true);
     }
 
     show() {
@@ -30,7 +31,7 @@ export class BangumiOAuthContainer extends HTMLElement {
     }
 }
 
-function createAccountController(container: any, services: Services) {
+function createAccountController(container: any, services: Services, selfService: boolean) {
     const { api: ApiClient, dashboard: Dashboard } = services;
     let active = false;
     let generation = 0;
@@ -47,7 +48,7 @@ function createAccountController(container: any, services: Services) {
     }
 
     function windowMessageHandler(e) {
-        if (e.data === 'BANGUMI-OAUTH-COMPLETE') {
+        if (e.origin === window.location.origin && e.data === 'BANGUMI-OAUTH-COMPLETE') {
             wrapLoading(loadOAuthState());
         }
     }
@@ -69,16 +70,19 @@ function createAccountController(container: any, services: Services) {
     }
 
     function getOAuthRequestPath(path) {
-        return path + '?userId=' + encodeURIComponent(getSelectedUserId());
+        return selfService ? path : path + '?userId=' + encodeURIComponent(getSelectedUserId());
     }
 
-    function getAuthorizationUrl() {
-        return ApiClient.getUrl(
-            '/Plugins/Bangumi/Redirect?prefix=' +
-                encodeURIComponent(ApiClient.serverAddress()) +
-                '&user=' +
-                encodeURIComponent(getSelectedUserId()),
-        );
+    async function createAuthorizationUrl() {
+        const response = await ApiClient.fetch({
+            url: ApiClient.getUrl(getOAuthRequestPath('/Plugins/Bangumi/OAuth/Authorization')),
+            type: 'POST',
+            data: { prefix: ApiClient.serverAddress() },
+        });
+        if (response && response.ok === false) throw new Error('无法创建 Bangumi 授权会话');
+        const result = response && typeof response.json === 'function' ? await response.json() : response;
+        if (!result?.url) throw new Error('服务器未返回授权地址');
+        return result.url;
     }
 
     function copyAuthorizationText(text) {
@@ -104,6 +108,7 @@ function createAccountController(container: any, services: Services) {
     }
 
     function getJellyfinUsers() {
+        if (selfService) return getCurrentJellyfinUser().then(normalizeJellyfinUsers);
         return ApiClient.getUsers()
             .then(
                 function (users) {
@@ -114,20 +119,22 @@ function createAccountController(container: any, services: Services) {
                     return getCurrentJellyfinUser();
                 },
             )
-            .then(function (users) {
-                return users
-                    .map(function (user) {
-                        return {
-                            id: user.Id || user.id || '',
-                            name: user.Name || user.name || user.Username || '',
-                        };
-                    })
-                    .filter(function (user) {
-                        return user.id && user.name;
-                    })
-                    .sort(function (left, right) {
-                        return left.name.localeCompare(right.name);
-                    });
+            .then(normalizeJellyfinUsers);
+    }
+
+    function normalizeJellyfinUsers(users) {
+        return users
+            .map(function (user) {
+                return {
+                    id: user.Id || user.id || '',
+                    name: user.Name || user.name || user.Username || '',
+                };
+            })
+            .filter(function (user) {
+                return user.id && user.name;
+            })
+            .sort(function (left, right) {
+                return left.name.localeCompare(right.name);
             });
     }
 
@@ -341,20 +348,34 @@ function createAccountController(container: any, services: Services) {
 
     container.querySelector('#bangumi-oauth-btn').addEventListener('click', function (e) {
         e.preventDefault();
-        var authorizationUrl = getAuthorizationUrl();
         var isCurrentUser = normalizeUserId(getSelectedUserId()) === normalizeUserId(ApiClient.getCurrentUserId());
         if (isCurrentUser) {
-            window.open(authorizationUrl);
+            const popup = window.open('', '_blank');
+            wrapLoading(
+                createAuthorizationUrl()
+                    .then(function (authorizationUrl) {
+                        if (!popup) throw new Error('浏览器阻止了授权窗口');
+                        popup.location.href = authorizationUrl;
+                    })
+                    .catch(function (error) {
+                        popup?.close();
+                        throw error;
+                    }),
+            );
             return;
         }
 
-        copyAuthorizationText(authorizationUrl).then(
-            function () {
-                Dashboard.alert('已复制 ' + getSelectedUserName() + ' 的 Bangumi 授权链接');
-            },
-            function () {
-                Dashboard.alert({ title: '复制失败', message: '请检查浏览器的剪贴板权限。' });
-            },
+        wrapLoading(
+            createAuthorizationUrl()
+                .then(copyAuthorizationText)
+                .then(
+                    function () {
+                        Dashboard.alert('已复制 ' + getSelectedUserName() + ' 的 Bangumi 授权链接');
+                    },
+                    function () {
+                        Dashboard.alert({ title: '复制失败', message: '请检查浏览器的剪贴板权限。' });
+                    },
+                ),
         );
     });
 
