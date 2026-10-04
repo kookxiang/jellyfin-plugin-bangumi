@@ -21,6 +21,12 @@ test('ordinary-user entry reads userId the same way Jellyfin Web does', () => {
         getPreferencesQuery('', '', 'http://localhost/web/index.html?userId=abc#/mypreferencesmenu'),
         'userId=abc',
     );
-    assert.equal(isOwnPreferencesHash('#/mypreferencesmenu', current, '?userId=0123456789ABCDEF0123456789ABCDEF'), true);
-    assert.equal(isOwnPreferencesHash('#/mypreferencesmenu', current, '?userId=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'), false);
+    assert.equal(
+        isOwnPreferencesHash('#/mypreferencesmenu', current, '?userId=0123456789ABCDEF0123456789ABCDEF'),
+        true,
+    );
+    assert.equal(
+        isOwnPreferencesHash('#/mypreferencesmenu', current, '?userId=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'),
+        false,
+    );
 });
