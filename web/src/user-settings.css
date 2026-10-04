@@ -1,0 +1,69 @@
+:host {
+    position: fixed;
+    z-index: 10000;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    box-sizing: border-box;
+    color: var(--jf-palette-text-primary, #fff);
+}
+
+.backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.66);
+}
+.dialog {
+    position: relative;
+    display: flex;
+    width: min(38rem, 100%);
+    max-height: min(46rem, calc(100vh - 2rem));
+    flex-direction: column;
+    overflow: hidden;
+    border-radius: 0.75rem;
+    background: var(--jf-palette-background-paper, #202020);
+    box-shadow: 0 1rem 4rem rgba(0, 0, 0, 0.45);
+}
+.header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.85rem 1rem;
+    border-bottom: 1px solid var(--jf-palette-divider, rgba(255, 255, 255, 0.14));
+}
+h2 {
+    margin: 0;
+    font-size: 1.35rem;
+}
+.close {
+    min-width: 2.75rem;
+    min-height: 2.75rem;
+    border: 0;
+    border-radius: 50%;
+    background: transparent;
+    color: inherit;
+    cursor: pointer;
+    font-size: 1.6rem;
+}
+.close:hover,
+.close:focus-visible {
+    background: var(--jf-palette-action-hover, rgba(255, 255, 255, 0.1));
+}
+.content {
+    overflow: auto;
+    padding: 1rem;
+}
+
+@media (max-width: 40rem) {
+    :host {
+        align-items: flex-end;
+        padding: 0;
+    }
+    .dialog {
+        width: 100%;
+        max-height: 92vh;
+        border-radius: 0.75rem 0.75rem 0 0;
+    }
+}

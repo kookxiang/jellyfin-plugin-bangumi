@@ -377,8 +377,9 @@ document.querySelector('#run').onclick = async () => {
         const versionsSwitch = root.querySelector('#MergeEpisodeVersionsByBangumiId');
         assert(!versionsSwitch.checked, '回填已保存的关闭设置');
         assert(
-            root.querySelector('#MergeEpisodeVersionsByBangumiId-description strong').textContent.includes('临时'),
-            '版本合并标记为临时修复',
+            root.querySelector('#MergeEpisodeVersionsByBangumiId-label').textContent.includes('12.0') &&
+                root.querySelector('#MergeEpisodeVersionsByBangumiId-description').textContent.includes('未来将下线'),
+            '版本合并标记为仅针对 12.0 的临时修复',
         );
         versionsSwitch.click();
         root.querySelector('#bangumiConfigurationForm').requestSubmit();

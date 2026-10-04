@@ -19,7 +19,7 @@ public static class AnitomyEpisodeTypeMapping
     // 同类型可能被误匹配，如 CM01 匹配上了 PV01 的元数据
     private static readonly HashSet<string> _preview = new(StringComparer.OrdinalIgnoreCase) { "WEB PREVIEW", "PREVIEW", "CM", "SPOT", "PV", "Teaser", "TRAILER", "YOKOKU", "予告" };
     private static readonly HashSet<string> _madness = new(StringComparer.OrdinalIgnoreCase) { "MV" };
-    private static readonly HashSet<string> _other = new(StringComparer.OrdinalIgnoreCase) { "MENU", "INTERVIEW", "EVENT", "TOKUTEN", "LOGO", "IV" };
+    private static readonly HashSet<string> _other = new(StringComparer.OrdinalIgnoreCase) { "MENU", "INTERVIEW", "EVENT", "TOKUTEN", "LOGO", "IV", "BONUS" };
 
     // 可跳过处理的文件夹名称
     public static readonly HashSet<string> SkipWords = new HashSet<string>(

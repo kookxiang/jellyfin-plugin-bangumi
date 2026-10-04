@@ -1,5 +1,6 @@
 import type { ApiClient } from '../types.ts';
 import styles from './episode-preview.css?raw';
+import { parseSections, selectSection } from '../file-sections.ts';
 interface PreviewResult {
     EpisodeId?: string;
     FileName?: string;
@@ -28,7 +29,7 @@ export class EpisodePreview extends HTMLElement {
         this.form = form;
         this.sample = undefined;
         const update = (event: Event) => {
-            if (event.target instanceof HTMLInputElement) this.update();
+            if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) this.update();
         };
         form.addEventListener('input', update, { signal: this.events.signal });
         form.addEventListener('change', update, { signal: this.events.signal });
@@ -51,10 +52,6 @@ export class EpisodePreview extends HTMLElement {
             this.message('未启用目录配置。');
             return;
         }
-        if (this.field('skip').checked) {
-            this.message('此目录已设为跳过，不会获取剧集元数据。');
-            return;
-        }
         if (!this.field('offset').validity.valid) {
             this.message('请填写整数偏移量。');
             return;
@@ -64,9 +61,22 @@ export class EpisodePreview extends HTMLElement {
             this.message(this.sample.Message);
             return;
         }
-        const offset = Number(this.field('offset').value || 0);
+        let sections;
+        try {
+            sections = parseSections(this.field('sections').value);
+        } catch (error) {
+            this.message(error.message);
+            return;
+        }
+        const selected = selectSection(this.sample.FileName || '', sections);
+        if (selected?.Skip ?? this.field('skip').checked) {
+            this.message('此文件已设为跳过，不会获取剧集元数据。');
+            return;
+        }
+        const offset = selected?.Offset ?? Number(this.field('offset').value || 0);
         const bangumi = detected - offset;
-        const jellyfin = this.field('correct-index').checked ? Math.trunc(bangumi) : Math.trunc(bangumi) + offset;
+        const correctIndex = selected?.CorrectIndex ?? this.field('correct-index').checked;
+        const jellyfin = correctIndex ? Math.trunc(bangumi) : Math.trunc(bangumi) + offset;
         for (const [id, value] of [
             ['detected', detected],
             ['bangumi', bangumi],
@@ -77,7 +87,7 @@ export class EpisodePreview extends HTMLElement {
         this.shadowRoot!.querySelector('#status')!.textContent =
             bangumi < 0
                 ? '偏移后的集数小于 0，请检查偏移量。'
-                : '按识别集数计算映射，不验证 Bangumi 中是否存在对应剧集。';
+                : `${selected ? `命中 ${selected.Selector}，` : ''}按识别集数计算映射，不验证 Bangumi 中是否存在对应剧集。`;
     }
     private async load() {
         const version = ++this.generation;

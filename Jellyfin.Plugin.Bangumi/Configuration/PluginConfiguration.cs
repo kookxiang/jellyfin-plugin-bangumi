@@ -19,9 +19,16 @@ public enum EpisodeParserType
 
 public class PluginConfiguration : BasePluginConfiguration
 {
-    // Use the loaded server assembly so this temporary workaround defaults on only for Jellyfin 12.
+#if !EMBY
+    public bool EnableUserSettingsInjection { get; set; }
+#endif
+
+    // Use the loaded server assembly so this temporary workaround defaults on only for Jellyfin 12.0.x.
     public bool MergeEpisodeVersionsByBangumiId { get; set; } =
-        typeof(MediaBrowser.Controller.Entities.BaseItem).Assembly.GetName().Version?.Major == 12;
+        ShouldEnableEpisodeVersionWorkaround(typeof(MediaBrowser.Controller.Entities.BaseItem).Assembly.GetName().Version);
+
+    internal static bool ShouldEnableEpisodeVersionWorkaround(Version? serverVersion) =>
+        serverVersion?.Major == 12 && serverVersion.Minor == 0;
 
 #if !EMBY
     // Missing episode providers and their settings are only available in Jellyfin.
@@ -58,6 +65,10 @@ public class PluginConfiguration : BasePluginConfiguration
 
     public bool UseBangumiSeasonTitle { get; set; } = true;
 
+    public bool UseBangumiRelationChainForSeasonNumber { get; set; } = false;
+
+    public bool UseBangumiRelationChainForEpisodeSeasonNumber { get; set; } = false;
+
     public bool AlwaysGetTitleByAnitomySharp { get; set; }
 
     public bool UseTestingSearchApi { get; set; }
@@ -67,6 +78,8 @@ public class PluginConfiguration : BasePluginConfiguration
     public int SeasonGuessMaxSearchCount { get; set; } = 2;
 
     public bool SortByFuzzScore { get; set; } = false;
+
+    public int FuzzyWuzzyScore { get; set; } = 30;
 
     public bool RefreshRecentEpisodeWhenArchiveUpdate { get; set; } = false;
 
@@ -80,9 +93,11 @@ public class PluginConfiguration : BasePluginConfiguration
 
     public bool AlwaysReplaceEpisodeNumber { get; set; }
 
-    public bool ProcessMultiSeasonFolderByAnitomySharp { get; set; } = false;
+    public bool ProcessMultiSeasonFolder { get; set; } = false;
     
     public bool MovieEpisodeDetectionByAnitomySharp { get; set; } = false;
+
+    public bool ProcessMultiSeasonWithConsecutiveIndexByAnitomySharp { get; set; } = false;
 
     public string? ProxyServerUrl { get; set; }
 

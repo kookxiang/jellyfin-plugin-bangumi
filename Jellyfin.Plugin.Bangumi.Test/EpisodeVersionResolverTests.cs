@@ -51,9 +51,17 @@ public class EpisodeVersionResolverTests
     public void Cleanup() => _plugin.Configuration.MergeEpisodeVersionsByBangumiId = _oldEnabled;
 
     [TestMethod]
-    public void EnabledByDefaultOnJellyfin12ButCanBeDisabled()
+    public void EnabledByDefaultOnlyOnJellyfin120ButCanBeDisabled()
     {
-        Assert.IsTrue(new PluginConfiguration().MergeEpisodeVersionsByBangumiId);
+        Assert.IsTrue(PluginConfiguration.ShouldEnableEpisodeVersionWorkaround(new Version(12, 0)));
+        Assert.IsTrue(PluginConfiguration.ShouldEnableEpisodeVersionWorkaround(new Version(12, 0, 1)));
+        Assert.IsFalse(PluginConfiguration.ShouldEnableEpisodeVersionWorkaround(new Version(12, 1)));
+        Assert.IsFalse(PluginConfiguration.ShouldEnableEpisodeVersionWorkaround(new Version(10, 11)));
+        Assert.IsFalse(PluginConfiguration.ShouldEnableEpisodeVersionWorkaround(new Version(13, 0)));
+        Assert.IsFalse(PluginConfiguration.ShouldEnableEpisodeVersionWorkaround(null));
+        var serverVersion = typeof(BaseItem).Assembly.GetName().Version;
+        Assert.AreEqual(PluginConfiguration.ShouldEnableEpisodeVersionWorkaround(serverVersion),
+            new PluginConfiguration().MergeEpisodeVersionsByBangumiId);
         _plugin.Configuration.MergeEpisodeVersionsByBangumiId = false;
         Assert.IsNull(_resolver.ResolveMultiple(_parent, Files("01", "02"), CollectionType.tvshows, null!));
         Assert.IsNull(_resolver.ResolvePath(null!));

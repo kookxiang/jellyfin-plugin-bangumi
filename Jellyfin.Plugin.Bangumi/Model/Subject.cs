@@ -111,6 +111,15 @@ public class Subject
     public IEnumerable<string>? Alias => InfoBox?.GetList("别名");
 
     [JsonIgnore]
+    public IEnumerable<string>? RomajiAlias => InfoBox?.GetList("别名/罗马字");
+
+    [JsonIgnore]
+    public IEnumerable<string>? EnglishAlias => InfoBox?.GetList("别名/英文名");
+
+    [JsonIgnore]
+    public IEnumerable<string>? AllAlias => (Alias ?? [])?.Concat(RomajiAlias ?? []).Concat(EnglishAlias ?? []);
+
+    [JsonIgnore]
     public DateTime? EndDate
     {
         get
@@ -138,34 +147,36 @@ public class Subject
 #endif
     }
 
-    public static IEnumerable<Subject> SortByFuzzScore(IEnumerable<Subject> list, string keyword, int minScore = 0)
+    public static IEnumerable<(Subject Subject, int Score)> ScoreByFuzz(IEnumerable<Subject> list, string keyword)
     {
 #if EMBY
-        return list;
+        return list.Select(x => (x, 100));
 #else
         keyword = keyword.ToLower();
 
-        var score = list.Select(subject =>
+        return list.Select(subject =>
             {
                 var chineseNameScore = string.IsNullOrEmpty(subject.ChineseName)
                     ? 0
                     : Fuzz.Ratio(subject.ChineseName.ToLower(), keyword);
                 var originalNameScore = Fuzz.Ratio(subject.OriginalName.ToLower(), keyword);
-                var aliasScore = subject.Alias?.Select(alias => Fuzz.Ratio(alias.ToLower(), keyword)) ?? [];
+                var aliasScore = subject.AllAlias?.Select(alias => Fuzz.Ratio(alias.ToLower(), keyword)) ?? [];
 
                 var maxScore = Math.Max(chineseNameScore, Math.Max(originalNameScore, aliasScore.DefaultIfEmpty(int.MinValue).Max()));
 
-                return new
-                {
-                    Subject = subject,
-                    Score = maxScore
-                };
-            })
+                return (Subject: subject, Score: maxScore);
+            });
+#endif
+    }
+    public static IEnumerable<Subject> SortByFuzzScore(IEnumerable<Subject> list, string keyword, int minScore = 0)
+    {
+#if EMBY
+        return list;
+#else
+        return ScoreByFuzz(list, keyword)
             .Where(pair => pair.Score >= minScore)
             .OrderByDescending(pair => pair.Score)
             .Select(pair => pair.Subject);
-
-        return score;
 #endif
     }
 }

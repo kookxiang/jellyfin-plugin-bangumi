@@ -7,6 +7,8 @@ using Jellyfin.Plugin.Bangumi.Parser.TorrentParser;
 using MediaBrowser.Controller.Providers;
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
@@ -168,10 +170,20 @@ public class Controller(ILibraryManager library) : ControllerBase
         if (!Enum.IsDefined(request.Type))
             return BadRequest("目录类型无效。");
 
+        if (request.Sections == null || request.Sections.Any(section => section == null ||
+                string.IsNullOrWhiteSpace(section.Selector) ||
+                section.Selector.IndexOfAny(['/', '\\', '\r', '\n']) >= 0))
+            return BadRequest("文件名选择器不能为空，也不能包含路径分隔符或换行符。");
+
+        if (request.Sections.Any(section => section.Id < 0 ||
+                section.Type is { } type && !Enum.IsDefined(type)))
+            return BadRequest("文件规则中的 Bangumi ID 或目录类型无效。");
+
         var configuration = new LocalConfiguration
         {
             Id = request.Id,
             Offset = request.Offset,
+            Sections = request.Sections,
             Report = request.Report,
             Skip = request.Skip,
             CorrectIndex = request.CorrectIndex,
@@ -392,7 +404,7 @@ public class Controller(ILibraryManager library) : ControllerBase
         LocalConfiguration configuration,
         bool exists)
     {
-        return new MediaLibraryConfiguration
+        var result = new MediaLibraryConfiguration
         {
             ItemId = item.Id,
             ItemName = item.Name,
@@ -407,6 +419,9 @@ public class Controller(ILibraryManager library) : ControllerBase
             CorrectIndex = configuration.CorrectIndex,
             Type = configuration.Type,
         };
+        foreach (var section in configuration.Sections)
+            result.Sections.Add(section);
+        return result;
     }
 
     private sealed class LibraryFolder
@@ -491,6 +506,8 @@ public class MediaLibraryConfiguration
 
     public int Offset { get; set; }
 
+    public Collection<LocalConfigurationSection> Sections { get; } = [];
+
     public bool Report { get; set; }
 
     public bool Skip { get; set; }
@@ -505,6 +522,10 @@ public class UpdateMediaLibraryConfiguration
     public int Id { get; set; }
 
     public int Offset { get; set; }
+
+    [SuppressMessage("Usage", "CA2227:Collection properties should be read only",
+        Justification = "A public setter is required for request-body JSON deserialization.")]
+    public Collection<LocalConfigurationSection> Sections { get; set; } = [];
 
     public bool Report { get; set; } = true;
 

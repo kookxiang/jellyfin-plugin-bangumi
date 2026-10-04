@@ -333,3 +333,8 @@ input {
 #bangumi-oauth-container .bangumi-jellyfin-user-menu-item.selected .bangumi-jellyfin-user-menu-check {
     opacity: 1;
 }
+
+:host([self-service]) .bangumi-jellyfin-user-selector,
+:host([self-service]) .bangumi-account-connector {
+    display: none;
+}

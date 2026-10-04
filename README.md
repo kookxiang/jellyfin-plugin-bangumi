@@ -30,6 +30,14 @@ Jellyfin bgm.tv 数据源插件，用于拉取中文番剧信息及图片。
 
 安装后可在后台更新，推荐使用此方式安装
 
+## 普通用户绑定 Bangumi 账号（Jellyfin 12）
+
+依赖 File Transformation
+
+如需让普通用户在自己的 Jellyfin 设置中管理 Bangumi 授权，请先安装与当前 Jellyfin 版本兼容的 [File Transformation](https://github.com/IAmParadox27/jellyfin-plugin-file-transformation)，重启服务器，然后在 Bangumi 插件的“账号”页开启“普通用户账号绑定入口”。此功能默认关闭，仅向 Jellyfin Web 注入入口，不修改 Web 文件，也不影响刮削和已有的播放同步。
+
+如果 File Transformation 缺失、不兼容或注册转换失败，开关不会开启；已启用后卸载该依赖，则在 Jellyfin 下次启动或状态检查时自动保存为关闭。普通用户只能管理自己的绑定，管理员仍可在插件页代管其他用户。
+
 ## 手动安装
 
 1. 下载插件 DLL 文件至 `Jellyfin 数据目录/Plugins/Bangumi`
@@ -59,9 +67,28 @@ Type=Normal
 
 强制模式优先于文件名、目录名、旧季号及 Bangumi 返回的类型；重新按所属条目和集号匹配，不沿用已保存的单集 ID（包括开启“信任已有 Bangumi ID”时）。同集号有多种类型时优先匹配配置的类型；没有对应类型时仍可使用其他类型的元数据，最终分类保持配置值。保存后刷新该目录的剧集元数据生效。配置只作用于 `bangumi.ini` 所在目录，不递归应用到子目录。
 
-## Jellyfin 12 剧集版本误合并的临时修复
+## 按文件名设置剧集偏移量
 
-在“剧集解析”中启用 **（实验性）修正 Jellyfin 12 多版本识别错误的问题**（Jellyfin 12 默认启用，保留已保存的开关设置）。这是绕过 Jellyfin 12 文件名误分组的**临时修复方案**，与 Basic、AnitomySharp、混合解析模式均兼容，只作用于启用 Bangumi 单集元数据的电视剧媒体库。
+两个字幕组的文件在同一目录、但集数编号不同时，可以在媒体库目录配置的「按文件名指定偏移量」中每行填写 `文件名通配符=偏移量`，或编辑该目录的 `bangumi.ini`：
+
+```ini
+[Bangumi]
+Offset=0
+
+[Section.1]
+Selector=[某字幕组][**].mp4
+Offset=26
+
+[Section.2]
+Selector=[另一字幕组]*.mp4
+Offset=0
+```
+
+选择器只匹配文件名，不匹配路径。`*` 匹配任意长度的字符，`?` 匹配单个字符，方括号是普通字符；匹配不区分大小写。按文件中的顺序使用第一个命中的节；节中可以覆盖 `ID`、`Offset`、`Report`、`Skip`、`CorrectIndex` 和 `Type`，未填写的字段沿用 `[Bangumi]` 中的值。例如第一条规则会将 `[某字幕组][27].mp4` 的第 27 集对应到 Bangumi 第 1 集。目录级字段可以省略 `[Bangumi]` 节名，但须写在第一个 `[Section.n]` 之前。`bangumi.ini` 使用 INI 格式，并非 TOML 文件。修改后刷新该目录的剧集元数据生效。
+
+## Jellyfin 12.0 剧集版本误合并的临时修复
+
+在“剧集解析”中启用 **（实验性）修正 Jellyfin 12.0 多版本识别错误的问题**（仅 Jellyfin 12.0.x 默认启用，其他版本默认关闭；保留已保存的开关设置）。这是绕过 Jellyfin 12.0 文件名误分组的**临时修复方案**，未来将下线。与 Basic、AnitomySharp、混合解析模式均兼容，只作用于启用 Bangumi 单集元数据的电视剧媒体库。Jellyfin 12.1 已修复主要的误合并问题；从 12.0 升级后若不再需要此功能，可手动关闭并扫描媒体库。
 
 1. 扫描媒体库：没有有效 Bangumi 单集 ID 的文件先分别入库。
 2. 等待获取元数据，必要时手动刷新并纠正错误的单集 ID。

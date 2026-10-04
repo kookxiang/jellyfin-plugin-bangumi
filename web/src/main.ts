@@ -17,6 +17,7 @@ import theme from './theme.css?raw';
 import icons from './host-icons.css?raw';
 import { createController } from './controller.ts';
 import { createHost } from './host.ts';
+import './user-settings.ts';
 
 export class JellyfinPluginBangumi extends HTMLElement {
     #controller: ReturnType<typeof createController>;
