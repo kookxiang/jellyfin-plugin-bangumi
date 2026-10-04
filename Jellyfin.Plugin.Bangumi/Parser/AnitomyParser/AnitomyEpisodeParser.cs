@@ -2,10 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Jellyfin.Plugin.Bangumi.Model;
-using MediaBrowser.Controller.Library;
 
 namespace Jellyfin.Plugin.Bangumi.Parser.AnitomyParser;
 
@@ -33,12 +31,8 @@ public class AnitomyEpisodeParser : IEpisodeParser
 
         var (anitomyEpisodeType, bangumiEpisodeType) = GetEpisodeType();
         var episodeIndex = GetEpisodeIndex();
-        double? seasonNumber = double.TryParse(_anitomy.ExtractAnimeSeason(), out var sn) ? sn : null;
 
-        // 获取 seriesId
         var seriesId = LocalConfigurationHelper.GetSeriesId(_context.LocalConfiguration, _context.Info, _context.LibraryManager);
-        if (_context.Configuration.ProcessMultiSeasonFolderByAnitomySharp)
-            seriesId = await ProcessMultiSeasonFolder(seriesId);
 
         // 获取 episode
         try
@@ -66,9 +60,9 @@ public class AnitomyEpisodeParser : IEpisodeParser
                     episode.ChineseNameRaw = TitleOfSpecialEpisode(anitomyEpisodeType);
                     episode.OriginalNameRaw = Path.GetFileNameWithoutExtension(_context.Info.Path);
                 }
-                if (seasonNumber.HasValue)
+                if (double.TryParse(_anitomy.ExtractAnimeSeason(), out var sn))
                 {
-                    episode.SeasonNumber = seasonNumber;
+                    episode.SeasonNumber ??= sn;
                 }
                 return episode;
             }
@@ -79,12 +73,9 @@ public class AnitomyEpisodeParser : IEpisodeParser
                 Type = bangumiEpisodeType ?? EpisodeType.Special,
                 Order = episodeIndex,
                 ChineseNameRaw = TitleOfSpecialEpisode(anitomyEpisodeType),
-                OriginalNameRaw = Path.GetFileNameWithoutExtension(_context.Info.Path)
+                OriginalNameRaw = Path.GetFileNameWithoutExtension(_context.Info.Path),
+                SeasonNumber = 0
             };
-            if (seasonNumber.HasValue)
-            {
-                sp.SeasonNumber = seasonNumber;
-            }
             _log.Debug("Set ChineseName: {ChineseNameRaw} for {fileName}", sp.ChineseNameRaw, _fileName);
             return sp;
         }
@@ -385,125 +376,4 @@ nextSeason:
         return episode;
     }
 
-    /// <summary>
-    /// 处理多季度文件夹
-    /// 根据文件夹名称搜索，或者使用已存在的 id
-    /// 另外，推荐同时修改季度值
-    /// #FIXME 效果一般
-    /// </summary>
-    /// <param name="seriesId"></param>
-    /// <returns></returns>
-    private async Task<int> ProcessMultiSeasonFolder(int seriesId)
-    {
-        // 获取此媒体文件的父目录
-        var parent = _context.LibraryManager.FindByPath(Path.GetDirectoryName(_context.Info.Path)!, true);
-        _log.Debug("Jellyfin parent name: {parent}", parent);
-
-        // 限制 parent 类型
-        switch (parent)
-        {
-            // parent 是 Series 类型
-            case MediaBrowser.Controller.Entities.TV.Series series:
-                _log.Debug("{parent} is Series Folder", parent);
-                break;
-
-            // parent 是 Season 类型
-            case MediaBrowser.Controller.Entities.TV.Season season:
-                _log.Debug("{parent} is Season Folder", parent);
-                break;
-
-            // parent 是普通文件夹，但其父级是 Series（应视为 Season）
-            case MediaBrowser.Controller.Entities.Folder folder
-                when folder.GetParent() is MediaBrowser.Controller.Entities.TV.Series:
-                _log.Debug("{parent} is a folder under a Series, treating as Season", parent);
-                break;
-
-            // 其他类型或不符合条件，跳过
-            // 比如多层嵌套（other）：series/season/other
-            default:
-                _log.Debug("{parent} is not a recognized type or not under Series, skip", parent);
-                return seriesId;
-        }
-
-        // 如果在 Jellyfin 中已配置，则直接返回此配置值
-        _ = int.TryParse(parent!.ProviderIds.GetOrDefault(Constants.ProviderName), out var subjectId);
-        if (subjectId > 0)
-        {
-            _log.Debug("Multi season folder, use exist id: {subjectId}", subjectId);
-            return subjectId;
-        }
-
-        // 检查是否应跳过处理
-        // 虚拟季度刷新不会触发 EpisodeProvider，也就不会触发此代码，因此没必要跳过「第X季」
-        if (ShouldSkipFolder(parent.Name) || parent.IsVirtualItem)
-        {
-            _log.Debug("Skip folder, use exist id: {seriesId}", seriesId);
-            return seriesId;
-        }
-
-        // 搜索
-        var parentForAnitomy = parent.Name;
-        if (IsSeasonNameFolder(parent.Name))
-            // 路径名
-            parentForAnitomy = parent.FileNameWithoutExtension;
-        var anitomyParent = new Anitomy(parentForAnitomy);
-        var searchName = anitomyParent.ExtractAnimeTitle();
-        if (searchName is null) return seriesId;
-        _log.Info("Multi season folder, Searching {Name} in bgm.tv", searchName);
-        var searchResult = await _context.Api.SearchSubject(searchName, _context.Token);
-        var animeYear = anitomyParent.ExtractAnimeYear();
-        if (animeYear != null)
-            searchResult = searchResult.Where(x => x.ProductionYear == animeYear);
-        if (searchResult.Any())
-        {
-            subjectId = searchResult.First().Id;
-            // 检查与旧 seriesId 的关联性，如果无联系则说明可能匹配错误
-            // 获取此 id 对应的系列所有 id
-            var bangumiSeriesIds = await _context.Api.GetAllAnimeSeriesSubjectIds(seriesId, _context.Token);
-            if (bangumiSeriesIds.Any(id => id == subjectId))
-                _log.Info("Multi season folder, Use subject id: {id}", subjectId);
-            else
-                return seriesId;
-
-            parent.ProviderIds.Add(Constants.ProviderName, subjectId.ToString());
-            // 纠正季度
-            // 季号如果重复则无法生成对应季度的虚拟目录
-            // var seasonNumber = _anitomy.ExtractAnimeSeason();
-            // if (!string.IsNullOrEmpty(seasonNumber))
-            // {
-            //     parent.ParentIndexNumber = int.Parse(seasonNumber);
-            //     _log.Info("Multi season folder, Use Season {seasonNumber} for {parent}", seasonNumber, parent);
-            // }
-            // FIXME 没有全自动，需要再次手动执行「刷新元数据」才会更新 Season 数据
-            await _context.LibraryManager.UpdateItemAsync(parent, parent.GetParent(), ItemUpdateType.MetadataEdit, _context.Token);
-
-            return subjectId;
-        }
-
-        return seriesId;
-    }
-    private static readonly Regex _chineseSeasonRegex = new Regex(
-    @"第\s*[0-9一二三四五六七八九十百千]+\s*季",
-    RegexOptions.Compiled | RegexOptions.IgnoreCase
-);
-
-    private static readonly Regex _englishSeasonRegex = new Regex(
-        @"season\s*\d+",
-        RegexOptions.Compiled | RegexOptions.IgnoreCase
-    );
-
-    private static bool ShouldSkipFolder(string folderName)
-    {
-        if (AnitomyEpisodeTypeMapping.SkipWords.Any(keyword => folderName.Contains(keyword, StringComparison.OrdinalIgnoreCase)))
-            return true;
-        return false;
-    }
-    private static bool IsSeasonNameFolder(string folderName)
-    {
-        if (_chineseSeasonRegex.IsMatch(folderName))
-            return true;
-        if (_englishSeasonRegex.IsMatch(folderName))
-            return true;
-        return false;
-    }
 }

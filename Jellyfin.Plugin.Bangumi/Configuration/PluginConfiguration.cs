@@ -61,6 +61,10 @@ public class PluginConfiguration : BasePluginConfiguration
 
     public bool UseBangumiSeasonTitle { get; set; } = true;
 
+    public bool UseBangumiRelationChainForSeasonNumber { get; set; } = false;
+
+    public bool UseBangumiRelationChainForEpisodeSeasonNumber { get; set; } = false;
+
     public bool AlwaysGetTitleByAnitomySharp { get; set; }
 
     public bool UseTestingSearchApi { get; set; }
@@ -85,7 +89,7 @@ public class PluginConfiguration : BasePluginConfiguration
 
     public bool AlwaysReplaceEpisodeNumber { get; set; }
 
-    public bool ProcessMultiSeasonFolderByAnitomySharp { get; set; } = false;
+    public bool ProcessMultiSeasonFolder { get; set; } = false;
     
     public bool MovieEpisodeDetectionByAnitomySharp { get; set; } = false;
 

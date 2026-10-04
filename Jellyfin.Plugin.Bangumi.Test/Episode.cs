@@ -536,37 +536,6 @@ public class Episode
     }
 
     [TestMethod]
-    public async Task GetEpisodeByAnitomySharpWithProcessMultiSeasonFolder()
-    {
-        _plugin.Configuration.EpisodeParser = EpisodeParserType.AnitomySharp;
-        _plugin.Configuration.ProcessMultiSeasonFolderByAnitomySharp = true;
-
-        var filePath = FakePath.CreateFile("战姬绝唱SYMPHOGEAR/戦姫絶唱シンフォギアXV/[VCB-Studio] Senki Zesshou Symphogear XV [01][Ma10p_1080p][x265_flac].mkv");
-        var parentPath = Path.GetDirectoryName(filePath);
-        var parentFolder = new MediaBrowser.Controller.Entities.TV.Season
-        {
-            Path = parentPath,
-            Name = Path.GetFileName(parentPath)
-        };
-        _libraryManager.CreateItem(parentFolder, null);
-
-        var episodeData = await _provider.GetMetadata(new EpisodeInfo
-        {
-            IndexNumber = 0,
-            Path = filePath,
-            SeriesProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "25834" } } //第一季
-        },
-            _token);
-        _plugin.Configuration.EpisodeParser = EpisodeParserType.Basic;
-        _plugin.Configuration.ProcessMultiSeasonFolderByAnitomySharp = false;
-        Assert.IsNotNull(episodeData, "episode data should not be null");
-        Assert.IsNotNull(episodeData.Item, "episode data should not be null");
-        Assert.AreEqual(1, episodeData.Item.IndexNumber, "should fix episode index automatically");
-        Assert.AreEqual("人類史の彼方から", episodeData.Item.Name, "should return the right episode title");
-    }
-
-
-    [TestMethod]
     public async Task GetEpisodeByAnitomySharpWithProcessMultiSeasonWithConsecutiveIndex()
     {
         _plugin.Configuration.EpisodeParser = EpisodeParserType.AnitomySharp;
@@ -652,6 +621,34 @@ public class Episode
         Assert.IsNotNull(episodeData.Item, "episode data should not be null");
         Assert.AreEqual(2, episodeData.Item.ParentIndexNumber, "should return the right episode season");
     }
+
+    [TestMethod]
+    public async Task GetEpisodeSeasonWithUseBangumiRelationChainForEpisodeSeasonNumber()
+    {
+        _plugin.Configuration.UseBangumiRelationChainForEpisodeSeasonNumber = true;
+
+        var filePath = FakePath.CreateFile("戦姫絶唱シンフォギアXV/E01.mkv");
+        var parentPath = Path.GetDirectoryName(filePath);
+        var parentFolder = new MediaBrowser.Controller.Entities.TV.Season
+        {
+            Path = parentPath,
+            Name = Path.GetFileName(parentPath)
+        };
+        _libraryManager.CreateItem(parentFolder, null);
+
+        var episodeData = await _provider.GetMetadata(new EpisodeInfo
+        {
+            IndexNumber = 1,
+            Path = filePath,
+            SeriesProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "170689" } }
+        },
+            _token);
+        _plugin.Configuration.UseBangumiRelationChainForEpisodeSeasonNumber = false;
+        Assert.IsNotNull(episodeData, "episode data should not be null");
+        Assert.IsNotNull(episodeData.Item, "episode data should not be null");
+        Assert.AreEqual(5, episodeData.Item.ParentIndexNumber, "should return the right episode season");
+    }
+
 
     [TestMethod]
     public async Task EpisodeOffsetSupport()
