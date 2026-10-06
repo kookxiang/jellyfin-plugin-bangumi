@@ -1,0 +1,132 @@
+<h2 class="bangumi-settings-heading">AI</h2>
+<p class="fieldDescription ai-introduction">为 AI 功能选择模型提供方，分别设置开关和 Prompt。</p>
+<p class="ai-stage-note">当前版本提供配置和模型提供方连通性测试；功能尚未接入自动刮削。</p>
+<div class="bangumi-tab-container ai-tabs">
+    <div class="bangumi-tab-header" role="tablist" aria-label="AI 设置">
+        <button
+            type="button"
+            class="bangumi-tab-header-button active"
+            id="ai-feature-tab"
+            role="tab"
+            aria-selected="true"
+            aria-controls="ai-feature-panel"
+            data-tab="ai-feature"
+        >
+            功能设置
+        </button>
+        <button
+            type="button"
+            class="bangumi-tab-header-button"
+            id="ai-provider-tab"
+            role="tab"
+            aria-selected="false"
+            aria-controls="ai-provider-panel"
+            tabindex="-1"
+            data-tab="ai-provider"
+        >
+            模型提供方
+        </button>
+        <button
+            type="button"
+            class="bangumi-tab-header-button"
+            id="ai-statistics-tab"
+            role="tab"
+            aria-selected="false"
+            aria-controls="ai-statistics-panel"
+            tabindex="-1"
+            data-tab="ai-statistics"
+        >
+            用量统计
+        </button>
+    </div>
+    <div
+        class="bangumi-tab-content active"
+        id="ai-feature-panel"
+        role="tabpanel"
+        aria-labelledby="ai-feature-tab"
+        data-tab="ai-feature"
+    >
+        <div class="ai-feature-list"></div>
+    </div>
+    <div
+        class="bangumi-tab-content"
+        id="ai-provider-panel"
+        role="tabpanel"
+        aria-labelledby="ai-provider-tab"
+        data-tab="ai-provider"
+    >
+        <div class="ai-section-header">
+            <p class="fieldDescription">配置模型提供方，供不同功能共用。</p>
+            <bangumi-button variant="secondary"
+                ><button type="button" data-action="add-provider">
+                    <span class="material-icons" aria-hidden="true">add</span>添加模型提供方
+                </button></bangumi-button
+            >
+        </div>
+        <p class="ai-empty">还没有模型提供方。添加一个模型提供方后，即可在功能设置中选择。</p>
+        <div class="ai-provider-list"></div>
+        <p class="ai-feedback" role="status" data-provider-feedback></p>
+    </div>
+    <div
+        class="bangumi-tab-content"
+        id="ai-statistics-panel"
+        role="tabpanel"
+        aria-labelledby="ai-statistics-tab"
+        data-tab="ai-statistics"
+    >
+        <div class="ai-section-header">
+            <h3>Token 用量与费用统计</h3>
+            <div class="ai-statistics-actions">
+                <span class="fieldDescription" data-statistics-updated>尚未加载</span>
+                <bangumi-button variant="secondary"
+                    ><button type="button" data-action="refresh-statistics">
+                        <span class="material-icons" aria-hidden="true">refresh</span>刷新
+                    </button></bangumi-button
+                >
+                <bangumi-button variant="danger"
+                    ><button type="button" data-action="ask-clear-statistics">清零</button></bangumi-button
+                >
+            </div>
+        </div>
+        <div class="ai-clear-confirm" hidden>
+            <p>清零所有模型的累计用量和估算费用？此操作无法撤销。</p>
+            <bangumi-button variant="quiet"
+                ><button type="button" data-action="cancel-clear-statistics">取消</button></bangumi-button
+            >
+            <bangumi-button variant="danger"
+                ><button type="button" data-action="clear-statistics">确认清零</button></bangumi-button
+            >
+        </div>
+        <p class="fieldDescription">
+            累计统计插件发出的模型请求，包含连接测试。费用按调用时配置的价格估算，单位为美元。
+        </p>
+        <div class="ai-statistics-summary" aria-label="累计用量">
+            <div><span>总调用</span><strong data-total="Calls">—</strong></div>
+            <div><span>总输入 Token</span><strong data-total="InputTokens">—</strong></div>
+            <div><span>总输出 Token</span><strong data-total="OutputTokens">—</strong></div>
+            <div><span>缓存读取 Token</span><strong data-total="CachedInputTokens">—</strong></div>
+            <div class="ai-cost-card"><span>估算费用</span><strong data-total="EstimatedCost">—</strong></div>
+        </div>
+        <p class="ai-feedback" role="status" data-statistics-feedback></p>
+        <p class="fieldDescription" data-statistics-note></p>
+        <p class="ai-empty" data-statistics-empty hidden>还没有调用记录。测试模型连接后可在这里查看用量。</p>
+        <div class="ai-statistics-scroll" tabindex="0" role="region" aria-label="模型用量明细" hidden>
+            <table class="ai-statistics-table">
+                <thead>
+                    <tr>
+                        <th scope="col">模型</th>
+                        <th scope="col">调用</th>
+                        <th scope="col">输入</th>
+                        <th scope="col">输出</th>
+                        <th scope="col">缓存读取</th>
+                        <th scope="col">缓存写入</th>
+                        <th scope="col">估算费用</th>
+                        <th scope="col">最近使用</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+                <tfoot></tfoot>
+            </table>
+        </div>
+    </div>
+</div>

@@ -58,10 +58,25 @@ Oxlint checks frontend correctness with warnings treated as failures. Run `npm r
 - `src/host.ts`: Jellyfin API access, stale-request invalidation and native dialogs. A future Emby adapter belongs here, not in the form components.
 - `src/settings.html`: existing settings and tools markup, preserving field IDs and descriptions.
 - `src/controller.ts`: migrated configuration, OAuth, archive, regex and media-library interactions.
+- `src/ai/`: AI Provider editors, Feature switches/accordions, prompt variables and nested configuration collection. AI settings are stored under `PluginConfiguration.Ai`; the controller only loads, collects and suspends this module.
 - `src/configuration.ts`: typed configuration merge that preserves undisplayed fields.
 - `src/layout.css`, `theme.css`, `host-icons.css`: layout, native control appearance and host icon references, all inside the shadow tree.
 
 Native inputs remain in the same shadow-tree form, so browser validation, label association and submission need no ElementInternals wrapper or duplicated field state. API/configuration data is not interpolated into component templates. On page hide, global listeners are removed and late API results are invalidated; on disconnection, page listeners are also removed. OAuth popup completion still uses the existing host protocol.
+
+## AI settings
+
+The AI navigation entry contains **功能设置** (feature settings), **模型提供方** (model services), and **用量统计** (usage statistics) tabs. Multiple Providers have stable IDs, so renaming one preserves Feature selections. Feature bodies remain collapsed and disabled while their switch is off; their configuration is retained. Each Feature has its own Provider and prompt, with insertable variables and validation for unknown variables or missing source input. Summary translation and fallback titles currently expose configuration only; automatic metadata processing is not wired up yet. Output language is written directly in the prompt. Legacy `TargetLanguage` settings are folded into existing prompts on load and omitted on save.
+
+Provider tests use the current unsaved form values and send one short greeting through the administrator-only `POST /Plugins/Bangumi/AI/Test` endpoint. The server handles HTTP, a 60-second timeout and reply parsing independently of Bangumi APIs and episode parsers. API Keys are masked by default; empty keys are allowed for local services. Upstream error bodies and reasoning blocks are not displayed. The test supports OpenAI-compatible Chat Completions, Responses and Anthropic Messages. Endpoint accepts an HTTP(S) base URL (include the service's version prefix), or a complete matching endpoint; a bare origin defaults to `/v1`.
+
+Optional provider prices use USD per million tokens for ordinary input, output, cache reads, and cache writes. Blank prices remain unpriced; explicit zero is free. Usage statistics show cumulative summary cards and rows grouped by stable provider ID and the requested model, with refresh and confirmed reset. There are no filters. Partial usage/pricing is labeled, and changing prices does not recalculate historical costs. Connection tests are included; metadata features remain configuration-only.
+
+`AI/AiProviderClient.SendAsync` returns `AiResult` with text and normalized usage. Protocol parsing accounts for the different input/cache conventions of Chat Completions, Responses, and Anthropic. All shared transport calls, including failures, are counted; missing usage is marked unknown. Output token totals already include any reasoning tokens reported within that total. `AiStatisticsStore` serializes aggregate counters to `DataPath/bangumi/ai-usage.json` with a process-wide singleton, serialized updates, and atomic replacement. It never persists prompts, replies, credentials, or price configuration. A statistics write failure does not discard the model reply, and an unreadable history file is preserved until an explicit reset. Administrator endpoints are `GET /Plugins/Bangumi/AI/Statistics` and `POST /Plugins/Bangumi/AI/Statistics/Clear`.
+
+Protocol references: [OpenAI message/input/output mapping](https://developers.openai.com/api/docs/guides/migrate-to-responses#2-map-messages-to-items) and [Anthropic Messages](https://platform.claude.com/docs/en/api/messages/create). No AI SDK is required.
+
+The preview's **运行 AI 检查** button verifies switches, expansion, Provider creation/deletion/renaming, unsaved test requests, failure feedback, prompt validation and saved configuration after remounting. Replies are mocked; the preview never sends API Keys to a model service.
 
 ## Checkbox rows
 

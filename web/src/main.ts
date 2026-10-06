@@ -15,6 +15,7 @@ import template from './settings.html?raw';
 import layout from './layout.css?raw';
 import theme from './theme.css?raw';
 import icons from './host-icons.css?raw';
+import aiStyles from './ai/settings.css?raw';
 import { createController } from './controller.ts';
 import { createHost } from './host.ts';
 import './user-settings.ts';
@@ -42,7 +43,7 @@ export class JellyfinPluginBangumi extends HTMLElement {
             this.shadowRoot.textContent = '无法连接宿主，请重新打开 Bangumi 设置。';
             return;
         }
-        this.shadowRoot.innerHTML = `<style>${layout}\n${theme}\n${icons}\n${mediaConfigStyles}${mediaLibraryStyles}\n${tabs}\n${archiveStyles}</style>${template}`;
+        this.shadowRoot.innerHTML = `<style>${layout}\n${theme}\n${icons}\n${mediaConfigStyles}${mediaLibraryStyles}\n${tabs}\n${archiveStyles}\n${aiStyles}</style>${template}`;
         this.#host = createHost(services, this.shadowRoot);
         const container = this.shadowRoot.querySelector('#bangumiConfigurationPage');
         // Keep native controls in the same form tree: validation, labels and

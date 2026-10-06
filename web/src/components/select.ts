@@ -1,7 +1,7 @@
 import styles from './select.css?raw';
 
 /** The native select remains the configuration source; the popup is presentation. */
-class BangumiSelect extends HTMLElement {
+export class BangumiSelect extends HTMLElement {
     #events: AbortController;
     #observer: MutationObserver;
     #select: HTMLSelectElement;

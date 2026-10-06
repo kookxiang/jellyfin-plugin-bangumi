@@ -19,6 +19,8 @@ public enum EpisodeParserType
 
 public class PluginConfiguration : BasePluginConfiguration
 {
+    public AiConfiguration Ai { get; set; } = new();
+
 #if !EMBY
     public bool EnableUserSettingsInjection { get; set; }
 #endif

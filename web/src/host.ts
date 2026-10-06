@@ -10,6 +10,7 @@ export function createHost(services: import('./types.ts').Services, root: Shadow
         'episode-parser',
         'archive',
         'media-library',
+        'ai',
         'tools',
     ];
     const api = new Proxy(client, {

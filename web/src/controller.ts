@@ -1,17 +1,21 @@
 import { pushSectionInUrl } from './navigation-state.ts';
 import { collectConfiguration } from './configuration.ts';
 import { formatSections, parseSections } from './file-sections.ts';
+import { createAiSettings } from './ai/settings.ts';
 
 export function createController(container, host) {
     var pluginId = '41b59f1b-a6cf-474a-b416-785379cbd856';
     const { api: ApiClient, dashboard: Dashboard } = host;
+    const ai = createAiSettings(container.querySelector('.bangumi-ai-settings'), ApiClient);
     let active = false;
     let loaded = false;
     let saving = false;
     var configuration: Record<string, any> = {};
     let savedSnapshot = '';
-    const currentConfiguration = () =>
-        collectConfiguration(configuration, container.querySelectorAll('input,select,textarea'));
+    const currentConfiguration = () => ({
+        ...collectConfiguration(configuration, container.querySelectorAll('input,select,textarea')),
+        Ai: ai.collect(),
+    });
     function updateSaveBar() {
         const dirty = loaded && JSON.stringify(currentConfiguration()) !== savedSnapshot;
         const section = getDefaultModule();
@@ -180,6 +184,7 @@ export function createController(container, host) {
     function loadConfiguration() {
         return ApiClient.getPluginConfiguration(pluginId).then(async function (config) {
             configuration = config;
+            ai.load(config.Ai);
             const missingLibraries = container.querySelector('#EnabledMissingEpisodeLibraries');
             if (missingLibraries && 'EnabledMissingEpisodeLibraries' in config) {
                 const libraries = await ApiClient.getJSON(
@@ -287,6 +292,7 @@ export function createController(container, host) {
 
     function onUnload() {
         active = false;
+        ai.hide();
         closeMediaLibraryDialog();
         account.hide();
         window.removeEventListener('hashchange', applyModuleFromHash);

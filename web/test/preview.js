@@ -34,6 +34,10 @@ let saved,
     loads = 0;
 let confirmed = false;
 const toolCalls = [];
+const aiCalls = [];
+let aiStatistics = { UpdatedAt: null, Rows: [] };
+let aiClearCalls = 0;
+let failAiStatistics = false;
 let directoryType;
 const report = document.querySelector('#report');
 const services = {
@@ -76,6 +80,49 @@ const services = {
                 : null;
         },
         fetch: async ({ url, data, type }) => {
+            if (url.endsWith('/AI/Test')) {
+                const provider = JSON.parse(data);
+                aiCalls.push(provider);
+                const failed = provider.Model === 'fail';
+                aiStatistics.UpdatedAt = new Date().toISOString();
+                aiStatistics.Rows.push({
+                    ProviderId: provider.Id,
+                    ProviderName: provider.Name,
+                    Model: provider.Model,
+                    Calls: 1,
+                    UnknownUsageCalls: failed ? 1 : 0,
+                    UnpricedCalls: failed ? 1 : 0,
+                    PricedCalls: failed ? 0 : 1,
+                    InputTokens: failed ? 0 : 100,
+                    OutputTokens: failed ? 0 : 20,
+                    CachedInputTokens: failed ? 0 : 60,
+                    CacheCreationTokens: 0,
+                    EstimatedCost: failed ? 0 : 0.0000812,
+                    LastUsedAt: aiStatistics.UpdatedAt,
+                });
+                return new Response(
+                    JSON.stringify(
+                        provider.Model === 'fail'
+                            ? { Success: false, Message: 'HTTP 401：身份验证失败，请检查 API Key。' }
+                            : { Success: true, Text: '你好！这是模拟模型回复。', ElapsedMilliseconds: 128 },
+                    ),
+                    { status: 200 },
+                );
+            }
+            if (url.endsWith('/AI/Statistics/Clear')) {
+                assert(type === 'POST', '清零通过 POST 请求');
+                aiClearCalls++;
+                aiStatistics = { UpdatedAt: new Date().toISOString(), Rows: [] };
+                return new Response(JSON.stringify({ Success: true, Statistics: aiStatistics }));
+            }
+            if (url.endsWith('/AI/Statistics'))
+                return new Response(
+                    JSON.stringify(
+                        failAiStatistics
+                            ? { Success: false, Message: '模拟统计读取失败' }
+                            : { Success: true, Statistics: aiStatistics },
+                    ),
+                );
             if (url.includes('/MediaLibrary/Items')) toolCalls.push({ url, data });
             if (url.includes('/MediaLibrary/Libraries'))
                 return new Response(JSON.stringify([{ Id: 'name:Anime', Name: '动漫' }]));
@@ -260,6 +307,174 @@ const tick = () => new Promise((resolve) => setTimeout(resolve, 50));
 const assert = (value, message) => {
     if (!value) throw new Error(message);
 };
+async function runAiChecks(root) {
+    const saveBar = root.querySelector('.submit-button-container');
+    root.querySelector('[data-target=ai]').click();
+    const ai = root.querySelector('.bangumi-ai-settings');
+    const summary = ai.querySelector('[data-feature=SummaryTranslation]');
+    const expand = summary.querySelector('.ai-expand');
+    const toggle = summary.querySelector('.ai-switch');
+    assert(expand.disabled && summary.querySelector('fieldset').disabled, '关闭 AI 功能时禁止展开和校验');
+    toggle.click();
+    assert(!expand.disabled && expand.getAttribute('aria-expanded') === 'false', '启用功能后允许展开');
+    expand.click();
+    const prompt = summary.querySelector('[data-field=Prompt]');
+    assert(
+        !ai.querySelector('[data-field=TargetLanguage]') && !ai.querySelector('[data-variable=target_language]'),
+        '功能设置只保留模型提供方和 Prompt',
+    );
+    prompt.value = '自定义：翻译为简体中文 {{source_text}}';
+    prompt.dispatchEvent(new Event('input', { bubbles: true }));
+    toggle.click();
+    assert(summary.querySelector('fieldset').hidden && expand.disabled, '关闭功能自动收起');
+    toggle.click();
+    expand.click();
+    assert(prompt.value.startsWith('自定义'), '重新启用保留 Prompt');
+    ai.querySelector('#ai-provider-tab').click();
+    ai.querySelector('[data-action=add-provider]').click();
+    let provider = ai.querySelector('.ai-provider-list .ai-card');
+    const edit = (name, text) => {
+        const control = provider.querySelector(`[data-field="${name}"]`);
+        control.value = text;
+        control.dispatchEvent(new Event('input', { bubbles: true }));
+    };
+    edit('Name', '<script>Local provider</script>');
+    edit('Model', 'preview-model');
+    edit('Endpoint', 'http://localhost:8080/v1');
+    const pricing = provider.querySelector('.ai-pricing');
+    assert(!pricing.open, '可选价格默认收起');
+    pricing.querySelector('summary').click();
+    edit('PriceInput', '-1');
+    assert(!provider.querySelector('[data-field=PriceInput]').validity.valid, '负价格阻止保存和测试');
+    edit('PriceInput', '1');
+    edit('PriceOutput', '2');
+    edit('PriceCachedInput', '0.02');
+    edit('PriceCacheCreation', '');
+    assert(
+        provider.querySelector('.ai-card-title').textContent === '<script>Local provider</script>',
+        '模型提供方名称以文本渲染',
+    );
+    assert(!provider.querySelector('script'), '模型提供方名称不能注入 HTML');
+    provider.querySelector('[data-action=test-provider]').click();
+    await tick();
+    assert(provider.querySelector('[data-test-result]').textContent.includes('连接成功'), '模型提供方测试显示回复');
+    assert(
+        aiCalls.at(-1).Model === 'preview-model' && aiCalls.at(-1).Endpoint === 'http://localhost:8080/v1',
+        '测试使用未保存配置',
+    );
+    edit('Model', 'fail');
+    assert(
+        aiCalls.at(-1).Pricing.Input === 1 && aiCalls.at(-1).Pricing.CacheCreation === null,
+        '测试保留价格和留空语义',
+    );
+    provider.querySelector('[data-action=test-provider]').click();
+    await tick();
+    assert(provider.querySelector('[data-test-result]').textContent.includes('401'), '模型提供方测试显示服务错误');
+    edit('Model', 'preview-model');
+    ai.querySelector('#ai-feature-tab').click();
+    ai.querySelector('#ai-statistics-tab').click();
+    await tick();
+    const statistics = ai.querySelector('#ai-statistics-panel');
+    assert(statistics.querySelector('[data-total=Calls]').textContent === '2', '统计显示总调用次数');
+    assert(statistics.querySelector('[data-total=InputTokens]').textContent === '100', '输入包含缓存 Token');
+    assert(statistics.querySelector('tbody').rows.length === 2, '统计按模型显示明细');
+    assert(!statistics.querySelector('script'), '统计中的提供方名称不能注入 HTML');
+    assert(
+        statistics.querySelector('[data-statistics-note]').textContent.includes('1 次调用未返回完整用量'),
+        '未知用量不会显示为完整零消耗',
+    );
+    assert(statistics.querySelector('[data-total=EstimatedCost]').textContent.includes('部分'), '费用汇总标注部分估算');
+    failAiStatistics = true;
+    statistics.querySelector('[data-action=refresh-statistics]').click();
+    await tick();
+    assert(
+        statistics.querySelector('[data-statistics-feedback]').textContent.includes('模拟统计读取失败'),
+        '统计读取失败显示错误',
+    );
+    assert(statistics.querySelector('tbody').rows.length === 2, '读取失败保留上次统计');
+    failAiStatistics = false;
+    statistics.querySelector('[data-action=ask-clear-statistics]').click();
+    assert(!statistics.querySelector('.ai-clear-confirm').hidden && aiClearCalls === 0, '清零先确认，不立即发送请求');
+    statistics.querySelector('[data-action=cancel-clear-statistics]').click();
+    assert(statistics.querySelector('.ai-clear-confirm').hidden && aiClearCalls === 0, '取消清零保留统计');
+    statistics.querySelector('[data-action=ask-clear-statistics]').click();
+    statistics.querySelector('[data-action=clear-statistics]').click();
+    await tick();
+    assert(
+        aiClearCalls === 1 && statistics.querySelector('[data-total=Calls]').textContent === '0',
+        '确认清零更新汇总',
+    );
+    assert(!statistics.querySelector('[data-statistics-empty]').hidden, '清零后显示空状态');
+    ai.querySelector('#ai-feature-tab').click();
+    const select = summary.querySelector('[data-field=ProviderId]');
+    select.value = select.options[1].value;
+    select.dispatchEvent(new Event('change', { bubbles: true }));
+    const selectedId = select.value;
+    root.querySelector('form').requestSubmit();
+    await tick();
+    assert(
+        saved.Ai.SummaryTranslation.Enabled && saved.Ai.SummaryTranslation.ProviderId === selectedId,
+        '功能和模型提供方关联正确保存',
+    );
+    assert(saved.Ai.SummaryTranslation.Prompt.startsWith('自定义'), 'Prompt 正确保存');
+    assert(
+        saved.Ai.Providers[0].Pricing.CachedInput === 0.02 && saved.Ai.Providers[0].Pricing.CacheCreation === null,
+        '可选价格正确保存',
+    );
+    ai.querySelector('#ai-provider-tab').click();
+    edit('Name', '重命名模型提供方');
+    assert(
+        select.value === selectedId && select.selectedOptions[0].textContent === '重命名模型提供方',
+        '模型提供方改名不改变功能关联',
+    );
+    provider.querySelector('[data-action=delete-provider]').click();
+    assert(select.value === '' && select.options.length === 1, '删除模型提供方清除关联且不留下悬空 ID');
+    ai.querySelector('[data-action=add-provider]').click();
+    provider = ai.querySelector('.ai-provider-list .ai-card');
+    edit('Name', '保存后的模型提供方');
+    edit('Model', 'preview-model');
+    edit('PriceInput', '0');
+    ai.querySelector('#ai-feature-tab').click();
+    select.value = select.options[1].value;
+    select.dispatchEvent(new Event('change', { bubbles: true }));
+    prompt.value = '{{source_text}} {{typo}}';
+    prompt.dispatchEvent(new Event('input', { bubbles: true }));
+    assert(
+        !prompt.validity.valid && summary.querySelector('[data-prompt-error]').textContent.includes('typo'),
+        '未知 Prompt 变量阻止保存',
+    );
+    summary.querySelector('[data-action=reset-prompt]').click();
+    assert(prompt.validity.valid, '恢复默认 Prompt 后清除错误');
+    root.querySelector('form').requestSubmit();
+    await tick();
+    assert(saveBar.hidden, 'AI 保存完成后隐藏保存栏');
+    assert(
+        saved.Ai.Providers[0].Pricing.Input === 0 && saved.Ai.Providers[0].Pricing.Output === null,
+        '零价格与未配置价格保持区别',
+    );
+    config.Ai = structuredClone(saved.Ai);
+}
+
+document.querySelector('#run-ai').onclick = async () => {
+    try {
+        await runAiChecks(app.shadowRoot);
+        app.remove();
+        document.querySelector('#page').append(app);
+        await tick();
+        const ai = app.shadowRoot.querySelector('.bangumi-ai-settings');
+        assert(ai.querySelector('.ai-switch').checked, '重载后保留功能开关');
+        assert(
+            ai.querySelector('[data-feature=SummaryTranslation] [data-field=ProviderId]').value ===
+                saved.Ai.Providers[0].Id,
+            '重载后恢复模型提供方关联',
+        );
+        report.textContent =
+            'PASS：AI 开关、折叠、模型提供方增删和改名、未保存配置测试、失败反馈、可选价格、用量统计、刷新和清零、Prompt 校验、保存和重载';
+    } catch (error) {
+        report.textContent = 'FAIL：' + error.message;
+    }
+};
+
 document.querySelector('#run').onclick = async () => {
     try {
         const root = app.shadowRoot;
@@ -421,7 +636,7 @@ document.querySelector('#run').onclick = async () => {
         assert(parser.value === 'Torrent', '恢复混合解析器');
         assert(versionsSwitch.checked && !versionsSwitch.closest('[episode-parser]'), '版本合并不依赖解析模式');
 
-        const firstTab = root.querySelector('[role=tab]');
+        const firstTab = root.querySelector('#tabSpExcludeRegex-tab');
         firstTab.click();
         firstTab.dispatchEvent(new KeyboardEvent('keydown', { key: 'End', bubbles: true }));
         assert(
@@ -483,7 +698,9 @@ document.querySelector('#run').onclick = async () => {
             '偏移和修正仅本地计算',
         );
 
+        const firstDialogClosed = new Promise((resolve) => dialog.addEventListener('close', resolve, { once: true }));
         dialog.querySelector('form').requestSubmit();
+        await firstDialogClosed;
         await tick();
         assert(directoryType === 'Normal', '目录类型随配置保存');
         assert(!root.querySelector('dialog'), '媒体库弹窗保存关闭清理');
@@ -497,7 +714,9 @@ document.querySelector('#run').onclick = async () => {
             .closest('bangumi-segmented-select')
             .shadowRoot.querySelector('input[value=Special]')
             .click();
+        const secondDialogClosed = new Promise((resolve) => dialog.addEventListener('close', resolve, { once: true }));
         dialog.querySelector('form').requestSubmit();
+        await secondDialogClosed;
         await tick();
         assert(directoryType === 'Special', '特典类型保存');
         root.querySelector('.bangumi-media-list-edit').click();
@@ -506,7 +725,12 @@ document.querySelector('#run').onclick = async () => {
             root.querySelector('dialog').querySelector('#bangumi-media-config-directory-type').value === 'Special',
             '特典类型重新回填',
         );
-        root.querySelector('dialog').close();
+        const nativeDialog = root.querySelector('dialog');
+        const nativeDialogClosed = new Promise((resolve) =>
+            nativeDialog.addEventListener('close', resolve, { once: true }),
+        );
+        nativeDialog.close();
+        await nativeDialogClosed;
         await tick();
         assert(!root.querySelector('dialog'), '原生关闭弹窗清理');
         root.querySelector('[data-target=tools]').click();
@@ -638,6 +862,7 @@ document.querySelector('#run').onclick = async () => {
         assert(!saveBar.hidden, '跨设置页保留未保存状态');
         dirtyField.click();
         assert(saveBar.hidden, '跨页还原后隐藏保存');
+        await runAiChecks(root);
         const before = loads;
         document.querySelector('#page').dispatchEvent(new Event('viewshow'));
         document.querySelector('#page').dispatchEvent(new Event('pageshow'));
@@ -647,12 +872,19 @@ document.querySelector('#run').onclick = async () => {
         document.querySelector('#page').append(app);
         await tick();
         assert(loads === before + 1, '重新挂载加载一次');
+        const restoredAi = app.shadowRoot.querySelector('.bangumi-ai-settings');
+        assert(restoredAi.querySelector('.ai-switch').checked, '重载后保留功能开关');
+        assert(
+            restoredAi.querySelector('[data-feature=SummaryTranslation] [data-field=ProviderId]').value ===
+                saved.Ai.Providers[0].Id,
+            '重载后恢复模型提供方关联',
+        );
         document.querySelector('#page').dispatchEvent(new Event('viewhide'));
         document.querySelector('#page').dispatchEvent(new Event('viewshow'));
         await tick();
         assert(loads === before + 2, '缓存页面重进可恢复');
         report.textContent =
-            'PASS：工具扫描/确认/修正/刷新、自定义下拉/键盘/动态选项、Checkbox 标签/禁用/状态、样式隔离、保存类型、未知字段、校验、菜单、正则、媒体库弹窗、重复事件、重新挂载、缓存恢复';
+            'PASS：AI 开关/折叠/模型提供方增删/未保存配置测试/失败反馈/Prompt 校验/保存重载；工具扫描/确认/修正/刷新、自定义下拉/键盘/动态选项、Checkbox 标签/禁用/状态、样式隔离、保存类型、未知字段、校验、菜单、正则、媒体库弹窗、重复事件、重新挂载、缓存恢复';
     } catch (error) {
         report.textContent = 'FAIL：' + error.message;
     }

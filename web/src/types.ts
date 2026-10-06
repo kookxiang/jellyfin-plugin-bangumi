@@ -1,7 +1,12 @@
 /** Jellyfin's injected client includes version-specific APIs used by the legacy controller. */
 export interface ApiClient {
     getUrl(path: string, params?: Record<string, unknown>): string;
-    fetch(options: { url: string; type?: string; data?: Record<string, unknown> }): Promise<Response>;
+    fetch(options: {
+        url: string;
+        type?: string;
+        data?: Record<string, unknown> | string;
+        contentType?: string;
+    }): Promise<Response>;
     [method: string]: any;
 }
 export interface Dashboard {

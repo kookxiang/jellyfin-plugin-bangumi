@@ -1,4 +1,7 @@
 ﻿using Jellyfin.Plugin.Bangumi.Archive;
+using System;
+using System.Net.Http;
+using Jellyfin.Plugin.Bangumi.AI;
 using Jellyfin.Plugin.Bangumi.OAuth;
 using Jellyfin.Plugin.Bangumi.Web;
 using MediaBrowser.Controller;
@@ -12,6 +15,12 @@ public class PluginServiceRegistrator : IPluginServiceRegistrator
     public void RegisterServices(IServiceCollection serviceCollection, IServerApplicationHost applicationHost)
     {
         serviceCollection.AddScoped(typeof(Logger<>));
+        serviceCollection.AddSingleton<AiStatisticsStore>();
+        serviceCollection.AddHttpClient<AiProviderClient>(client =>
+        {
+            client.Timeout = TimeSpan.FromSeconds(60);
+            client.MaxResponseContentBufferSize = 64 * 1024;
+        }).ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false });
 
         serviceCollection.AddSingleton<ArchiveData>();
         serviceCollection.AddSingleton<BangumiApi>();
