@@ -6,12 +6,13 @@ using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using Jellyfin.Plugin.Bangumi.Configuration;
+using Jellyfin.Plugin.Bangumi.Model;
+using Jellyfin.Plugin.Bangumi.Parser.AnitomyParser;
 using Jellyfin.Plugin.Bangumi.Utils;
 using MediaBrowser.Controller.Entities.Movies;
 using MediaBrowser.Controller.Providers;
 using MediaBrowser.Model.Entities;
 using MediaBrowser.Model.Providers;
-using Jellyfin.Plugin.Bangumi.Parser.AnitomyParser;
 
 namespace Jellyfin.Plugin.Bangumi.Providers;
 
@@ -29,51 +30,46 @@ public class MovieProvider(BangumiApi api, Logger<MovieProvider> log)
         cancellationToken.ThrowIfCancellationRequested();
         using var refreshScope = BangumiApi.BeginRequestedRefresh(info.Path);
         var baseName = Path.GetFileName(info.Path);
-        var result = new MetadataResult<Movie> { ResultLanguage = Constants.Language };
+        var result = new MetadataResult<Movie> { ResultLanguage = info.MetadataLanguage ?? Constants.Language };
+        var localConfiguration = await LocalConfiguration.ForPath(info.Path);
 
-        if (int.TryParse(info.ProviderIds.GetOrDefault(Constants.ProviderName), out var subjectId))
-        {
-        }
+        var bangumiId = baseName.GetAttributeValue("bangumi");
+        if (!string.IsNullOrEmpty(bangumiId))
+            info.SetProviderId(Constants.ProviderName, bangumiId);
 
-        if (subjectId == 0 && Configuration.AlwaysGetTitleByAnitomySharp)
-        {
-            var anitomy = new Anitomy(baseName);
-            var searchName = anitomy.ExtractAnimeTitle() ?? info.Name;
-            log.Info("Searching {Name} in bgm.tv", searchName);
-            // 不保证使用非原名或中文进行查询时返回正确结果
-            var searchResult = await api.SearchSubject(searchName, cancellationToken);
-            if (info.Year != null)
-                searchResult = searchResult.Where(x => x.ProductionYear == null || x.ProductionYear == info.Year.ToString());
-            if (searchResult.Any())
-                subjectId = searchResult.First().Id;
-        }
+        int subjectId;
+        if (localConfiguration.Id != 0)
+            subjectId = localConfiguration.Id;
+        else
+            _ = int.TryParse(info.ProviderIds.GetOrDefault(Constants.ProviderName), out subjectId);
 
         if (subjectId == 0)
         {
-            // Determine search order based on configuration
-            var firstSearch = Configuration.UseOriginalTitleFirst ? info.OriginalTitle : info.Name;
-            var secondSearch = Configuration.UseOriginalTitleFirst ? info.Name : info.OriginalTitle;
+            var candidates = new List<(string? Title, string? Year)>();
 
-            // First search attempt
-            if (firstSearch != null)
+            if (Configuration.AlwaysGetTitleByAnitomySharp)
             {
-                log.Info("Searching {Name} in bgm.tv", firstSearch);
-                var searchResult = await api.SearchSubject(firstSearch, cancellationToken);
-                if (info.Year != null)
-                    searchResult = searchResult.Where(x => x.ProductionYear == null || x.ProductionYear == info.Year.ToString());
-                if (searchResult.Any())
-                    subjectId = searchResult.First().Id;
+                var anitomy = new Anitomy(baseName);
+                var searchName = anitomy.ExtractAnimeTitle();
+                var animeYear = anitomy.ExtractAnimeYear();
+                candidates.Add((searchName, animeYear));
             }
+            candidates.Add((Configuration.UseOriginalTitleFirst ? info.OriginalTitle : info.Name, info.Year?.ToString()));
+            candidates.Add((Configuration.UseOriginalTitleFirst ? info.Name : info.OriginalTitle, info.Year?.ToString()));
 
-            // Second search attempt (if first failed and titles are different)
-            if (subjectId == 0 && secondSearch != null && !string.Equals(firstSearch, secondSearch, StringComparison.Ordinal))
+            foreach (var (title, year) in candidates.Distinct())
             {
-                log.Info("Searching {Name} in bgm.tv", secondSearch);
-                var searchResult = await api.SearchSubject(secondSearch, cancellationToken);
-                if (info.Year != null)
-                    searchResult = searchResult.Where(x => x.ProductionYear == null || x.ProductionYear == info.Year.ToString());
+                if (string.IsNullOrEmpty(title))
+                    continue;
+                log.Info("Searching {Name} in bgm.tv", title);
+                var searchResult = await api.SearchSubject(title, cancellationToken);
+                if (!string.IsNullOrEmpty(year))
+                    searchResult = searchResult.Where(x => x.ProductionYear == null || x.ProductionYear == year);
                 if (searchResult.Any())
+                {
                     subjectId = searchResult.First().Id;
+                    break;
+                }
             }
         }
 
