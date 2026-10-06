@@ -528,11 +528,14 @@ public partial class BangumiApi
                 var actorTasks = c.Actors.Select(async actor =>
                 {
                     var actorDetail = await GetPerson(actor.Id, token);
+                    var imageUrl = actor.DefaultImage;
+                    if (string.IsNullOrEmpty(imageUrl))
+                        imageUrl = ImageUrlNormalizer.Normalize(await GetPersonImage(actor.Id, token));
                     var info = new PersonInfo
                     {
                         Name = actorDetail?.TranslatedName ?? actor.Name,
                         Role = characterDetail?.TranslatedName ?? c.Name,
-                        ImageUrl = actor.DefaultImage,
+                        ImageUrl = imageUrl,
                         Type = Jellyfin.Data.Enums.PersonKind.Actor
                     };
                     info.ProviderIds.Add(Constants.ProviderName, $"{actor.Id}");
@@ -573,11 +576,14 @@ public partial class BangumiApi
                     });
                     actorNames = (await Task.WhenAll(actorTasks)).Where(a => !string.IsNullOrEmpty(a)).ToList();
                 }
+                var imageUrl = c.DefaultImage ?? characterDetail?.DefaultImage;
+                if (string.IsNullOrEmpty(imageUrl))
+                    imageUrl = ImageUrlNormalizer.Normalize(await GetCharacterImage(c.Id, token));
                 var info = new PersonInfo
                 {
                     Name = characterDetail?.TranslatedName ?? c.Name,
                     Role = string.Join(", ", Enumerable.Reverse(actorNames)),
-                    ImageUrl = c.DefaultImage ?? characterDetail?.DefaultImage,
+                    ImageUrl = imageUrl,
                     Type = Jellyfin.Data.Enums.PersonKind.Actor
                 };
                 info.ProviderIds.Add(Constants.ProviderName, $"{Constants.CharacterIdPrefix}{c.Id}");
