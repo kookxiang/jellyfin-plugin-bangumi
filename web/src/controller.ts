@@ -413,7 +413,6 @@ export function createController(container, host) {
         row.dataset.configured = String(!!item.HasConfiguration);
         editButton.title = item.HasConfiguration ? '编辑单独配置' : '配置此文件夹（当前继承设置）';
         editButton.setAttribute('aria-label', editButton.title);
-        element.querySelector('.bangumi-media-child-count').textContent = hasChildren ? '浏览子目录' : '';
         element.querySelector('.bangumi-media-list-path').title = item.Path;
         element
             .querySelector('.bangumi-media-list-main')

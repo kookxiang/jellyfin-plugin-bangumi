@@ -137,15 +137,6 @@
     color: var(--jf-palette-text-secondary, #aaa);
 }
 
-.bangumi-media-child-count {
-    font-size: 0.75rem;
-    color: var(--jf-palette-text-secondary, #aaa);
-}
-
-.bangumi-media-child-count:empty {
-    display: none;
-}
-
 .bangumi-media-list-edit .material-icons {
     color: var(--jf-palette-text-secondary, #aaa);
 }
