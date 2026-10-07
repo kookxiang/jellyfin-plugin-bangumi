@@ -1,0 +1,6 @@
+{
+    "Request": "GET /v0/persons/51478\n",
+    "Status": 200,
+    "Body": "{\"last_modified\":\"0001-01-01T00:00:00Z\",\"blood_type\":null,\"birth_year\":1994,\"birth_day\":23,\"birth_mon\":5,\"gender\":\"male\",\"images\":{\"small\":\"https://lain.bgm.tv/r/100/pic/crt/l/4d/9e/51478_prsn_mwloH.jpg\",\"grid\":\"https://lain.bgm.tv/pic/crt/g/4d/9e/51478_prsn_mwloH.jpg\",\"large\":\"https://lain.bgm.tv/pic/crt/l/4d/9e/51478_prsn_mwloH.jpg\",\"medium\":\"https://lain.bgm.tv/r/400/pic/crt/l/4d/9e/51478_prsn_mwloH.jpg\"},\"summary\":\"黄进泽是中国内地的男性配音演员。\\r\\n配音演员，代表作有游戏《明日方舟》白铁、《花亦山心之月》完颜逸等。现居上海。\",\"name\":\"黄进泽\",\"img\":\"https://lain.bgm.tv/pic/crt/l/4d/9e/51478_prsn_mwloH.jpg\",\"infobox\":[{\"key\":\"别名\",\"value\":[]},{\"key\":\"性别\",\"value\":\"男\"},{\"key\":\"生日\",\"value\":\"1994年5月23日\"},{\"key\":\"引用来源\",\"value\":\"https://zh.moegirl.org.cn/%E9%BB%84%E8%BF%9B%E6%B3%BD\"},{\"key\":\"链接\",\"value\":[{\"k\":\"微博\",\"v\":\"https://weibo.com/u/3172132657\"}]}],\"career\":[\"seiyu\"],\"stat\":{\"comments\":0,\"collects\":1},\"id\":51478,\"locked\":false,\"type\":1}",
+    "Location": null
+}

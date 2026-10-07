@@ -1,0 +1,6 @@
+{
+    "Request": "GET /v0/persons/31591\n",
+    "Status": 200,
+    "Body": "{\"last_modified\":\"0001-01-01T00:00:00Z\",\"blood_type\":null,\"birth_year\":null,\"birth_day\":25,\"birth_mon\":12,\"gender\":null,\"images\":{\"small\":\"https://lain.bgm.tv/r/100/pic/crt/l/b7/ec/31591_prsn_kfFT8.jpg?r=1692254846\",\"grid\":\"https://lain.bgm.tv/pic/crt/g/b7/ec/31591_prsn_kfFT8.jpg?r=1692254846\",\"large\":\"https://lain.bgm.tv/pic/crt/l/b7/ec/31591_prsn_kfFT8.jpg?r=1692254846\",\"medium\":\"https://lain.bgm.tv/r/400/pic/crt/l/b7/ec/31591_prsn_kfFT8.jpg?r=1692254846\"},\"summary\":\"ボーカル・ギター担当。\\r\\n神戸市出身。\\r\\n作詞作曲時のクレジットは活動休止前までは「薔薇園（ばらぞの）アヴ様」名義、活動休止後は「薔薇園（ばらぞの）アヴ」名義。\\r\\n別ユニット「獄門島一家」でもボーカルを務める。こちらでは「長女」名義。\\r\\n平家の末裔。\\r\\n自分の出す声に番号を付けている。また、歌唱メモなどは1度記載したら「絶対大丈夫」なため、必ずシュレッダーにかけるこだわりがある。\",\"name\":\"アヴちゃん\",\"img\":\"https://lain.bgm.tv/pic/crt/l/b7/ec/31591_prsn_kfFT8.jpg?r=1692254846\",\"infobox\":[{\"key\":\"别名\",\"value\":[{\"k\":\"其他名义\",\"v\":\"薔薇園アヴ\"}]},{\"key\":\"生日\",\"value\":\"????-12-25\"},{\"key\":\"引用来源\",\"value\":\"Wikipedia\"},{\"key\":\"出生地\",\"value\":\"日本·兵库县\"},{\"key\":\"所属团体\",\"value\":[{\"v\":\"女王蜂\"},{\"v\":\"獄門島一家\"}]},{\"key\":\"Twitter\",\"value\":\"@qb_avu\"}],\"career\":[\"artist\"],\"stat\":{\"comments\":14,\"collects\":16},\"id\":31591,\"locked\":false,\"type\":1}",
+    "Location": null
+}
