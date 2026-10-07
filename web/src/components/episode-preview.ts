@@ -1,6 +1,6 @@
 import type { ApiClient } from '../types.ts';
 import styles from './episode-preview.css?raw';
-import { parseSections, selectSection } from '../file-sections.ts';
+import { type FileSection, selectSection } from '../file-sections.ts';
 interface PreviewResult {
     EpisodeId?: string;
     FileName?: string;
@@ -16,22 +16,24 @@ export class EpisodePreview extends HTMLElement {
     private itemId: string;
     private seriesId?: string;
     private form: HTMLFormElement;
+    private sections: FileSection[] = [];
     constructor() {
         super();
         this.attachShadow({
             mode: 'open',
         }).innerHTML = `<style>${styles}</style><header><strong>集数预览</strong><bangumi-button variant="quiet"><button type="button">换一集</button></bangumi-button></header><p id="file"></p><dl><div><dt>识别集数</dt><dd id="detected">—</dd></div><div><dt>Bangumi 集数</dt><dd id="bangumi">—</dd></div><div><dt>Jellyfin 显示</dt><dd id="jellyfin">—</dd></div></dl><p id="status" role="status" aria-live="polite"></p>`;
     }
-    configure(api: ApiClient, itemId: string, form: HTMLFormElement, seriesId?: string) {
+    configure(api: ApiClient, itemId: string, form: HTMLFormElement, seriesId?: string, sections: FileSection[] = []) {
         this.events?.abort();
         this.events = new AbortController();
         this.api = api;
         this.itemId = itemId;
         this.seriesId = seriesId;
         this.form = form;
+        this.sections = sections;
         this.sample = undefined;
         const update = (event: Event) => {
-            if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) this.update();
+            if (event.target instanceof HTMLInputElement) this.update();
         };
         form.addEventListener('input', update, { signal: this.events.signal });
         form.addEventListener('change', update, { signal: this.events.signal });
@@ -63,14 +65,7 @@ export class EpisodePreview extends HTMLElement {
             this.message(this.sample.Message);
             return;
         }
-        let sections;
-        try {
-            sections = parseSections(this.field('sections').value);
-        } catch (error) {
-            this.message(error.message);
-            return;
-        }
-        const selected = selectSection(this.sample.FileName || '', sections);
+        const selected = selectSection(this.sample.FileName || '', this.sections);
         if (selected?.Skip ?? this.field('skip').checked) {
             this.message('此文件已设为跳过，不会获取剧集元数据。');
             return;

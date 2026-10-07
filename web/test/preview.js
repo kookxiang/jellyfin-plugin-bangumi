@@ -35,6 +35,10 @@ let saved,
 let confirmed = false;
 const toolCalls = [];
 let directoryType;
+let directorySections = [];
+const existingSections = [
+    { Selector: '*.mkv', Id: 0, Offset: 7, Report: false, Skip: false, CorrectIndex: true, Type: 'Special' },
+];
 const report = document.querySelector('#report');
 const services = {
     api: {
@@ -96,7 +100,9 @@ const services = {
             if (url.includes('/MediaLibrary/Libraries'))
                 return new Response(JSON.stringify([{ Id: 'name:Anime', Name: '动漫' }]));
             if (url.includes('/MediaLibrary/Configuration/') && type === 'PUT') {
-                directoryType = JSON.parse(data).Type;
+                const payload = JSON.parse(data);
+                directoryType = payload.Type;
+                directorySections = payload.Sections;
             }
             if (url.includes('/MediaLibrary/Preview/')) {
                 toolCalls.push({ url, data });
@@ -236,6 +242,7 @@ const services = {
                               DirectoryPath: '/media/anime',
                               Id: 1,
                               Type: directoryType,
+                              Sections: directorySections,
                           }
                         : {
                               Items: [
@@ -518,6 +525,7 @@ document.querySelector('#run').onclick = async () => {
         await tick();
         let dialog = root.querySelector('dialog');
         assert(dialog?.open && dialog.querySelector('#bangumi-media-config-id').value === '1', '媒体库弹窗读取');
+        assert(!dialog.querySelector('#bangumi-media-config-sections'), '不提供按文件名覆盖配置编辑入口');
         const typeSelect = dialog.querySelector('#bangumi-media-config-directory-type');
         const typeSegments = typeSelect.closest('bangumi-segmented-select').shadowRoot;
         assert(
@@ -549,11 +557,19 @@ document.querySelector('#run').onclick = async () => {
         await tick();
         assert(directoryType === 'Normal', '目录类型随配置保存');
         assert(!root.querySelector('dialog'), '媒体库弹窗保存关闭清理');
+        directorySections = structuredClone(existingSections);
         root.querySelector('.bangumi-media-list-edit').click();
         await tick();
         assert(root.querySelector('dialog')?.open, '媒体库弹窗可以重新打开');
         dialog = root.querySelector('dialog');
         assert(dialog.querySelector('#bangumi-media-config-directory-type').value === 'Normal', '已保存类型重新回填');
+        const rulePreview = dialog.querySelector('bangumi-episode-preview').shadowRoot;
+        assert(
+            !dialog.querySelector('#bangumi-media-offset-options').hidden &&
+                rulePreview.querySelector('#bangumi').textContent === '20' &&
+                rulePreview.querySelector('#jellyfin').textContent === '20',
+            '预览继续应用已有文件名规则',
+        );
         dialog
             .querySelector('#bangumi-media-config-directory-type')
             .closest('bangumi-segmented-select')
@@ -562,6 +578,10 @@ document.querySelector('#run').onclick = async () => {
         dialog.querySelector('form').requestSubmit();
         await tick();
         assert(directoryType === 'Special', '特典类型保存');
+        assert(
+            JSON.stringify(directorySections) === JSON.stringify(existingSections),
+            '保存目录配置保留已有文件名规则',
+        );
         root.querySelector('.bangumi-media-list-edit').click();
         await tick();
         assert(
