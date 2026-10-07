@@ -4,6 +4,9 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Text.Json;
+using Jellyfin.Data.Enums;
+using MediaBrowser.Controller.Entities;
+using MediaBrowser.Model.Querying;
 using Jellyfin.Plugin.Bangumi.Test.Mock;
 using Jellyfin.Plugin.Bangumi.Test.Util;
 using Jellyfin.Plugin.Bangumi.Tools.MediaLibrary;
@@ -52,6 +55,156 @@ public class MediaLibraryTestCases
         Assert.AreEqual("name:Anime", result.Items.Single().LibraryId);
         var otherResponse = (OkObjectResult)controller.GetItems("name:Other", null).Result!;
         Assert.AreEqual(0, ((MediaLibraryItemsResult)otherResponse.Value!).TotalRecordCount);
+    }
+
+    [TestMethod]
+    public void IndexedLibraryPagesInDatabaseBeforeEnrichingItems()
+    {
+        var library = new MockedLibraryManager();
+        var libraryId = Guid.NewGuid();
+        library.VirtualFolders.Add(new MediaBrowser.Model.Entities.VirtualFolderInfo
+        {
+            ItemId = libraryId.ToString("N"), Name = "Anime",
+        });
+        var series = FakePath.CreateSeries(library, "media-library/paged-config");
+        FakePath.CreateFile("media-library/paged-config/bangumi.ini");
+        var calls = 0;
+        library.ItemQuery = _ => throw new AssertFailedException("Listing must not fetch all series or episodes.");
+        library.ItemsResultQuery = query =>
+        {
+            calls++;
+            Assert.AreEqual(libraryId, query.ParentId);
+            Assert.IsTrue(query.Recursive);
+            CollectionAssert.AreEqual(new[] { BaseItemKind.Series }, query.IncludeItemTypes);
+            Assert.AreEqual(20, query.StartIndex);
+            Assert.AreEqual(20, query.Limit);
+            return new QueryResult<BaseItem>(20, 45, new BaseItem[] { series });
+        };
+        var response = (OkObjectResult)new MediaLibraryController(library)
+            .GetItems(libraryId.ToString("N"), null, 20, 500).Result!;
+        var result = (MediaLibraryItemsResult)response.Value!;
+        Assert.AreEqual(1, calls);
+        Assert.AreEqual(45, result.TotalRecordCount);
+        Assert.AreEqual(20, result.StartIndex);
+        Assert.IsTrue(result.Items.Single().HasConfiguration);
+        Assert.AreEqual(0, result.Items.Single().Children.Count());
+    }
+
+    [TestMethod]
+    public void DefaultPageContainsTwentySeriesAndNoEpisodes()
+    {
+        var library = new MockedLibraryManager();
+        for (var i = 0; i < 45; i++)
+        {
+            var series = FakePath.CreateSeries(library, $"media-library/pagination/{i:00}");
+            series.Name = $"Show {i:00}";
+            library.CreateItem(new JellyfinEpisode { Path = Path.Join(series.Path, "Season 1", "01.mkv") }, series);
+        }
+        var controller = new MediaLibraryController(library);
+        var result = (MediaLibraryItemsResult)((OkObjectResult)controller.GetItems(null, null).Result!).Value!;
+        Assert.AreEqual(45, result.TotalRecordCount);
+        Assert.AreEqual(20, result.Items.Count());
+        Assert.IsTrue(result.Items.All(item => item.Type == "Series" && !item.Children.Any()));
+        var second = (MediaLibraryItemsResult)((OkObjectResult)controller.GetItems(null, null, 20).Result!).Value!;
+        Assert.AreEqual(20, second.Items.Count());
+        Assert.IsFalse(result.Items.Select(item => item.Id).Intersect(second.Items.Select(item => item.Id)).Any());
+    }
+
+    [TestMethod]
+    public void FolderBrowsingQueriesOnlyItsSeriesAndPagesDistinctDirectories()
+    {
+        var library = new MockedLibraryManager();
+        var series = FakePath.CreateSeries(library, "media-library/lazy-folders");
+        var episodes = Enumerable.Range(0, 25).SelectMany(index => new[]
+        {
+            new JellyfinEpisode { Path = Path.Join(series.Path, $"Part {index:00}", "01.mkv"), SeriesId = series.Id },
+            new JellyfinEpisode { Path = Path.Join(series.Path, $"Part {index:00}", "02.mkv"), SeriesId = series.Id },
+        }).ToArray();
+        FakePath.CreateFile("media-library/lazy-folders/Part 20/bangumi.ini");
+        library.ItemQuery = query =>
+        {
+            Assert.AreEqual(series.Id, query.ParentId);
+            Assert.IsTrue(query.Recursive);
+            CollectionAssert.AreEqual(new[] { BaseItemKind.Episode }, query.IncludeItemTypes);
+            return episodes;
+        };
+        var result = (MediaLibraryItemsResult)((OkObjectResult)new MediaLibraryController(library)
+            .GetFolders(series.Id, startIndex: 20).Result!).Value!;
+        Assert.AreEqual(25, result.TotalRecordCount);
+        Assert.AreEqual(5, result.Items.Count());
+        Assert.AreEqual("Part 20", result.Items.First().Name);
+        Assert.IsTrue(result.Items.First().HasConfiguration);
+        Assert.IsTrue(result.Items.All(item => item.ParentId == series.Id));
+    }
+
+    [TestMethod]
+    public void SearchByPhysicalFolderKeepsOwningSeriesWithoutLoadingStorage()
+    {
+        var library = new MockedLibraryManager();
+        var libraryId = Guid.NewGuid();
+        library.VirtualFolders.Add(new MediaBrowser.Model.Entities.VirtualFolderInfo
+        {
+            ItemId = libraryId.ToString("N"), Name = "Anime",
+        });
+        var series = FakePath.CreateSeries(library, "media-library/search-folder");
+        series.Name = "Example";
+        library.ItemQuery = query =>
+        {
+            Assert.AreEqual(libraryId, query.ParentId);
+            Assert.IsTrue(query.Recursive);
+            return query.IncludeItemTypes.Contains(BaseItemKind.Series) ? new BaseItem[] { series }
+                : new BaseItem[] { new JellyfinEpisode
+                {
+                    Path = Path.Join(series.Path, "Unloaded Season", "01.mkv"), SeriesId = series.Id,
+                } };
+        };
+        var result = (MediaLibraryItemsResult)((OkObjectResult)new MediaLibraryController(library)
+            .GetItems(libraryId.ToString("N"), "Unloaded Season").Result!).Value!;
+        Assert.AreEqual(series.Id, result.Items.Single().Id);
+        Assert.AreEqual(0, result.Items.Single().Children.Count());
+    }
+
+    [TestMethod]
+    public void IndexedSeriesIdKeepsMergedSeriesFoldersOutsidePrimaryPath()
+    {
+        var id = Guid.NewGuid();
+        var series = new MediaLibraryItem
+        {
+            Id = id, Name = "Merged Series", Type = "Series",
+            Path = Path.Join(Path.GetTempPath(), "merged-series", "Season 1"),
+        };
+        var folderPath = Path.Join(Path.GetTempPath(), "merged-series", "Season 2");
+        var folders = MediaLibraryController.BuildPhysicalFolderItems([series],
+            [new JellyfinEpisode { SeriesId = id, Path = Path.Join(folderPath, "01.mkv") }], false);
+        Assert.AreEqual(id, folders.Single().ParentId);
+        Assert.AreEqual(folderPath, folders.Single().Path);
+    }
+
+    [TestMethod]
+    public async Task ScopedFolderConfigurationNeverQueriesOtherSeries()
+    {
+        var library = new MockedLibraryManager();
+        var series = FakePath.CreateSeries(library, "media-library/scoped-save");
+        var episode = new JellyfinEpisode
+        {
+            SeriesId = series.Id,
+            Path = FakePath.CreateFile("media-library/scoped-save/Part A/01.mkv"),
+        };
+        library.ItemQuery = query =>
+        {
+            Assert.AreEqual(series.Id, query.ParentId);
+            CollectionAssert.AreEqual(new[] { BaseItemKind.Episode }, query.IncludeItemTypes);
+            return new BaseItem[] { episode };
+        };
+        var controller = new MediaLibraryController(library);
+        var folder = ((MediaLibraryItemsResult)((OkObjectResult)controller.GetFolders(series.Id).Result!).Value!)
+            .Items.Single();
+        var saved = await controller.SaveConfiguration(folder.Id, new UpdateMediaLibraryConfiguration { Id = 12345 }, series.Id);
+        Assert.IsInstanceOfType<OkObjectResult>(saved.Result);
+        var loaded = await controller.GetConfiguration(folder.Id, series.Id);
+        Assert.AreEqual(12345, ((MediaLibraryConfiguration)((OkObjectResult)loaded.Result!).Value!).Id);
+        Assert.IsInstanceOfType<NotFoundResult>((await controller.GetConfiguration(folder.Id, Guid.NewGuid())).Result);
+        Assert.IsInstanceOfType<NoContentResult>(controller.DeleteConfiguration(folder.Id, series.Id));
     }
 
     [TestMethod]

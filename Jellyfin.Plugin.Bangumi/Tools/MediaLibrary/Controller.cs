@@ -15,6 +15,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 using Jellyfin.Data.Enums;
+using Jellyfin.Database.Implementations.Enums;
 using Jellyfin.Plugin.Bangumi.Model;
 using MediaBrowser.Common.Api;
 using MediaBrowser.Controller.Entities;
@@ -31,8 +32,8 @@ namespace Jellyfin.Plugin.Bangumi.Tools.MediaLibrary;
 [Route("Plugins/Bangumi/Tools/MediaLibrary")]
 public class Controller(ILibraryManager library) : ControllerBase
 {
-    private const int DefaultPageSize = 100;
-    private const int MaxPageSize = 500;
+    private const int DefaultPageSize = 20;
+    private const int MaxPageSize = 20;
 
     [HttpGet("Libraries")]
     public ActionResult<IEnumerable<MediaLibraryInfo>> GetLibraries()
@@ -69,40 +70,112 @@ public class Controller(ILibraryManager library) : ControllerBase
             .OrderBy(folder => folder.Name, StringComparer.CurrentCultureIgnoreCase)
             .ToList();
 
-        var indexedItems = library.GetItemList(new InternalItemsQuery
-        {
-            IncludeItemTypes = [BaseItemKind.Series, BaseItemKind.Episode],
-            IsVirtualItem = false,
-        });
-        var seriesItems = indexedItems
-            .OfType<Series>()
-            .Where(IsEditableSeries)
-            .Select(item => CreateItem(item, virtualFolders))
-            .Where(item => string.IsNullOrWhiteSpace(libraryId) ||
-                           string.Equals(item.LibraryId, libraryId, StringComparison.OrdinalIgnoreCase))
-            .ToList();
-        var physicalFolders = BuildPhysicalFolderItems(seriesItems, indexedItems.OfType<JellyfinEpisode>());
-        var items = seriesItems.Concat(physicalFolders).ToList();
+        var selectedLibrary = virtualFolders.FirstOrDefault(folder =>
+            string.Equals(folder.Id, libraryId, StringComparison.OrdinalIgnoreCase));
+        if (!string.IsNullOrWhiteSpace(libraryId) && selectedLibrary is null)
+            return Ok(new MediaLibraryItemsResult { StartIndex = startIndex });
 
-        var tree = BuildTree(items, search);
+        var query = new InternalItemsQuery
+        {
+            IncludeItemTypes = [BaseItemKind.Series],
+            IsVirtualItem = false,
+            Recursive = true,
+            GroupByPresentationUniqueKey = false,
+            OrderBy = [(ItemSortBy.SortName, SortOrder.Ascending)],
+        };
+        var pathFallback = selectedLibrary is not null && !Guid.TryParse(selectedLibrary.Id, out _);
+        if (selectedLibrary is not null && !pathFallback)
+            query.ParentId = Guid.Parse(selectedLibrary.Id);
+
+        List<MediaLibraryItem> page;
+        int total;
+        if (!pathFallback && string.IsNullOrWhiteSpace(search))
+        {
+            query.StartIndex = startIndex;
+            query.Limit = limit;
+            var result = library.GetItemsResult(query);
+            total = result.TotalRecordCount;
+            page = result.Items.OfType<Series>()
+                .Where(item => !string.IsNullOrWhiteSpace(item.Path))
+                .Select(item => CreateItem(item, virtualFolders, false))
+                .ToList();
+        }
+        else
+        {
+            // Name/path and physical subdirectory search needs index metadata, but
+            // never checks media storage until after the matching roots are paged.
+            var series = library.GetItemList(query).OfType<Series>()
+                .Where(item => !string.IsNullOrWhiteSpace(item.Path))
+                .Where(item => !pathFallback || selectedLibrary!.Locations.Any(location => IsPathInDirectory(item.Path, location)))
+                .Select(item => CreateItem(item, virtualFolders, false)).ToList();
+            var items = new List<MediaLibraryItem>(series);
+            if (!string.IsNullOrWhiteSpace(search) && series.Count > 0)
+            {
+                var episodes = library.GetItemList(new InternalItemsQuery
+                {
+                    IncludeItemTypes = [BaseItemKind.Episode],
+                    IsVirtualItem = false,
+                    ParentId = query.ParentId,
+                    Recursive = true,
+                    AncestorIds = pathFallback ? series.Select(item => item.Id).ToArray() : [],
+                    GroupByPresentationUniqueKey = false,
+                }).OfType<JellyfinEpisode>();
+                items.AddRange(BuildPhysicalFolderItems(series, episodes, false));
+            }
+            var roots = BuildTree(items, search);
+            total = roots.Count;
+            page = roots.Skip(startIndex).Take(limit).ToList();
+        }
+        foreach (var item in page)
+        {
+            item.Children = [];
+            item.HasConfiguration = System.IO.File.Exists(Path.Join(item.Path, "bangumi.ini"));
+        }
         return Ok(new MediaLibraryItemsResult
         {
-            Libraries = virtualFolders.Select(folder => new MediaLibraryInfo
-            {
-                Id = folder.Id,
-                Name = folder.Name,
-            }),
-            Items = tree.Skip(startIndex).Take(limit),
-            TotalRecordCount = tree.Count,
-            TotalItemCount = tree.Sum(CountTreeItems),
+            Libraries = virtualFolders.Select(folder => new MediaLibraryInfo { Id = folder.Id, Name = folder.Name }),
+            Items = page,
+            TotalRecordCount = total,
+            TotalItemCount = total,
             StartIndex = startIndex,
         });
     }
 
-    [HttpGet("Configuration/{itemId:guid}")]
-    public async Task<ActionResult<MediaLibraryConfiguration>> GetConfiguration(Guid itemId)
+    [HttpGet("Folders/{seriesId:guid}")]
+    public ActionResult<MediaLibraryItemsResult> GetFolders(
+        Guid seriesId, [FromQuery] string? search = null,
+        [FromQuery] int startIndex = 0, [FromQuery] int limit = DefaultPageSize)
     {
-        var target = GetTarget(itemId);
+        if (library.GetItemById(seriesId) is not Series series || string.IsNullOrWhiteSpace(series.Path))
+            return NotFound();
+        startIndex = Math.Max(0, startIndex);
+        limit = Math.Clamp(limit, 1, MaxPageSize);
+        var parent = CreateItem(series, [], false);
+        var folders = BuildPhysicalFolderItems([parent], GetSeriesEpisodes(seriesId), false)
+            .Where(folder => MatchesSearch(parent, search) || MatchesSearch(folder, search)).ToList();
+        var page = folders.Skip(startIndex).Take(limit).ToList();
+        foreach (var item in page)
+            item.HasConfiguration = System.IO.File.Exists(Path.Join(item.Path, "bangumi.ini"));
+        return Ok(new MediaLibraryItemsResult
+        {
+            Items = page, TotalRecordCount = folders.Count,
+            TotalItemCount = folders.Count, StartIndex = startIndex,
+        });
+    }
+
+    private IEnumerable<JellyfinEpisode> GetSeriesEpisodes(Guid seriesId)
+    {
+        return library.GetItemList(new InternalItemsQuery
+        {
+            IncludeItemTypes = [BaseItemKind.Episode], IsVirtualItem = false,
+            ParentId = seriesId, Recursive = true, GroupByPresentationUniqueKey = false,
+        }).OfType<JellyfinEpisode>();
+    }
+
+    [HttpGet("Configuration/{itemId:guid}")]
+    public async Task<ActionResult<MediaLibraryConfiguration>> GetConfiguration(Guid itemId, [FromQuery] Guid? seriesId = null)
+    {
+        var target = GetTarget(itemId, seriesId);
         if (target is null)
             return NotFound();
 
@@ -120,14 +193,12 @@ public class Controller(ILibraryManager library) : ControllerBase
         [FromServices] Logger<AnitomyEpisodeParser> anitomyLog,
         [FromServices] Logger<BasicEpisodeParser> basicLog,
         [FromServices] Logger<TorrentEpisodeParser> torrentLog,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        [FromQuery] Guid? seriesId = null)
     {
-        var target = GetTarget(itemId);
+        var target = GetTarget(itemId, seriesId);
         if (target is null) return NotFound();
-        var episodes = library.GetItemList(new InternalItemsQuery
-        {
-            IncludeItemTypes = [BaseItemKind.Episode], IsVirtualItem = false,
-        }).OfType<JellyfinEpisode>()
+        var episodes = GetSeriesEpisodes(target.SeriesId)
             .Where(episode => !string.IsNullOrWhiteSpace(episode.Path) && IsPathInDirectory(episode.Path, target.Path))
             .ToList();
         var sample = episodes.Count == 0 ? null : episodes[Random.Shared.Next(episodes.Count)];
@@ -159,9 +230,10 @@ public class Controller(ILibraryManager library) : ControllerBase
     [HttpPut("Configuration/{itemId:guid}")]
     public async Task<ActionResult<MediaLibraryConfiguration>> SaveConfiguration(
         Guid itemId,
-        [FromBody] UpdateMediaLibraryConfiguration request)
+        [FromBody] UpdateMediaLibraryConfiguration request,
+        [FromQuery] Guid? seriesId = null)
     {
-        var target = GetTarget(itemId);
+        var target = GetTarget(itemId, seriesId);
         if (target is null)
             return NotFound();
         if (request.Id < 0)
@@ -195,9 +267,9 @@ public class Controller(ILibraryManager library) : ControllerBase
     }
 
     [HttpDelete("Configuration/{itemId:guid}")]
-    public ActionResult DeleteConfiguration(Guid itemId)
+    public ActionResult DeleteConfiguration(Guid itemId, [FromQuery] Guid? seriesId = null)
     {
-        var target = GetTarget(itemId);
+        var target = GetTarget(itemId, seriesId);
         if (target is null)
             return NotFound();
 
@@ -213,12 +285,23 @@ public class Controller(ILibraryManager library) : ControllerBase
                Directory.Exists(item.Path);
     }
 
-    private ConfigurationTarget? GetTarget(Guid itemId)
+    private ConfigurationTarget? GetTarget(Guid itemId, Guid? seriesId)
     {
         var item = library.GetItemById(itemId);
         if (item is Series series && IsEditableSeries(series))
-            return CreateTarget(series.Id, series.Name, nameof(Series), series.Path);
+            return CreateTarget(series.Id, series.Name, nameof(Series), series.Path, series.Id);
 
+        if (seriesId is { } parentId)
+        {
+            if (library.GetItemById(parentId) is not Series parent || !IsEditableSeries(parent))
+                return null;
+            var candidate = BuildPhysicalFolderItems([CreateItem(parent, [], false)], GetSeriesEpisodes(parentId), false)
+                .FirstOrDefault(folder => folder.Id == itemId);
+            return candidate is null || !Directory.Exists(candidate.Path) ? null
+                : CreateTarget(candidate.Id, candidate.Name, candidate.Type, candidate.Path, parentId);
+        }
+
+        // Compatibility for older clients which did not send the owning series ID.
         var indexedItems = library.GetItemList(new InternalItemsQuery
         {
             IncludeItemTypes = [BaseItemKind.Series, BaseItemKind.Episode],
@@ -233,10 +316,10 @@ public class Controller(ILibraryManager library) : ControllerBase
             .FirstOrDefault(candidate => candidate.Id == itemId);
         return folder is null
             ? null
-            : CreateTarget(folder.Id, folder.Name, folder.Type, folder.Path);
+            : CreateTarget(folder.Id, folder.Name, folder.Type, folder.Path, folder.ParentId);
     }
 
-    private static MediaLibraryItem CreateItem(BaseItem item, IReadOnlyList<LibraryFolder> libraries)
+    private static MediaLibraryItem CreateItem(BaseItem item, IReadOnlyList<LibraryFolder> libraries, bool checkConfiguration = true)
     {
         var folder = libraries.FirstOrDefault(candidate =>
             candidate.Locations.Any(location => IsPathInDirectory(item.Path, location)));
@@ -247,7 +330,7 @@ public class Controller(ILibraryManager library) : ControllerBase
             SeriesName = item.Name ?? string.Empty,
             Type = item.GetBaseItemKind().ToString(),
             Path = item.Path,
-            HasConfiguration = System.IO.File.Exists(Path.Join(item.Path, "bangumi.ini")),
+            HasConfiguration = checkConfiguration && System.IO.File.Exists(Path.Join(item.Path, "bangumi.ini")),
             LibraryId = folder?.Id ?? string.Empty,
             LibraryName = folder?.Name ?? "未分组",
         };
@@ -255,45 +338,44 @@ public class Controller(ILibraryManager library) : ControllerBase
 
     internal static List<MediaLibraryItem> BuildPhysicalFolderItems(
         IReadOnlyList<MediaLibraryItem> seriesItems,
-        IEnumerable<JellyfinEpisode> episodes)
+        IEnumerable<JellyfinEpisode> episodes,
+        bool checkStorage = true)
     {
-        var folders = new Dictionary<string, MediaLibraryItem>(GetPathComparer());
-
+        var comparer = GetPathComparer();
+        var seriesById = seriesItems.ToDictionary(series => series.Id);
+        var seriesByPath = seriesItems.GroupBy(series => Path.GetFullPath(series.Path), comparer)
+            .ToDictionary(group => group.Key, group => group.First(), comparer);
+        var seen = new HashSet<string>(comparer);
+        var folders = new List<MediaLibraryItem>();
         foreach (var episode in episodes)
         {
-            if (string.IsNullOrWhiteSpace(episode.Path))
-                continue;
+            if (string.IsNullOrWhiteSpace(episode.Path)) continue;
             var directory = Path.GetDirectoryName(episode.Path);
-            if (string.IsNullOrWhiteSpace(directory) || !Directory.Exists(directory))
-                continue;
+            if (string.IsNullOrWhiteSpace(directory)) continue;
+            directory = Path.GetFullPath(directory);
+            if (!seen.Add(directory)) continue;
 
-            var parent = seriesItems.FirstOrDefault(series => series.Id == episode.Series?.Id) ??
-                         seriesItems
-                             .Where(series => IsPathInDirectory(directory, series.Path))
-                             .OrderByDescending(series => series.Path.Length)
-                             .FirstOrDefault();
-            if (parent is null || PathsEqual(directory, parent.Path))
-                continue;
-
-            var normalizedDirectory = Path.GetFullPath(directory);
-            folders.TryAdd(normalizedDirectory, new MediaLibraryItem
+            seriesById.TryGetValue(episode.SeriesId, out var parent);
+            if (parent is null)
             {
-                Id = CreatePathId(normalizedDirectory),
-                ParentId = parent.Id,
-                Name = Path.GetFileName(normalizedDirectory),
-                SeriesName = parent.Name,
-                Type = "Folder",
-                Path = normalizedDirectory,
-                HasConfiguration = System.IO.File.Exists(Path.Join(normalizedDirectory, "bangumi.ini")),
-                LibraryId = parent.LibraryId,
-                LibraryName = parent.LibraryName,
+                // Some old index entries have no SeriesId. Walk the directory's
+                // ancestors instead of scanning and sorting every series path.
+                for (var ancestor = directory; ancestor is not null; ancestor = Path.GetDirectoryName(ancestor))
+                    if (seriesByPath.TryGetValue(ancestor, out parent)) break;
+            }
+            if (parent is null || PathsEqual(directory, parent.Path)) continue;
+            if (checkStorage && !Directory.Exists(directory)) continue;
+            folders.Add(new MediaLibraryItem
+            {
+                Id = CreatePathId(directory), ParentId = parent.Id,
+                Name = Path.GetFileName(directory), SeriesName = parent.Name,
+                Type = "Folder", Path = directory,
+                HasConfiguration = checkStorage && System.IO.File.Exists(Path.Join(directory, "bangumi.ini")),
+                LibraryId = parent.LibraryId, LibraryName = parent.LibraryName,
             });
         }
-
-        return folders.Values
-            .OrderBy(folder => folder.SeriesName, StringComparer.CurrentCultureIgnoreCase)
-            .ThenBy(folder => folder.Name, StringComparer.CurrentCultureIgnoreCase)
-            .ToList();
+        return folders.OrderBy(folder => folder.SeriesName, StringComparer.CurrentCultureIgnoreCase)
+            .ThenBy(folder => folder.Name, StringComparer.CurrentCultureIgnoreCase).ToList();
     }
 
     internal static List<MediaLibraryItem> BuildTree(
@@ -342,11 +424,6 @@ public class Controller(ILibraryManager library) : ControllerBase
             .ToList();
     }
 
-    private static int CountTreeItems(MediaLibraryItem item)
-    {
-        return 1 + item.Children.Sum(CountTreeItems);
-    }
-
     private static bool MatchesSearch(MediaLibraryItem item, string? search)
     {
         if (string.IsNullOrWhiteSpace(search))
@@ -388,11 +465,12 @@ public class Controller(ILibraryManager library) : ControllerBase
         return new Guid(hash.AsSpan(0, 16));
     }
 
-    private static ConfigurationTarget CreateTarget(Guid id, string? name, string type, string path)
+    private static ConfigurationTarget CreateTarget(Guid id, string? name, string type, string path, Guid seriesId)
     {
         return new ConfigurationTarget
         {
             Id = id,
+            SeriesId = seriesId,
             Name = name ?? Path.GetFileName(path),
             Type = type,
             Path = path,
@@ -435,6 +513,8 @@ public class Controller(ILibraryManager library) : ControllerBase
 
     private sealed class ConfigurationTarget
     {
+        public Guid SeriesId { get; init; }
+
         public Guid Id { get; init; }
 
         public string Name { get; init; } = string.Empty;

@@ -76,7 +76,23 @@ const services = {
                 : null;
         },
         fetch: async ({ url, data, type }) => {
-            if (url.includes('/MediaLibrary/Items')) toolCalls.push({ url, data });
+            if (url.includes('/MediaLibrary/Items') || url.includes('/MediaLibrary/Folders/'))
+                toolCalls.push({ url, data });
+            if (url.includes('/MediaLibrary/Folders/')) {
+                const start = Number(new URL(url, location.href).searchParams.get('startIndex') || 0);
+                return new Response(
+                    JSON.stringify({
+                        Items: Array.from({ length: Math.min(20, 25 - start) }, (_, index) => ({
+                            Id: 'folder-' + (start + index),
+                            ParentId: 'series',
+                            Type: 'Folder',
+                            Name: 'Part ' + (start + index),
+                            Path: '/media/anime/Part ' + (start + index),
+                        })),
+                        TotalRecordCount: 25,
+                    }),
+                );
+            }
             if (url.includes('/MediaLibrary/Libraries'))
                 return new Response(JSON.stringify([{ Id: 'name:Anime', Name: '动漫' }]));
             if (url.includes('/MediaLibrary/Configuration/') && type === 'PUT') {
@@ -222,7 +238,15 @@ const services = {
                               Type: directoryType,
                           }
                         : {
-                              Items: [{ Id: 'series', Name: '测试番剧', Path: '/media/anime', Children: [] }],
+                              Items: [
+                                  {
+                                      Id: 'series',
+                                      Type: 'Series',
+                                      Name: '测试番剧',
+                                      Path: '/media/anime',
+                                      Children: [],
+                                  },
+                              ],
                               Libraries: [],
                               TotalRecordCount: 1,
                               TotalItemCount: 1,
@@ -454,6 +478,28 @@ document.querySelector('#run').onclick = async () => {
             allLibrariesCalls.length === 1 &&
                 new URL(allLibrariesCalls[0].url, location.href).searchParams.get('libraryId') === '',
             '点击搜索后查询全部媒体库',
+        );
+        assert(
+            new URL(allLibrariesCalls[0].url, location.href).searchParams.get('limit') === '20',
+            '系列列表每页 20 条',
+        );
+        assert(!toolCalls.some((call) => call.url.includes('/MediaLibrary/Folders/')), '系列列表不提前加载子目录');
+        root.querySelector('.bangumi-media-list-enter').click();
+        await tick();
+        assert(root.querySelectorAll('.bangumi-media-list-item').length === 20, '进入系列才加载第一页子目录');
+        root.querySelector('#bangumi-media-library-next').click();
+        await tick();
+        assert(root.querySelectorAll('.bangumi-media-list-item').length === 5, '子目录第二页加载剩余条目');
+        const folderCalls = toolCalls.filter((call) => call.url.includes('/MediaLibrary/Folders/'));
+        assert(
+            new URL(folderCalls.at(-1).url, location.href).searchParams.get('startIndex') === '20',
+            '子目录分页发送偏移量',
+        );
+        root.querySelector('#bangumi-media-library-back').click();
+        await tick();
+        assert(
+            toolCalls.filter((call) => call.url.includes('/MediaLibrary/Items')).length === 1,
+            '返回系列列表复用当前页',
         );
         librarySelect.value = 'name:Anime';
         librarySelect.dispatchEvent(new Event('change'));

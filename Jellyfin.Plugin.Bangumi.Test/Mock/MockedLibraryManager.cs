@@ -29,6 +29,7 @@ public class MockedLibraryManager : ILibraryManager
     public Func<FileSystemMetadata, Folder?, BaseItem?>? PathResolver { get; set; }
     public LibraryOptions LibraryOptions { get; set; } = new();
     public Func<InternalItemsQuery, IReadOnlyList<BaseItem>>? ItemQuery { get; set; }
+    public Func<InternalItemsQuery, QueryResult<BaseItem>>? ItemsResultQuery { get; set; }
     private readonly Dictionary<string, BaseItem> _items = [];
     private readonly Dictionary<Guid, List<BaseItem>> _children = [];
 
@@ -442,8 +443,24 @@ public class MockedLibraryManager : ILibraryManager
     public IReadOnlyList<BaseItem> GetItemList(InternalItemsQuery query)
     {
         if (ItemQuery is not null) return ItemQuery(query);
+        if ((query.Recursive && query.ParentId != Guid.Empty) || query.AncestorIds.Length > 0)
+        {
+            var ancestors = query.AncestorIds.Length > 0 ? query.AncestorIds : [query.ParentId];
+            var pending = new Queue<Guid>(ancestors);
+            var descendants = new List<BaseItem>();
+            while (pending.TryDequeue(out var parentId))
+            {
+                if (!_children.TryGetValue(parentId, out var nested)) continue;
+                descendants.AddRange(nested);
+                foreach (var item in nested) pending.Enqueue(item.Id);
+            }
+            return descendants.Where(item => query.IncludeItemTypes.Length == 0 ||
+                query.IncludeItemTypes.Contains(item.GetBaseItemKind())).ToList();
+        }
         if (_children.TryGetValue(query.ParentId, out var children))
             return children;
+        if (query.IncludeItemTypes.Length == 1 && query.IncludeItemTypes[0] == BaseItemKind.Series)
+            return _items.Values.OfType<MediaBrowser.Controller.Entities.TV.Series>().ToList();
         if (query.IncludeItemTypes.Contains(BaseItemKind.Series) &&
             query.IncludeItemTypes.Contains(BaseItemKind.Episode))
             return _items.Values.ToList();
@@ -481,7 +498,10 @@ public class MockedLibraryManager : ILibraryManager
 
     public QueryResult<BaseItem> GetItemsResult(InternalItemsQuery query)
     {
-        throw new NotImplementedException();
+        if (ItemsResultQuery is not null) return ItemsResultQuery(query);
+        var items = GetItemList(query).OrderBy(item => item.Name, StringComparer.Ordinal).ToList();
+        return new QueryResult<BaseItem>(query.StartIndex, items.Count,
+            items.Skip(query.StartIndex ?? 0).Take(query.Limit ?? int.MaxValue).ToList());
     }
 
     public bool IgnoreFile(FileSystemMetadata file, BaseItem parent)

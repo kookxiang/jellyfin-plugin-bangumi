@@ -30,12 +30,16 @@ export function createController(container, host) {
         initialized: false,
         librariesLoaded: false,
         startIndex: 0,
-        pageSize: 100,
+        pageSize: 20,
+        directoryStartIndex: 0,
+        directoryTotalCount: 0,
+        directoryItems: [],
         totalRecordCount: 0,
         totalItemCount: 0,
         rootItems: [],
         currentDirectory: null,
         selectedItemId: '',
+        selectedSeriesId: '',
         query: null as { libraryId: string; search: string; label: string } | null,
         requestId: 0,
         dialog: null,
@@ -376,28 +380,29 @@ export function createController(container, host) {
     }
 
     function updateMediaLibraryPagination() {
-        var first = mediaLibraryState.totalRecordCount ? mediaLibraryState.startIndex + 1 : 0;
-        var last = Math.min(
-            mediaLibraryState.startIndex + mediaLibraryState.pageSize,
-            mediaLibraryState.totalRecordCount,
-        );
-        container.querySelector('#bangumi-media-library-page-status').textContent =
-            first + '–' + last + ' / ' + mediaLibraryState.totalRecordCount;
-        container.querySelector('#bangumi-media-library-previous').disabled = mediaLibraryState.startIndex === 0;
-        container.querySelector('#bangumi-media-library-next').disabled =
-            mediaLibraryState.startIndex + mediaLibraryState.pageSize >= mediaLibraryState.totalRecordCount;
+        const inDirectory = !!mediaLibraryState.currentDirectory;
+        const start = inDirectory ? mediaLibraryState.directoryStartIndex : mediaLibraryState.startIndex;
+        const total = inDirectory ? mediaLibraryState.directoryTotalCount : mediaLibraryState.totalRecordCount;
+        const first = total ? start + 1 : 0;
+        const last = Math.min(start + mediaLibraryState.pageSize, total);
+        container.querySelector('#bangumi-media-library-page-status').textContent = first + '–' + last + ' / ' + total;
+        container.querySelector('#bangumi-media-library-previous').disabled = start === 0;
+        container.querySelector('#bangumi-media-library-next').disabled = start + mediaLibraryState.pageSize >= total;
     }
 
     function enterMediaLibraryDirectory(item) {
         mediaLibraryState.currentDirectory = item;
+        mediaLibraryState.directoryStartIndex = 0;
+        mediaLibraryState.directoryTotalCount = 0;
+        mediaLibraryState.directoryItems = [];
         renderMediaLibraryItems();
+        loadMediaLibraryItems();
     }
 
     function createMediaLibraryListItem(item) {
         var element = container.querySelector('#bangumi-media-library-item-template').content.cloneNode(true);
         var row = element.querySelector('.bangumi-media-list-item');
-        var children = item.Children || [];
-        var hasChildren = children.length > 0;
+        var hasChildren = item.Type === 'Series';
         var editButton = element.querySelector('.bangumi-media-list-edit');
         var enterButton = element.querySelector('.bangumi-media-list-enter');
 
@@ -408,9 +413,7 @@ export function createController(container, host) {
         row.dataset.configured = String(!!item.HasConfiguration);
         editButton.title = item.HasConfiguration ? '编辑单独配置' : '配置此文件夹（当前继承设置）';
         editButton.setAttribute('aria-label', editButton.title);
-        element.querySelector('.bangumi-media-child-count').textContent = hasChildren
-            ? children.length + ' 个子目录'
-            : '';
+        element.querySelector('.bangumi-media-child-count').textContent = hasChildren ? '浏览子目录' : '';
         element.querySelector('.bangumi-media-list-path').title = item.Path;
         element
             .querySelector('.bangumi-media-list-main')
@@ -449,9 +452,7 @@ export function createController(container, host) {
         var backButton = container.querySelector('#bangumi-media-library-back');
         var currentLabel = container.querySelector('#bangumi-media-library-current');
         var summary = container.querySelector('#bangumi-media-library-summary');
-        var items = mediaLibraryState.currentDirectory
-            ? mediaLibraryState.currentDirectory.Children || []
-            : mediaLibraryState.rootItems;
+        var items = mediaLibraryState.currentDirectory ? mediaLibraryState.directoryItems : mediaLibraryState.rootItems;
 
         container.querySelector('.bangumi-media-navigation').hidden = !mediaLibraryState.query;
         empty.classList.toggle('is-idle', !mediaLibraryState.query);
@@ -463,19 +464,19 @@ export function createController(container, host) {
         if (mediaLibraryState.currentDirectory) {
             backButton.style.display = '';
             currentLabel.textContent = mediaLibraryState.currentDirectory.Name;
-            summary.textContent = '共 ' + items.length + ' 个实际媒体文件夹';
-            pagination.style.display = 'none';
+            summary.textContent = '共 ' + mediaLibraryState.directoryTotalCount + ' 个实际媒体文件夹';
+            pagination.style.display = mediaLibraryState.directoryTotalCount > mediaLibraryState.pageSize ? '' : 'none';
             empty.textContent = '此系列下没有已索引的媒体文件夹';
         } else {
             const query = mediaLibraryState.query;
             backButton.style.display = 'none';
             currentLabel.textContent = query ? query.label : '等待搜索';
-            summary.textContent = '共找到 ' + mediaLibraryState.totalItemCount + ' 个可配置目录';
+            summary.textContent = '共找到 ' + mediaLibraryState.totalRecordCount + ' 个系列目录';
             pagination.style.display = mediaLibraryState.totalRecordCount > mediaLibraryState.pageSize ? '' : 'none';
             empty.textContent = query ? '当前筛选条件下没有可配置的系列目录' : '可选择媒体库或填写关键词，然后点击搜索';
             if (!query) summary.textContent = '';
-            updateMediaLibraryPagination();
         }
+        updateMediaLibraryPagination();
 
         empty.hidden = items.length > 0;
         list.style.display = items.length ? '' : 'none';
@@ -484,6 +485,7 @@ export function createController(container, host) {
     async function loadMediaLibraryItems() {
         var requestId = ++mediaLibraryState.requestId;
         const query = mediaLibraryState.query;
+        const directory = mediaLibraryState.currentDirectory;
         if (!query) {
             mediaLibraryState.rootItems = [];
             mediaLibraryState.currentDirectory = null;
@@ -498,10 +500,12 @@ export function createController(container, host) {
         try {
             var response = await ApiClient.fetch({
                 type: 'GET',
-                url: getMediaLibraryApiUrl('/Items', {
+                url: getMediaLibraryApiUrl(directory ? '/Folders/' + directory.Id : '/Items', {
                     libraryId: query.libraryId === '*' ? '' : query.libraryId,
                     search: query.search,
-                    startIndex: String(mediaLibraryState.startIndex),
+                    startIndex: String(
+                        directory ? mediaLibraryState.directoryStartIndex : mediaLibraryState.startIndex,
+                    ),
                     limit: String(mediaLibraryState.pageSize),
                 }),
             });
@@ -514,15 +518,14 @@ export function createController(container, host) {
                 return;
             }
 
-            mediaLibraryState.totalRecordCount = result.TotalRecordCount;
-            mediaLibraryState.totalItemCount = result.TotalItemCount;
-            mediaLibraryState.rootItems = result.Items;
-            loadMediaLibraryOptions(result.Libraries);
-            if (mediaLibraryState.currentDirectory) {
-                mediaLibraryState.currentDirectory =
-                    mediaLibraryState.rootItems.find(function (item) {
-                        return item.Id === mediaLibraryState.currentDirectory.Id;
-                    }) || null;
+            if (directory) {
+                mediaLibraryState.directoryTotalCount = result.TotalRecordCount;
+                mediaLibraryState.directoryItems = result.Items;
+            } else {
+                mediaLibraryState.totalRecordCount = result.TotalRecordCount;
+                mediaLibraryState.totalItemCount = result.TotalItemCount;
+                mediaLibraryState.rootItems = result.Items;
+                loadMediaLibraryOptions(result.Libraries);
             }
             renderMediaLibraryItems();
         } catch (error) {
@@ -619,10 +622,11 @@ export function createController(container, host) {
 
     async function openMediaLibraryEditor(item) {
         Dashboard.showLoadingMsg();
+        const seriesId = item.Type === 'Folder' ? item.ParentId : item.Id;
         try {
             var response = await ApiClient.fetch({
                 type: 'GET',
-                url: getMediaLibraryApiUrl('/Configuration/' + item.Id),
+                url: getMediaLibraryApiUrl('/Configuration/' + item.Id, { seriesId }),
             });
             if (!response.ok) {
                 throw new Error(await response.text());
@@ -631,6 +635,7 @@ export function createController(container, host) {
             var config = await response.json();
             var dialog = await createMediaLibraryDialog();
             mediaLibraryState.selectedItemId = config.ItemId;
+            mediaLibraryState.selectedSeriesId = seriesId;
             dialog.querySelector('#bangumi-media-dialog-title').textContent = '配置：' + config.ItemName;
             dialog.querySelector('#bangumi-media-dialog-path').textContent = config.DirectoryPath;
             dialog.querySelector('#bangumi-media-config-enabled').checked = config.Exists;
@@ -647,7 +652,7 @@ export function createController(container, host) {
             mediaLibraryState.dialogHelper.open(dialog);
             dialog
                 .querySelector('bangumi-episode-preview')
-                .configure(ApiClient, config.ItemId, dialog.querySelector('form'));
+                .configure(ApiClient, config.ItemId, dialog.querySelector('form'), seriesId);
         } catch (error) {
             Dashboard.alert('读取 bangumi.ini 失败：' + error.message);
         } finally {
@@ -686,13 +691,17 @@ export function createController(container, host) {
             var response = enabled
                 ? await ApiClient.fetch({
                       type: 'PUT',
-                      url: getMediaLibraryApiUrl('/Configuration/' + mediaLibraryState.selectedItemId),
+                      url: getMediaLibraryApiUrl('/Configuration/' + mediaLibraryState.selectedItemId, {
+                          seriesId: mediaLibraryState.selectedSeriesId,
+                      }),
                       contentType: 'application/json',
                       data: JSON.stringify(getMediaLibraryConfigurationPayload()),
                   })
                 : await ApiClient.fetch({
                       type: 'DELETE',
-                      url: getMediaLibraryApiUrl('/Configuration/' + mediaLibraryState.selectedItemId),
+                      url: getMediaLibraryApiUrl('/Configuration/' + mediaLibraryState.selectedItemId, {
+                          seriesId: mediaLibraryState.selectedSeriesId,
+                      }),
                   });
             if (!response.ok) {
                 throw new Error(await response.text());
@@ -1280,16 +1289,20 @@ export function createController(container, host) {
 
     container.querySelector('#bangumi-media-library-back').addEventListener('click', function () {
         mediaLibraryState.currentDirectory = null;
+        ++mediaLibraryState.requestId;
+        Dashboard.hideLoadingMsg();
         renderMediaLibraryItems();
     });
 
     container.querySelector('#bangumi-media-library-previous').addEventListener('click', function () {
-        mediaLibraryState.startIndex = Math.max(0, mediaLibraryState.startIndex - mediaLibraryState.pageSize);
+        const key = mediaLibraryState.currentDirectory ? 'directoryStartIndex' : 'startIndex';
+        mediaLibraryState[key] = Math.max(0, mediaLibraryState[key] - mediaLibraryState.pageSize);
         loadMediaLibraryItems();
     });
 
     container.querySelector('#bangumi-media-library-next').addEventListener('click', function () {
-        mediaLibraryState.startIndex += mediaLibraryState.pageSize;
+        const key = mediaLibraryState.currentDirectory ? 'directoryStartIndex' : 'startIndex';
+        mediaLibraryState[key] += mediaLibraryState.pageSize;
         loadMediaLibraryItems();
     });
 

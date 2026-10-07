@@ -14,6 +14,7 @@ export class EpisodePreview extends HTMLElement {
     private sample?: PreviewResult;
     private api: ApiClient;
     private itemId: string;
+    private seriesId?: string;
     private form: HTMLFormElement;
     constructor() {
         super();
@@ -21,11 +22,12 @@ export class EpisodePreview extends HTMLElement {
             mode: 'open',
         }).innerHTML = `<style>${styles}</style><header><strong>集数预览</strong><bangumi-button variant="quiet"><button type="button">换一集</button></bangumi-button></header><p id="file"></p><dl><div><dt>识别集数</dt><dd id="detected">—</dd></div><div><dt>Bangumi 集数</dt><dd id="bangumi">—</dd></div><div><dt>Jellyfin 显示</dt><dd id="jellyfin">—</dd></div></dl><p id="status" role="status" aria-live="polite"></p>`;
     }
-    configure(api: ApiClient, itemId: string, form: HTMLFormElement) {
+    configure(api: ApiClient, itemId: string, form: HTMLFormElement, seriesId?: string) {
         this.events?.abort();
         this.events = new AbortController();
         this.api = api;
         this.itemId = itemId;
+        this.seriesId = seriesId;
         this.form = form;
         this.sample = undefined;
         const update = (event: Event) => {
@@ -97,7 +99,9 @@ export class EpisodePreview extends HTMLElement {
         try {
             const response = await this.api.fetch({
                 type: 'GET',
-                url: this.api.getUrl(`Plugins/Bangumi/Tools/MediaLibrary/Preview/${this.itemId}`),
+                url:
+                    this.api.getUrl(`Plugins/Bangumi/Tools/MediaLibrary/Preview/${this.itemId}`) +
+                    (this.seriesId ? `?seriesId=${encodeURIComponent(this.seriesId)}` : ''),
             });
             if (!response.ok) throw new Error(await response.text());
             const result: PreviewResult = await response.json();
