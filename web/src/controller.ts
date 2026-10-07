@@ -368,7 +368,7 @@ export function createController(container, host) {
         }
 
         var select = container.querySelector('#bangumi-media-library-select');
-        select.replaceChildren(new Option('请选择媒体库', ''), new Option('全部媒体库', '*'));
+        select.replaceChildren(new Option('全部媒体库', '*'));
         libraries.forEach(function (libraryInfo) {
             select.appendChild(new Option(libraryInfo.Name || '未命名媒体库', libraryInfo.Id));
         });
@@ -472,7 +472,7 @@ export function createController(container, host) {
             currentLabel.textContent = query ? query.label : '等待搜索';
             summary.textContent = '共找到 ' + mediaLibraryState.totalItemCount + ' 个可配置目录';
             pagination.style.display = mediaLibraryState.totalRecordCount > mediaLibraryState.pageSize ? '' : 'none';
-            empty.textContent = query ? '当前筛选条件下没有可配置的系列目录' : '选择媒体库，可填写关键词，然后点击搜索';
+            empty.textContent = query ? '当前筛选条件下没有可配置的系列目录' : '可选择媒体库或填写关键词，然后点击搜索';
             if (!query) summary.textContent = '';
             updateMediaLibraryPagination();
         }
@@ -1251,9 +1251,6 @@ export function createController(container, host) {
     const mediaLibrarySelect = container.querySelector('#bangumi-media-library-select');
     const mediaLibrarySearch = container.querySelector('#bangumi-media-library-search');
     const mediaLibrarySearchButton = container.querySelector('#bangumi-media-library-submit');
-    mediaLibrarySelect.addEventListener('change', function () {
-        mediaLibrarySearchButton.disabled = !mediaLibrarySelect.value;
-    });
     function searchMediaLibrary() {
         if (!mediaLibrarySelect.value) return;
         mediaLibraryState.query = {

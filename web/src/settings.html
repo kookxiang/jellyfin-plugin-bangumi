@@ -1312,8 +1312,10 @@
                                                     class="emby-select-withcolor emby-select"
                                                     data-config-ignore
                                                     id="bangumi-media-library-select"
-                                                ></select
-                                            ></bangumi-select>
+                                                >
+                                                    <option value="*">全部媒体库</option>
+                                                </select></bangumi-select
+                                            >
                                         </div>
                                         <div class="inputContainer">
                                             <label
@@ -1335,7 +1337,6 @@
                                                     id="bangumi-media-library-submit"
                                                     type="button"
                                                     data-config-ignore
-                                                    disabled
                                                 >
                                                     <span class="material-icons" aria-hidden="true">search</span>
                                                     搜索
@@ -1360,7 +1361,7 @@
                                         >
                                         <span class="material-icons folder_open">folder_open</span>
                                         <div class="bangumi-media-location">
-                                            <span id="bangumi-media-library-current">请选择媒体库</span
+                                            <span id="bangumi-media-library-current">等待搜索</span
                                             ><span
                                                 class="bangumi-media-summary"
                                                 id="bangumi-media-library-summary"

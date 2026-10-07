@@ -437,15 +437,31 @@ document.querySelector('#run').onclick = async () => {
             root
                 .querySelector('#bangumi-media-library-select')
                 .closest('bangumi-select')
-                .shadowRoot.querySelector('button').textContent === '请选择媒体库',
+                .shadowRoot.querySelector('button').textContent === '全部媒体库',
             '动态下拉选项刷新',
         );
         assert(!toolCalls.some((call) => call.url.includes('/MediaLibrary/Items')), '打开页面不加载媒体目录');
         const librarySelect = root.querySelector('#bangumi-media-library-select');
+        assert(
+            librarySelect.value === '*' && !librarySelect.querySelector('option[value=""]'),
+            '默认全部媒体库且无占位选项',
+        );
+        assert(!root.querySelector('#bangumi-media-library-submit').disabled, '默认允许搜索全部媒体库');
+        root.querySelector('#bangumi-media-library-submit').click();
+        await tick();
+        const allLibrariesCalls = toolCalls.filter((call) => call.url.includes('/MediaLibrary/Items'));
+        assert(
+            allLibrariesCalls.length === 1 &&
+                new URL(allLibrariesCalls[0].url, location.href).searchParams.get('libraryId') === '',
+            '点击搜索后查询全部媒体库',
+        );
         librarySelect.value = 'name:Anime';
         librarySelect.dispatchEvent(new Event('change'));
         await tick();
-        assert(!toolCalls.some((call) => call.url.includes('/MediaLibrary/Items')), '选择媒体库不自动搜索');
+        assert(
+            toolCalls.filter((call) => call.url.includes('/MediaLibrary/Items')).length === allLibrariesCalls.length,
+            '选择媒体库不自动搜索',
+        );
         root.querySelector('#bangumi-media-library-submit').click();
         await tick();
         assert(
