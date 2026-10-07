@@ -36,13 +36,13 @@ public class Controller(
         .Select(folder => new { Id = LibraryKey(folder), folder.Name }));
 
     [HttpGet("Items")]
-    public ActionResult<List<MissingBangumiIdItem>> GetItems([FromQuery] string? libraryId = null)
+    public ActionResult<List<MissingBangumiIdItem>> GetItems([FromQuery] string? libraryId = null, [FromQuery] bool recentOnly = true)
     {
         var locations = string.IsNullOrWhiteSpace(libraryId) ? null : library.GetVirtualFolders()
             .FirstOrDefault(folder => LibraryKey(folder) == libraryId)?.Locations;
         if (!string.IsNullOrWhiteSpace(libraryId) && locations is null)
             return BadRequest("所选媒体库不存在，请重新打开工具后选择。");
-        return Ok(FindMissingItems(locations: locations)
+        return Ok(FindMissingItems(locations: locations, minimumModifiedDate: recentOnly ? DateTime.UtcNow.AddMonths(-1) : null)
             .Select(item =>
             {
                 var episode = item as Episode;
@@ -130,7 +130,7 @@ public class Controller(
         return Ok(result);
     }
 
-    private List<BaseItem> FindMissingItems(Guid[]? itemIds = null, string[]? locations = null)
+    private List<BaseItem> FindMissingItems(Guid[]? itemIds = null, string[]? locations = null, DateTime? minimumModifiedDate = null)
     {
         var query = new InternalItemsQuery
         {
@@ -141,6 +141,7 @@ public class Controller(
             query.ItemIds = itemIds;
 
         return library.GetItemList(query)
+            .Where(item => minimumModifiedDate is null || item.DateModified >= minimumModifiedDate.Value)
             .Where(item => locations is null || locations.Any(location => IsInLibrary(item.Path, location)))
             .Where(item => !HasValidBangumiId(item))
             .OrderBy(item => item.GetBaseItemKind())

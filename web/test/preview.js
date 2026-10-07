@@ -569,14 +569,17 @@ document.querySelector('#run').onclick = async () => {
         tool = toolsRoot.querySelector('bangumi-tool-missing-id').shadowRoot;
         await tick();
         assert(tool.querySelector('#library').options.length === 2, '缺失 ID 工具加载媒体库');
+        assert(tool.querySelector('#recent-only').checked, '缺失 ID 默认只搜索近一个月更新的视频');
         assert(getComputedStyle(tool.querySelector('#library')).opacity === '0', '工具内部原生下拉由组件隐藏');
         tool.querySelector('#library').value = 'name:Anime';
         tool.querySelector('#library').dispatchEvent(new Event('change'));
         tool.querySelector('#scan').click();
         await tick();
         assert(
-            toolCalls.some((call) => call.url.includes('MissingBangumiId/Items?libraryId=name%3AAnime')),
-            '扫描传递所选媒体库',
+            toolCalls.some((call) =>
+                call.url.includes('MissingBangumiId/Items?recentOnly=true&libraryId=name%3AAnime'),
+            ),
+            '缺失 ID 扫描传递最近更新筛选和所选媒体库',
         );
         assert(
             tool.querySelectorAll('.missing-series').length === 1 &&
@@ -591,14 +594,29 @@ document.querySelector('#run').onclick = async () => {
             '单季只展示季度标题',
         );
         assert(
-            tool.querySelector('bangumi-checkbox a[slot=actions]').target === '_blank',
+            tool.querySelector('#results bangumi-checkbox a[slot=actions]').target === '_blank',
             '视频详情位于行内并新窗口打开',
         );
         assert(tool.querySelector('input[data-unavailable]').disabled, '未启用提供程序不可刷新');
-        tool.querySelector('input:not([data-unavailable])').checked = true;
+        tool.querySelector('#results input:not([data-unavailable])').checked = true;
         tool.querySelector('#refresh').click();
         await tick();
+        assert(
+            toolCalls.some((call) => call.url.includes('MissingBangumiId/Refresh') && call.data.items === 'missing-1'),
+            '缺失 ID 刷新仅提交视频 ID，不包含筛选复选框',
+        );
         assert(tool.querySelectorAll('input[data-unavailable]:disabled').length === 2, '刷新排队后不可重复选择');
+        tool.querySelector('#recent-only').checked = false;
+        tool.querySelector('#recent-only').dispatchEvent(new Event('change'));
+        assert(!tool.querySelector('#results').children.length, '更改缺失 ID 时间筛选清空旧结果');
+        tool.querySelector('#scan').click();
+        await tick();
+        assert(
+            toolCalls.some((call) =>
+                call.url.includes('MissingBangumiId/Items?recentOnly=false&libraryId=name%3AAnime'),
+            ),
+            '缺失 ID 可取消时间筛选扫描全部视频',
+        );
         confirmed = false;
         toolsRoot.querySelector('#back').click();
         await tick();
