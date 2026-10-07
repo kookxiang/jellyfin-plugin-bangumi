@@ -10,7 +10,6 @@ const config = {
     TranslationPreference: 'Chinese',
     PersonTranslationPreference: 'Original',
     EpisodeParser: 'Torrent',
-    MergeEpisodeVersionsByBangumiId: false,
     ImportMissingEpisodes: false,
     ImportUnairedEpisodes: false,
     EnabledMissingEpisodeLibraries: [],
@@ -404,18 +403,6 @@ document.querySelector('#run').onclick = async () => {
                 .hidden,
             '用户菜单在 Shadow DOM 内保持打开',
         );
-        root.querySelector('[data-target=episode-parser]').click();
-        const versionsSwitch = root.querySelector('#MergeEpisodeVersionsByBangumiId');
-        assert(!versionsSwitch.checked, '回填已保存的关闭设置');
-        assert(
-            root.querySelector('#MergeEpisodeVersionsByBangumiId-label').textContent.includes('12.0') &&
-                root.querySelector('#MergeEpisodeVersionsByBangumiId-description').textContent.includes('未来将下线'),
-            '版本合并标记为仅针对 12.0 的临时修复',
-        );
-        versionsSwitch.click();
-        root.querySelector('#bangumiConfigurationForm').requestSubmit();
-        await tick();
-        assert(saved.MergeEpisodeVersionsByBangumiId === true, '通用版本合并开关保存');
         root.querySelector('[data-target=metadata]').click();
         const missingLibraries = root.querySelector('#EnabledMissingEpisodeLibraries');
         assert(
@@ -450,7 +437,6 @@ document.querySelector('#run').onclick = async () => {
         parserSelect.querySelector('button').click();
         parserSelect.querySelector('[data-index="2"]').click();
         assert(parser.value === 'Torrent', '恢复混合解析器');
-        assert(versionsSwitch.checked && !versionsSwitch.closest('[episode-parser]'), '版本合并不依赖解析模式');
 
         const firstTab = root.querySelector('[role=tab]');
         firstTab.click();

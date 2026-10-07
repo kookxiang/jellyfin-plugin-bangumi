@@ -13,21 +13,16 @@ namespace Jellyfin.Plugin.Bangumi.Test;
 public class EpisodePreRefreshTests
 {
     [DataTestMethod]
-    [DataRow(EpisodeParserType.Basic, true)]
-    [DataRow(EpisodeParserType.AnitomySharp, true)]
-    [DataRow(EpisodeParserType.Torrent, true)]
-    [DataRow(EpisodeParserType.Basic, false)]
-    [DataRow(EpisodeParserType.AnitomySharp, false)]
-    [DataRow(EpisodeParserType.Torrent, false)]
-    public async Task VersionWorkaroundDoesNotOverwriteEpisodeNumbers(EpisodeParserType parser, bool enabled)
+    [DataRow(EpisodeParserType.Basic)]
+    [DataRow(EpisodeParserType.AnitomySharp)]
+    [DataRow(EpisodeParserType.Torrent)]
+    public async Task KeepsEpisodeNumbersForSelectedParser(EpisodeParserType parser)
     {
         var configuration = ServiceLocator.GetService<Bangumi.Plugin>().Configuration;
         var previousParser = configuration.EpisodeParser;
-        var previousEnabled = configuration.MergeEpisodeVersionsByBangumiId;
         try
         {
             configuration.EpisodeParser = parser;
-            configuration.MergeEpisodeVersionsByBangumiId = enabled;
             var item = new JellyfinEpisode
             {
                 Path = "/anime/White Album 2[01][Hi10p_1080p][BDRip][x264_2flac].mkv",
@@ -44,7 +39,6 @@ public class EpisodePreRefreshTests
         finally
         {
             configuration.EpisodeParser = previousParser;
-            configuration.MergeEpisodeVersionsByBangumiId = previousEnabled;
         }
     }
 }

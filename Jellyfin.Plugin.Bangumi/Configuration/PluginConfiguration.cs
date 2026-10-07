@@ -1,5 +1,4 @@
 using System.Linq;
-using System;
 using MediaBrowser.Model.Plugins;
 
 namespace Jellyfin.Plugin.Bangumi.Configuration;
@@ -22,13 +21,6 @@ public class PluginConfiguration : BasePluginConfiguration
 #if !EMBY
     public bool EnableUserSettingsInjection { get; set; }
 #endif
-
-    // Use the loaded server assembly so this temporary workaround defaults on only for Jellyfin 12.0.x.
-    public bool MergeEpisodeVersionsByBangumiId { get; set; } =
-        ShouldEnableEpisodeVersionWorkaround(typeof(MediaBrowser.Controller.Entities.BaseItem).Assembly.GetName().Version);
-
-    internal static bool ShouldEnableEpisodeVersionWorkaround(Version? serverVersion) =>
-        serverVersion?.Major == 12 && serverVersion.Minor == 0;
 
 #if !EMBY
     // Missing episode providers and their settings are only available in Jellyfin.

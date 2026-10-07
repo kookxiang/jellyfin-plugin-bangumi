@@ -63,7 +63,7 @@ public class MissingEpisodeTests
         plugin.Configuration.EnabledMissingEpisodeLibraries = [_library.Folder.Id.ToString()];
         _archive = new Bangumi.Archive.ArchiveData(new Paths(_root));
         _provider = new MissingEpisodeProvider(_archive, library,
-            DispatchProxy.Create<IBaseItemManager, EpisodeVersionResolverTests.FetcherProxy>());
+            DispatchProxy.Create<IBaseItemManager, MockedBaseItemManager>());
         _series = new JellyfinSeries { Id = Guid.NewGuid(), Path = Path.Join(_root, "series"), Name = "Test", PresentationUniqueKey = "test-series" };
         _series.SetProviderId(Constants.ProviderName, "10");
         _season = new MediaBrowser.Controller.Entities.TV.Season

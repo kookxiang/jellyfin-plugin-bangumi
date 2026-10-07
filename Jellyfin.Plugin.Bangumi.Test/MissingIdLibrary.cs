@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using Jellyfin.Plugin.Bangumi.Test.Mock;
 using Jellyfin.Plugin.Bangumi.Test.Util;
 using MediaBrowser.Controller.BaseItemManager;
 using MediaBrowser.Controller.Entities;
@@ -85,7 +86,7 @@ public class MissingIdLibraryTestCases
         var provider = DispatchProxy.Create<IProviderManager, MissingTitleTests.QueueProxy>();
         ((MissingTitleTests.QueueProxy)(object)provider).OnQueue = (id, _) => queued?.Add(id);
         return new MissingIdController(ServiceLocator.GetService<Logger<MissingIdController>>(), library,
-            DispatchProxy.Create<IBaseItemManager, EpisodeVersionResolverTests.FetcherProxy>(), provider,
+            DispatchProxy.Create<IBaseItemManager, MockedBaseItemManager>(), provider,
             DispatchProxy.Create<IDirectoryService, MissingTitleTests.QueueProxy>());
     }
 

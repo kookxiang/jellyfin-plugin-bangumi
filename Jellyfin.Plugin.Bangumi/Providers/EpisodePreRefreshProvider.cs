@@ -16,7 +16,6 @@ public class EpisodePreRefreshProvider : ICustomMetadataProvider<Episode>, IPreR
             return Task.FromResult(ItemUpdateType.None);
 
         // Let the selected metadata parser set the season instead of Jellyfin's filename guess.
-        // Version grouping must not override episode numbers or multipart ranges here.
         item.ParentIndexNumber = null;
         return Task.FromResult(ItemUpdateType.None);
     }

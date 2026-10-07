@@ -48,7 +48,7 @@ public class MissingTitleTests
         _queue = (QueueProxy)(object)provider;
         _queue.OnQueue = (id, options) => _queued.Add((id, options));
         _controller = new TitleController(ServiceLocator.GetService<Logger<TitleController>>(), _library,
-            DispatchProxy.Create<IBaseItemManager, EpisodeVersionResolverTests.FetcherProxy>(), provider,
+            DispatchProxy.Create<IBaseItemManager, MockedBaseItemManager>(), provider,
             DispatchProxy.Create<IDirectoryService, QueueProxy>(), _naming);
     }
 
