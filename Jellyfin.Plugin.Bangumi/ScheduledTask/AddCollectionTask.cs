@@ -198,6 +198,7 @@ public class AddCollectionTask(BangumiApi api, ArchiveData archive, ILibraryMana
             {
                 collection.AddImage(backdrop);
             }
+            await collection.UpdateToRepositoryAsync(ItemUpdateType.ImageUpdate,cancellationToken).ConfigureAwait(false);
         }
 
         progress?.Report(100);
