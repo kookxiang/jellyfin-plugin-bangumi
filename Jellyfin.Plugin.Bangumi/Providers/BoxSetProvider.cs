@@ -46,7 +46,7 @@ public class BoxSetProvider(BangumiApi api) : IRemoteMetadataProvider<BoxSet, Bo
     {
         var results = new List<RemoteSearchResult>();
 
-        var series = await api.SearchSubject(searchInfo.Name, cancellationToken);
+        var series = await api.SearchSubject(searchInfo.Name, null, cancellationToken);
         foreach (var item in series)
         {
             var itemId = $"{item.Id}";
