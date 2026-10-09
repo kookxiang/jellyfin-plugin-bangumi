@@ -8,6 +8,7 @@ using Jellyfin.Plugin.Bangumi.Archive;
 using Jellyfin.Plugin.Bangumi.Model;
 using MediaBrowser.Controller.Collections;
 using MediaBrowser.Controller.Entities;
+using MediaBrowser.Controller.Entities.Movies;
 using MediaBrowser.Controller.Library;
 using MediaBrowser.Model.Entities;
 using MediaBrowser.Model.Tasks;
@@ -46,7 +47,7 @@ public class AddCollectionTask(BangumiApi api, ArchiveData archive, ILibraryMana
             IsVirtualItem = false,
             HasAnyProviderId = new Dictionary<string, string>
             {
-                { Constants.PluginName, string.Empty }
+                { Constants.ProviderName, string.Empty }
             },
         };
         IReadOnlyList<BaseItem> subjects = libraryManager.GetItemList(query);
@@ -54,7 +55,7 @@ public class AddCollectionTask(BangumiApi api, ArchiveData archive, ILibraryMana
         var subjectMap = new Dictionary<int, List<BaseItem>>();
         foreach (var item in subjects)
         {
-            var idStr = item.ProviderIds.GetValueOrDefault(Constants.PluginName);
+            var idStr = item.ProviderIds.GetValueOrDefault(Constants.ProviderName);
             if (idStr is null || !int.TryParse(idStr, out var bgmId))
                 continue;
 
@@ -78,6 +79,21 @@ public class AddCollectionTask(BangumiApi api, ArchiveData archive, ILibraryMana
         }
         log.Info("共 {Count} 个带 Bangumi ID 的条目", total);
 
+        // 所有已在 Bangumi 合集内的条目
+        var itemsInCollections = new HashSet<Guid>();
+        var collections = libraryManager.GetItemList(new InternalItemsQuery
+        {
+            IncludeItemTypes = [BaseItemKind.BoxSet],
+            HasAnyProviderId = new Dictionary<string, string> { { Constants.ProviderName, string.Empty } },
+        });
+        foreach (var collection in collections)
+        {
+            if (collection is BoxSet boxSet)
+                foreach (var child in boxSet.GetLinkedChildren())
+                    itemsInCollections.Add(child.Id);
+        }
+        log.Info("已在 Bangumi 合集内的条目：{Count}", itemsInCollections.Count);
+
         // 已处理的 Bangumi ID，同一系列只需处理一次
         var processedBgmIds = new HashSet<int>();
         var keys = subjectMap.Keys.OrderBy(x => x).ToList();
@@ -88,6 +104,10 @@ public class AddCollectionTask(BangumiApi api, ArchiveData archive, ILibraryMana
 
             var subjectId = keys[i];
             if (processedBgmIds.Contains(subjectId))
+                continue;
+
+            if (subjectMap.TryGetValue(subjectId, out var items)
+                && items.All(x => itemsInCollections.Contains(x.Id)))
                 continue;
 
             // 获取此 id 对应的系列所有 id
@@ -135,12 +155,14 @@ public class AddCollectionTask(BangumiApi api, ArchiveData archive, ILibraryMana
                 continue;
             }
 
-
-
             // 创建合集
             var option = new CollectionCreationOptions
             {
                 Name = $"{firstSubject.Name}（系列）",
+                ProviderIds = new Dictionary<string, string>
+                {
+                    { Constants.ProviderName, firstSubject.Id.ToString() }
+                },
 #if EMBY
                 ItemIdList = subjectsInLibrary.Select(o => o.InternalId).ToArray(),
 #else
@@ -156,16 +178,25 @@ public class AddCollectionTask(BangumiApi api, ArchiveData archive, ILibraryMana
 
             log.Info("添加合集：{subjects}", string.Join(", ", subjectsInLibrary.Select(s => s.Name)));
 
-            // 随机封面
-            var imageSources = subjectsInLibrary
-                .Select(o => o.GetImageInfo(ImageType.Primary, 0))
+            // 随机图片
+            foreach (var imageType in new[] { ImageType.Primary, ImageType.Art, ImageType.Banner, ImageType.Logo, ImageType.Thumb })
+            {
+                var sources = subjectsInLibrary
+                    .Select(o => o.GetImageInfo(imageType, 0))
+                    .Where(info => info is not null)
+                    .ToList();
+                if (sources.Count > 0)
+                    collection.SetImage(sources[Random.Shared.Next(sources.Count)], 0);
+            }
+
+            // 背景图
+            var backdropSources = subjectsInLibrary
+                .SelectMany(o => o.GetImages(ImageType.Backdrop))
                 .Where(info => info is not null)
                 .ToList();
-
-            if (imageSources.Count > 0)
+            foreach (var backdrop in backdropSources)
             {
-                collection.SetImage(
-                    imageSources[Random.Shared.Next(imageSources.Count)]!, 0);
+                collection.AddImage(backdrop);
             }
         }
 

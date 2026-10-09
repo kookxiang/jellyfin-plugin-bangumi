@@ -89,7 +89,9 @@ public class ArchiveData(IApplicationPaths paths)
 
     public SubjectCharacterRelation SubjectCharacterRelation => new(this);
 
-    public SubjectRelations SubjectRelations => new(this);
+    private SubjectRelations? _subjectRelations;
+
+    public SubjectRelations SubjectRelations => _subjectRelations ??= new(this);
 
     public SubjectEpisodeRelation SubjectEpisodeRelation => new(this);
 
