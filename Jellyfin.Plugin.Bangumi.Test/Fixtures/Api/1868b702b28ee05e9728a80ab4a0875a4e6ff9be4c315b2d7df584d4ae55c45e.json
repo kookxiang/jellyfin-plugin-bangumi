@@ -1,0 +1,6 @@
+{
+    "Request": "GET /v0/persons/20942\n",
+    "Status": 200,
+    "Body": "{\"last_modified\":\"0001-01-01T00:00:00Z\",\"blood_type\":null,\"birth_year\":1984,\"birth_day\":20,\"birth_mon\":8,\"gender\":\"male\",\"images\":{\"small\":\"https://lain.bgm.tv/r/100/pic/crt/l/bc/cc/20942_prsn_s22ME.jpg\",\"grid\":\"https://lain.bgm.tv/pic/crt/g/bc/cc/20942_prsn_s22ME.jpg\",\"large\":\"https://lain.bgm.tv/pic/crt/l/bc/cc/20942_prsn_s22ME.jpg\",\"medium\":\"https://lain.bgm.tv/r/400/pic/crt/l/bc/cc/20942_prsn_s22ME.jpg\"},\"summary\":\"森山未来（1984年8月20日－），日本男演员，出生于兵库县神户市滩区。松田优作事务所所属。舞者出身，2013年10月至2014年10月，曾受邀担任日本文化厅文化交流大使，参与了以色列、比利时等地的舞蹈团体活动。\\r\\n\\r\\nhttp://www.miraimoriyama.com/\\r\\nhttp://www.office-saku.com/artists/mirai_moriyama.html\",\"name\":\"森山未來\",\"img\":\"https://lain.bgm.tv/pic/crt/l/bc/cc/20942_prsn_s22ME.jpg\",\"infobox\":[{\"key\":\"简体中文名\",\"value\":\"森山未来\"},{\"key\":\"别名\",\"value\":[{\"k\":\"日文名\",\"v\":\"森山 未來\"},{\"k\":\"纯假名\",\"v\":\"もりやま みらい\"},{\"k\":\"罗马字\",\"v\":\"Moriyama Mirai\"}]},{\"key\":\"性别\",\"value\":\"男\"},{\"key\":\"生日\",\"value\":\"1984年8月20日\"},{\"key\":\"血型\",\"value\":\"AB型\"},{\"key\":\"身高\",\"value\":\"172cm\"}],\"career\":[\"actor\"],\"stat\":{\"comments\":0,\"collects\":3},\"id\":20942,\"locked\":false,\"type\":1}",
+    "Location": null
+}

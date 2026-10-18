@@ -1,0 +1,6 @@
+{
+    "Request": "GET /v0/persons/37042\n",
+    "Status": 200,
+    "Body": "{\"last_modified\":\"0001-01-01T00:00:00Z\",\"blood_type\":null,\"birth_year\":1991,\"birth_day\":23,\"birth_mon\":9,\"gender\":\"female\",\"images\":{\"small\":\"https://lain.bgm.tv/r/100/pic/crt/l/21/5d/37042_prsn_77B88.jpg\",\"grid\":\"https://lain.bgm.tv/pic/crt/g/21/5d/37042_prsn_77B88.jpg\",\"large\":\"https://lain.bgm.tv/pic/crt/l/21/5d/37042_prsn_77B88.jpg\",\"medium\":\"https://lain.bgm.tv/r/400/pic/crt/l/21/5d/37042_prsn_77B88.jpg\"},\"summary\":\"\",\"name\":\"朝倉あき\",\"img\":\"https://lain.bgm.tv/pic/crt/l/21/5d/37042_prsn_77B88.jpg\",\"infobox\":[{\"key\":\"简体中文名\",\"value\":\"朝仓亚纪\"},{\"key\":\"别名\",\"value\":[]},{\"key\":\"性别\",\"value\":\"女\"},{\"key\":\"生日\",\"value\":\"1991年9月23日\"},{\"key\":\"血型\",\"value\":\"B型\"},{\"key\":\"身高\",\"value\":\"165cm\"}],\"career\":[\"seiyu\",\"actor\"],\"stat\":{\"comments\":1,\"collects\":1},\"id\":37042,\"locked\":false,\"type\":1}",
+    "Location": null
+}
