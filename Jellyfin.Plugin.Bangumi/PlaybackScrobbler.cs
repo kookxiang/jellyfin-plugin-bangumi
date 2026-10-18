@@ -123,6 +123,24 @@ public class PlaybackScrobbler(IUserDataManager userDataManager, OAuthStore stor
                     return;
                 }
                 reportPrivate = subject?.IsNSFW == true && Configuration.PrivateNSFWPlaybackReport;
+                // skip episode, only update subject status when reportPrivate is true
+                if (reportPrivate)
+                {
+                    if (played)
+                    {
+                        log.Info("report subject #{Subject} status {Status} to bangumi (private)",
+                            subjectId, CollectionType.Watching);
+                        await api.UpdateCollectionStatus(
+                            user.AccessToken,
+                            subjectId,
+                            CollectionType.Watching,
+                            CancellationToken.None,
+                            reportPrivate);
+                    }
+
+                    log.Info("skip episode report for private NSFW subject #{Subject}", subjectId);
+                    return;
+                }
 
                 var episodeStatus = await api.GetEpisodeStatus(user.AccessToken, episodeId, CancellationToken.None);
                 if (episodeStatus?.Type == EpisodeCollectionType.Watched)
