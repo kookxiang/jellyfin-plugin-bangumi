@@ -21,7 +21,7 @@ public class SubjectImageProvider(BangumiApi api)
 
     public bool Supports(BaseItem item)
     {
-        return item is Series or Season or Movie or Book or MusicAlbum or Audio;
+        return item is Series or Season or Movie or Book or MusicAlbum or Audio or BoxSet;
     }
 
     public IEnumerable<ImageType> GetSupportedImages(BaseItem item)
