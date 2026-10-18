@@ -1,0 +1,18 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="Jellyfin 12.2" type="RunExe" factoryName=".NET Executable">
+    <option name="EXE_PATH" value="$PROJECT_DIR$/debug/jellyfin-12.2/jellyfin.dll" />
+    <option name="PROGRAM_PARAMETERS" value="--datadir $PROJECT_DIR$/debug/jellyfin-12.2/data/" />
+    <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/debug/jellyfin-12.2" />
+    <option name="PASS_PARENT_ENVS" value="1" />
+    <option name="ENV_FILE_PATHS" value="" />
+    <option name="REDIRECT_INPUT_PATH" value="" />
+    <option name="MIXED_MODE_DEBUG" value="0" />
+    <option name="USE_MONO" value="0" />
+    <option name="RUNTIME_ARGUMENTS" value="" />
+    <option name="AUTO_ATTACH_CHILDREN" value="0" />
+    <option name="RUNTIME_TYPE" value="coreclr" />
+    <method v="2">
+      <option name="Build Solution" enabled="true" />
+    </method>
+  </configuration>
+</component>

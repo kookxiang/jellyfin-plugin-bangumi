@@ -6,6 +6,8 @@ Jellyfin bgm.tv 数据源插件，用于拉取中文番剧信息及图片。
 
 支持将播放进度同步至 bgm.tv
 
+推荐使用 **JetBrains Rider** 进行开发与调试。打开 `Jellyfin.Plugin.Bangumi.sln`，完成环境准备后，即可使用仓库提供的运行配置启动和调试 Jellyfin。环境搭建、插件软链接及前端热重载步骤请参阅 [本地调试环境搭建](docs/本地调试环境.md)。
+
 ![后台配置](https://github.com/user-attachments/assets/1d1bdfd9-a932-4bf5-9b0a-ec15a1aed3a0)
 
 # 下载
