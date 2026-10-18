@@ -12,7 +12,7 @@ public class ExternalIdProvider : IExternalId
 {
     public bool Supports(IHasProviderIds item)
     {
-        return item is Audio or Book or Episode or Movie or MusicAlbum or MusicArtist or Person or Season or Series;
+        return item is Audio or Book or BoxSet or Episode or Movie or MusicAlbum or MusicArtist or Person or Season or Series;
     }
 
     public string ProviderName => Constants.ProviderName;

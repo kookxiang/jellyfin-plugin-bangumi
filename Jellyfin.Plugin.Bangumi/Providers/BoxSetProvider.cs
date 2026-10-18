@@ -4,6 +4,7 @@ using System.Linq;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
+using Jellyfin.Plugin.Bangumi.Model;
 using Jellyfin.Plugin.Bangumi.Utils;
 using MediaBrowser.Controller.Entities.Movies;
 using MediaBrowser.Controller.Providers;
@@ -46,8 +47,24 @@ public class BoxSetProvider(BangumiApi api) : IRemoteMetadataProvider<BoxSet, Bo
     {
         var results = new List<RemoteSearchResult>();
 
-        var series = await api.SearchSubject(searchInfo.Name, null, cancellationToken);
-        foreach (var item in series)
+        IEnumerable<Subject> subjects;
+        if (int.TryParse(searchInfo.ProviderIds.GetOrDefault(Constants.ProviderName), out var subjectId))
+        {
+            var subject = await api.GetSubject(subjectId, cancellationToken);
+            if (subject == null)
+                return results;
+            subjects = [subject];
+        }
+        else if (!string.IsNullOrWhiteSpace(searchInfo.Name))
+        {
+            subjects = await api.SearchSubject(searchInfo.Name, null, cancellationToken);
+        }
+        else
+        {
+            return results;
+        }
+
+        foreach (var item in subjects)
         {
             var itemId = $"{item.Id}";
             var imageUrl = ImageUrlNormalizer.Normalize(item.DefaultImage);
