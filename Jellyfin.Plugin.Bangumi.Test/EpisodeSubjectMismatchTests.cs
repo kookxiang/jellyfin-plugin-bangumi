@@ -70,18 +70,35 @@ public class EpisodeSubjectMismatchTests
         Assert.AreEqual(_season.Id, matching.SeasonId);
     }
 
-    [TestMethod]
-    public async Task ExcludesSpecialsFromHostApiFilenameAndDirectoryConfiguration()
+    [DataTestMethod]
+    [DataRow(true)]
+    [DataRow(false)]
+    public async Task SpecialFilterCoversHostApiFilenameAndDirectoryConfiguration(bool skipSpecials)
     {
         AddEpisode(200).ParentIndexNumber = 0;
         AddEpisode(200, type: 1);
         AddEpisode(200, fileName: "OVA01.mkv");
         var configured = AddEpisode(200);
         await File.WriteAllTextAsync(Path.Join(Path.GetDirectoryName(configured.Path), "bangumi.ini"), "[Bangumi]\nType=Special\n");
-        var result = await Scan();
-        Assert.AreEqual(0, result.Items.Count);
-        Assert.AreEqual(4, result.SkippedCount);
-        Assert.AreEqual(1, _api.Requests, "Only the API-classified special needs a lookup.");
+        var result = await Scan(skipSpecials: skipSpecials);
+        Assert.AreEqual(skipSpecials ? 0 : 4, result.Items.Count);
+        Assert.AreEqual(skipSpecials ? 4 : 0, result.SkippedCount);
+        Assert.AreEqual(skipSpecials ? 1 : 4, _api.Requests);
+    }
+
+    [TestMethod]
+    public async Task RecentFilterDefaultsToLastMonthAndCanIncludeOldOrUnknownDates()
+    {
+        AddEpisode(200).DateModified = DateTime.UtcNow.AddDays(-10);
+        AddEpisode(200).DateModified = DateTime.UtcNow.AddMonths(-2);
+        AddEpisode(200).DateModified = default;
+        var recent = await Scan();
+        Assert.AreEqual(1, recent.CheckedCount);
+        Assert.AreEqual(2, recent.SkippedCount);
+        Assert.AreEqual(1, _api.Requests, "Old files must be filtered before Bangumi lookups.");
+        var all = await Scan(recentOnly: false);
+        Assert.AreEqual(3, all.CheckedCount);
+        Assert.AreEqual(0, all.SkippedCount);
     }
 
     [TestMethod]
@@ -163,7 +180,7 @@ public class EpisodeSubjectMismatchTests
         var episode = new TvEpisode
         {
             Path = FakePath.CreateFile($"{_root}/{id}/{fileName}"), Name = "Episode",
-            SeasonId = _season.Id, ParentIndexNumber = 1,
+            SeasonId = _season.Id, ParentIndexNumber = 1, DateModified = DateTime.UtcNow,
         };
         episode.SetProviderId(Constants.ProviderName, id.ToString());
         _api.Episodes[id] = (subjectId, type);
@@ -172,8 +189,9 @@ public class EpisodeSubjectMismatchTests
         return episode;
     }
 
-    private async Task<ScanResult> Scan(string? library = null, int start = 0, int limit = 20) =>
-        (ScanResult)((OkObjectResult)(await _controller.GetItems(library, start, limit)).Result!).Value!;
+    private async Task<ScanResult> Scan(string? library = null, int start = 0, int limit = 20,
+        bool recentOnly = true, bool skipSpecials = true) =>
+        (ScanResult)((OkObjectResult)(await _controller.GetItems(library, start, limit, recentOnly, skipSpecials)).Result!).Value!;
 
     private sealed class LookupApi() : BangumiApi(new Bangumi.Archive.ArchiveData(new MockedApplicationPaths()),
         ServiceLocator.GetService<OAuthStore>(), ServiceLocator.GetService<Logger<BangumiApi>>())

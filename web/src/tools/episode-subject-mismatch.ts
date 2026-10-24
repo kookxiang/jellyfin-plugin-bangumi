@@ -31,10 +31,14 @@ export class EpisodeSubjectMismatch extends ToolController {
 
     mount() {
         this.render(`<style>${styles}</style>
-            <p class="relation-note">检查普通集与季度的 Bangumi 归属，仅扫描，不修改元数据。</p>
+            <p class="relation-note">检查剧集与季度的 Bangumi 归属，仅扫描，不修改元数据。</p>
             <div class="relation-toolbar">
                 <div class="tool-field"><label for="library">媒体库</label><bangumi-select><select id="library"><option value="">全部媒体库</option></select></bangumi-select></div>
                 <div class="relation-toolbar-actions">${action('开始扫描', 'scan')}${action('停止', 'stop', 'secondary')}</div>
+            </div>
+            <div class="relation-filters">
+                <label title="按文件最近修改时间筛选"><input id="recent-only" type="checkbox" checked />只扫描近一个月内的文件</label>
+                <label><input id="skip-specials" type="checkbox" checked />跳过特别篇剧集</label>
             </div>
             <div id="overview" class="relation-overview" hidden>
                 <span class="relation-count-mismatch"><strong id="mismatch-count">0</strong> 归属不符</span>
@@ -50,16 +54,19 @@ export class EpisodeSubjectMismatch extends ToolController {
             this.status('正在结束当前批次，已发现的结果会保留。');
         };
         const library = this.query<HTMLSelectElement>('#library');
-        library.onchange = () => {
+        const reset = () => {
             this.query('#results').replaceChildren();
             this.query('#overview').hidden = true;
-            this.status('媒体库已改变，请重新扫描。');
+            this.status('筛选条件已改变，请重新扫描。');
         };
+        library.onchange = reset;
+        this.query<HTMLInputElement>('#recent-only').onchange = reset;
+        this.query<HTMLInputElement>('#skip-specials').onchange = reset;
         this.query('#scan').onclick = () => this.run(() => this.scan());
         void this.run(async () => {
             const libraries = await this.request<{ Id: string; Name: string }[]>('EpisodeSubjectMismatch/Libraries');
             for (const item of libraries) library.append(new Option(item.Name || '未命名媒体库', item.Id));
-            this.status('选择媒体库后开始扫描。特别篇自动跳过。');
+            this.status('选择媒体库和扫描选项后开始扫描。');
         });
     }
 
@@ -69,6 +76,8 @@ export class EpisodeSubjectMismatch extends ToolController {
         this.query('#overview').hidden = true;
         const groups = new Map<string, HTMLElement>();
         const libraryId = this.query<HTMLSelectElement>('#library').value;
+        const recentOnly = this.query<HTMLInputElement>('#recent-only').checked;
+        const skipSpecials = this.query<HTMLInputElement>('#skip-specials').checked;
         const stop = this.query<HTMLButtonElement>('#stop');
         this.stopped = false;
         stop.hidden = false;
@@ -83,7 +92,12 @@ export class EpisodeSubjectMismatch extends ToolController {
             `已校验 ${checked} 项，关系不一致 ${mismatches} 项，未能校验 ${unverified} 项，跳过 ${skipped} 项`;
         try {
             while (true) {
-                const query = new URLSearchParams({ startIndex: String(startIndex), limit: '20' });
+                const query = new URLSearchParams({
+                    startIndex: String(startIndex),
+                    limit: '20',
+                    recentOnly: String(recentOnly),
+                    skipSpecials: String(skipSpecials),
+                });
                 if (libraryId) query.set('libraryId', libraryId);
                 const page = await this.request<ScanResult>('EpisodeSubjectMismatch/Items?' + query);
                 scanned += page.ScannedCount;

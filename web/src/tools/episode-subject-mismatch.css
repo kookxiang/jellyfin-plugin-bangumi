@@ -23,7 +23,31 @@
     align-items: flex-end;
     flex-wrap: wrap;
     gap: 16px;
+    margin-bottom: 12px;
+}
+
+.relation-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 20px;
     margin-bottom: 24px;
+    font-size: 0.8125rem;
+    color: var(--relation-muted);
+}
+
+.relation-filters label {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 32px;
+    cursor: pointer;
+}
+
+.relation-filters input {
+    width: 16px;
+    height: 16px;
+    margin: 0;
+    accent-color: var(--jf-palette-primary-main, #00a4dc);
 }
 
 .relation-toolbar .tool-field {

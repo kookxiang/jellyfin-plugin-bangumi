@@ -35,7 +35,9 @@ public class Controller(ILibraryManager library, BangumiApi api, Logger<Controll
 
     [HttpGet("Items")]
     public async Task<ActionResult<ScanResult>> GetItems([FromQuery] string? libraryId = null,
-        [FromQuery] int startIndex = 0, [FromQuery] int limit = 20, CancellationToken cancellationToken = default)
+        [FromQuery] int startIndex = 0, [FromQuery] int limit = 20,
+        [FromQuery] bool recentOnly = true, [FromQuery] bool skipSpecials = true,
+        CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
         if (startIndex < 0 || limit is < 1 or > 50)
@@ -64,10 +66,13 @@ public class Controller(ILibraryManager library, BangumiApi api, Logger<Controll
 
         // Reused IDs only need one lookup per page. Failed lookups are cached too.
         var episodes = new Dictionary<int, Task<Model.Episode?>>();
+        var minimumModifiedDate = DateTime.UtcNow.AddMonths(-1);
         foreach (var item in page.Items.OfType<Episode>())
         {
             cancellationToken.ThrowIfCancellationRequested();
-            if (item.IsVirtualItem || string.IsNullOrWhiteSpace(item.Path) || item.ParentIndexNumber == 0
+            if (item.IsVirtualItem || string.IsNullOrWhiteSpace(item.Path)
+                || recentOnly && item.DateModified < minimumModifiedDate
+                || skipSpecials && item.ParentIndexNumber == 0
                 || !int.TryParse(item.GetProviderId(Constants.ProviderName), out var episodeId) || episodeId <= 0
                 || pathFallback && !(folder!.Locations ?? []).Any(location => MissingBangumiId.Controller.IsInLibrary(item.Path, location)))
             {
@@ -91,10 +96,10 @@ public class Controller(ILibraryManager library, BangumiApi api, Logger<Controll
                 var local = await LocalConfiguration.ForPath(item.Path);
                 var forcedType = local.GetForcedEpisodeType();
                 var configuration = Plugin.Instance!.Configuration;
-                if (season?.IndexNumber == 0 || local.Skip || forcedType == EpisodeType.Special
+                if (local.Skip || skipSpecials && (season?.IndexNumber == 0 || forcedType == EpisodeType.Special
                     || forcedType != EpisodeType.Normal && (BasicEpisodeParser.IsSpecial(item.Path, library)
                         || configuration.EpisodeParser == Configuration.EpisodeParserType.Torrent
-                        && ExcludeRegexMatcher.IsSpecial(configuration, item.Path, ExcludeRegexPathType.EpisodeFile, library, log)))
+                        && ExcludeRegexMatcher.IsSpecial(configuration, item.Path, ExcludeRegexPathType.EpisodeFile, library, log))))
                 {
                     result.SkippedCount++;
                     continue;
@@ -112,7 +117,7 @@ public class Controller(ILibraryManager library, BangumiApi api, Logger<Controll
                     result.Items.Add(row);
                     continue;
                 }
-                if (forcedType != EpisodeType.Normal && episode.Type != EpisodeType.Normal)
+                if (skipSpecials && forcedType != EpisodeType.Normal && episode.Type != EpisodeType.Normal)
                 {
                     result.SkippedCount++;
                     continue;
@@ -128,7 +133,7 @@ public class Controller(ILibraryManager library, BangumiApi api, Logger<Controll
                 if (subjectId != episode.ParentId)
                 {
                     row.Status = "Mismatch";
-                    row.Reason = "普通集实际所属的 Bangumi 条目与季度不同";
+                    row.Reason = "单集实际所属的 Bangumi 条目与季度不同";
                     result.Items.Add(row);
                 }
             }

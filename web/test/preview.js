@@ -752,6 +752,10 @@ document.querySelector('#run').onclick = async () => {
         tool = toolsRoot.querySelector('bangumi-tool-episode-subject-mismatch').shadowRoot;
         await tick();
         assert(tool.querySelector('#library').options.length === 2, '关系扫描加载媒体库但不自动扫描');
+        assert(
+            tool.querySelector('#recent-only').checked && tool.querySelector('#skip-specials').checked,
+            '关系扫描两个选项默认勾选',
+        );
         tool.querySelector('#library').value = 'anime';
         tool.querySelector('#scan').click();
         await tick();
@@ -784,7 +788,9 @@ document.querySelector('#run').onclick = async () => {
         );
         assert(
             toolCalls.some((call) =>
-                call.url.includes('EpisodeSubjectMismatch/Items?startIndex=20&limit=20&libraryId=anime'),
+                call.url.includes(
+                    'EpisodeSubjectMismatch/Items?startIndex=20&limit=20&recentOnly=true&skipSpecials=true&libraryId=anime',
+                ),
             ),
             '关系扫描分页并保留媒体库筛选',
         );
@@ -794,6 +800,24 @@ document.querySelector('#run').onclick = async () => {
                 .every((call) => call.type === 'GET'),
             '关系扫描仅发起只读请求',
         );
+        tool.querySelector('#recent-only').click();
+        assert(
+            !tool.querySelector('#results').children.length && tool.querySelector('#overview').hidden,
+            '改变日期筛选清除旧结果',
+        );
+        tool.querySelector('#skip-specials').click();
+        tool.querySelector('#scan').click();
+        await tick();
+        assert(
+            toolCalls.some((call) =>
+                call.url.includes(
+                    'EpisodeSubjectMismatch/Items?startIndex=20&limit=20&recentOnly=false&skipSpecials=false&libraryId=anime',
+                ),
+            ),
+            '取消两个筛选后每一批都传递选项',
+        );
+        tool.querySelector('#skip-specials').click();
+        assert(!tool.querySelector('#results').children.length, '改变特别篇筛选清除旧结果');
         relationScenario = 'failure';
         tool.querySelector('#scan').click();
         await tick();
