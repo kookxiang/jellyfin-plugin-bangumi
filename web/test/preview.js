@@ -10,6 +10,7 @@ const config = {
     TranslationPreference: 'Chinese',
     PersonTranslationPreference: 'Original',
     EpisodeParser: 'Torrent',
+    AllowCrossSubjectEpisodeMatching: false,
     ImportMissingEpisodes: false,
     ImportUnairedEpisodes: false,
     EnabledMissingEpisodeLibraries: [],
@@ -32,6 +33,7 @@ const config = {
 let saved,
     loads = 0;
 let confirmed = false;
+let relationScenario = 'normal';
 const toolCalls = [];
 let directoryType;
 let directorySections = [];
@@ -116,6 +118,35 @@ const services = {
                         BangumiIndex: 27 - offset,
                         JellyfinIndex: query.get('correctIndex') === 'true' ? 27 - offset : 27,
                         Message: '模拟预览，不写入配置或元数据。',
+                    }),
+                );
+            }
+            if (url.includes('Tools/EpisodeSubjectMismatch/')) {
+                toolCalls.push({ url, data, type });
+                if (url.endsWith('/Libraries')) return new Response(JSON.stringify([{ Id: 'anime', Name: '动漫' }]));
+                const start = Number(new URL(url, location.origin).searchParams.get('startIndex'));
+                if (relationScenario === 'failure' && start > 0) return new Response('模拟查询失败', { status: 503 });
+                const item = {
+                    Id: `relation-${start}`,
+                    Name: start ? '无法校验的剧集' : '第十三集',
+                    SeriesName: '测试动画',
+                    SeasonName: '第一季',
+                    SeasonId: 'relation-season',
+                    Path: '/media/Show/Season 1/13.mkv',
+                    EpisodeBangumiId: 123,
+                    SeasonBangumiId: 100,
+                    ActualSubjectId: start ? null : 200,
+                    Status: start ? 'Unverified' : 'Mismatch',
+                    Reason: start ? '查询失败，请重试' : '普通集实际所属的 Bangumi 条目与季度不同',
+                };
+                return new Response(
+                    JSON.stringify({
+                        ScannedCount: 20,
+                        TotalItemCount: 40,
+                        CheckedCount: start ? 19 : 20,
+                        SkippedCount: 0,
+                        NextStartIndex: start ? null : 20,
+                        Items: [item],
                     }),
                 );
             }
@@ -715,6 +746,60 @@ document.querySelector('#run').onclick = async () => {
             !tool.querySelector('input[data-item]') && tool.querySelector('#refresh').disabled,
             '切换媒体库清空旧选择',
         );
+        toolsRoot.querySelector('#back').click();
+        await tick();
+        cards[4].click();
+        tool = toolsRoot.querySelector('bangumi-tool-episode-subject-mismatch').shadowRoot;
+        await tick();
+        assert(tool.querySelector('#library').options.length === 2, '关系扫描加载媒体库但不自动扫描');
+        tool.querySelector('#library').value = 'anime';
+        tool.querySelector('#scan').click();
+        await tick();
+        assert(tool.querySelectorAll('.relation-row').length === 2, '关系扫描跨批次保留异常和未能校验项');
+        assert(tool.querySelectorAll('.missing-series').length === 1, '关系扫描按季度跨批次合并');
+        assert(
+            tool.querySelector('[role=status]').textContent.includes('关系不一致 1 项，未能校验 1 项'),
+            '关系扫描区分异常和查询失败',
+        );
+        assert(
+            tool.querySelector('a[href="https://bgm.tv/subject/200"]').target === '_blank',
+            '实际所属条目可打开核对',
+        );
+        assert(
+            tool.querySelector('.result-group-header a').hash === '#/details?id=relation-season',
+            '可以打开季度详情核对',
+        );
+        assert(
+            toolCalls.some((call) =>
+                call.url.includes('EpisodeSubjectMismatch/Items?startIndex=20&limit=20&libraryId=anime'),
+            ),
+            '关系扫描分页并保留媒体库筛选',
+        );
+        assert(
+            toolCalls
+                .filter((call) => call.url.includes('EpisodeSubjectMismatch/'))
+                .every((call) => call.type === 'GET'),
+            '关系扫描仅发起只读请求',
+        );
+        relationScenario = 'failure';
+        tool.querySelector('#scan').click();
+        await tick();
+        assert(
+            tool.querySelectorAll('.relation-row').length === 1 &&
+                tool.querySelector('[role=status]').textContent.includes('扫描未完成'),
+            '关系扫描部分失败保留结果并提示未完成',
+        );
+        relationScenario = 'normal';
+        tool.querySelector('#scan').click();
+        tool.querySelector('#stop').click();
+        await tick();
+        assert(
+            tool.querySelector('[role=status]').textContent.includes('扫描已停止') &&
+                tool.querySelectorAll('.relation-row').length === 1,
+            '关系扫描可在当前批次结束时停止并保留结果',
+        );
+        tool.querySelector('#library').dispatchEvent(new Event('change'));
+        assert(!tool.querySelector('#results').children.length, '切换媒体库清除旧扫描结果');
         toolsRoot.querySelector('#back').click();
         await tick();
         root.querySelector('[data-target=network]').click();

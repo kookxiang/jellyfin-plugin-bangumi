@@ -636,6 +636,26 @@
                                     <h3 class="bangumi-settings-subheading" id="parser-Torrent-heading">
                                         混合解析器设置
                                     </h3>
+                                    <bangumi-checkbox class="checkboxContainer checkboxContainer-withDescription">
+                                        <input
+                                            aria-labelledby="AllowCrossSubjectEpisodeMatching-label"
+                                            aria-describedby="AllowCrossSubjectEpisodeMatching-description"
+                                            slot="control"
+                                            id="AllowCrossSubjectEpisodeMatching"
+                                            type="checkbox" />
+                                        <label slot="label" for="AllowCrossSubjectEpisodeMatching">
+                                            <span id="AllowCrossSubjectEpisodeMatching-label">
+                                                允许跨季度匹配普通剧集
+                                            </span>
+                                            <span
+                                                class="fieldDescription"
+                                                id="AllowCrossSubjectEpisodeMatching-description">
+                                                当集号超出当前 Bangumi 条目的范围时，尝试从前传或续集条目匹配。
+                                                适用于同目录的多季分割放送，默认关闭。开启后，单集可能与所属季度的
+                                                Bangumi 条目不同。 此设置独立于“根据前传/续集关系推导季号”。
+                                            </span>
+                                        </label>
+                                    </bangumi-checkbox>
                                     <div class="bangumi-tab-container">
                                         <h3 class="bangumi-tool-title">文件排除正则表达式</h3>
                                         <div class="fieldDescription">

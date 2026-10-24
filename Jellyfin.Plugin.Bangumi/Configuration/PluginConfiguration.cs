@@ -83,6 +83,8 @@ public class PluginConfiguration : BasePluginConfiguration
 
     public EpisodeParserType EpisodeParser { get; set; } = EpisodeParserType.Basic;
 
+    public bool AllowCrossSubjectEpisodeMatching { get; set; } = false;
+
     public bool AlwaysReplaceEpisodeNumber { get; set; }
 
     public bool ProcessMultiSeasonFolder { get; set; } = false;
