@@ -756,11 +756,24 @@ document.querySelector('#run').onclick = async () => {
         tool.querySelector('#scan').click();
         await tick();
         assert(tool.querySelectorAll('.relation-row').length === 2, '关系扫描跨批次保留异常和未能校验项');
-        assert(tool.querySelectorAll('.missing-series').length === 1, '关系扫描按季度跨批次合并');
+        assert(tool.querySelectorAll('.relation-group').length === 1, '关系扫描按季度跨批次合并');
         assert(
-            tool.querySelector('[role=status]').textContent.includes('关系不一致 1 项，未能校验 1 项'),
+            tool.querySelector('#mismatch-count').textContent === '1' &&
+                tool.querySelector('#unverified-count').textContent === '1',
             '关系扫描区分异常和查询失败',
         );
+        const relationRow = tool.querySelector('.relation-row');
+        assert(
+            !relationRow.open && !relationRow.querySelector('.relation-detail').getClientRects().length,
+            '默认折叠路径和说明',
+        );
+        relationRow.querySelector('summary').click();
+        assert(
+            relationRow.open && relationRow.querySelector('.relation-detail').getClientRects().length,
+            '展开后显示文件与核对链接',
+        );
+        relationRow.querySelector('summary').click();
+        assert(!relationRow.open, '核对后可以收起详情');
         assert(
             tool.querySelector('a[href="https://bgm.tv/subject/200"]').target === '_blank',
             '实际所属条目可打开核对',
