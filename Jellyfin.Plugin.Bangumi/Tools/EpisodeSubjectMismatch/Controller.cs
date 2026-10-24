@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -76,7 +77,8 @@ public class Controller(ILibraryManager library, BangumiApi api, Logger<Controll
 
             var season = (item.SeasonId == Guid.Empty ? null : library.GetItemById(item.SeasonId)) as Season
                 ?? item.GetParent() as Season;
-            int.TryParse(season?.GetProviderId(Constants.ProviderName), out var subjectId);
+            var subjectId = int.TryParse(season?.GetProviderId(Constants.ProviderName), out var savedSubjectId)
+                ? savedSubjectId : 0;
             var row = new MismatchItem
             {
                 Id = item.Id, Name = item.Name, Path = item.Path, SeriesId = item.SeriesId,
@@ -148,7 +150,7 @@ public class ScanResult
     public int CheckedCount { get; set; }
     public int SkippedCount { get; set; }
     public int? NextStartIndex { get; set; }
-    public List<MismatchItem> Items { get; } = [];
+    public Collection<MismatchItem> Items { get; } = [];
 }
 
 public class MismatchItem
