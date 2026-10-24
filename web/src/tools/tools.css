@@ -219,3 +219,19 @@ section {
 .missing-series h4 {
     margin: 0;
 }
+
+.relation-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.relation-row > div {
+    flex: 1;
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.relation-row a {
+    color: var(--jf-palette-primary-main, #00a4dc);
+}

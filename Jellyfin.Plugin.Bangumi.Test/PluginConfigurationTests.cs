@@ -8,6 +8,17 @@ namespace Jellyfin.Plugin.Bangumi.Test;
 public class PluginConfigurationTests
 {
     [TestMethod]
+    public void CrossSubjectMatchingRequiresOptInIncludingExistingConfigurations()
+    {
+        Assert.IsFalse(new PluginConfiguration().AllowCrossSubjectEpisodeMatching);
+        var serializer = new System.Xml.Serialization.XmlSerializer(typeof(PluginConfiguration));
+        using var legacy = new StringReader("<PluginConfiguration><EpisodeParser>Torrent</EpisodeParser></PluginConfiguration>");
+        Assert.IsFalse(((PluginConfiguration)serializer.Deserialize(legacy)!).AllowCrossSubjectEpisodeMatching);
+        using var optedIn = new StringReader("<PluginConfiguration><AllowCrossSubjectEpisodeMatching>true</AllowCrossSubjectEpisodeMatching></PluginConfiguration>");
+        Assert.IsTrue(((PluginConfiguration)serializer.Deserialize(optedIn)!).AllowCrossSubjectEpisodeMatching);
+    }
+
+    [TestMethod]
     public void PreferAnimeSearchIsEnabledByDefault()
     {
         var configuration = new PluginConfiguration();
