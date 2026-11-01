@@ -6,14 +6,12 @@ using System.Threading;
 using System.Threading.Tasks;
 using Jellyfin.Plugin.Bangumi.Configuration;
 using Jellyfin.Plugin.Bangumi.OAuth;
-using Jellyfin.Plugin.Bangumi.Parser.AnitomyParser;
-using Jellyfin.Plugin.Bangumi.Parser.BasicParser;
-using Jellyfin.Plugin.Bangumi.Parser.TorrentParser;
 using Jellyfin.Plugin.Bangumi.Providers;
 using Jellyfin.Plugin.Bangumi.Test.Mock;
 using Jellyfin.Plugin.Bangumi.Test.Util;
 using MediaBrowser.Controller.Library;
 using MediaBrowser.Controller.Providers;
+using Microsoft.Extensions.Logging;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using TvSeason = MediaBrowser.Controller.Entities.TV.Season;
 using TvSeries = MediaBrowser.Controller.Entities.TV.Series;
@@ -193,9 +191,7 @@ public class SeasonDetectionTests
     private EpisodeProvider CreateEpisodeProvider(BangumiApi api) => new(api,
         ServiceLocator.GetService<Logger<EpisodeProvider>>(), _library,
         ServiceLocator.GetService<IMediaSourceManager>(),
-        ServiceLocator.GetService<Logger<AnitomyEpisodeParser>>(),
-        ServiceLocator.GetService<Logger<BasicEpisodeParser>>(),
-        ServiceLocator.GetService<Logger<TorrentEpisodeParser>>());
+        ServiceLocator.GetService<ILoggerFactory>());
 
     public enum RelationFailure { Http, Timeout, InvalidJson, Cancel }
 
