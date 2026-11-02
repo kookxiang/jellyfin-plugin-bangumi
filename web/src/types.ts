@@ -2,6 +2,7 @@
 export interface ApiClient {
     getUrl(path: string, params?: Record<string, unknown>): string;
     fetch(options: { url: string; type?: string; data?: Record<string, unknown> }): Promise<Response>;
+    setRequestHeaders(headers: Record<string, string>): void;
     [method: string]: any;
 }
 export interface Dashboard {
@@ -12,6 +13,7 @@ export interface Dashboard {
     [method: string]: any;
 }
 export interface Services {
+    readonly signal?: AbortSignal;
     api: ApiClient;
     dashboard: Dashboard;
 }

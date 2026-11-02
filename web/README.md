@@ -109,3 +109,12 @@ Directory numbering preview lives in `components/episode-preview.ts`; editor lay
 Plugin section changes use `history.pushState`, preserving Jellyfin route parameters and history metadata. Tool detail URLs add `tool=duplicates`, `tool=fix-metadata`, or `tool=missing-id`; reload restores the tool but does not rerun scans. Browser back/forward restores the matching section/tool. The tool back button uses its preceding catalogue entry when available; direct links return to the catalogue without leaving plugin settings.
 
 Media-library browsing lists at most 20 series per page. Indexed library filtering and ordinary pagination run in Jellyfin's database; only the returned page is checked for `bangumi.ini`. Physical subdirectories load through `MediaLibrary/Folders/{seriesId}` when entering a series, with 20 directories per page. Configuration and preview requests carry the owning `seriesId` to avoid rebuilding the whole library. Name/path/subdirectory searches use index metadata within the selected library, then enrich only the resulting page. Libraries without an indexed ID retain location-based filtering.
+
+The episode/season subject check uses an authenticated, request-scoped SSE scan.
+It reuses `ApiClient.setRequestHeaders` with native `fetch`: older injected clients
+buffer `text/*` responses and do not forward `AbortSignal`. Progress carries
+cumulative counts and only newly found rows; a `complete` event is required for
+success. Stop, tool removal, and host page hiding abort the request and its server
+lookups. Interrupted scans retain visible results and do not reconnect or restart
+automatically. The server still reads the library in bounded pages and disables
+response/proxy buffering for the stream.

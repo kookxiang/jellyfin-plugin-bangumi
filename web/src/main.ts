@@ -56,7 +56,7 @@ export class JellyfinPluginBangumi extends HTMLElement {
             }
         }
         const tools = container.querySelector<import('./tools/index.ts').BangumiTools>('bangumi-tools');
-        tools.services = { api: this.#host.api, dashboard: services.dashboard };
+        tools.services = this.#host;
         const initialTool = this.getAttribute('tool');
         if (initialTool) {
             container.querySelector('.bangumi-settings-nav-item.active').classList.remove('active');

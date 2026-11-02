@@ -2,6 +2,7 @@ export function createHost(services: import('./types.ts').Services, root: Shadow
     const client = services.api;
     const dashboard = services.dashboard;
     let generation = 0;
+    let lifetime = new AbortController();
     const modules = [
         'account',
         'network',
@@ -38,6 +39,9 @@ export function createHost(services: import('./types.ts').Services, root: Shadow
         },
     });
     return {
+        get signal() {
+            return lifetime.signal;
+        },
         api,
         dashboard,
         modules,
@@ -45,6 +49,8 @@ export function createHost(services: import('./types.ts').Services, root: Shadow
         supportsField: () => true,
         suspend: () => {
             generation++;
+            lifetime.abort();
+            lifetime = new AbortController();
         },
         dialogHelper: {
             createDialog({ id }) {

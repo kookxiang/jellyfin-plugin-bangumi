@@ -1,22 +1,24 @@
-using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Net;
 using System.Net.Http;
-using System.Threading;
+using System.Net;
+using System.Text.Json;
 using System.Threading.Tasks;
+using System.Threading;
+using System;
 using Jellyfin.Plugin.Bangumi.OAuth;
 using Jellyfin.Plugin.Bangumi.Test.Mock;
 using Jellyfin.Plugin.Bangumi.Test.Util;
 using Jellyfin.Plugin.Bangumi.Tools.EpisodeSubjectMismatch;
 using MediaBrowser.Controller.Entities;
-using TvSeason = MediaBrowser.Controller.Entities.TV.Season;
 using MediaBrowser.Controller.Providers;
 using MediaBrowser.Model.Entities;
 using MediaBrowser.Model.Querying;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using TvSeason = MediaBrowser.Controller.Entities.TV.Season;
 using ScanController = Jellyfin.Plugin.Bangumi.Tools.EpisodeSubjectMismatch.Controller;
 using TvEpisode = MediaBrowser.Controller.Entities.TV.Episode;
 
@@ -174,6 +176,77 @@ public class EpisodeSubjectMismatchTests
         }
     }
 
+    [TestMethod]
+    public async Task StreamSendsCumulativeProgressAcrossPagesWithoutRepeatingItems()
+    {
+        for (var index = 0; index < 53; index++) AddEpisode(index % 2 == 0 ? 200 : 100);
+        using var body = new MemoryStream();
+        _controller.ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext() };
+        _controller.Response.Body = body;
+        await _controller.Scan();
+        Assert.AreEqual("text/event-stream; charset=utf-8", _controller.Response.ContentType);
+        Assert.AreEqual("no", _controller.Response.Headers["X-Accel-Buffering"].ToString());
+        var events = ReadEvents(body);
+        Assert.AreEqual("complete", events.Last().Kind);
+        Assert.AreEqual(53, events.Last().Data.GetProperty("ScannedCount").GetInt32());
+        Assert.AreEqual(53, events.Last().Data.GetProperty("CheckedCount").GetInt32());
+        var ids = events.SelectMany(entry => entry.Data.GetProperty("Items").EnumerateArray())
+            .Select(item => item.GetProperty("Id").GetString()).ToList();
+        Assert.AreEqual(27, ids.Count);
+        Assert.AreEqual(27, ids.Distinct().Count());
+        Assert.IsTrue(events.Where(entry => entry.Kind == "progress")
+            .Select(entry => entry.Data.GetProperty("ScannedCount").GetInt32()).SequenceEqual(
+                events.Where(entry => entry.Kind == "progress")
+                    .Select(entry => entry.Data.GetProperty("ScannedCount").GetInt32()).Order()));
+    }
+
+    [TestMethod]
+    public async Task StreamDeliversResultsBeforePageEndsAndCancellationStopsLookups()
+    {
+        AddEpisode(200);
+        AddEpisode(200);
+        AddEpisode(200);
+        using var cancellation = new CancellationTokenSource();
+        using var body = new MemoryStream();
+        _controller.ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext() };
+        _controller.Response.Body = body;
+        _api.BeforeRequest = () =>
+        {
+            if (_api.Requests != 2) return;
+            var events = ReadEvents(body);
+            Assert.IsTrue(events.Any(entry => entry.Data.GetProperty("Items").GetArrayLength() == 1),
+                "The first result must be flushed before the second lookup finishes.");
+            cancellation.Cancel();
+        };
+        await _controller.Scan(cancellationToken: cancellation.Token);
+        Assert.AreEqual(2, _api.Requests);
+        Assert.IsFalse(ReadEvents(body).Any(entry => entry.Kind == "complete"));
+    }
+
+    [TestMethod]
+    public async Task StreamRejectsUnknownLibraryBeforeOpeningAndReportsTraversalFailure()
+    {
+        _controller.ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext() };
+        Assert.IsInstanceOfType<BadRequestObjectResult>(await _controller.Scan("unknown"));
+        Assert.IsNull(_controller.Response.ContentType);
+        using var body = new MemoryStream();
+        _controller.Response.Body = body;
+        _library.ItemsResultQuery = _ => throw new InvalidOperationException("Database unavailable");
+        await _controller.Scan();
+        var events = ReadEvents(body);
+        Assert.AreEqual("error", events.Last().Kind);
+        Assert.IsFalse(events.Any(entry => entry.Kind == "complete"));
+    }
+
+    private static List<(string Kind, JsonElement Data)> ReadEvents(MemoryStream body) =>
+        System.Text.Encoding.UTF8.GetString(body.ToArray()).Split("\n\n", StringSplitOptions.RemoveEmptyEntries)
+            .Select(frame =>
+            {
+                var lines = frame.Split('\n');
+                using var document = JsonDocument.Parse(lines[1][6..]);
+                return (lines[0][7..], document.RootElement.Clone());
+            }).ToList();
+
     private TvEpisode AddEpisode(int subjectId, int type = 0, string fileName = "01.mkv")
     {
         var id = Interlocked.Increment(ref _nextId);
@@ -198,6 +271,7 @@ public class EpisodeSubjectMismatchTests
     {
         public Dictionary<int, (int Subject, int Type)> Episodes { get; } = [];
         public int Requests { get; private set; }
+        public Action? BeforeRequest { get; set; }
         public int? FailId { get; set; }
         public CancellationTokenSource? Cancel { get; set; }
         public override HttpClient GetHttpClient(bool allowAutoRedirect = true) => new(new Handler(this));
@@ -207,6 +281,7 @@ public class EpisodeSubjectMismatchTests
             protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
             {
                 api.Requests++;
+                api.BeforeRequest?.Invoke();
                 if (api.Cancel is not null) await api.Cancel.CancelAsync();
                 cancellationToken.ThrowIfCancellationRequested();
                 var id = int.Parse(request.RequestUri!.Segments.Last());

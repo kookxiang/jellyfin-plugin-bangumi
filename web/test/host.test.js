@@ -39,7 +39,11 @@ test('host binds API methods to client and invalidates late reads when page hide
     const host = createHost({ api: client, dashboard: {} }, null);
     assert.equal(host.api.getUrl(), 'server');
     const request = host.api.getJSON();
+    const lifetime = host.signal;
     host.suspend();
+    assert.equal(lifetime.aborted, true);
+    assert.notEqual(host.signal, lifetime);
+    assert.equal(host.signal.aborted, false);
     resolve({ stale: true });
     await assert.rejects(request, { name: 'AbortError' });
     const next = host.api.getJSON();

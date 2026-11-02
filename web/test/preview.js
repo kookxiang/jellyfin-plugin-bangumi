@@ -41,6 +41,76 @@ const existingSections = [
     { Selector: '*.mkv', Id: 0, Offset: 7, Report: false, Skip: false, CorrectIndex: true, Type: 'Special' },
 ];
 const report = document.querySelector('#report');
+const nativeFetch = window.fetch.bind(window);
+let scanSignal;
+window.fetch = async (input, options) => {
+    const url = String(input);
+    if (!url.includes('Tools/EpisodeSubjectMismatch/Scan?')) return nativeFetch(input, options);
+    toolCalls.push({ url, type: 'GET', headers: options.headers });
+    scanSignal = options.signal;
+    const scenario = relationScenario;
+    const encoder = new TextEncoder();
+    const frame = (event, data) => encoder.encode(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
+    const item = (index) => ({
+        Id: `relation-${index}`,
+        Name: index ? '无法校验的剧集' : '第十三集',
+        SeriesName: '测试动画',
+        SeasonName: '第一季',
+        SeasonId: 'relation-season',
+        Path: '/media/Show/Season 1/13.mkv',
+        EpisodeBangumiId: 123,
+        SeasonBangumiId: 100,
+        ActualSubjectId: index ? null : 200,
+        Status: index ? 'Unverified' : 'Mismatch',
+        Reason: index ? '查询失败，请重试' : '归属不同',
+    });
+    let timer;
+    const stream = new ReadableStream({
+        start(controller) {
+            controller.enqueue(
+                frame('progress', {
+                    ScannedCount: 20,
+                    TotalItemCount: 40,
+                    CheckedCount: 20,
+                    SkippedCount: 0,
+                    Items: [item(0)],
+                }),
+            );
+            timer = setTimeout(
+                () => {
+                    if (scenario === 'failure') {
+                        controller.enqueue(frame('error', { Message: '模拟查询失败' }));
+                    } else {
+                        controller.enqueue(
+                            frame('progress', {
+                                ScannedCount: 40,
+                                TotalItemCount: 40,
+                                CheckedCount: 39,
+                                SkippedCount: 0,
+                                Items: [item(1)],
+                            }),
+                        );
+                        controller.enqueue(
+                            frame('complete', {
+                                ScannedCount: 40,
+                                TotalItemCount: 40,
+                                CheckedCount: 39,
+                                SkippedCount: 0,
+                                Items: [],
+                            }),
+                        );
+                    }
+                    controller.close();
+                },
+                scenario === 'slow' ? 1000 : 5,
+            );
+        },
+        cancel() {
+            clearTimeout(timer);
+        },
+    });
+    return new Response(stream, { headers: { 'Content-Type': 'text/event-stream' } });
+};
 const services = {
     api: {
         getPluginConfiguration: async () => {
@@ -51,6 +121,9 @@ const services = {
             saved = value;
         },
         getUrl: (path) => path,
+        setRequestHeaders: (headers) => {
+            headers.Authorization = 'MediaBrowser mock';
+        },
         getScheduledTasks: async () => [{ Id: 'archive-task', Key: 'ArchiveDataDownloadTask', Category: 'Bangumi' }],
         getCurrentUserId: () => 'test-user',
         getCurrentUser: async () => ({ Id: 'test-user', Name: '测试用户' }),
@@ -124,31 +197,6 @@ const services = {
             if (url.includes('Tools/EpisodeSubjectMismatch/')) {
                 toolCalls.push({ url, data, type });
                 if (url.endsWith('/Libraries')) return new Response(JSON.stringify([{ Id: 'anime', Name: '动漫' }]));
-                const start = Number(new URL(url, location.origin).searchParams.get('startIndex'));
-                if (relationScenario === 'failure' && start > 0) return new Response('模拟查询失败', { status: 503 });
-                const item = {
-                    Id: `relation-${start}`,
-                    Name: start ? '无法校验的剧集' : '第十三集',
-                    SeriesName: '测试动画',
-                    SeasonName: '第一季',
-                    SeasonId: 'relation-season',
-                    Path: '/media/Show/Season 1/13.mkv',
-                    EpisodeBangumiId: 123,
-                    SeasonBangumiId: 100,
-                    ActualSubjectId: start ? null : 200,
-                    Status: start ? 'Unverified' : 'Mismatch',
-                    Reason: start ? '查询失败，请重试' : '普通集实际所属的 Bangumi 条目与季度不同',
-                };
-                return new Response(
-                    JSON.stringify({
-                        ScannedCount: 20,
-                        TotalItemCount: 40,
-                        CheckedCount: start ? 19 : 20,
-                        SkippedCount: 0,
-                        NextStartIndex: start ? null : 20,
-                        Items: [item],
-                    }),
-                );
             }
             if (url.includes('Tools/MissingTitle/')) {
                 toolCalls.push({ url, data });
@@ -756,6 +804,11 @@ document.querySelector('#run').onclick = async () => {
             tool.querySelector('#recent-only').checked && tool.querySelector('#skip-specials').checked,
             '关系扫描两个选项默认勾选',
         );
+        assert(
+            tool.querySelectorAll('.relation-filters bangumi-checkbox').length === 2 &&
+                tool.querySelector('#recent-only').closest('bangumi-checkbox').shadowRoot,
+            '关系扫描复用自有 Checkbox 组件',
+        );
         tool.querySelector('#library').value = 'anime';
         tool.querySelector('#scan').click();
         await tick();
@@ -788,11 +841,9 @@ document.querySelector('#run').onclick = async () => {
         );
         assert(
             toolCalls.some((call) =>
-                call.url.includes(
-                    'EpisodeSubjectMismatch/Items?startIndex=20&limit=20&recentOnly=true&skipSpecials=true&libraryId=anime',
-                ),
+                call.url.includes('EpisodeSubjectMismatch/Scan?recentOnly=true&skipSpecials=true&libraryId=anime'),
             ),
-            '关系扫描分页并保留媒体库筛选',
+            '关系扫描使用 SSE 并保留媒体库筛选',
         );
         assert(
             toolCalls
@@ -810,11 +861,9 @@ document.querySelector('#run').onclick = async () => {
         await tick();
         assert(
             toolCalls.some((call) =>
-                call.url.includes(
-                    'EpisodeSubjectMismatch/Items?startIndex=20&limit=20&recentOnly=false&skipSpecials=false&libraryId=anime',
-                ),
+                call.url.includes('EpisodeSubjectMismatch/Scan?recentOnly=false&skipSpecials=false&libraryId=anime'),
             ),
-            '取消两个筛选后每一批都传递选项',
+            '取消两个筛选后传递扫描选项',
         );
         tool.querySelector('#skip-specials').click();
         assert(!tool.querySelector('#results').children.length, '改变特别篇筛选清除旧结果');
@@ -826,19 +875,35 @@ document.querySelector('#run').onclick = async () => {
                 tool.querySelector('[role=status]').textContent.includes('扫描未完成'),
             '关系扫描部分失败保留结果并提示未完成',
         );
-        relationScenario = 'normal';
+        relationScenario = 'slow';
         tool.querySelector('#scan').click();
+        await tick();
+        assert(tool.querySelectorAll('.relation-row').length === 1, '扫描结束前即时展示异常结果');
         tool.querySelector('#stop').click();
         await tick();
         assert(
             tool.querySelector('[role=status]').textContent.includes('扫描已停止') &&
+                scanSignal.aborted &&
                 tool.querySelectorAll('.relation-row').length === 1,
-            '关系扫描可在当前批次结束时停止并保留结果',
+            '关系扫描立即取消事件流并保留结果',
         );
         tool.querySelector('#library').dispatchEvent(new Event('change'));
         assert(!tool.querySelector('#results').children.length, '切换媒体库清除旧扫描结果');
+        tool.querySelector('#scan').click();
+        await tick();
+        const hiddenSignal = scanSignal;
+        document.querySelector('#page').dispatchEvent(new Event('viewhide'));
+        await tick();
+        assert(hiddenSignal.aborted, '宿主缓存页面隐藏时取消事件流');
+        document.querySelector('#page').dispatchEvent(new Event('viewshow'));
+        await tick();
+        tool.querySelector('#scan').click();
+        await tick();
+        const leavingSignal = scanSignal;
         toolsRoot.querySelector('#back').click();
         await tick();
+        assert(leavingSignal.aborted, '离开工具页面取消事件流');
+        relationScenario = 'normal';
         root.querySelector('[data-target=network]').click();
         assert(root.querySelector('.submit-button-container').hidden, '返回未修改设置不显示保存');
         dirtyField.click();
