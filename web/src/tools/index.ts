@@ -4,6 +4,7 @@ import './duplicates.ts';
 import './fix-metadata.ts';
 import './missing-id.ts';
 import './missing-title.ts';
+import './episode-subject-mismatch.ts';
 import styles from './tools.css?raw';
 import { type ToolElement } from './tool.ts';
 import type { Services } from '../types.ts';
@@ -23,6 +24,11 @@ const tools = [
         tag: 'bangumi-tool-missing-title',
         title: '补全视频标题',
         description: '扫描已有 Bangumi ID 但仍使用文件名的视频，批量刷新新番元数据。',
+    },
+    {
+        tag: 'bangumi-tool-episode-subject-mismatch',
+        title: '检查剧集与季度的条目关系',
+        description: '核对普通集实际所属的 Bangumi 条目，找出与季度 ID 不一致的项目。',
     },
 ];
 export class BangumiTools extends HTMLElement {

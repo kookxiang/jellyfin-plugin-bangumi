@@ -18,6 +18,8 @@ public class RelatedPerson
 #if EMBY
     private static readonly Dictionary<string, PersonEntityType> RelationMap = new()
     {
+        // Emby has no Author type; keep the original credit in Role.
+        ["原作"] = PersonEntityType.Writer,
         ["导演"] = PersonEntityType.Director,
         ["制片人"] = PersonEntityType.Producer,
         ["系列构成"] = PersonEntityType.Composer,
@@ -26,6 +28,7 @@ public class RelatedPerson
 #else
     private static readonly Dictionary<string, PersonKind> RelationMap = new()
     {
+        ["原作"] = PersonKind.Author,
         ["导演"] = PersonKind.Director,
         ["制片人"] = PersonKind.Producer,
         ["系列构成"] = PersonKind.Composer,
@@ -56,6 +59,7 @@ public class RelatedPerson
         {
             Name = Name,
             Type = type,
+            Role = Relation,
             ImageUrl = DefaultImage
         };
         info.ProviderIds.Add(Constants.ProviderName, $"{Id}");

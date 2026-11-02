@@ -254,6 +254,9 @@ namespace Jellyfin.Plugin.Bangumi.Parser.TorrentParser
         /// <returns>匹配的剧集，如果未找到则返回 null</returns>
         private static async Task<Model.Episode?> GetSplitCourEpisode<T>(EpisodeParserContext context, Logger<T> log, double episodeIndex, EpisodeType? type, int subjectId, Model.Episode[] allEpisodes)
         {
+            if (!context.Configuration.AllowCrossSubjectEpisodeMatching || allEpisodes.Length == 0)
+                return null;
+
             var minOrder = allEpisodes.Min(x => x.Order);
             var maxOrder = allEpisodes.Max(x => x.Order);
             // 如果集号不在剧集列表的范围内，可能是分割放送

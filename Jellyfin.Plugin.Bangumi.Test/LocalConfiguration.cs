@@ -102,7 +102,8 @@ public class LocalConfigurationTestCases
         Assert.IsTrue(second.Report);
 
         await config.SaveTo(path);
-        StringAssert.Contains(await File.ReadAllTextAsync(path), "[Section.1]\nSelector=[某字幕组][**].mp4");
+        var saved = (await File.ReadAllTextAsync(path)).Replace("\r\n", "\n").Replace("\r", "\n");
+        StringAssert.Contains(saved, "[Section.1]\nSelector=[某字幕组][**].mp4");
         var reloaded = new LocalConfiguration();
         await reloaded.ReadFrom(path);
         Assert.AreEqual(26, reloaded.ResolveOffset(firstFile));
