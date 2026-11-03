@@ -36,28 +36,28 @@ public static class LocalConfigurationHelper
     }
 
     /// <summary>
-    /// 获取本地配置中的系列 ID
+    ///     取文件所属季的 Bangumi 条目 ID
+    ///     向上找外包着它的季（季里套季）；都找不到才退回系列的条目。
     /// </summary>
-    /// <param name="localConfiguration"></param>
-    /// <param name="info"></param>
-    /// <param name="libraryManager"></param>
-    /// <returns></returns>
+    /// <param name="localConfiguration">路径上的本地配置</param>
+    /// <param name="info">剧集信息</param>
+    /// <param name="libraryManager">媒体库</param>
+    /// <returns>Bangumi 条目 ID，取不到返回 0</returns>
     public static int GetSeriesId(LocalConfiguration localConfiguration, EpisodeInfo info, ILibraryManager libraryManager)
     {
         if (localConfiguration.Id != 0)
             // Using local configuration ID {Id} for series ID
             return localConfiguration.Id;
 
-        var seriesId = 0;
         var parent = libraryManager.FindByPath(Path.GetDirectoryName(info.Path)!, true);
-        if (parent is Season && int.TryParse(parent.ProviderIds.GetValueOrDefault(Constants.ProviderName), out var seasonId))
-            // Using parent season ID {SeasonId} for series ID
-            seriesId = seasonId;
-        if (seriesId == 0 && int.TryParse(info.SeriesProviderIds?.GetValueOrDefault(Constants.ProviderName), out seriesId))
-            // Using series provider ID {SeriesId} for series ID
-            return seriesId;
+        if (parent is not null)
+            foreach (var season in parent.GetParents().Prepend(parent).OfType<Season>())
+                if (TryGetSubjectId(season, out var seasonId))
+                    return seasonId;
 
-        return seriesId;
+        return int.TryParse(info.SeriesProviderIds?.GetValueOrDefault(Constants.ProviderName), out var seriesId) ? seriesId : 0;
+
+        static bool TryGetSubjectId(Season season, out int subjectId) =>
+            int.TryParse(season.ProviderIds.GetValueOrDefault(Constants.ProviderName), out subjectId) && subjectId > 0;
     }
-
 }

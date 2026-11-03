@@ -169,7 +169,8 @@ public class SeasonDetectionTests
     private static SeasonInfo SeasonInfoFor(int subjectId) => new()
     {
         Path = FakePath.Create("relation-season-" + Guid.NewGuid()),
-        ProviderIds = new() { [Constants.ProviderName] = subjectId.ToString() }
+        ProviderIds = new() { [Constants.ProviderName] = subjectId.ToString() },
+        SeriesProviderIds = new() { [Constants.ProviderName] = subjectId.ToString() }
     };
 
     private EpisodeInfo EpisodeInfoFor(int subjectId)

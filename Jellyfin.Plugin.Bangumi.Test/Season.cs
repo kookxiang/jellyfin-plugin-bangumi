@@ -171,7 +171,8 @@ public class Season
         var result = await _provider.GetMetadata(new SeasonInfo
         {
             Path = seasonPath,
-            ProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "170689" } }
+            ProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "170689" } },
+            SeriesProviderIds = new Dictionary<string, string> { { Constants.ProviderName, "25834" } }
         },
             _token);
         Assert.IsTrue(result.HasMetadata, "should return metadata when folder name contains season");

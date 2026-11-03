@@ -125,7 +125,7 @@ public class Subject
         get
         {
             var dateStr = InfoBox?.Get("播放结束");
-            if (dateStr != null && DateTime.TryParseExact(dateStr, "yyyy年MM月dd日", CultureInfo.GetCultureInfo("zh-CN"), DateTimeStyles.None, out var date))
+            if (dateStr != null && DateTime.TryParseExact(dateStr, ["yyyy年M月d日", "yyyy年MM月dd日"], CultureInfo.GetCultureInfo("zh-CN"), DateTimeStyles.None, out var date))
                 return date;
             return null;
         }
