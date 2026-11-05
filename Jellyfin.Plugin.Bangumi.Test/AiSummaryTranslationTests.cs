@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
@@ -132,7 +133,112 @@ public class AiSummaryTranslationTests
         fixture.Configuration.Providers[0].ApiKey = "changed-test-token";
         await fixture.Translate();
         await fixture.Translator.TryTranslateSummaryAsync(Request with { SourceText = Japanese + "！" }, CancellationToken.None);
-        Assert.AreEqual(6, fixture.Calls);
+        Assert.AreEqual(5, fixture.Calls);
+    }
+
+    [TestMethod]
+    public async Task FileCacheSurvivesRestartAndDoesNotExpireOrIncreaseUsage()
+    {
+        MockedApplicationPaths paths;
+        string file;
+        using (var first = new Fixture())
+        {
+            paths = first.Paths;
+            Assert.AreEqual("少年和伙伴们一起踏上冒险旅程。", await first.Translate());
+            file = Directory.GetFiles(first.CacheDirectory, "*.txt").Single();
+            Assert.AreEqual(64, Path.GetFileNameWithoutExtension(file).Length);
+            Assert.AreEqual("少年和伙伴们一起踏上冒险旅程。", await File.ReadAllTextAsync(file));
+            Assert.IsFalse(Directory.EnumerateFiles(first.CacheDirectory, "*.tmp").Any());
+        }
+        File.SetLastWriteTimeUtc(file, DateTime.UtcNow.AddYears(-2));
+        using var restarted = new Fixture((_, _) => throw new AssertFailedException("A persisted cache hit must not call the model."), paths);
+        Assert.AreEqual("少年和伙伴们一起踏上冒险旅程。", await restarted.Translator.TryTranslateSummaryAsync(
+            Request with { SubjectId = 456 }, CancellationToken.None));
+        Assert.AreEqual(0, restarted.Calls);
+        Assert.AreEqual(1L, (await restarted.Statistics.GetAsync()).Rows.Single().Calls);
+    }
+
+    [TestMethod]
+    public async Task FileCacheIsReusedAfterProviderRenameCredentialRotationAndPriceChange()
+    {
+        using var first = new Fixture();
+        first.Configuration.Providers[0].ApiKey = "first-test-credential";
+        await first.Translate();
+        using var restarted = new Fixture(paths: first.Paths);
+        var provider = restarted.Configuration.Providers[0];
+        provider.Id = "new-id";
+        provider.Name = "new-name";
+        provider.ApiKey = "second-test-credential";
+        provider.Pricing.Input = 2;
+        restarted.Configuration.SummaryTranslation.ProviderId = provider.Id;
+        Assert.AreEqual("少年和伙伴们一起踏上冒险旅程。", await restarted.Translate());
+        Assert.AreEqual(0, restarted.Calls);
+        Assert.AreEqual(1, Directory.GetFiles(restarted.CacheDirectory, "*.txt").Length);
+    }
+
+    [DataTestMethod]
+    [DataRow("source")]
+    [DataRow("prompt")]
+    [DataRow("model")]
+    [DataRow("endpoint")]
+    [DataRow("context")]
+    public async Task ChangedTranslationInputsDoNotReusePersistedResult(string change)
+    {
+        using var first = new Fixture();
+        await first.Translate();
+        using var restarted = new Fixture(paths: first.Paths);
+        var request = Request;
+        switch (change)
+        {
+            case "source": request = request with { SourceText = Japanese + "！" }; break;
+            case "prompt": restarted.Configuration.SummaryTranslation.Prompt += "\nUse Traditional Chinese."; break;
+            case "model": restarted.Configuration.Providers[0].Model = "new-model"; break;
+            case "endpoint": restarted.Configuration.Providers[0].Endpoint = "http://other.test/v1"; break;
+            case "context": request = request with { LocalizedTitle = "另一译名" }; break;
+        }
+        Assert.IsNotNull(await restarted.Translator.TryTranslateSummaryAsync(request, CancellationToken.None));
+        Assert.AreEqual(1, restarted.Calls);
+        Assert.AreEqual(2, Directory.GetFiles(restarted.CacheDirectory, "*.txt").Length);
+    }
+
+    [DataTestMethod]
+    [DataRow("")]
+    [DataRow("```json\n{}\n```")]
+    [DataRow("<think>Reasoning</think>")]
+    public async Task UnusableFileCacheIsReplacedWithAValidTranslation(string invalid)
+    {
+        using var first = new Fixture();
+        await first.Translate();
+        var file = Directory.GetFiles(first.CacheDirectory, "*.txt").Single();
+        await File.WriteAllTextAsync(file, invalid);
+        using var restarted = new Fixture(paths: first.Paths);
+        Assert.AreEqual("少年和伙伴们一起踏上冒险旅程。", await restarted.Translate());
+        Assert.AreEqual(1, restarted.Calls);
+        Assert.AreEqual("少年和伙伴们一起踏上冒险旅程。", await File.ReadAllTextAsync(file));
+    }
+
+    [TestMethod]
+    public async Task OversizedFileCacheIsIgnored()
+    {
+        using var first = new Fixture();
+        await first.Translate();
+        var file = Directory.GetFiles(first.CacheDirectory, "*.txt").Single();
+        await File.WriteAllTextAsync(file, new string('a', 129 * 1024));
+        using var restarted = new Fixture(paths: first.Paths);
+        Assert.IsNotNull(await restarted.Translate());
+        Assert.AreEqual(1, restarted.Calls);
+    }
+
+    [TestMethod]
+    public async Task FileCacheReadAndWriteFailureKeepsTranslatedResultAndMemoryCache()
+    {
+        using var fixture = new Fixture();
+        Directory.CreateDirectory(Path.GetDirectoryName(fixture.CacheDirectory)!);
+        // A file in place of the cache directory deterministically blocks I/O on every platform.
+        await File.WriteAllTextAsync(fixture.CacheDirectory, "blocked");
+        Assert.AreEqual("少年和伙伴们一起踏上冒险旅程。", await fixture.Translate());
+        Assert.AreEqual("少年和伙伴们一起踏上冒险旅程。", await fixture.Translate());
+        Assert.AreEqual(1, fixture.Calls);
     }
 
     [TestMethod]
@@ -178,6 +284,7 @@ public class AiSummaryTranslationTests
         Assert.IsNull(await fixture.Translate());
         Assert.IsNull(await fixture.Translate());
         Assert.AreEqual(1, fixture.Calls);
+        Assert.IsFalse(Directory.Exists(fixture.CacheDirectory), "Unusable model output must not be persisted.");
     }
 
     [TestMethod]
@@ -240,14 +347,18 @@ public class AiSummaryTranslationTests
     private sealed class Fixture : IDisposable
     {
         private readonly HttpClient _http;
+        public MockedApplicationPaths Paths { get; }
         public AiConfiguration Configuration { get; } = new();
-        public AiStatisticsStore Statistics { get; } = new(new MockedApplicationPaths(FakePath.Create("summary-" + Guid.NewGuid())));
+        public AiStatisticsStore Statistics { get; }
+        public string CacheDirectory => Path.Join(Paths.DataPath, "bangumi", "ai-summary-cache", "v1");
         public AiSummaryTranslator Translator { get; }
         public int Calls;
         public string? LastPrompt { get; private set; }
 
-        public Fixture(Func<HttpRequestMessage, CancellationToken, Task<string>>? send = null)
+        public Fixture(Func<HttpRequestMessage, CancellationToken, Task<string>>? send = null, MockedApplicationPaths? paths = null)
         {
+            Paths = paths ?? new MockedApplicationPaths(FakePath.Create("summary-" + Guid.NewGuid()));
+            Statistics = new AiStatisticsStore(Paths);
             Configuration.Providers.Add(new AiProviderConfiguration { Id = "provider", Endpoint = "http://model.test/v1", Model = "test-model" });
             Configuration.SummaryTranslation.Enabled = true;
             Configuration.SummaryTranslation.ProviderId = "provider";
@@ -264,7 +375,7 @@ public class AiSummaryTranslationTests
                 };
             }));
             Translator = new AiSummaryTranslator(new AiProviderClient(_http, Statistics, NullLogger<AiProviderClient>.Instance),
-                NullLogger<AiSummaryTranslator>.Instance, () => Configuration);
+                NullLogger<AiSummaryTranslator>.Instance, Paths, () => Configuration);
         }
 
         public Task<string?> Translate() => Translator.TryTranslateSummaryAsync(Request, CancellationToken.None);

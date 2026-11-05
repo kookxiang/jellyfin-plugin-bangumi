@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Net.Http;
 using System.Security.Cryptography;
@@ -10,6 +11,7 @@ using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using Jellyfin.Plugin.Bangumi.Configuration;
+using MediaBrowser.Common.Configuration;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 
@@ -29,18 +31,20 @@ public sealed class AiSummaryTranslator : IAiSummaryTranslator, IDisposable
     private readonly AiProviderClient _client;
     private readonly ILogger<AiSummaryTranslator> _logger;
     private readonly Func<AiConfiguration> _configuration;
+    private readonly string _cacheDirectory;
     private readonly MemoryCache _cache = new(new MemoryCacheOptions { SizeLimit = 8 * 1024 * 1024 });
     private readonly ConcurrentDictionary<string, Lazy<Task<string?>>> _pending = new();
     private readonly SemaphoreSlim _gate = new(2, 2);
 
-    public AiSummaryTranslator(AiProviderClient client, ILogger<AiSummaryTranslator> logger)
-        : this(client, logger, () => Plugin.Instance!.Configuration.Ai) { }
+    public AiSummaryTranslator(AiProviderClient client, ILogger<AiSummaryTranslator> logger, IApplicationPaths paths)
+        : this(client, logger, paths, () => Plugin.Instance!.Configuration.Ai) { }
 
-    internal AiSummaryTranslator(AiProviderClient client, ILogger<AiSummaryTranslator> logger, Func<AiConfiguration> configuration)
+    internal AiSummaryTranslator(AiProviderClient client, ILogger<AiSummaryTranslator> logger, IApplicationPaths paths, Func<AiConfiguration> configuration)
     {
         _client = client;
         _logger = logger;
         _configuration = configuration;
+        _cacheDirectory = Path.Join(paths.DataPath, "bangumi", "ai-summary-cache", "v1");
     }
 
     public async Task<string?> TryTranslateSummaryAsync(SummaryTranslationRequest request, CancellationToken token)
@@ -58,10 +62,10 @@ public sealed class AiSummaryTranslator : IAiSummaryTranslator, IDisposable
         var prompt = RenderPrompt(feature.Prompt, request);
         if (prompt == null || prompt.Length > 32000) return null;
 
-        // Hash every output-affecting input, including credentials, without retaining them in cache keys.
+        // Reuse across subjects and credential/provider renames. Only the model request determines the result.
         var key = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(JsonSerializer.Serialize(new
         {
-            provider.Id, provider.Endpoint, provider.Model, provider.Format, provider.ApiKey, prompt
+            provider.Endpoint, provider.Model, provider.Format, prompt
         }))));
         if (_cache.TryGetValue(key, out string? cached)) return cached;
         var pending = _pending.GetOrAdd(key, _ => new Lazy<Task<string?>>(() => TranslateAsync(key, provider, prompt, request.SubjectId)));
@@ -75,6 +79,9 @@ public sealed class AiSummaryTranslator : IAiSummaryTranslator, IDisposable
         string? text = null;
         try
         {
+            // Disk hits survive memory eviction and server restarts without consuming a model slot.
+            text = await ReadFileCacheAsync(key, timeout.Token);
+            if (text != null) return text;
             await _gate.WaitAsync(timeout.Token);
             try
             {
@@ -85,10 +92,12 @@ public sealed class AiSummaryTranslator : IAiSummaryTranslator, IDisposable
                     return text;
                 }
                 var result = await _client.SendAsync(provider, prompt, timeout.Token, 4096);
-                if (IsUsable(result.Text)) text = result.Text.ToMarkdown();
+                var translated = result.Text.ToMarkdown();
+                if (IsUsable(translated)) text = translated;
                 else _logger.LogWarning("AI summary translation returned unusable text for subject {SubjectId}.", subjectId);
             }
             finally { _gate.Release(); }
+            if (text != null) await WriteFileCacheAsync(key, text, timeout.Token);
         }
         catch (Exception error) when (error is HttpRequestException or OperationCanceledException or JsonException
             or ArgumentException or InvalidOperationException or OverflowException)
@@ -106,6 +115,51 @@ public sealed class AiSummaryTranslator : IAiSummaryTranslator, IDisposable
             _pending.TryRemove(key, out _);
         }
         return text;
+    }
+
+    private async Task<string?> ReadFileCacheAsync(string key, CancellationToken token)
+    {
+        try
+        {
+            var path = Path.Join(_cacheDirectory, key + ".txt");
+            if (new FileInfo(path).Length > 128 * 1024) return null;
+            var text = await File.ReadAllTextAsync(path, token);
+            return IsUsable(text) ? text : null;
+        }
+        catch (Exception error) when (error is FileNotFoundException or DirectoryNotFoundException)
+        {
+            return null;
+        }
+        catch (Exception error) when (error is IOException or UnauthorizedAccessException)
+        {
+            _logger.LogWarning("AI summary file cache could not be read ({ErrorType}).", error.GetType().Name);
+            return null;
+        }
+    }
+
+    private async Task WriteFileCacheAsync(string key, string text, CancellationToken token)
+    {
+        var temporaryPath = Path.Join(_cacheDirectory, key + "." + Guid.NewGuid().ToString("N") + ".tmp");
+        try
+        {
+            Directory.CreateDirectory(_cacheDirectory);
+            // Store only the validated translation. Atomic replacement prevents partial cache hits.
+            await File.WriteAllTextAsync(temporaryPath, text, token);
+            File.Move(temporaryPath, Path.Join(_cacheDirectory, key + ".txt"), true);
+        }
+        catch (Exception error) when (error is IOException or UnauthorizedAccessException or OperationCanceledException)
+        {
+            // A failed cache write must not discard a successful, billable translation.
+            _logger.LogWarning("AI summary file cache could not be saved ({ErrorType}); using translated summary.", error.GetType().Name);
+        }
+        finally
+        {
+            try { File.Delete(temporaryPath); }
+            catch (Exception error) when (error is IOException or UnauthorizedAccessException)
+            {
+                _logger.LogWarning("AI summary file cache temporary file could not be cleaned up ({ErrorType}).", error.GetType().Name);
+            }
+        }
     }
 
     internal static string? RenderPrompt(string template, SummaryTranslationRequest request)
