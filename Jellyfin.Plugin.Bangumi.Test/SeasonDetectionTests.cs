@@ -188,7 +188,8 @@ public class SeasonDetectionTests
     }
 
     private SeasonProvider CreateSeasonProvider(BangumiApi api) =>
-        new(api, ServiceLocator.GetService<Logger<SeasonProvider>>(), _library);
+        new(api, ServiceLocator.GetService<Logger<SeasonProvider>>(), _library,
+            ServiceLocator.GetService<Bangumi.AI.IAiSummaryTranslator>());
 
     private EpisodeProvider CreateEpisodeProvider(BangumiApi api) => new(api,
         ServiceLocator.GetService<Logger<EpisodeProvider>>(), _library,

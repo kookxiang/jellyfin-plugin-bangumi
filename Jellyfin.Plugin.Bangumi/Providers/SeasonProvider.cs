@@ -6,6 +6,7 @@ using System.Net.Http;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
+using Jellyfin.Plugin.Bangumi.AI;
 using Jellyfin.Plugin.Bangumi.Configuration;
 using Jellyfin.Plugin.Bangumi.Model;
 using Jellyfin.Plugin.Bangumi.Parser.AnitomyParser;
@@ -17,7 +18,7 @@ using MediaBrowser.Model.Providers;
 
 namespace Jellyfin.Plugin.Bangumi.Providers;
 
-public class SeasonProvider(BangumiApi api, Logger<SeasonProvider> log, ILibraryManager libraryManager)
+public class SeasonProvider(BangumiApi api, Logger<SeasonProvider> log, ILibraryManager libraryManager, IAiSummaryTranslator translator)
     : IRemoteMetadataProvider<Season, SeasonInfo>, IHasOrder
 {
     private static PluginConfiguration Configuration => Plugin.Instance!.Configuration;
@@ -147,7 +148,7 @@ public class SeasonProvider(BangumiApi api, Logger<SeasonProvider> log, ILibrary
         if (subject == null)
             return result;
 
-        FillSeasonMetadata(result, subject);
+        await FillSeasonMetadata(result, subject, cancellationToken);
 
         if (info.IndexNumber != null)
         {
@@ -175,7 +176,7 @@ public class SeasonProvider(BangumiApi api, Logger<SeasonProvider> log, ILibrary
         return result;
     }
 
-    private static void FillSeasonMetadata(MetadataResult<Season> result, Subject subject)
+    private async Task FillSeasonMetadata(MetadataResult<Season> result, Subject subject, CancellationToken cancellationToken)
     {
         result.Item = new Season();
         result.HasMetadata = true;
@@ -188,7 +189,9 @@ public class SeasonProvider(BangumiApi api, Logger<SeasonProvider> log, ILibrary
             result.Item.OriginalTitle = subject.OriginalName;
         }
 
-        result.Item.Overview = string.IsNullOrEmpty(subject.Summary) ? null : subject.Summary;
+        result.Item.Overview = await translator.TryTranslateSummaryAsync(
+            new SummaryTranslationRequest(subject.Id, subject.Summary, subject.OriginalName, subject.ChineseName), cancellationToken)
+            ?? (string.IsNullOrEmpty(subject.Summary) ? null : subject.Summary);
         result.Item.Tags = subject.PopularTags.ToArray();
         result.Item.Genres = subject.GenreTags.ToArray();
 
@@ -218,7 +221,7 @@ public class SeasonProvider(BangumiApi api, Logger<SeasonProvider> log, ILibrary
         if (subject == null)
             return result;
 
-        FillSeasonMetadata(result, subject);
+        await FillSeasonMetadata(result, subject, cancellationToken);
         result.Item.IndexNumber = info.IndexNumber;
         return result;
     }

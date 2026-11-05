@@ -4,6 +4,7 @@ using System.Linq;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
+using Jellyfin.Plugin.Bangumi.AI;
 using Jellyfin.Plugin.Bangumi.Configuration;
 using Jellyfin.Plugin.Bangumi.Model;
 using Jellyfin.Plugin.Bangumi.Utils;
@@ -14,7 +15,7 @@ using MediaBrowser.Model.Providers;
 
 namespace Jellyfin.Plugin.Bangumi.Providers;
 
-public class BookProvider(BangumiApi api)
+public class BookProvider(BangumiApi api, IAiSummaryTranslator translator)
     : IRemoteMetadataProvider<Book, BookInfo>, IHasOrder
 {
     private static PluginConfiguration Configuration => Plugin.Instance!.Configuration;
@@ -41,7 +42,9 @@ public class BookProvider(BangumiApi api)
         result.Item.CommunityRating = subject.Rating?.Score;
         result.Item.Name = subject.Name;
         result.Item.OriginalTitle = subject.OriginalName;
-        result.Item.Overview = string.IsNullOrEmpty(subject.Summary) ? null : subject.Summary;
+        result.Item.Overview = await translator.TryTranslateSummaryAsync(
+            new SummaryTranslationRequest(subject.Id, subject.Summary, subject.OriginalName, subject.ChineseName), cancellationToken)
+            ?? (string.IsNullOrEmpty(subject.Summary) ? null : subject.Summary);
         result.Item.Tags = subject.PopularTags.ToArray();
         result.Item.Genres = subject.GenreTags.ToArray();
 

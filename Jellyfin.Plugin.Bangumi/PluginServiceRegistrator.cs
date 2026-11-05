@@ -16,6 +16,7 @@ public class PluginServiceRegistrator : IPluginServiceRegistrator
     {
         serviceCollection.AddScoped(typeof(Logger<>));
         serviceCollection.AddSingleton<AiStatisticsStore>();
+        serviceCollection.AddSingleton<IAiSummaryTranslator, AiSummaryTranslator>();
         serviceCollection.AddHttpClient<AiProviderClient>(client =>
         {
             client.Timeout = TimeSpan.FromSeconds(60);

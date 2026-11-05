@@ -20,21 +20,12 @@ public class AiProviderClient(HttpClient client, AiStatisticsStore statistics, I
     public Task<AiResult> TestAsync(AiProviderConfiguration provider, CancellationToken token)
         => SendAsync(provider, TestMessage, token);
 
-    public async Task<AiResult> SendAsync(AiProviderConfiguration provider, string prompt, CancellationToken token)
+    public async Task<AiResult> SendAsync(AiProviderConfiguration provider, string prompt, CancellationToken token, int maxOutputTokens = 1024)
     {
         // Snapshot prices and identity before the asynchronous request starts.
-        provider = new AiProviderConfiguration
-        {
-            Id = provider.Id, Name = provider.Name, Endpoint = provider.Endpoint, Model = provider.Model,
-            ApiKey = provider.ApiKey, Format = provider.Format,
-            Pricing = new AiPricingConfiguration
-            {
-                Input = provider.Pricing?.Input, Output = provider.Pricing?.Output,
-                CachedInput = provider.Pricing?.CachedInput, CacheCreation = provider.Pricing?.CacheCreation
-            }
-        };
+        provider = Snapshot(provider);
         AiCostCalculator.Validate(provider.Pricing);
-        using var request = CreateRequest(provider, prompt);
+        using var request = CreateRequest(provider, prompt, maxOutputTokens);
         token.ThrowIfCancellationRequested();
         AiUsage? usage = null;
         try
@@ -63,6 +54,8 @@ public class AiProviderClient(HttpClient client, AiStatisticsStore statistics, I
 
             using var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync(token));
             usage = AiUsage.Read(provider.Format, json.RootElement);
+            if (IsTruncated(provider.Format, json.RootElement))
+                throw new InvalidOperationException("模型回复超过输出限制，已放弃不完整内容。");
             var text = ReadText(provider.Format, json.RootElement);
             if (string.IsNullOrWhiteSpace(text))
                 throw new InvalidOperationException("接口返回成功，但没有可读取的文本回复。");
@@ -79,7 +72,18 @@ public class AiProviderClient(HttpClient client, AiStatisticsStore statistics, I
         }
     }
 
-    private static HttpRequestMessage CreateRequest(AiProviderConfiguration provider, string prompt)
+    internal static AiProviderConfiguration Snapshot(AiProviderConfiguration provider) => new()
+    {
+        Id = provider.Id, Name = provider.Name, Endpoint = provider.Endpoint, Model = provider.Model,
+        ApiKey = provider.ApiKey, Format = provider.Format,
+        Pricing = new AiPricingConfiguration
+        {
+            Input = provider.Pricing?.Input, Output = provider.Pricing?.Output,
+            CachedInput = provider.Pricing?.CachedInput, CacheCreation = provider.Pricing?.CacheCreation
+        }
+    };
+
+    private static HttpRequestMessage CreateRequest(AiProviderConfiguration provider, string prompt, int maxOutputTokens)
     {
         if (string.IsNullOrWhiteSpace(provider.Model))
             throw new ArgumentException("请填写 Model。", nameof(provider));
@@ -92,8 +96,8 @@ public class AiProviderClient(HttpClient client, AiStatisticsStore statistics, I
         object body = provider.Format switch
         {
             "OpenAI" => new { model, messages, stream = false },
-            "Responses" => new { model, input = prompt, store = false, stream = false, max_output_tokens = 1024 },
-            "Anthropic" => new { model, messages, stream = false, max_tokens = 256 },
+            "Responses" => new { model, input = prompt, store = false, stream = false, max_output_tokens = maxOutputTokens },
+            "Anthropic" => new { model, messages, stream = false, max_tokens = maxOutputTokens },
             _ => throw new ArgumentException("不支持的接口格式。", nameof(provider))
         };
         var request = new HttpRequestMessage(HttpMethod.Post, endpoint)
@@ -107,6 +111,19 @@ public class AiProviderClient(HttpClient client, AiStatisticsStore statistics, I
         }
         if (provider.Format == "Anthropic") request.Headers.Add("anthropic-version", "2023-06-01");
         return request;
+    }
+
+    private static bool IsTruncated(string format, JsonElement root)
+    {
+        if (root.ValueKind != JsonValueKind.Object) return false;
+        if (format == "OpenAI" && root.TryGetProperty("choices", out var choices)
+            && choices.ValueKind == JsonValueKind.Array && choices.GetArrayLength() > 0
+            && choices[0].ValueKind == JsonValueKind.Object && choices[0].TryGetProperty("finish_reason", out var reason))
+            return reason.ValueKind == JsonValueKind.String && reason.GetString() is "length" or "content_filter";
+        if (format == "Anthropic" && root.TryGetProperty("stop_reason", out var stop))
+            return stop.ValueKind == JsonValueKind.String && stop.GetString() is "max_tokens" or "refusal";
+        return format == "Responses" && root.TryGetProperty("status", out var status)
+            && status.ValueKind == JsonValueKind.String && status.GetString() != "completed";
     }
 
     internal static Uri BuildEndpoint(string endpoint, string format)

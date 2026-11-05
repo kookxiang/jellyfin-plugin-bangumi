@@ -5,6 +5,7 @@ using System.Linq;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
+using Jellyfin.Plugin.Bangumi.AI;
 using Jellyfin.Plugin.Bangumi.Configuration;
 using Jellyfin.Plugin.Bangumi.Utils;
 using MediaBrowser.Controller.Entities.Movies;
@@ -15,7 +16,7 @@ using Jellyfin.Plugin.Bangumi.Parser.AnitomyParser;
 
 namespace Jellyfin.Plugin.Bangumi.Providers;
 
-public class MovieProvider(BangumiApi api, Logger<MovieProvider> log)
+public class MovieProvider(BangumiApi api, Logger<MovieProvider> log, IAiSummaryTranslator translator)
     : IRemoteMetadataProvider<Movie, MovieInfo>, IHasOrder
 {
     private static PluginConfiguration Configuration => Plugin.Instance!.Configuration;
@@ -91,7 +92,9 @@ public class MovieProvider(BangumiApi api, Logger<MovieProvider> log)
         result.Item.CommunityRating = subject.Rating?.Score;
         result.Item.Name = subject.Name;
         result.Item.OriginalTitle = subject.OriginalName;
-        result.Item.Overview = string.IsNullOrEmpty(subject.Summary) ? null : subject.Summary;
+        result.Item.Overview = await translator.TryTranslateSummaryAsync(
+            new SummaryTranslationRequest(subject.Id, subject.Summary, subject.OriginalName, subject.ChineseName), cancellationToken)
+            ?? (string.IsNullOrEmpty(subject.Summary) ? null : subject.Summary);
         result.Item.Tags = subject.PopularTags.ToArray();
         result.Item.Genres = subject.GenreTags.ToArray();
         result.Item.HomePageUrl = subject.OfficialWebSite;

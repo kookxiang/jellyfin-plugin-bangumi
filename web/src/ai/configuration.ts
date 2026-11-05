@@ -44,7 +44,8 @@ export const features = [
     {
         key: 'SummaryTranslation',
         name: '简介翻译',
-        description: '将作品简介翻译为 Prompt 中指定的语言。',
+        description:
+            '刮削时在本地筛选外文简介，再翻译为 Prompt 中指定的语言。已有明显中文段落（含 [简介原文] 双语简介）时保留原文；纯汉字等无法确定语言的内容可能跳过。失败时保留原文。',
         variables: ['source_text', 'original_title', 'localized_title'],
         requiredVariable: 'source_text',
         prompt: '请将以下作品简介翻译为简体中文。\n作品原名：{{original_title}}\n已知译名：{{localized_title}}\n仅翻译原文，不增加剧情，不附加解释，保留原有段落。\n\n原文：\n{{source_text}}',
