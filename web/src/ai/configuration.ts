@@ -29,6 +29,7 @@ export interface AiFeature {
 }
 
 export interface AiConfiguration {
+    CacheDurationDays: number;
     Providers: AiProvider[];
     SummaryTranslation: AiFeature;
     FallbackTitle: AiFeature;
@@ -61,7 +62,12 @@ export const features = [
 ] as const;
 
 export function normalizeConfiguration(value?: Partial<AiConfiguration>): AiConfiguration {
-    const result = { ...value, Providers: structuredClone(value?.Providers || []) } as AiConfiguration;
+    const days = value?.CacheDurationDays;
+    const result = {
+        ...value,
+        CacheDurationDays: Number.isInteger(days) && days >= 0 && days <= 36500 ? days : 0,
+        Providers: structuredClone(value?.Providers || []),
+    } as AiConfiguration;
     for (const feature of features) {
         const { TargetLanguage, ...saved } = (value?.[feature.key] || {}) as Partial<AiFeature> & {
             TargetLanguage?: string;

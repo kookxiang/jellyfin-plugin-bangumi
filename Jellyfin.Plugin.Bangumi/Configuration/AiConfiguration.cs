@@ -6,6 +6,9 @@ namespace Jellyfin.Plugin.Bangumi.Configuration;
 
 public class AiConfiguration
 {
+    /// <summary>Successful translation lifetime in days. Zero means permanent.</summary>
+    public int CacheDurationDays { get; set; }
+
     public List<AiProviderConfiguration> Providers { get; set; } = [];
 
     public AiFeatureConfiguration SummaryTranslation { get; set; } = new()

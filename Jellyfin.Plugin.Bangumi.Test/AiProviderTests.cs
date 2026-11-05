@@ -98,7 +98,8 @@ public class AiProviderTests
         }));
         using var httpClient = new HttpClient(handler);
         using var statistics = CreateStore();
-        var controller = new AiController(CreateClient(httpClient, statistics), statistics);
+        var controller = new AiController(CreateClient(httpClient, statistics), statistics,
+            ServiceLocator.GetService<IAiSummaryTranslator>());
         var result = (OkObjectResult)await controller.Test(new AiProviderConfiguration { Model = "test-model" }, CancellationToken.None);
         var body = JsonSerializer.SerializeToElement(result.Value);
         Assert.IsFalse(body.GetProperty("Success").GetBoolean());
@@ -109,7 +110,7 @@ public class AiProviderTests
     [TestMethod]
     public void AiConfigurationRoundTripsThroughPluginXmlWithStableReferences()
     {
-        var configuration = new AiConfiguration();
+        var configuration = new AiConfiguration { CacheDurationDays = 30 };
         configuration.Providers.Add(new AiProviderConfiguration { Id = "stable-id", Name = "Local", Endpoint = "http://localhost/v1", Model = "test", Format = "Responses", Pricing = new AiPricingConfiguration { Input = 1.25m, Output = 0m } });
         configuration.SummaryTranslation.ProviderId = "stable-id";
         configuration.SummaryTranslation.Prompt = "Custom {{source_text}}";
@@ -118,6 +119,7 @@ public class AiProviderTests
         serializer.Serialize(writer, configuration);
         using var reader = new StringReader(writer.ToString());
         var restored = (AiConfiguration)serializer.Deserialize(reader)!;
+        Assert.AreEqual(30, restored.CacheDurationDays);
         Assert.AreEqual(restored.Providers[0].Id, restored.SummaryTranslation.ProviderId);
         Assert.AreEqual("Custom {{source_text}}", restored.SummaryTranslation.Prompt);
         Assert.AreEqual(1.25m, restored.Providers[0].Pricing.Input);
@@ -128,6 +130,14 @@ public class AiProviderTests
     }
 
     private static AiStatisticsStore CreateStore() => new(new MockedApplicationPaths(FakePath.Create("ai-" + Guid.NewGuid())));
+
+    [TestMethod]
+    public void MissingCacheLifetimeInOldConfigurationDefaultsToPermanent()
+    {
+        using var reader = new StringReader("<AiConfiguration />");
+        var configuration = (AiConfiguration)new XmlSerializer(typeof(AiConfiguration)).Deserialize(reader)!;
+        Assert.AreEqual(0, configuration.CacheDurationDays);
+    }
 
     [DataTestMethod]
     [DataRow("<TargetLanguage>日本語</TargetLanguage><Prompt>Translate {{source_text}} to {{ target_language }}.</Prompt>")]

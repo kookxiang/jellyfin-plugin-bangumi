@@ -47,6 +47,55 @@
         data-tab="ai-feature"
     >
         <div class="ai-feature-list"></div>
+        <section class="ai-cache-settings" aria-labelledby="ai-cache-heading">
+            <div class="ai-section-header">
+                <h3 id="ai-cache-heading">缓存设置</h3>
+                <bangumi-button variant="secondary"
+                    ><button type="button" data-action="ask-clear-cache">
+                        <span class="material-icons" aria-hidden="true">delete_sweep</span>清理缓存
+                    </button></bangumi-button
+                >
+            </div>
+            <div class="ai-grid">
+                <div class="selectContainer">
+                    <label class="selectLabel" for="ai-cache-mode">缓存时间</label>
+                    <bangumi-select
+                        ><select id="ai-cache-mode" data-cache-mode data-config-ignore aria-describedby="ai-cache-help">
+                            <option value="0">永久</option>
+                            <option value="custom">自定义</option>
+                        </select></bangumi-select
+                    >
+                </div>
+                <div class="inputContainer" hidden>
+                    <label class="inputLabel" for="ai-cache-days">有效天数</label>
+                    <input
+                        id="ai-cache-days"
+                        data-cache-days
+                        data-config-ignore
+                        type="number"
+                        min="1"
+                        max="36500"
+                        step="1"
+                        required
+                        disabled
+                        aria-describedby="ai-cache-help"
+                    />
+                </div>
+            </div>
+            <p class="fieldDescription" id="ai-cache-help">
+                默认永久保存。自定义时间从翻译生成时起计算，保存设置后生效；命中缓存不消耗 Token。
+            </p>
+            <div class="ai-clear-confirm" data-cache-confirm hidden>
+                <p>清理全部 AI 翻译缓存？下次刷新元数据可能重新调用模型并产生费用。</p>
+                <bangumi-button variant="quiet"
+                    ><button type="button" data-action="cancel-clear-cache">取消</button></bangumi-button
+                >
+                <bangumi-button variant="danger"
+                    ><button type="button" data-action="clear-cache">确认清理</button></bangumi-button
+                >
+            </div>
+            <p class="ai-feedback" data-cache-feedback role="status"></p>
+        </section>
     </div>
     <div
         class="bangumi-tab-content"

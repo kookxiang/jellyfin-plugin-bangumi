@@ -14,6 +14,7 @@ using Jellyfin.Plugin.Bangumi.Test.Util;
 using MediaBrowser.Controller.Library;
 using MediaBrowser.Controller.Providers;
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace Jellyfin.Plugin.Bangumi.Test;
@@ -242,6 +243,88 @@ public class AiSummaryTranslationTests
     }
 
     [TestMethod]
+    public async Task ExpiredFileCacheIsTranslatedAgain()
+    {
+        using var first = new Fixture();
+        await first.Translate();
+        var file = Directory.GetFiles(first.CacheDirectory, "*.txt").Single();
+        File.SetLastWriteTimeUtc(file, DateTime.UtcNow.AddDays(-10));
+        using var restarted = new Fixture(paths: first.Paths);
+        restarted.Configuration.CacheDurationDays = 7;
+        Assert.IsNotNull(await restarted.Translate());
+        Assert.AreEqual(1, restarted.Calls);
+        Assert.IsTrue(File.GetLastWriteTimeUtc(file) > DateTime.UtcNow.AddMinutes(-1));
+    }
+
+    [TestMethod]
+    public async Task ShorteningLifetimeInvalidatesWarmMemoryWithoutRenewingFileAge()
+    {
+        using var first = new Fixture();
+        await first.Translate();
+        var file = Directory.GetFiles(first.CacheDirectory, "*.txt").Single();
+        File.SetLastWriteTimeUtc(file, DateTime.UtcNow.AddDays(-10));
+        var originalTime = File.GetLastWriteTimeUtc(file);
+        using var restarted = new Fixture(paths: first.Paths);
+        restarted.Configuration.CacheDurationDays = 30;
+        await restarted.Translate();
+        Assert.AreEqual(0, restarted.Calls);
+        Assert.AreEqual(originalTime, File.GetLastWriteTimeUtc(file));
+        restarted.Configuration.CacheDurationDays = 7;
+        await restarted.Translate();
+        Assert.AreEqual(1, restarted.Calls, "Saving a shorter lifetime must also invalidate memory hits.");
+    }
+
+    [TestMethod]
+    public async Task ClearCacheRemovesMemoryAndFilesWhileKeepingUsageStatistics()
+    {
+        using var fixture = new Fixture();
+        await fixture.Translate();
+        await fixture.Translator.ClearCacheAsync(CancellationToken.None);
+        Assert.IsFalse(Directory.Exists(fixture.CacheDirectory));
+        Assert.AreEqual(1L, (await fixture.Statistics.GetAsync()).Rows.Single().Calls);
+        await fixture.Translate();
+        Assert.AreEqual(2, fixture.Calls);
+        await fixture.Translator.ClearCacheAsync(CancellationToken.None);
+        await fixture.Translator.ClearCacheAsync(CancellationToken.None);
+        Assert.IsFalse(Directory.Exists(fixture.CacheDirectory));
+    }
+
+    [TestMethod]
+    public async Task ClearCachePreventsEarlierFlightFromRefillingOrBeingJoined()
+    {
+        var oldReply = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var requests = 0;
+        using var fixture = new Fixture((_, _) => Interlocked.Increment(ref requests) == 1
+            ? oldReply.Task : Task.FromResult(Fixture.Reply("清理后生成的新译文。")));
+        var old = fixture.Translate();
+        await fixture.Translator.ClearCacheAsync(CancellationToken.None);
+        Assert.AreEqual("清理后生成的新译文。", await fixture.Translate().WaitAsync(TimeSpan.FromSeconds(5)));
+        oldReply.SetResult(Fixture.Reply("清理前的旧译文。"));
+        Assert.AreEqual("清理前的旧译文。", await old);
+        Assert.AreEqual("清理后生成的新译文。", await fixture.Translate());
+        Assert.AreEqual(2, fixture.Calls);
+        using var restarted = new Fixture(paths: fixture.Paths);
+        Assert.AreEqual("清理后生成的新译文。", await restarted.Translate());
+        Assert.AreEqual(0, restarted.Calls);
+    }
+
+    [TestMethod]
+    public async Task ClearCacheControllerReportsSuccessAndSanitizedFileFailure()
+    {
+        using var fixture = new Fixture();
+        await fixture.Translate();
+        var controller = new AiController(null!, fixture.Statistics, fixture.Translator);
+        var result = (OkObjectResult)await controller.ClearCache(CancellationToken.None);
+        Assert.IsTrue(JsonSerializer.SerializeToElement(result.Value).GetProperty("Success").GetBoolean());
+        Directory.CreateDirectory(Path.GetDirectoryName(fixture.CacheDirectory)!);
+        await File.WriteAllTextAsync(fixture.CacheDirectory, "blocked");
+        result = (OkObjectResult)await controller.ClearCache(CancellationToken.None);
+        var failure = JsonSerializer.SerializeToElement(result.Value);
+        Assert.IsFalse(failure.GetProperty("Success").GetBoolean());
+        Assert.IsFalse(failure.GetProperty("Message").GetString()!.Contains(fixture.Paths.DataPath));
+    }
+
+    [TestMethod]
     public async Task ConcurrentRefreshesShareCallAndOneCancelledWaiterDoesNotCancelOthers()
     {
         var response = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -336,6 +419,7 @@ public class AiSummaryTranslationTests
 
     private sealed class StubTranslator(string? result) : IAiSummaryTranslator
     {
+        public Task ClearCacheAsync(CancellationToken token) => Task.CompletedTask;
         public SummaryTranslationRequest? LastRequest { get; private set; }
         public Task<string?> TryTranslateSummaryAsync(SummaryTranslationRequest request, CancellationToken token)
         {

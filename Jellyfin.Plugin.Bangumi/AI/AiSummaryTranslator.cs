@@ -23,6 +23,7 @@ public interface IAiSummaryTranslator
 {
     /// <summary>Returns null when disabled, unnecessary, or unsuccessful. Caller retains the source.</summary>
     Task<string?> TryTranslateSummaryAsync(SummaryTranslationRequest request, CancellationToken token);
+    Task ClearCacheAsync(CancellationToken token);
 }
 
 /// <summary>Optional metadata post-processing; never changes the source Bangumi objects or API cache.</summary>
@@ -33,7 +34,11 @@ public sealed class AiSummaryTranslator : IAiSummaryTranslator, IDisposable
     private readonly Func<AiConfiguration> _configuration;
     private readonly string _cacheDirectory;
     private readonly MemoryCache _cache = new(new MemoryCacheOptions { SizeLimit = 8 * 1024 * 1024 });
-    private readonly ConcurrentDictionary<string, Lazy<Task<string?>>> _pending = new();
+    private sealed record CachedSummary(string? Text, DateTimeOffset CreatedAt, long Generation);
+
+    private readonly ConcurrentDictionary<(string Key, long Generation), Lazy<Task<string?>>> _pending = new();
+    private readonly SemaphoreSlim _fileGate = new(1, 1);
+    private long _generation;
     private readonly SemaphoreSlim _gate = new(2, 2);
 
     public AiSummaryTranslator(AiProviderClient client, ILogger<AiSummaryTranslator> logger, IApplicationPaths paths)
@@ -67,64 +72,94 @@ public sealed class AiSummaryTranslator : IAiSummaryTranslator, IDisposable
         {
             provider.Endpoint, provider.Model, provider.Format, prompt
         }))));
-        if (_cache.TryGetValue(key, out string? cached)) return cached;
-        var pending = _pending.GetOrAdd(key, _ => new Lazy<Task<string?>>(() => TranslateAsync(key, provider, prompt, request.SubjectId)));
+        var generation = Interlocked.Read(ref _generation);
+        if (TryGetMemoryCache(key, generation, out var cached)) return cached!.Text;
+        var pending = _pending.GetOrAdd((key, generation), _ => new Lazy<Task<string?>>(() => TranslateAsync(key, generation, provider, prompt, request.SubjectId)));
         // A cancelled refresh stops waiting without cancelling another refresh sharing the same call.
         return await pending.Value.WaitAsync(token);
     }
 
-    private async Task<string?> TranslateAsync(string key, AiProviderConfiguration provider, string prompt, int subjectId)
+    private bool IsExpired(DateTimeOffset createdAt)
+    {
+        var days = _configuration().CacheDurationDays;
+        return days is > 0 and <= 36500 && DateTimeOffset.UtcNow - createdAt >= TimeSpan.FromDays(days);
+    }
+
+    private bool TryGetMemoryCache(string key, long generation, out CachedSummary? cached)
+    {
+        return _cache.TryGetValue(key, out cached) && cached != null && cached.Generation == generation
+            && (cached.Text == null ? DateTimeOffset.UtcNow - cached.CreatedAt < TimeSpan.FromMinutes(1) : !IsExpired(cached.CreatedAt));
+    }
+
+    private async Task<string?> TranslateAsync(string key, long generation, AiProviderConfiguration provider, string prompt, int subjectId)
     {
         using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(60));
-        string? text = null;
+        CachedSummary? entry = null;
         try
         {
-            // Disk hits survive memory eviction and server restarts without consuming a model slot.
-            text = await ReadFileCacheAsync(key, timeout.Token);
-            if (text != null) return text;
+            // Keep the original file timestamp when warming memory so reads do not renew its lifetime.
+            entry = await ReadFileCacheAsync(key, generation, timeout.Token);
+            if (entry != null) return entry.Text;
             await _gate.WaitAsync(timeout.Token);
             try
             {
-                // A previous flight may have completed between the caller's cache lookup and GetOrAdd.
-                if (_cache.TryGetValue(key, out string? cached))
+                if (TryGetMemoryCache(key, generation, out var cached))
                 {
-                    text = cached;
-                    return text;
+                    entry = cached;
+                    return entry!.Text;
                 }
                 var result = await _client.SendAsync(provider, prompt, timeout.Token, 4096);
                 var translated = result.Text.ToMarkdown();
-                if (IsUsable(translated)) text = translated;
+                if (IsUsable(translated)) entry = new CachedSummary(translated, DateTimeOffset.UtcNow, generation);
                 else _logger.LogWarning("AI summary translation returned unusable text for subject {SubjectId}.", subjectId);
             }
             finally { _gate.Release(); }
-            if (text != null) await WriteFileCacheAsync(key, text, timeout.Token);
+            if (entry != null) await WriteFileCacheAsync(key, entry, timeout.Token);
         }
         catch (Exception error) when (error is HttpRequestException or OperationCanceledException or JsonException
             or ArgumentException or InvalidOperationException or OverflowException)
         {
-            // Never log upstream bodies, prompts, endpoints, or credentials.
             _logger.LogWarning("AI summary translation failed for subject {SubjectId} ({ErrorType}); keeping original summary.", subjectId, error.GetType().Name);
         }
         finally
         {
-            _cache.Set(key, text, new MemoryCacheEntryOptions
-            {
-                AbsoluteExpirationRelativeToNow = text == null ? TimeSpan.FromMinutes(1) : TimeSpan.FromDays(7),
-                Size = 256 + (text?.Length ?? 0) * 2
-            });
-            _pending.TryRemove(key, out _);
+            entry ??= new CachedSummary(null, DateTimeOffset.UtcNow, generation);
+            if (generation == Interlocked.Read(ref _generation))
+                _cache.Set(key, entry, new MemoryCacheEntryOptions
+                {
+                    AbsoluteExpirationRelativeToNow = entry.Text == null ? TimeSpan.FromMinutes(1) : TimeSpan.FromDays(7),
+                    Size = 256 + (entry.Text?.Length ?? 0) * 2
+                });
+            _pending.TryRemove((key, generation), out _);
         }
-        return text;
+        return entry?.Text;
     }
 
-    private async Task<string?> ReadFileCacheAsync(string key, CancellationToken token)
+    public async Task ClearCacheAsync(CancellationToken token)
     {
+        await _fileGate.WaitAsync(token);
         try
         {
+            // Old flights can finish for their callers, but cannot refill cleared caches or be joined by new calls.
+            Interlocked.Increment(ref _generation);
+            _cache.Clear();
+            try { Directory.Delete(_cacheDirectory, true); }
+            catch (DirectoryNotFoundException) when (!File.Exists(_cacheDirectory)) { }
+        }
+        finally { _fileGate.Release(); }
+    }
+
+    private async Task<CachedSummary?> ReadFileCacheAsync(string key, long generation, CancellationToken token)
+    {
+        await _fileGate.WaitAsync(token);
+        try
+        {
+            if (generation != Interlocked.Read(ref _generation)) return null;
             var path = Path.Join(_cacheDirectory, key + ".txt");
-            if (new FileInfo(path).Length > 128 * 1024) return null;
+            var file = new FileInfo(path);
+            if (file.Length > 128 * 1024 || IsExpired(file.LastWriteTimeUtc)) return null;
             var text = await File.ReadAllTextAsync(path, token);
-            return IsUsable(text) ? text : null;
+            return IsUsable(text) ? new CachedSummary(text, file.LastWriteTimeUtc, generation) : null;
         }
         catch (Exception error) when (error is FileNotFoundException or DirectoryNotFoundException)
         {
@@ -135,21 +170,23 @@ public sealed class AiSummaryTranslator : IAiSummaryTranslator, IDisposable
             _logger.LogWarning("AI summary file cache could not be read ({ErrorType}).", error.GetType().Name);
             return null;
         }
+        finally { _fileGate.Release(); }
     }
 
-    private async Task WriteFileCacheAsync(string key, string text, CancellationToken token)
+    private async Task WriteFileCacheAsync(string key, CachedSummary entry, CancellationToken token)
     {
+        await _fileGate.WaitAsync(token);
         var temporaryPath = Path.Join(_cacheDirectory, key + "." + Guid.NewGuid().ToString("N") + ".tmp");
         try
         {
+            if (entry.Generation != Interlocked.Read(ref _generation)) return;
             Directory.CreateDirectory(_cacheDirectory);
-            // Store only the validated translation. Atomic replacement prevents partial cache hits.
-            await File.WriteAllTextAsync(temporaryPath, text, token);
+            await File.WriteAllTextAsync(temporaryPath, entry.Text, token);
+            File.SetLastWriteTimeUtc(temporaryPath, entry.CreatedAt.UtcDateTime);
             File.Move(temporaryPath, Path.Join(_cacheDirectory, key + ".txt"), true);
         }
         catch (Exception error) when (error is IOException or UnauthorizedAccessException or OperationCanceledException)
         {
-            // A failed cache write must not discard a successful, billable translation.
             _logger.LogWarning("AI summary file cache could not be saved ({ErrorType}); using translated summary.", error.GetType().Name);
         }
         finally
@@ -159,6 +196,7 @@ public sealed class AiSummaryTranslator : IAiSummaryTranslator, IDisposable
             {
                 _logger.LogWarning("AI summary file cache temporary file could not be cleaned up ({ErrorType}).", error.GetType().Name);
             }
+            _fileGate.Release();
         }
     }
 
@@ -224,5 +262,6 @@ public sealed class AiSummaryTranslator : IAiSummaryTranslator, IDisposable
     {
         _cache.Dispose();
         _gate.Dispose();
+        _fileGate.Dispose();
     }
 }

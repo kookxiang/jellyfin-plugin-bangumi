@@ -37,6 +37,8 @@ const toolCalls = [];
 const aiCalls = [];
 let aiStatistics = { UpdatedAt: null, Rows: [] };
 let aiClearCalls = 0;
+let aiCacheClearCalls = 0;
+let failAiCacheClear = false;
 let failAiStatistics = false;
 let directoryType;
 const report = document.querySelector('#report');
@@ -107,6 +109,16 @@ const services = {
                             : { Success: true, Text: '你好！这是模拟模型回复。', ElapsedMilliseconds: 128 },
                     ),
                     { status: 200 },
+                );
+            }
+            if (url.endsWith('/AI/Cache/Clear')) {
+                assert(type === 'POST', '清理缓存通过 POST 请求');
+                aiCacheClearCalls++;
+                await new Promise((resolve) => setTimeout(resolve, 20));
+                return new Response(
+                    JSON.stringify(
+                        failAiCacheClear ? { Success: false, Message: '模拟缓存清理失败' } : { Success: true },
+                    ),
                 );
             }
             if (url.endsWith('/AI/Statistics/Clear')) {
@@ -311,6 +323,41 @@ async function runAiChecks(root) {
     const saveBar = root.querySelector('.submit-button-container');
     root.querySelector('[data-target=ai]').click();
     const ai = root.querySelector('.bangumi-ai-settings');
+    const cache = ai.querySelector('.ai-cache-settings');
+    const cacheMode = cache.querySelector('[data-cache-mode]');
+    const cacheDays = cache.querySelector('[data-cache-days]');
+    assert(cacheMode.value === '0' && cacheDays.disabled, '缓存默认永久，禁用隐藏的天数校验');
+    cacheMode.value = 'custom';
+    cacheMode.dispatchEvent(new Event('change', { bubbles: true }));
+    assert(!cacheDays.disabled && !cacheDays.closest('.inputContainer').hidden, '自定义缓存时间显示天数');
+    cacheDays.value = '0';
+    assert(!cacheDays.validity.valid, '自定义缓存天数不能为零');
+    cacheDays.value = '30';
+    cacheDays.dispatchEvent(new Event('input', { bubbles: true }));
+    cache.querySelector('[data-action=ask-clear-cache]').click();
+    assert(!cache.querySelector('[data-cache-confirm]').hidden && aiCacheClearCalls === 0, '清理缓存先确认');
+    cache.querySelector('[data-action=cancel-clear-cache]').click();
+    assert(cache.querySelector('[data-cache-confirm]').hidden && aiCacheClearCalls === 0, '取消清理不发请求');
+    cache.querySelector('[data-action=ask-clear-cache]').click();
+    cache.querySelector('[data-action=clear-cache]').click();
+    cache.querySelector('[data-action=clear-cache]').click();
+    assert(cache.querySelector('[data-action=clear-cache]').disabled, '清理过程中禁用重复点击');
+    await tick();
+    assert(
+        aiCacheClearCalls === 1 && cache.querySelector('[data-cache-feedback]').textContent.includes('缓存已清理'),
+        '清理成功显示反馈',
+    );
+    failAiCacheClear = true;
+    cache.querySelector('[data-action=ask-clear-cache]').click();
+    cache.querySelector('[data-action=clear-cache]').click();
+    await tick();
+    assert(
+        aiCacheClearCalls === 2 &&
+            cache.querySelector('[data-cache-feedback]').textContent.includes('模拟缓存清理失败'),
+        '清理失败显示错误且不自动重试',
+    );
+    failAiCacheClear = false;
+    cache.querySelector('[data-action=cancel-clear-cache]').click();
     const summary = ai.querySelector('[data-feature=SummaryTranslation]');
     const expand = summary.querySelector('.ai-expand');
     const toggle = summary.querySelector('.ai-switch');
@@ -417,6 +464,7 @@ async function runAiChecks(root) {
         '功能和模型提供方关联正确保存',
     );
     assert(saved.Ai.SummaryTranslation.Prompt.startsWith('自定义'), 'Prompt 正确保存');
+    assert(saved.Ai.CacheDurationDays === 30, '缓存天数以数字保存');
     assert(
         saved.Ai.Providers[0].Pricing.CachedInput === 0.02 && saved.Ai.Providers[0].Pricing.CacheCreation === null,
         '可选价格正确保存',
@@ -464,12 +512,17 @@ document.querySelector('#run-ai').onclick = async () => {
         const ai = app.shadowRoot.querySelector('.bangumi-ai-settings');
         assert(ai.querySelector('.ai-switch').checked, '重载后保留功能开关');
         assert(
+            ai.querySelector('[data-cache-mode]').value === 'custom' &&
+                ai.querySelector('[data-cache-days]').value === '30',
+            '重载后恢复缓存时间',
+        );
+        assert(
             ai.querySelector('[data-feature=SummaryTranslation] [data-field=ProviderId]').value ===
                 saved.Ai.Providers[0].Id,
             '重载后恢复模型提供方关联',
         );
         report.textContent =
-            'PASS：AI 开关、折叠、模型提供方增删和改名、未保存配置测试、失败反馈、可选价格、用量统计、刷新和清零、Prompt 校验、保存和重载';
+            'PASS：缓存时间、清理确认/取消/去重/失败反馈、AI 开关、折叠、模型提供方增删和改名、未保存配置测试、失败反馈、可选价格、用量统计、刷新和清零、Prompt 校验、保存和重载';
     } catch (error) {
         report.textContent = 'FAIL：' + error.message;
     }

@@ -15,7 +15,7 @@ namespace Jellyfin.Plugin.Bangumi.AI;
 [ApiController]
 [Authorize(Policy = Policies.RequiresElevation)]
 [Route("Plugins/Bangumi/AI")]
-public class AiController(AiProviderClient client, AiStatisticsStore statistics) : ControllerBase
+public class AiController(AiProviderClient client, AiStatisticsStore statistics, IAiSummaryTranslator translator) : ControllerBase
 {
     [HttpPost("Test")]
     public async Task<IActionResult> Test([FromBody] AiProviderConfiguration provider, CancellationToken cancellationToken)
@@ -65,6 +65,20 @@ public class AiController(AiProviderClient client, AiStatisticsStore statistics)
         catch (Exception error) when (error is IOException or UnauthorizedAccessException)
         {
             return ProbeFailure("无法清零用量统计，请检查服务器数据目录权限。");
+        }
+    }
+
+    [HttpPost("Cache/Clear")]
+    public async Task<IActionResult> ClearCache(CancellationToken cancellationToken)
+    {
+        try
+        {
+            await translator.ClearCacheAsync(cancellationToken);
+            return Ok(new { Success = true });
+        }
+        catch (Exception error) when (error is IOException or UnauthorizedAccessException)
+        {
+            return ProbeFailure("缓存未完全清理，请检查服务器数据目录权限后重试。");
         }
     }
 

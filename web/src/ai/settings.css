@@ -9,12 +9,23 @@
     font-size: 0.875rem;
     margin-bottom: 24px;
 }
+.ai-cache-settings {
+    margin-top: 24px;
+    padding: 20px;
+}
+.ai-cache-settings h3 {
+    margin: 0;
+}
+.ai-cache-settings .ai-grid > div {
+    margin-bottom: 0;
+}
 .ai-feature-list,
 .ai-provider-list {
     display: grid;
     gap: 16px;
 }
-.ai-card {
+.ai-card,
+.ai-cache-settings {
     border: 1px solid var(--jf-palette-divider, rgba(128, 128, 128, 0.24));
     border-radius: 12px;
     overflow: hidden;

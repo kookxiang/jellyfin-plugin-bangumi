@@ -8,6 +8,7 @@ import {
     validatePrompt,
 } from './configuration.ts';
 import { createAiStatistics } from './statistics.ts';
+import { createAiCache } from './cache.ts';
 import type { AiConfiguration, AiFeature, AiProvider } from './configuration.ts';
 import type { ApiClient } from '../types.ts';
 
@@ -16,6 +17,7 @@ type Control = HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement;
 export function createAiSettings(root: HTMLElement, api: ApiClient) {
     root.innerHTML = template;
     const statistics = createAiStatistics(root, api);
+    const cache = createAiCache(root, api);
     let configuration = normalizeConfiguration();
     let generation = 0;
     const featureList = root.querySelector<HTMLElement>('.ai-feature-list');
@@ -24,7 +26,7 @@ export function createAiSettings(root: HTMLElement, api: ApiClient) {
     const value = (card: Element, name: string) => field(card, name).value;
 
     function collect(): AiConfiguration {
-        const next = { ...configuration };
+        const next = { ...configuration, CacheDurationDays: cache.collect() };
         next.Providers = [...providerList.children].map((card, index) => ({
             ...configuration.Providers[index],
             Name: value(card, 'Name'),
@@ -331,6 +333,10 @@ export function createAiSettings(root: HTMLElement, api: ApiClient) {
     root.addEventListener(
         'invalid',
         (event) => {
+            if ((event.target as HTMLElement).closest('.ai-cache-settings')) {
+                root.querySelector<HTMLButtonElement>('#ai-feature-tab').click();
+                return;
+            }
             const card = (event.target as HTMLElement).closest('.ai-card');
             if (!card) return;
             root.querySelector<HTMLButtonElement>(
@@ -346,6 +352,7 @@ export function createAiSettings(root: HTMLElement, api: ApiClient) {
         generation++;
         statistics.hide();
         configuration = normalizeConfiguration(value);
+        cache.load(configuration.CacheDurationDays);
         renderFeatures();
         renderProviders();
         root.querySelector('[data-provider-feedback]').textContent = '';
@@ -359,6 +366,7 @@ export function createAiSettings(root: HTMLElement, api: ApiClient) {
         hide: () => {
             generation++;
             statistics.hide();
+            cache.hide();
         },
     };
 }

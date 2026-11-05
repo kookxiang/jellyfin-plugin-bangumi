@@ -5,12 +5,20 @@ import { normalizeConfiguration, validatePrompt, features, providerUsage } from 
 test('old configurations start with AI features disabled and keep independent editable defaults', () => {
     const config = normalizeConfiguration();
     assert.deepEqual(config.Providers, []);
+    assert.equal(config.CacheDurationDays, 0);
     for (const feature of features) {
         assert.equal(config[feature.key].Enabled, false);
         assert.equal(validatePrompt(config[feature.key].Prompt, feature.variables, feature.requiredVariable), '');
     }
     config.SummaryTranslation.Prompt = 'custom';
     assert.notEqual(normalizeConfiguration().SummaryTranslation.Prompt, 'custom');
+});
+
+test('cache lifetime defaults to permanent and preserves valid custom days', () => {
+    for (const days of [undefined, null, -1, 1.5, 36501, '30'])
+        assert.equal(normalizeConfiguration({ CacheDurationDays: days }).CacheDurationDays, 0);
+    for (const days of [0, 1, 30, 36500])
+        assert.equal(normalizeConfiguration({ CacheDurationDays: days }).CacheDurationDays, days);
 });
 
 test('normalization preserves saved providers, disabled feature choices and additional settings', () => {
